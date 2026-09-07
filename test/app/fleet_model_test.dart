@@ -110,8 +110,11 @@ class _Wedged implements FleetBackend {
       throw UnimplementedError();
 
   @override
-  Future<(List<Agent>, Map<String, String>)> agentsOn() async =>
-      (const <Agent>[], const <String, String>{});
+  Future<AgentsOnTheMachine> agentsOn() async => (
+        agents: const <Agent>[],
+        failures: const <String, String>{},
+        shadowed: const <ShadowedAgent>[],
+      );
 
 }
 
@@ -228,8 +231,11 @@ class _Machine implements FleetBackend {
       throw UnimplementedError();
 
   @override
-  Future<(List<Agent>, Map<String, String>)> agentsOn() async =>
-      (const <Agent>[], const <String, String>{});
+  Future<AgentsOnTheMachine> agentsOn() async => (
+        agents: const <Agent>[],
+        failures: const <String, String>{},
+        shadowed: const <ShadowedAgent>[],
+      );
 
 }
 

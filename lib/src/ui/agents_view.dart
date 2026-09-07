@@ -9,11 +9,8 @@ import 'tokens.dart';
 ///
 /// It never names an agent this build knows about: the list is whatever the machine answered.
 ///
-/// **Shadowing is not shown, because it is not answered.** A copy of an agent shadowed by one in a
-/// more specific directory never reaches this list — the daemon resolves it first and answers one
-/// entry per name — and which copy lost is not on the wire. An earlier version of this view
-/// detected duplicate names and marked them, which was a state the contract cannot produce; the
-/// fixtures had been made to produce it, which is how it survived being tested.
+/// Three lists, and the last two are the ones nobody would go looking for: what is installed and
+/// unusable, and what is installed and permanently hidden by another copy.
 class AgentsView extends StatelessWidget {
   /// Constructor taking the inventory and how to close it.
   const AgentsView({required this.inventory, required this.onClose, super.key});
@@ -52,7 +49,9 @@ class AgentsView extends StatelessWidget {
                   padding: EdgeInsets.all(Space.normal),
                   child: Text('Asking the machine what it has…'),
                 )
-              else if (inventory.agents.isEmpty && inventory.failures.isEmpty)
+              else if (inventory.agents.isEmpty &&
+                  inventory.failures.isEmpty &&
+                  inventory.shadowed.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(Space.normal),
                   child: Text(
@@ -62,6 +61,32 @@ class AgentsView extends StatelessWidget {
                   ),
                 ),
               for (final agent in inventory.agents) _AgentRow(agent: agent),
+              if (inventory.shadowed.isNotEmpty) ...<Widget>[
+                const _Heading(words: 'Installed and never used'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      Space.normal, 0, Space.normal, Space.small),
+                  child: Text(
+                    'Another copy of the same file wins: the most specific directory is searched '
+                    'first. These are never started, so their version is not the one running.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                for (final hidden in inventory.shadowed)
+                  ListTile(
+                    dense: true,
+                    leading: Icon(Icons.layers_clear_outlined,
+                        size: Sizes.mark,
+                        color: Theme.of(context).colorScheme.tertiary),
+                    title: Text(hidden.path,
+                        key: const Key('agent-shadowed'),
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                    // The winner is named, never implied: "not in use" on its own leaves somebody
+                    // asking where to look.
+                    subtitle: Text('${hidden.usedInstead} runs instead',
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 11)),
+                  ),
+              ],
               if (inventory.failures.isNotEmpty) ...<Widget>[
                 const _Heading(words: 'Installed and unusable'),
                 Padding(
@@ -125,13 +150,76 @@ class _AgentRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 Space.normal, 0, Space.normal, Space.normal),
-            child: Text(
-              'Added to a task\'s egress on top of the project\'s own. What a project asks for '
-              'and is deliberately refused is shown where that project is configured, not here.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            child: Text("Added to a task's egress on top of the project's own.",
+                style: Theme.of(context).textTheme.bodySmall),
           ),
+          if (agent.refusedDomains.isNotEmpty) ...<Widget>[
+            const _Heading(words: 'Asked for and refused'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  Space.normal, 0, Space.normal, Space.small),
+              child: Text(
+                'This agent declares these and is deliberately not given them. A dropped packet '
+                'cannot tell that apart from nobody having added it.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            for (final host in agent.refusedDomains)
+              ListTile(
+                dense: true,
+                leading: Icon(Icons.block,
+                    size: Sizes.mark, color: Theme.of(context).colorScheme.error),
+                title: Text(host,
+                    key: const Key('agent-refused'),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+              ),
+          ],
+          const _Heading(words: 'What it fetches'),
+          if (agent.artifacts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                  Space.normal, 0, Space.normal, Space.small),
+              child: Text(
+                'Nothing. It writes its tool into the image, so it pins a version and has no '
+                'digest to check.',
+                key: Key('agent-fetches-nothing'),
+              ),
+            ),
+          for (final artifact in agent.artifacts) _Artifact(artifact: artifact),
         ],
+      );
+}
+
+/// One file an agent fetches, and whether anybody can check it.
+///
+/// **Two states, never a blank.** The daemon refuses to build an artifact with neither a digest
+/// nor a reason, so an unverified one always says why — and a stated reason is a decision
+/// somebody made, not a fault. It is shown as the reason rather than as a warning.
+class _Artifact extends StatelessWidget {
+  const _Artifact({required this.artifact});
+
+  final InstallArtifact artifact;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        dense: true,
+        leading: Icon(
+          artifact.unverified ? Icons.gpp_maybe_outlined : Icons.verified_outlined,
+          size: Sizes.mark,
+          color: artifact.unverified
+              ? Theme.of(context).colorScheme.tertiary
+              : Theme.of(context).colorScheme.primary,
+        ),
+        title: Text(artifact.url,
+            key: const Key('agent-artifact'),
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+        subtitle: Text(
+          artifact.unverified
+              ? 'Not checked, on purpose: ${artifact.reason}'
+              : artifact.sha256,
+          key: const Key('agent-artifact-digest'),
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+        ),
       );
 }
 

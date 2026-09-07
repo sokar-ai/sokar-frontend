@@ -78,18 +78,18 @@ not checking that it answers the requirement.**
 nothing behind them. Twice is a pattern, not an accident: the table above is written from method
 names and the requirements are written from what a person sees.
 
-- **F24 Agent Inventory** — every agent listed with the version it pins and where it was found,
-  the hosts it needs, and the ones that could not describe themselves listed rather than left out.
-  Three criteria wait on reply fields, all agreed on 2026-09-07 and all being added:
-  `refusedDomains` (an agent has always declared them; they are not on the wire), the artifact list
-  with per-artifact digests including the deliberately-unverified state, and which copy of a
-  shadowed filename lost.
-  - **`Agent.version` is the pin**, not what a binary says about itself: it comes from the agent's
-    own manifest. This file said otherwise and was under-crediting the contract.
-  - **`Agents` answers one entry per name.** An earlier version of the inventory detected
-    duplicates and marked them; that state cannot arrive, and the fixtures had been altered to
-    produce it. Removed. **A fixture that can describe what the contract cannot deliver will hide
-    exactly this.**
+- ~~**F24 Agent Inventory**~~ — **met.** `refusedDomains`, the artifact list and the shadowed
+  list landed on 2026-09-07, the day they were asked for.
+  - **`Agent.version` is the pin**, from the agent's own manifest. The IDL described it as what
+    the binary reports, which is how this file recorded it as half missing. Corrected on both
+    sides — **a wrong comment in the contract cost a wrong entry here.**
+  - **A digest is per artifact and has two states**, not three: verified, or unverified with a
+    stated reason. The daemon's own constructor refuses one with neither, so nothing renders a
+    blank with no explanation. No artifacts at all is a third honest answer about the agent, not a
+    fourth state of a digest.
+  - **Shadowing comes back as a list, never a flag.** A shadowed binary is never started, so it
+    has no `Agent` entry to mark — which is the concrete reason the duplicate-name view here could
+    not have been fed by a real daemon.
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.

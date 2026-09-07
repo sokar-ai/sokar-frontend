@@ -229,7 +229,9 @@ class StartWork extends ChangeNotifier {
     busy = true;
     notifyListeners();
     try {
-      final (installed, couldNotBeRead) = await backend.agentsOn();
+      final answered = await backend.agentsOn();
+      final installed = answered.agents;
+      final couldNotBeRead = answered.failures;
       // `Agents` answers one entry per name — they are keyed by name on the daemon side — so
       // this fold is never used. Three lines to keep a broken promise from becoming a crash:
       // `DropdownButtonFormField` asserts on two items sharing a value, which would take the

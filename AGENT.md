@@ -854,3 +854,20 @@ template with comments stripped** — every rule is also explained in that file,
 `contains` matches the sentence describing a directive as readily as the directive. The first
 version passed with the bundle flattened.
 
+## An agent says what it pins, what it refuses, and what it fetches
+
+Three shapes worth knowing before rendering any of them, all measured on 2026-09-07:
+
+- **`Agent.version` is the build it pins**, read from the agent's own manifest. Nothing executes
+  an agent to ask. The contract's own comment said otherwise for a while, and that wrong comment
+  put a wrong entry in the gap map — **a description in the IDL is as load-bearing as the type.**
+- **A digest is per artifact, and has exactly two states.** Verified, or `unverified` with a
+  stated `reason`; the daemon's constructor refuses one with neither, so a blank digest with no
+  explanation cannot arrive. Show the reason, not a warning icon: an artifact knowingly fetched
+  without a digest is a decision somebody made. An agent with **no artifacts at all** is a third
+  honest answer about the agent — it writes its tool into the image — not a fourth state.
+- **Shadowing is a list, never a flag.** A binary shadowed by a copy in a more specific directory
+  is never started, so it has no `Agent` entry to mark; the losers come back separately, each
+  naming the copy that runs instead. *"Not in use"* on its own leaves somebody asking where to
+  look.
+

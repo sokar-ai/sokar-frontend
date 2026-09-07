@@ -36,6 +36,17 @@ class MockMachine {
                     'version': '2.4.0',
                     'from': '/usr/share/sokar/agents/an-agent.yml',
                     'allowedDomains': <String>['api.anthropic.com'],
+                    'refusedDomains': <String>['telemetry.example.test'],
+                    'artifacts': <Map<String, dynamic>>[
+                      <String, dynamic>{
+                        'url': 'https://example.test/an-agent-2.4.0.tar.gz',
+                        'sha256':
+                            '3b1f8e2a9c4d5067a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718',
+                        'target': '/opt/an-agent',
+                        'unverified': false,
+                        'reason': '',
+                      },
+                    ],
                   },
                   <String, dynamic>{
                     'name': 'other-agent',
@@ -44,6 +55,18 @@ class MockMachine {
                     'version': '',
                     'from': '/etc/sokar/agents/other-agent.yml',
                     'allowedDomains': <String>['api.example.test'],
+                    'refusedDomains': <String>[],
+                    // Knowingly unverified, with the reason that makes it a decision rather than
+                    // an oversight. The daemon refuses to build one with neither.
+                    'artifacts': <Map<String, dynamic>>[
+                      <String, dynamic>{
+                        'url': 'https://example.test/other-agent-latest.tar.gz',
+                        'sha256': '',
+                        'target': '/opt/other-agent',
+                        'unverified': true,
+                        'reason': 'upstream publishes no digest for the rolling build',
+                      },
+                    ],
                   },
                 ],
           // One that could not be read. Shown rather than dropped: missing from a list looks
@@ -51,6 +74,15 @@ class MockMachine {
           'failures': <String, dynamic>{
             'broken-agent': 'its manifest could not be parsed',
           },
+          // Installed and never started, because a copy in a more specific directory wins. Nothing
+          // else in the product surfaces this, and a packaged agent hidden by a hand-placed copy
+          // was found on a real machine the day the field landed.
+          'shadowed': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'path': '/usr/libexec/sokar/agents/an-agent',
+              'usedInstead': '/home/somebody/.local/share/sokar/agents/an-agent',
+            },
+          ],
         });
     // pushes, not stream: Watch never ends, and a held-back stream would deliver every change one
     // change late.

@@ -14,15 +14,22 @@ import 'fleet_backend.dart';
 /// which is the state somebody would not go looking for.
 ///
 /// **`Agents` answers one entry per name.** They are held in a map keyed by name on the daemon
-/// side, so two copies of one name never arrive here. Shadowing is real and is resolved before
-/// anything is listed — first location wins, most specific first — and *which copy lost* is not
-/// yet on the wire. Nothing here may invent it.
+/// side, so two copies of one name never arrive here. Shadowing is resolved before anything is
+/// listed — first location wins, most specific first — and the losers come back in their own
+/// list, each naming the copy that runs instead.
 class AgentInventory extends ChangeNotifier {
   /// What answered, in the order it was given.
   List<Agent> agents = const <Agent>[];
 
   /// Installed and unusable, by file name, with why.
   Map<String, String> failures = const <String, String>{};
+
+  /// Installed and never started, because another copy wins.
+  ///
+  /// Not a state on an agent: a shadowed binary is resolved away before anything is listed, so it
+  /// has no entry to mark. Each one names the copy that runs instead — *"not in use"* alone
+  /// leaves somebody asking where to look.
+  List<ShadowedAgent> shadowed = const <ShadowedAgent>[];
 
   /// Whether the machine is being asked right now.
   bool busy = false;
@@ -39,9 +46,10 @@ class AgentInventory extends ChangeNotifier {
     problem = null;
     notifyListeners();
     try {
-      final (installed, couldNotBeRead) = await backend.agentsOn();
-      agents = installed;
-      failures = couldNotBeRead;
+      final answered = await backend.agentsOn();
+      agents = answered.agents;
+      failures = answered.failures;
+      shadowed = answered.shadowed;
       asked = true;
     } on VarlinkDisconnected catch (ex) {
       problem = 'Lost contact with the machine: ${ex.message}';

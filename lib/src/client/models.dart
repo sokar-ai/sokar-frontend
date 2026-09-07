@@ -269,7 +269,10 @@ class Agent {
   /// The command it runs inside the container.
   final String binary;
 
-  /// Version it reports, or empty.
+  /// The build this agent pins, from `install.version` in its own manifest.
+  ///
+  /// **Not what the binary says about itself** — nothing executes an agent to ask. The IDL said
+  /// otherwise until 2026-09-07, which is how this was recorded as a gap when it was the answer.
   final String version;
 
   /// Where the binary was found.
@@ -277,6 +280,18 @@ class Agent {
 
   /// Hosts this agent needs, on top of the project's own.
   final List<String> allowedDomains;
+
+  /// Hosts this agent declares and is **deliberately not given**.
+  ///
+  /// A decision, not an omission — and a dropped packet cannot tell the two apart, which is why
+  /// it is worth saying out loud wherever the allowed list is shown.
+  final List<String> refusedDomains;
+
+  /// What this agent fetches when it is installed into an image.
+  ///
+  /// Empty is a normal answer: an agent that writes its tool into the image fetches nothing, so
+  /// it has a pinned version and no digest at all.
+  final List<InstallArtifact> artifacts;
 
   /// Constructor taking every field.
   const Agent({
@@ -286,6 +301,8 @@ class Agent {
     required this.version,
     required this.from,
     required this.allowedDomains,
+    this.refusedDomains = const <String>[],
+    this.artifacts = const <InstallArtifact>[],
   });
 
   /// Reads one from a reply.
@@ -296,6 +313,71 @@ class Agent {
         version: _string(map, 'version'),
         from: _string(map, 'from'),
         allowedDomains: _strings(map, 'allowedDomains'),
+        refusedDomains: _strings(map, 'refusedDomains'),
+        artifacts: _list(map, 'artifacts').map(InstallArtifact.from).toList(),
+      );
+}
+
+/// One file an agent fetches when it is installed.
+///
+/// **There are two states and not three.** Either it carries a `sha256`, or it is `unverified`
+/// with a stated `reason` — the daemon's own constructor refuses to build one with neither, so
+/// nothing here has to render a blank digest with no explanation.
+class InstallArtifact {
+  /// Where it is fetched from.
+  final String url;
+
+  /// Its digest, lower case and 64 characters, or empty when [unverified].
+  final String sha256;
+
+  /// Where it lands in the image, or empty.
+  final String target;
+
+  /// Whether it is knowingly fetched without a digest.
+  final bool unverified;
+
+  /// Why it is unverified. **Never empty when [unverified]**, by the daemon's own rule.
+  final String reason;
+
+  /// Constructor taking every field.
+  const InstallArtifact({
+    required this.url,
+    required this.sha256,
+    required this.target,
+    required this.unverified,
+    required this.reason,
+  });
+
+  /// Reads one from a reply.
+  factory InstallArtifact.from(Map<String, dynamic> map) => InstallArtifact(
+        url: _string(map, 'url'),
+        sha256: _string(map, 'sha256'),
+        target: _string(map, 'target'),
+        unverified: map['unverified'] == true,
+        reason: _string(map, 'reason'),
+      );
+}
+
+/// An installed agent binary that is never started, because another copy wins.
+///
+/// **A list rather than a flag on [Agent].** A shadowed binary is never executed, so it has no
+/// `Agent` entry to mark — it is resolved away before anything is listed. The rule is that
+/// locations are searched most specific first and the first filename wins.
+class ShadowedAgent {
+  /// The binary that does not run.
+  final String path;
+
+  /// The one that runs instead. Named rather than implied: *"not in use"* on its own leaves
+  /// somebody asking where to look.
+  final String usedInstead;
+
+  /// Constructor taking both paths.
+  const ShadowedAgent({required this.path, required this.usedInstead});
+
+  /// Reads one from a reply.
+  factory ShadowedAgent.from(Map<String, dynamic> map) => ShadowedAgent(
+        path: _string(map, 'path'),
+        usedInstead: _string(map, 'usedInstead'),
       );
 }
 

@@ -61,7 +61,6 @@ it is judged against the rest, not because it matters least.
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | ready | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | n/a | |
 | F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
-| F24 | [Agent Inventory](F24-Agent-Inventory.md) | What is installed, what it may reach and which build it pins are all visible, and nothing names a specific agent. | ready | |
 | F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | **partial** | |
 
 ## What was here and is finished
@@ -76,6 +75,15 @@ be read again.
   that *"a pointer is optional everywhere"* is a requirement on the pointer and not only on the
   keyboard, and that every widget test was silently sized as a narrow window until the view was
   set in logical pixels.
+- **F24 Agent Inventory.** What a machine has to run agents with, in three lists — what it can
+  use, what is installed and unusable, and what is installed and permanently hidden by another
+  copy. It taught two things. `Agent.version` is the build an agent *pins*, from its own manifest,
+  and the contract described it as what the binary reports, which is how it was recorded as a gap
+  when it was the answer. And a digest is per artifact, not per agent, with exactly two states —
+  verified, or unverified with a stated reason — because the daemon refuses to build one with
+  neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
+  fixtures were edited so it had something to show, and six scenarios passed on a state the
+  contract cannot produce.
 - **F11 Live Log Viewing.** A task's logs are asked for rather than guessed, followed as they are
   written, and suspended without losing what arrives meanwhile. ANSI color is honored by meaning
   rather than by value, so red is the theme's red and stays legible on both appearances.

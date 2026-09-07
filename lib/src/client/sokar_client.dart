@@ -45,6 +45,17 @@ class FeatureNotSupported implements Exception {
   @override
   String toString() => 'this backend has no $method';
 }
+/// What one machine has to run agents with: the ones it can use, the ones it cannot, and the ones
+/// it will never reach.
+///
+/// Named rather than positional, because three lists of different things in a row is three
+/// positions somebody has to remember at every call site.
+typedef AgentsOnTheMachine = ({
+  List<Agent> agents,
+  Map<String, String> failures,
+  List<ShadowedAgent> shadowed,
+});
+
 
 /// The Sokar backend, typed.
 ///
@@ -121,17 +132,23 @@ class SokarClient {
   ///
   /// The second value is what could not be asked, by file name. An agent that fails to describe
   /// itself is installed and unusable, and leaving it out would read as absent.
-  Future<(List<Agent>, Map<String, String>)> agents() async {
+  Future<AgentsOnTheMachine> agents() async {
     final reply = await _call('Agents');
     final found = reply['agents'];
     final failures = reply['failures'];
+    final shadowed = reply['shadowed'];
     return (
-      found is List
+      // One entry per name: they are keyed by name on the daemon side, and a copy that loses to
+      // another is resolved away before this list is built rather than marked in it.
+      agents: found is List
           ? found.whereType<Map<String, dynamic>>().map(Agent.from).toList()
           : <Agent>[],
-      failures is Map
+      failures: failures is Map
           ? failures.map((key, value) => MapEntry('$key', '$value'))
           : <String, String>{},
+      shadowed: shadowed is List
+          ? shadowed.whereType<Map<String, dynamic>>().map(ShadowedAgent.from).toList()
+          : <ShadowedAgent>[],
     );
   }
 

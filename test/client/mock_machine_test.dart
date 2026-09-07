@@ -306,15 +306,48 @@ void main() {
         reason: 'nothing ran, so there is nothing to read');
   });
 
-  test('the machine says which agents it has, and which it could not read', () async {
+  test('the machine says what it can run, what it cannot, and what it never will', () async {
     await machineIn('work');
     final client = await connect();
 
-    final (installed, failures) = await client.agents();
+    final answered = await client.agents();
 
-    expect(installed.map((agent) => agent.name), contains('an-agent'));
+    expect(answered.agents.map((agent) => agent.name), contains('an-agent'));
     // Named rather than left out: missing from a list looks exactly like never installed.
-    expect(failures.keys, contains('broken-agent'));
+    expect(answered.failures.keys, contains('broken-agent'));
+    // Installed and never started, with the copy that wins named beside it.
+    expect(answered.shadowed, hasLength(1));
+    expect(answered.shadowed.single.usedInstead, isNotEmpty);
+  });
+
+  test('an agent says what it pins, what it refuses, and what it fetches', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final answered = await client.agents();
+    final agent = answered.agents.firstWhere((each) => each.name == 'an-agent');
+
+    // The pinned build, from the manifest. Nothing executes an agent to ask its version.
+    expect(agent.version, '2.4.0');
+    // Declared and deliberately not given — a decision, which a dropped packet cannot express.
+    expect(agent.refusedDomains, contains('telemetry.example.test'));
+    expect(agent.artifacts, hasLength(1));
+    expect(agent.artifacts.single.unverified, isFalse);
+    expect(agent.artifacts.single.sha256, hasLength(64));
+  });
+
+  test('an artifact fetched without a digest always says why', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final answered = await client.agents();
+    final agent = answered.agents.firstWhere((each) => each.name == 'other-agent');
+
+    // Two states, never three: the daemon refuses to build one with neither a digest nor a
+    // reason, so nothing here has to render a blank with no explanation.
+    expect(agent.artifacts.single.unverified, isTrue);
+    expect(agent.artifacts.single.sha256, isEmpty);
+    expect(agent.artifacts.single.reason, isNotEmpty);
   });
 
   test('widening a running task grants the names, in the order asked for', () async {

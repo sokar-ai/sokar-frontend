@@ -22,11 +22,13 @@ abstract class FleetBackend {
   /// Every task on it, running or stopped.
   Future<List<Task>> tasks();
 
-  /// The agent binaries installed on it, and why any of them could not be read.
+  /// What the machine has to run agents with.
   ///
   /// Asked rather than assumed: what is installed is a property of the machine, and a name this
-  /// build knew would be one that was never going to exist somewhere else.
-  Future<(List<Agent>, Map<String, String>)> agentsOn();
+  /// build knew would be one that was never going to exist somewhere else. Three answers, and the
+  /// third is the one nobody would go looking for — a binary installed and permanently hidden by
+  /// another copy.
+  Future<AgentsOnTheMachine> agentsOn();
 
   /// Every project on it.
   ///
@@ -177,7 +179,7 @@ class SokarBackend implements FleetBackend {
   Future<List<Task>> tasks() => _opened().tasks();
 
   @override
-  Future<(List<Agent>, Map<String, String>)> agentsOn() => _opened().agents();
+  Future<AgentsOnTheMachine> agentsOn() => _opened().agents();
 
   @override
   Future<List<Project>> projects() => _opened().projects();

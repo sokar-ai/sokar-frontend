@@ -75,6 +75,16 @@ class FakeBackend implements FleetBackend {
       'version': '2.4.0',
       'from': '/usr/share/sokar/agents/an-agent.yml',
       'allowedDomains': <String>['api.anthropic.com'],
+      'refusedDomains': <String>['telemetry.example.test'],
+      'artifacts': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'url': 'https://example.test/an-agent-2.4.0.tar.gz',
+          'sha256': '3b1f8e2a9c4d5067a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718',
+          'target': '/opt/an-agent',
+          'unverified': false,
+          'reason': '',
+        },
+      ],
     }),
     Agent.from(const <String, dynamic>{
       'name': 'other-agent',
@@ -83,15 +93,30 @@ class FakeBackend implements FleetBackend {
       'version': '',
       'from': '/etc/sokar/agents/other-agent.yml',
       'allowedDomains': <String>['api.example.test'],
+      'artifacts': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'url': 'https://example.test/other-agent-latest.tar.gz',
+          'sha256': '',
+          'target': '/opt/other-agent',
+          'unverified': true,
+          'reason': 'upstream publishes no digest for the rolling build',
+        },
+      ],
     }),
   ];
+
+  /// Binaries installed and never started, because another copy wins.
+  List<ShadowedAgent> theAgentsItNeverUses = const <ShadowedAgent>[];
 
   /// Agents that could not be read, and why.
   Map<String, String> theAgentsItCannotRead = const <String, String>{};
 
   @override
-  Future<(List<Agent>, Map<String, String>)> agentsOn() async =>
-      (theAgentsItHas, theAgentsItCannotRead);
+  Future<AgentsOnTheMachine> agentsOn() async => (
+        agents: theAgentsItHas,
+        failures: theAgentsItCannotRead,
+        shadowed: theAgentsItNeverUses,
+      );
 
   @override
   String get label => 'mock';
