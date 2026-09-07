@@ -12,6 +12,11 @@ import 'fleet_backend.dart';
 /// **The ones that failed to describe themselves are part of the answer.** An agent that cannot
 /// say what it is is installed and unusable, and leaving it out would read as not installed —
 /// which is the state somebody would not go looking for.
+///
+/// **`Agents` answers one entry per name.** They are held in a map keyed by name on the daemon
+/// side, so two copies of one name never arrive here. Shadowing is real and is resolved before
+/// anything is listed — first location wins, most specific first — and *which copy lost* is not
+/// yet on the wire. Nothing here may invent it.
 class AgentInventory extends ChangeNotifier {
   /// What answered, in the order it was given.
   List<Agent> agents = const <Agent>[];
@@ -27,32 +32,6 @@ class AgentInventory extends ChangeNotifier {
 
   /// Whether anything has been asked yet.
   bool asked = false;
-
-  /// Names that more than one installed copy answers to.
-  ///
-  /// The contract says where each copy was found and **does not say which one runs**, so this is
-  /// as far as the answer goes: two copies exist under one name. Guessing which wins would be a
-  /// rule invented here, and the one place it would be read is the place it matters.
-  Set<String> get shadowed {
-    final seen = <String>{};
-    final twice = <String>{};
-    for (final agent in agents) {
-      if (!seen.add(agent.name)) twice.add(agent.name);
-    }
-    return twice;
-  }
-
-  /// The agents that can be started, one entry per name.
-  ///
-  /// Two copies under one name would otherwise be two choices that say the same thing, and a
-  /// chooser cannot tell them apart any better than this list can.
-  List<Agent> get choosable {
-    final seen = <String>{};
-    return <Agent>[
-      for (final agent in agents)
-        if (seen.add(agent.name)) agent,
-    ];
-  }
 
   /// Asks the machine what it has.
   Future<void> load(FleetBackend backend) async {

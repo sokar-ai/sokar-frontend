@@ -230,10 +230,10 @@ class StartWork extends ChangeNotifier {
     notifyListeners();
     try {
       final (installed, couldNotBeRead) = await backend.agentsOn();
-      // One entry per name. Two copies installed under one name would be two choices saying the
-      // same thing, and a chooser cannot tell them apart any better than the answer does — the
-      // contract says where each was found and not which one runs. Seeing both is what the agent
-      // inventory is for.
+      // `Agents` answers one entry per name — they are keyed by name on the daemon side — so
+      // this fold is never used. Three lines to keep a broken promise from becoming a crash:
+      // `DropdownButtonFormField` asserts on two items sharing a value, which would take the
+      // whole dialog down rather than shorten a list.
       final seen = <String>{};
       agents = <Agent>[
         for (final agent in installed)

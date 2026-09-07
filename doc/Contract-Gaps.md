@@ -78,67 +78,18 @@ not checking that it answers the requirement.**
 nothing behind them. Twice is a pattern, not an accident: the table above is written from method
 names and the requirements are written from what a person sees.
 
-- **F24 Agent Inventory** — **two of four criteria are built.** Every agent listed with its
-  version and where it was found; an agent reporting no version says so rather than showing a
-  blank; the hosts it needs shown with it; the ones that could not describe themselves listed
-  rather than left out, because absent is the state nobody goes looking for. What is missing:
-  - *"The pinned tool version and its digest are shown."* `Agent.version` is what the binary
-    reports about itself, which is not the build it will **fetch**, and there is no digest at all.
-    Two reply fields would answer it. Asked.
-  - *"An agent shadowed by another copy is reported as not in use."* `Agents` can answer two
-    entries with one `name` from different places, and **nothing says which one runs**. The
-    interface lists both, marks the name as having more than one, and says it cannot tell — the
-    honest end of what the answer supports. A boolean on `Agent` would finish it. Asked.
-  - *"…including those deliberately refused."* `allowedDomains` is what an agent needs; there is
-    no refused list on `Agent`. Read as belonging to the project egress view, where *"asked for
-    and deliberately not given"* is already built. Confirmation asked for before the criterion is
-    reworded.
-
-- **F08 Task Creation And Modes** — **five of six criteria are built.** `Start` gained `mode`,
-  `prompt`, `model`, `maxTurns` and `minutes` on 2026-09-07, and a prompt makes the call *run* the
-  agent rather than only bring the container up. What is left is one criterion with nothing behind
-  it: *"a missing credential is reported before anything is built or started"* — `Credentials`
-  reports the store's state, and nothing says which credential a given project and agent need, so
-  the interface cannot tell somebody one is missing before starting.
-  **Asked, answered, and being built as a method.** Which credential a run needs turns on four
-  things — the agent's declaration, the installed providers, the run's `provider` override, and
-  what the vault already holds, since an older vault answers under the agent's name rather than
-  the provider's. A client holds one of the four, so a field on `Agent` would report a missing
-  credential for exactly the vaults that have one. The rule stays on the daemon and comes back as
-  a named outcome.
-  - `mode` was missing from the note's own IDL block, which read as though it did not exist. It
-    does: `Mode (SHELL, AGENT, UNATTENDED)`, optional, defaulting to `UNATTENDED` with a prompt
-    and `SHELL` without. **Ask when a summary and a block disagree** — the answer took an hour and
-    would have cost a rebuild.
-  - `SHELL` with a prompt is *accepted and recorded*, and it would say a person is driving a run
-    nobody is attached to. Not offered: the prompt box belongs to `UNATTENDED` alone.
-  - `Task.mode` was sending lower case against an IDL that declared the `Mode` type. Fixed on the
-    Sokar side to `SHELL`/`AGENT`/`UNATTENDED`. This build was already comparing against the
-    contract's spelling, so nothing here changed — **coding against the IDL rather than against
-    what came down the socket is what made that free.**
-  - `Task.mode` stays a **string**, not the type: it has a fourth state, `""`, for a task started
-    before the field existed. Render the absence; never default it to `SHELL`.
-
-- **F09 Task Control** — **built**, except for two things, and the first turned out not to be
-  what the requirement wanted. **Renaming has no method**, and a task's name is its identity in
-  four places — the container, the gate ref, the workspace, the log files — so a rename would move
-  a ref with unreviewed pushes behind it. What the criterion actually wants is a **label**: a
-  changeable display name beside a fixed identity, which is a reply field and cheap. Asked for on
-  2026-09-07. Recreating is `Stop` then `Start`, which `Project.file` makes possible; that half is
-  unbuilt rather than blocked.
-- ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection
-  half needed, the same day it was asked for.
-- ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
-  asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
-  which files exist depends on what the task started, and a client that knew them would offer one
-  that was never going to exist and would never show one a later release adds.
-- **F25 Task Templates** — **three of four criteria are built**, and the fourth is a gap this
-  file previously missed by reading the requirement as *"start with fixed parameters"*. It also
-  says *shared with the project*, and **nothing in the contract writes to a project file except
-  `SetEgress`** — so a template is kept beside the interface's own settings and follows the person
-  rather than the project. Asked for. The criterion with teeth needs nothing: a template carries
-  no `clearance` and no `noGate`, and the security class is unreachable because `Start` cannot
-  set it.
+- **F24 Agent Inventory** — every agent listed with the version it pins and where it was found,
+  the hosts it needs, and the ones that could not describe themselves listed rather than left out.
+  Three criteria wait on reply fields, all agreed on 2026-09-07 and all being added:
+  `refusedDomains` (an agent has always declared them; they are not on the wire), the artifact list
+  with per-artifact digests including the deliberately-unverified state, and which copy of a
+  shadowed filename lost.
+  - **`Agent.version` is the pin**, not what a binary says about itself: it comes from the agent's
+    own manifest. This file said otherwise and was under-crediting the contract.
+  - **`Agents` answers one entry per name.** An earlier version of the inventory detected
+    duplicates and marked them; that state cannot arrive, and the fixtures had been altered to
+    produce it. Removed. **A fixture that can describe what the contract cannot deliver will hide
+    exactly this.**
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.

@@ -84,16 +84,6 @@ class FakeBackend implements FleetBackend {
       'from': '/etc/sokar/agents/other-agent.yml',
       'allowedDomains': <String>['api.example.test'],
     }),
-    // A second copy under a name that is already taken. The contract says where each was found
-    // and not which one runs, which is a state the inventory has to render honestly.
-    Agent.from(const <String, dynamic>{
-      'name': 'an-agent',
-      'label': 'An Agent',
-      'binary': '/usr/local/bin/an-agent',
-      'version': '1.9.0',
-      'from': '/home/somebody/.config/sokar/agents/an-agent.yml',
-      'allowedDomains': <String>['api.anthropic.com'],
-    }),
   ];
 
   /// Agents that could not be read, and why.

@@ -27,11 +27,6 @@ Feature: F24 Agent Inventory
     When I show the agents installed here
     Then it lists the unusable agent {'broken-agent'}
 
-  Scenario: two copies under one name are reported without guessing which runs
-    When I show the agents installed here
-    And I open the agent {'An Agent'}
-    Then it says {'which one runs'}
-
   Scenario: a machine with nothing installed says so, as a state rather than a failure
     Given the machine has no agents
     When I show the agents installed here

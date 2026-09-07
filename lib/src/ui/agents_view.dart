@@ -7,9 +7,13 @@ import 'tokens.dart';
 
 /// What agents are installed on this machine, and what each may reach.
 ///
-/// Two things it is careful not to do. It never names an agent this build knows about — the list
-/// is whatever the machine answered. And it never says which copy of a shadowed name runs, because
-/// the contract does not say and inventing an answer would be worst exactly where it is read.
+/// It never names an agent this build knows about: the list is whatever the machine answered.
+///
+/// **Shadowing is not shown, because it is not answered.** A copy of an agent shadowed by one in a
+/// more specific directory never reaches this list — the daemon resolves it first and answers one
+/// entry per name — and which copy lost is not on the wire. An earlier version of this view
+/// detected duplicate names and marked them, which was a state the contract cannot produce; the
+/// fixtures had been made to produce it, which is how it survived being tested.
 class AgentsView extends StatelessWidget {
   /// Constructor taking the inventory and how to close it.
   const AgentsView({required this.inventory, required this.onClose, super.key});
@@ -22,8 +26,6 @@ class AgentsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shadowed = inventory.shadowed;
-
     return Column(
       children: <Widget>[
         PaneHeader(
@@ -59,8 +61,7 @@ class AgentsView extends StatelessWidget {
                     key: Key('no-agents'),
                   ),
                 ),
-              for (final agent in inventory.agents)
-                _AgentRow(agent: agent, shadowed: shadowed.contains(agent.name)),
+              for (final agent in inventory.agents) _AgentRow(agent: agent),
               if (inventory.failures.isNotEmpty) ...<Widget>[
                 const _Heading(words: 'Installed and unusable'),
                 Padding(
@@ -93,15 +94,13 @@ class AgentsView extends StatelessWidget {
 
 /// One installed agent, with what it may reach.
 class _AgentRow extends StatelessWidget {
-  const _AgentRow({required this.agent, required this.shadowed});
+  const _AgentRow({required this.agent});
 
   final Agent agent;
-  final bool shadowed;
 
   @override
   Widget build(BuildContext context) => ExpansionTile(
-        leading: Icon(shadowed ? Icons.copy_all_outlined : Icons.smart_toy_outlined,
-            size: Sizes.mark),
+        leading: const Icon(Icons.smart_toy_outlined, size: Sizes.mark),
         title: Text(agent.label.isEmpty ? agent.name : agent.label),
         subtitle: Text(agent.version.isEmpty
             ? '${agent.name} · version not reported'
@@ -109,24 +108,6 @@ class _AgentRow extends StatelessWidget {
         children: <Widget>[
           _Field(name: 'Found at', value: agent.from),
           _Field(name: 'Runs', value: agent.binary),
-          if (shadowed)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  Space.normal, Space.tight, Space.normal, Space.tight),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(Space.normal),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(Radii.small),
-                ),
-                child: const Text(
-                  'More than one copy is installed under this name. Nothing in the answer says '
-                  'which one runs, so this interface does not guess.',
-                  key: Key('agent-shadowed'),
-                ),
-              ),
-            ),
           const _Heading(words: 'Hosts it needs'),
           if (agent.allowedDomains.isEmpty)
             const Padding(

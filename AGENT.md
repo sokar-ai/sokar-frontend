@@ -807,3 +807,18 @@ has no parameter that sets it. That half of the requirement is answered by the c
 nothing in the contract writes to a project file except `SetEgress`, so they live in this
 interface's settings. That is a shortfall recorded in the requirement, not a design.
 
+## A fixture edited to fit a feature will hide the feature being wrong
+
+The rule that a stand-in must not describe what the contract cannot deliver was already here. It
+was broken anyway, in the direction the rule does not obviously cover: not by a fixture drifting,
+but by **a fixture being edited on purpose so that a feature would have something to show.**
+
+`Agents` answers one entry per name — they are keyed by name on the daemon side. The agent
+inventory was built to detect two entries sharing a name and to say it could not tell which one
+ran; the mock and the fake were given a duplicate so the view had something to render, and six
+scenarios passed. The state cannot occur.
+
+**When a feature needs a fixture changed before it has anything to show, that is the moment to
+check the contract, not the moment to change the fixture.** Shadowing is real, is resolved before
+anything is listed, and which copy lost is a reply field that does not exist yet.
+

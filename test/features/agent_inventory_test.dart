@@ -55,14 +55,6 @@ void main() {
       await itListsTheUnusableAgent(tester, 'broken-agent');
     });
     testWidgets(
-        '''two copies under one name are reported without guessing which runs''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iShowTheAgentsInstalledHere(tester);
-      await iOpenTheAgent(tester, 'An Agent');
-      await itSays(tester, 'which one runs');
-    });
-    testWidgets(
         '''a machine with nothing installed says so, as a state rather than a failure''',
         (tester) async {
       await bddSetUp(tester);
