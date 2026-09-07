@@ -42,12 +42,9 @@ it is judged against the rest, not because it matters least.
 
 | # | Requirement | What must be true | Backend | Open question |
 |---|---|---|---|---|
-| F01 | [Application Shell](F01-Application-Shell.md) | Projects and their work are two selections apart, every action is reachable by keyboard, and one command finder names everything the product can do. | **partial** | |
 | F02 | [Project Overview](F02-Project-Overview.md) | Every project on the machine is listed with enough state to decide whether it needs attention, without opening it. | **partial** | |
-| F13 | [Operation Feedback And History](F13-Operation-Feedback-And-History.md) | Long operations never block or disturb the interface, and every one started in a session can be reopened with its output. | **partial** | |
 | F08 | [Task Creation And Modes](F08-Task-Creation-And-Modes.md) | Work is started with a project, an agent and a mode, and finished unattended work can be continued with a new prompt. | ready | |
 | F09 | [Task Control](F09-Task-Control.md) | Running work can be stopped, restarted, recreated, renamed and deleted, each named by its consequence. | ready | |
-| F11 | [Live Log Viewing](F11-Live-Log-Viewing.md) | Everything work produces is readable inside the interface, live, with structure visible. | ready | |
 | F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | ready | |
 | F12 | [Interactive Session Attach](F12-Interactive-Session-Attach.md) | An interactive session is one action away, and the way back is reliable. | **blocked** | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | **blocked** | |
@@ -63,12 +60,39 @@ it is judged against the rest, not because it matters least.
 | F18 | [Emergency Stop](F18-Emergency-Stop.md) | One always-visible action cuts every form of access at once and says what state it left behind. | **blocked** | |
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | ready | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | yes| n/a | |
-| F20 | [Access From Elsewhere](F20-Access-From-Elsewhere.md) | Another machine's Sokar is reached over a forwarded socket, and which host an action will act on is never ambiguous. | yes| ready | |
 | F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
-| F22 | [Task State Visibility](F22-Task-State-Visibility.md) | Working, idle and waiting are told apart, with a timestamp, for every piece of work at once. | ready | |
 | F23 | [Notifications](F23-Notifications.md) | A decision waiting inside a closed window still reaches the person. | yes| ready | |
 | F24 | [Agent Inventory](F24-Agent-Inventory.md) | What is installed, what it may reach and which build it pins are all visible, and nothing names a specific agent. | ready | |
 | F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | ready | |
+
+## What was here and is finished
+
+Five requirements have been met and retired. Their files are gone; the scenarios that guard them
+are still in `test/features`, and what each measured is in [AGENT.md](../AGENT.md), where it will
+be read again.
+
+- **F01 Application Shell.** One window: a rail saying where you are, a menu bar saying what can be
+  done, and a command finder for finding one quickly — three surfaces reading one list of actions,
+  so an action added once turns up in all three. The frame taught two things it did not have to:
+  that *"a pointer is optional everywhere"* is a requirement on the pointer and not only on the
+  keyboard, and that every widget test was silently sized as a narrow window until the view was
+  set in logical pixels.
+- **F11 Live Log Viewing.** A task's logs are asked for rather than guessed, followed as they are
+  written, and suspended without losing what arrives meanwhile. ANSI colour is honoured by meaning
+  rather than by value, so red is the theme's red and stays legible on both appearances.
+- **F13 Operation Feedback And History.** A long operation is owned by the session, never by the
+  view showing it, so leaving a build does not stop it and arriving late does not mean having
+  missed the output. Failure is reported where success would have been.
+- **F20 Access From Elsewhere.** Every configured machine is connected at once and one is acted
+  on, because a clearance question has a deadline and a machine nobody watches is one whose work
+  expires unseen. Which machine an action lands on is pinned above the rail rather than nested in
+  a tree, where it could scroll out of view. Raising the tunnel is [F27](F27-Managed-Tunnels.md).
+- **F22 Task State Visibility.** Working, idle, waiting and dead, beside the runtime's own words
+  and never instead of them, with *"idle for forty minutes"* as arithmetic on a timestamp. Asked
+  for as [B11](https://github.com/fuinorg/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
+  and answered the same day. One thing it deliberately does **not** do: `WAITING` covers clearance
+  questions only, so an agent asking its own question reads as `UNKNOWN` or `IDLE`, and labelling
+  either as *probably waiting* is the guess the field exists to avoid.
 
 ## To be checked
 

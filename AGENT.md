@@ -566,8 +566,13 @@ Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
 - Files are `requirements/FNN-Name.md`. **The number is identity, not order**; the table in
   [requirements/README.md](requirements/README.md) is the order.
 - **A finished requirement is deleted**, file and index row together. What it measured — the
-  expensive facts and the traps — moves into this file. The set is what is left to do, not a
-  history of what was done; the history is in git.
+  expensive facts and the traps — moves into this file, and one line summarising it into the
+  index's *"What was here and is finished"*. The set is what is left to do, not a history of what
+  was done; the history is in git.
+- **Its scenarios stay.** They are the guards that keep the finished thing working, and retiring a
+  requirement must never quietly delete its tests — so the id outlives the file, listed in
+  `retired` in `test/requirements_coverage_test.dart`, and the traceability report reads the same
+  as it always did. `retired` and `pending` may not overlap, which a test asserts.
 - A file ending in **To be checked** has something unresolved that could change what it
   promises, and its index row is marked as an open question.
 

@@ -20,6 +20,15 @@ void main() {
   /// scaffold's placeholder scenario — `Given the app is running, Then the placeholder is
   /// shown` — which asserted the text F01 replaced. It read as coverage and was not: nothing in
   /// it exercised stopping, restarting or deleting work. It is back here until F09 is built.
+  /// Requirements that are finished, whose file and index row are gone.
+  ///
+  /// The set of requirement *files* is what is left to do — a finished one is deleted, and what it
+  /// measured moves into `AGENT.md` and the index's own "what was here and is finished". But the
+  /// **scenarios stay**: they are the guards that keep the finished thing working, and deleting a
+  /// requirement must never quietly delete its tests. So the id outlives the file, which also
+  /// keeps the traceability report reading the same way it always did.
+  const retired = <String>{'F01', 'F11', 'F13', 'F20', 'F22'};
+
   const pending = <String>{
     'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08',
     'F12', 'F14', 'F15', 'F16', 'F18', 'F19', 'F21',
@@ -47,13 +56,20 @@ void main() {
     expect(requirements, isNotEmpty);
   });
 
-  test('every feature names a requirement that exists', () {
+  test('every feature names a requirement that exists, or one that was finished', () {
     final unknown = {
       for (final entry in claimed.entries)
-        if (!requirements.contains(entry.key)) entry.key: entry.value,
+        if (!requirements.contains(entry.key) && !retired.contains(entry.key))
+          entry.key: entry.value,
     };
     expect(unknown, isEmpty,
-        reason: 'these features name requirements that are not in requirements/');
+        reason: 'these features name requirements that are not in requirements/ '
+            'and are not listed as retired');
+  });
+
+  test('nothing is both still to do and already finished', () {
+    expect(requirements.intersection(retired), isEmpty,
+        reason: 'a requirement cannot be open and retired at once');
   });
 
   test('every requirement is named by a feature, except those still pending', () {
