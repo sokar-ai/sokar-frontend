@@ -38,8 +38,11 @@ to the other, and nothing lists the projects on the machine.**
 
 So an interface knows that a task belongs to `checkout` and has no way to name `checkout` to any
 method that would act on it. Everything below marked *needs a project path* is blocked on this one
-thing, and one method — list the projects with their paths — unblocks all of it at once. It is the
-first thing to ask for, ahead of everything in the blocked table.
+thing, and one method — list the projects with their paths — unblocks all of it at once.
+
+**It has been asked for and is on its way** (2026-09-07). `Logs` was asked for and arrived the same
+day, so treat the rows below as due to move rather than as permanent. Do not design a workaround
+for any of them in the meantime.
 
 ## Ready — the contract covers these
 
@@ -70,12 +73,10 @@ not checking that it answers the requirement.**
 - **F10 Task Inspection And Work Handover** — every gate method *needs a project path*. The
   inspection half reads off `Task`; the handover half — the part the requirement is named for —
   cannot be reached from a task at all.
-- **F11 Live Log Viewing** — **built, except for one thing.** Reading, following, suspending to
-  read back without losing what arrives, staying readable after the work ends, and colour that is
-  legible on either appearance are all done. What is missing is the same missing thing: **nothing
-  lists a task's logs.** `Tail` checks a name against the files that are there and refuses one
-  that is not, so the interface asks for a name, offers the ones already known to work, and says
-  plainly why it has to ask. A `Logs(task)` method would finish it, and it is a small ask.
+- ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
+  asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
+  which files exist depends on what the task started, and a client that knew them would offer one
+  that was never going to exist and would never show one a later release adds.
 - **F25 Task Templates** — `Start` with fixed parameters, and *needs a project path* for the same
   reason F08 does.
 

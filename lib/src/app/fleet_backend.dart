@@ -60,12 +60,15 @@ abstract class FleetBackend {
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
 
+  /// Which logs a task has, asked rather than assumed.
+  ///
+  /// An empty list is a normal answer: a task whose state directory is gone has none.
+  Future<List<Log>> logsOf(String task);
+
   /// Follows one of a task's logs as it is written, a batch of lines per reply.
   ///
-  /// The name is a file in the task's state directory, not a path, and it is checked against the
-  /// files that are there — so naming one a task does not have errors with `NoSuchLog`. **There
-  /// is no method that lists them**, which is why naming one is the person's job and not a
-  /// choice this can offer. See `doc/Contract-Gaps.md`.
+  /// The name comes from [logsOf] unchanged: it is a file in the task's state directory, never a
+  /// path, and `Tail` refuses anything else.
   Stream<List<String>> tailLog(String task, String log);
 }
 
@@ -129,6 +132,9 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Future<List<Log>> logsOf(String task) => _opened().logsOf(task);
 
   @override
   Stream<List<String>> tailLog(String task, String log) =>

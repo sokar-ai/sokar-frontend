@@ -132,8 +132,18 @@ class FakeBackend implements FleetBackend {
   /// What the next [tailLog] prints into, so the scenario decides when a line arrives.
   late StreamController<List<String>> tailing;
 
-  /// Logs this machine has. A name not in here is refused the way a real daemon refuses one.
+  /// Logs this machine has. What `Logs` answers, and what `Tail` accepts.
   Set<String> theLogsItHas = <String>{'agent.log'};
+
+  @override
+  Future<List<Log>> logsOf(String task) async => <Log>[
+        for (final name in theLogsItHas)
+          Log.from(<String, dynamic>{
+            'name': name,
+            'bytes': 2048,
+            'at': '2026-09-07T14:12:00Z',
+          }),
+      ];
 
   @override
   Stream<List<String>> tailLog(String task, String log) {

@@ -193,6 +193,23 @@ class SokarClient {
   Future<Resumed> resume(String task) async =>
       Resumed.from(await _call('Resume', {'task': task}));
 
+  /// Which logs a task has.
+  ///
+  /// Asked rather than assumed: which files exist depends on what the task started — one with no
+  /// gate has no `gate.log`, one run with clearance off has no `clearance.log` — so a client that
+  /// held the names would open an empty viewer on a file that was never going to exist, and would
+  /// never show one a later release adds.
+  ///
+  /// An empty list is a normal answer. A task whose state directory is gone, which is what `Stop`
+  /// with purge does, has no logs; so does a name that is not a Sokar task.
+  Future<List<Log>> logsOf(String task) async {
+    final reply = await _call('Logs', {'task': task});
+    final logs = reply['logs'];
+    return logs is List
+        ? logs.whereType<Map<String, dynamic>>().map(Log.from).toList()
+        : const <Log>[];
+  }
+
   /// Reads a task's log once.
   Future<List<String>> readLog(String task, String log) async =>
       _linesOf(await _call('Tail', {'task': task, 'log': log}));

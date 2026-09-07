@@ -161,6 +161,29 @@ class Credential {
       );
 }
 
+/// One of a task's log files.
+class Log {
+  /// File name. **Pass it to `Tail` unchanged** — it is a name, never a path.
+  final String name;
+
+  /// How large it is right now. A tail that is running will pass it, so it is a size to show or
+  /// to decide by, never a total to count down from.
+  final int bytes;
+
+  /// When it was last written, ISO-8601.
+  final String at;
+
+  /// Constructor taking every field.
+  const Log({required this.name, required this.bytes, required this.at});
+
+  /// Reads one from a reply.
+  factory Log.from(Map<String, dynamic> map) => Log(
+        name: _string(map, 'name'),
+        bytes: _int(map, 'bytes'),
+        at: _string(map, 'at'),
+      );
+}
+
 /// A push waiting at the gate for a decision.
 class PendingPush {
   /// Ref name, which reviewing, approving and rejecting all take.

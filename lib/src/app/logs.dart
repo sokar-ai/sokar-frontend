@@ -49,17 +49,6 @@ class Logs extends ChangeNotifier {
   /// What has been opened, oldest first.
   List<LogTail> get all => List<LogTail>.unmodifiable(_open.values);
 
-  /// The names already opened for [task], which is as close to a list of a task's logs as this
-  /// build can get.
-  ///
-  /// The contract has no method that lists them: `Tail` checks a name against the files that are
-  /// there and refuses one that is not. So the only names anybody can be offered are the ones
-  /// that have already worked. See `doc/Contract-Gaps.md`.
-  List<String> namesFor(String task) => <String>[
-        for (final tail in _open.values)
-          if (tail.task == task && tail.live) tail.log,
-      ];
-
   /// One that is already open, or null.
   LogTail? find(String task, String log) => _open[_keyOf(task, log)];
 

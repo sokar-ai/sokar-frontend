@@ -122,6 +122,19 @@ void main() {
     );
   });
 
+  test('which logs a task has is asked, and an empty answer is normal', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final found = await client.logsOf('sokar-checkout-shell');
+
+    expect(found.map((log) => log.name), containsAll(<String>['agent.log', 'gate.log']));
+    expect(found.first.bytes, greaterThan(0));
+    // The name goes to Tail unchanged; it is a file name and never a path.
+    expect(await client.tailLog('sokar-checkout-shell', found.first.name).first,
+        isNotEmpty);
+  });
+
   test('a launch streams its lines and then its result', () async {
     await machineIn('failing-start');
     final client = await connect();

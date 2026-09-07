@@ -40,6 +40,7 @@ class MockMachine {
     // pushes, not stream: a log being followed does not end, and a held-back stream would
     // deliver every line one line late.
     daemon.pushes('Tail', _tail);
+    daemon.method('Logs', _logs);
     daemon.method('Resume', _resume);
 
     switch (situation) {
@@ -96,6 +97,18 @@ class MockMachine {
   /// Nothing lists them — which is why the interface has to ask, and why this has to be able to
   /// refuse a name rather than only a method.
   static const logs = <String>{'agent.log', 'gate.log'};
+
+  /// Which logs a task has. A task that was purged has none, and that is a normal answer.
+  Map<String, dynamic> _logs(Map<String, dynamic> parameters) => <String, dynamic>{
+        'logs': <Map<String, dynamic>>[
+          for (final name in logs)
+            <String, dynamic>{
+              'name': name,
+              'bytes': name == 'gate.log' ? 4096 : 182_311,
+              'at': '2026-09-07T14:12:00Z',
+            },
+        ],
+      };
 
   Stream<Map<String, dynamic>> _tail(Map<String, dynamic> parameters) async* {
     final log = parameters['log'];

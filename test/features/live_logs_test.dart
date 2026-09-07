@@ -13,7 +13,10 @@ import './step/the_log_prints.dart';
 import './step/the_log_shows.dart';
 import './step/i_stop_following.dart';
 import './step/the_log_is_not_being_followed.dart';
-import './step/the_log_says.dart';
+import './step/i_ask_which_logs_the_work_has.dart';
+import './step/the_logs_offered_are.dart';
+import './step/the_work_has_no_logs_left.dart';
+import './step/it_says_it_has_no_logs.dart';
 import './step/the_log_prints_a_red_line_saying.dart';
 import './step/the_log_shows_no_escape_characters.dart';
 import './step/the_log_ends.dart';
@@ -46,12 +49,19 @@ void main() {
       await theLogIsNotBeingFollowed(tester);
       await theLogShows(tester, 'what arrived while reading back');
     });
-    testWidgets(
-        '''a log the work does not have is refused, and says which name failed''',
+    testWidgets('''only the logs the work actually has are offered''',
         (tester) async {
       await bddSetUp(tester);
-      await iReadTheLog(tester, 'nowhere.log');
-      await theLogSays(tester, 'has no log called "nowhere.log"');
+      await iAskWhichLogsTheWorkHas(tester);
+      await theLogsOfferedAre(tester, 'agent.log');
+    });
+    testWidgets(
+        '''work whose logs are gone says so rather than looking broken''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasNoLogsLeft(tester);
+      await iAskWhichLogsTheWorkHas(tester);
+      await itSaysItHasNoLogs(tester);
     });
     testWidgets(
         '''colour an agent wrote is rendered, never shown as escape characters''',

@@ -96,7 +96,7 @@ class _ShellState extends State<Shell> {
     final log = await askWhichLog(
       context,
       task: task.name,
-      known: widget.logs.namesFor(task.name),
+      logs: widget.fleet.backend.logsOf(task.name),
     );
     if (log == null) return;
     widget.logs.open(widget.fleet.backend, task.name, log);

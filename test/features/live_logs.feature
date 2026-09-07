@@ -21,9 +21,14 @@ Feature: F11 Live Log Viewing
     Then the log is not being followed
     And the log shows {'what arrived while reading back'}
 
-  Scenario: a log the work does not have is refused, and says which name failed
-    When I read the log {'nowhere.log'}
-    Then the log says {'has no log called "nowhere.log"'}
+  Scenario: only the logs the work actually has are offered
+    When I ask which logs the work has
+    Then the logs offered are {'agent.log'}
+
+  Scenario: work whose logs are gone says so rather than looking broken
+    Given the work has no logs left
+    When I ask which logs the work has
+    Then it says it has no logs
 
   Scenario: colour an agent wrote is rendered, never shown as escape characters
     When I read the log {'agent.log'}

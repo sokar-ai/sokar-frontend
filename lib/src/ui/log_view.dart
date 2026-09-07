@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:sokar_frontend/client.dart';
+
 import '../app/logs.dart';
 import 'ansi.dart';
 import 'panes.dart';
@@ -142,79 +144,73 @@ class _Problem extends StatelessWidget {
   }
 }
 
-/// Asks which log to read.
+/// Asks which of a task's logs to read.
 ///
-/// A name typed rather than one chosen, because the contract has no method that lists a task's
-/// logs — `Tail` only checks a name against what is there. The names already opened are offered
-/// because they are the only ones known to work; the rest is the person's own knowledge, and the
-/// dialog says so rather than leaving it to be discovered by naming one that is not there.
+/// The list comes from the daemon, never from a set of names held here: which files a task has
+/// depends on what it started — one with no gate has no `gate.log` — so a client that knew the
+/// names would offer a file that was never going to exist and would never show one a later
+/// release adds. Same rule as a prompt's key: derive nothing at this end that the far end knows.
 Future<String?> askWhichLog(
   BuildContext context, {
   required String task,
-  required List<String> known,
-}) async {
-  final chosen = await showDialog<String>(
-    context: context,
-    builder: (context) => _WhichLog(task: task, known: known),
-  );
-  return (chosen == null || chosen.isEmpty) ? null : chosen;
-}
+  required Future<List<Log>> logs,
+}) =>
+    showDialog<String>(
+      context: context,
+      builder: (context) => _WhichLog(task: task, logs: logs),
+    );
 
-class _WhichLog extends StatefulWidget {
-  const _WhichLog({required this.task, required this.known});
+class _WhichLog extends StatelessWidget {
+  const _WhichLog({required this.task, required this.logs});
 
   final String task;
-  final List<String> known;
-
-  @override
-  State<_WhichLog> createState() => _WhichLogState();
-}
-
-class _WhichLogState extends State<_WhichLog> {
-  // Owned by the dialog's own state, because a controller disposed the moment showDialog returns
-  // is one the closing animation is still building with.
-  final _typed = TextEditingController();
+  final Future<List<Log>> logs;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text('Read a log of ${widget.task}'),
+        title: Text('Read a log of $task'),
         content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              TextField(
-                controller: _typed,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Log file name',
-                  hintText: 'something.log',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (name) => Navigator.of(context).pop(name.trim()),
-              ),
-              const SizedBox(height: Space.normal),
-              Text(
-                'This backend cannot list a task\u2019s logs, so the name has to be typed. '
-                'A name it does not have is refused, and says so.',
-                key: const Key('why-typed'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              if (widget.known.isNotEmpty) ...<Widget>[
-                const SizedBox(height: Space.normal),
-                Wrap(
-                  spacing: Space.small,
-                  children: <Widget>[
-                    for (final name in widget.known)
-                      ActionChip(
-                        label: Text(name),
-                        onPressed: () => Navigator.of(context).pop(name),
-                      ),
-                  ],
-                ),
-              ],
-            ],
+          width: 460,
+          child: FutureBuilder<List<Log>>(
+            future: logs,
+            builder: (context, asked) {
+              if (asked.hasError) {
+                return Text('Its logs could not be asked for: ${asked.error}');
+              }
+              if (!asked.hasData) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(Space.loose),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              final found = asked.data!;
+              if (found.isEmpty) {
+                // A normal answer, not a failure: a task whose state directory is gone — which is
+                // what stopping with purge does — has no logs at all.
+                return const Padding(
+                  padding: EdgeInsets.all(Space.normal),
+                  child: Text(
+                    'This task has no logs. One that has been removed keeps none, and neither '
+                    'does a name that is not a Sokar task.',
+                    key: Key('no-logs'),
+                  ),
+                );
+              }
+              return ListView(
+                shrinkWrap: true,
+                children: <Widget>[
+                  for (final log in found)
+                    ListTile(
+                      dense: true,
+                      title: Text(log.name),
+                      subtitle: Text('${_size(log.bytes)} · last written ${log.at}'),
+                      onTap: () => Navigator.of(context).pop(log.name),
+                    ),
+                ],
+              );
+            },
           ),
         ),
         actions: <Widget>[
@@ -222,16 +218,13 @@ class _WhichLogState extends State<_WhichLog> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(_typed.text.trim()),
-            child: const Text('Read it'),
-          ),
         ],
       );
 
-  @override
-  void dispose() {
-    _typed.dispose();
-    super.dispose();
+  /// Size as a person reads it. What it is *now*: a log being written passes it.
+  static String _size(int bytes) {
+    if (bytes < 1024) return '$bytes bytes';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} kB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

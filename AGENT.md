@@ -270,6 +270,12 @@ lives in the session record, so closing the window onto a build does not stop th
 arriving late does not mean having missed the output. That is the whole class: F13 is the
 machinery, and F03, F06 and F08 are the things that will use it.
 
+**Derive nothing at this end that the far end already knows.** A task's logs are asked for, never
+held as a set of names: which files exist depends on what the task started, so a client that knew
+them would offer one that was never going to exist and would never show one a later release adds.
+The same rule as a prompt's `key`, which is the daemon's derivation and not ours. When something
+is missing, ask for the method — `Logs` was asked for and arrived the same day.
+
 **ANSI colour is honoured, never printed and never stripped.** A log with the escapes left in is
 unreadable; one with them stripped loses what the colour was carrying. `ansi.dart` maps each
 colour to something from the theme with the same *meaning* — red to `error`, green to `primary` —

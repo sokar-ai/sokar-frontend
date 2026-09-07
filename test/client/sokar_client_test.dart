@@ -300,6 +300,22 @@ void main() {
     });
   });
 
+  group('which logs a task has', () {
+    test('an empty list is an answer, not a failure', () async {
+      // A task whose state directory is gone — which is what stopping with purge does — has no
+      // logs, and neither does a name that is not a Sokar task. Neither raises an error.
+      daemon.method('Logs', (_) => {'logs': <Map<String, dynamic>>[]});
+
+      expect(await (await connect()).logsOf('sokar-demo-shell-1'), isEmpty);
+    });
+
+    test('a reply shaped differently from the promise still reads as none', () async {
+      daemon.method('Logs', (_) => <String, dynamic>{});
+
+      expect(await (await connect()).logsOf('sokar-demo-shell-1'), isEmpty);
+    });
+  });
+
   group('an endless stream', () {
     test('delivers each event as it happens, not one event late', () async {
       // Watch and Prompts are never finite. A backend that held each event until the next one

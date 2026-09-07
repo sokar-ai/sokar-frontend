@@ -65,7 +65,7 @@ SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
 Pressing RETURN in the first terminal adds a task and pushes the change, so live updates can be
 watched arriving. `Ctrl+K` → *Check that work can start here* runs a long operation against the
 mock; `Ctrl+O` shows everything this session has run. The mock's tasks have `agent.log` and
-`gate.log` to read — any other name is refused, the way a real daemon refuses one. Other situations to open it against, none of which a real daemon can be asked
+`gate.log`, listed the way a real daemon lists them. Other situations to open it against, none of which a real daemon can be asked
 for on demand:
 
 | | |
