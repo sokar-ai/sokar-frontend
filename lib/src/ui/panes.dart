@@ -151,11 +151,16 @@ class _ProjectRow extends StatelessWidget {
             ],
           ),
         ),
-        // Waiting for review is the one thing that makes a project need somebody, so it is a
-        // number on the row rather than something found by opening it.
+        // Waiting for review is the one thing that makes a project need a person, so it is a
+        // number on the row rather than something found by opening it. It says what is waiting
+        // and what happens next: a bare count needed explaining, which means it was not saying
+        // anything.
         if (project.project.pending > 0)
           Tooltip(
-            message: '${project.project.pending} waiting for review',
+            message: '${project.project.pending} '
+                '${project.project.pending == 1 ? 'push is' : 'pushes are'} waiting at the '
+                'gate.\nWork an agent finished and pushed, which will not leave this machine '
+                'until somebody approves it.',
             child: Chip(
               label: Text('${project.project.pending}'),
               visualDensity: VisualDensity.compact,
