@@ -19,9 +19,19 @@ class Machine {
   /// Constructor taking what to call it and where its socket is.
   const Machine({required this.name, required this.socketPath});
 
-  /// The daemon on this machine.
-  factory Machine.local() =>
-      Machine(name: 'this machine', socketPath: Backend.local().socketPath);
+  /// The machine to open when nothing has been stored yet.
+  ///
+  /// The local daemon, unless `SOKAR_SOCKET` names another socket — a forwarded one, or the mock
+  /// while the interface is being worked on. [environment] is injectable so this can be held to
+  /// that: it was quietly dropped once during the rework that made several machines possible, and
+  /// nothing noticed until the window said it could not connect to a daemon nobody was running.
+  factory Machine.local({Map<String, String>? environment}) {
+    final socket = (environment ?? Platform.environment)['SOKAR_SOCKET'];
+    if (socket == null || socket.isEmpty) {
+      return Machine(name: 'this machine', socketPath: Backend.local().socketPath);
+    }
+    return Machine(name: socket.split('/').last, socketPath: socket);
+  }
 
   /// Reads one back from what was stored.
   factory Machine.fromStored(Map<String, Object?> stored) => Machine(
@@ -69,8 +79,14 @@ class Machine {
 /// — never by which one happens to be reachable.
 class Machines extends ChangeNotifier {
   /// Constructor taking where the list is kept and how to reach a machine.
+  ///
+  /// One machine exists from the moment this does, before anything is read back from disk. The
+  /// frame is drawn before [load] can finish, and a frame with no machine behind it has nothing
+  /// to draw — which it did, as a crash on the first frame.
   Machines(this._settings, {FleetBackend Function(Machine)? reach})
-      : _reach = reach ?? _overSocket;
+      : _reach = reach ?? _overSocket {
+    _adopt(<Machine>[Machine.local()]);
+  }
 
   final Settings _settings;
   final FleetBackend Function(Machine) _reach;
@@ -85,10 +101,10 @@ class Machines extends ChangeNotifier {
   /// Every machine, in the order they were added.
   List<Machine> get all => List<Machine>.unmodifiable(_machines);
 
-  /// What is being acted on.
-  Machine get current =>
-      _machines.firstWhere((machine) => machine.name == _selected,
-          orElse: () => _machines.isEmpty ? Machine.local() : _machines.first);
+  /// What is being acted on. There is always one.
+  Machine get current => _machines.firstWhere(
+      (machine) => machine.name == _selected,
+      orElse: () => _machines.first);
 
   /// The fleet of the machine being acted on.
   FleetModel get fleet => of(current);
@@ -102,16 +118,31 @@ class Machines extends ChangeNotifier {
       .length;
 
   /// Reads the machines an earlier run stored and opens all of them.
+  ///
+  /// Nothing stored leaves the one this started with, which is the local daemon or whatever
+  /// `SOKAR_SOCKET` names.
   Future<void> load() async {
     final stored = await _settings.machines();
+    if (stored.isEmpty) return;
+    _adopt(stored);
+    _notify();
+  }
+
+  /// Replaces the set of machines being watched, closing what watched the old ones.
+  void _adopt(List<Machine> machines) {
+    for (final fleet in _watching.values) {
+      fleet
+        ..removeListener(_notify)
+        ..dispose();
+    }
+    _watching.clear();
     _machines
       ..clear()
-      ..addAll(stored.isEmpty ? <Machine>[Machine.local()] : stored);
-    _selected ??= _machines.first.name;
+      ..addAll(machines);
+    _selected = _machines.first.name;
     for (final machine in _machines) {
       _open(machine);
     }
-    _notify();
   }
 
   /// Adds a machine and opens it. Adding never changes which one is being acted on.

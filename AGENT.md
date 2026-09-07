@@ -241,6 +241,16 @@ draws it. Three things there are decisions, not accidents:
 - **Losing contact keeps the last task list.** Clearing it would draw a machine with nothing
   running on it, which is the one reading a dropped tunnel must never produce.
 
+**`SOKAR_SOCKET` is read in one place: `Machine.local()`.** The rework that made several machines
+possible quietly dropped it, so the window opened on the local runtime socket and said it could
+not connect to a daemon nobody was running — with every test green, because nothing covered which
+socket the interface picks. It takes an injectable environment now, and `test/app/machines_test`
+is that guard.
+
+**`Machines` has a machine from the moment it is constructed**, not from when `load()` finishes.
+The frame is drawn before anything can be read back from disk, and a frame with no machine behind
+it has nothing to draw — which it did not, as a null check on the first frame.
+
 **Connected to every machine, acting on one.** `Machines` opens a `FleetModel` per configured
 host and keeps them all open, because a clearance prompt has a deadline and is never asked twice —
 a machine nobody is connected to is one whose blocked work expires unseen. Which machine an action

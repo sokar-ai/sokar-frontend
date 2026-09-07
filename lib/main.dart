@@ -1,9 +1,5 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:sokar_frontend/client.dart';
-
 import 'src/app/logs.dart';
 import 'src/app/machines.dart';
 import 'src/app/operations.dart';
@@ -30,15 +26,4 @@ Future<void> main() async {
   // than staying blank until a socket answers or does not. Every machine at once, because a
   // clearance prompt has a deadline and one nobody is connected to expires unseen.
   unawaited(machines.load());
-}
-
-/// Which backend to open.
-///
-/// `SOKAR_SOCKET` points this at another socket — a forwarded one for a machine somewhere else,
-/// or the mock daemon while the interface is being worked on. One string is the whole
-/// difference between a local and a remote Sokar, which is why there is no second transport.
-Backend backendFromEnvironment() {
-  final socket = Platform.environment['SOKAR_SOCKET'];
-  if (socket == null || socket.isEmpty) return Backend.local();
-  return Backend(socketPath: socket, label: 'socket $socket');
 }
