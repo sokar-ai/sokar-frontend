@@ -34,7 +34,7 @@ class RefusalView extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(Icons.pan_tool, color: scheme.onErrorContainer),
+              Icon(Icons.pan_tool_outlined, color: scheme.onErrorContainer),
               const SizedBox(width: Space.small),
               Expanded(
                 child: Text(

@@ -162,6 +162,11 @@ class _ProjectRow extends StatelessWidget {
                 'gate.\nWork an agent finished and pushed, which will not leave this machine '
                 'until somebody approves it.',
             child: Chip(
+              // An outbox: work that is finished and has not been sent. `Approve` is the only
+              // call in the whole contract that sends anything anywhere, so that is exactly what
+              // is waiting here.
+              avatar: Icon(Icons.outbox_outlined,
+                  size: Sizes.rowIcon, color: scheme.onTertiaryContainer),
               label: Text('${project.project.pending}'),
               visualDensity: VisualDensity.compact,
               backgroundColor: scheme.tertiaryContainer,

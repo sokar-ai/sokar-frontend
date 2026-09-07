@@ -99,7 +99,8 @@ class _Reachability extends StatelessWidget {
       Reachability.connecting => (Icons.cloud_queue, scheme.outline, 'Connecting'),
       Reachability.connected => (Icons.cloud_done, scheme.primary, 'Connected'),
       Reachability.unreachable => (Icons.cloud_off, scheme.error, 'Not connected'),
-      Reachability.incompatible => (Icons.report, scheme.error, 'Incompatible backend'),
+      Reachability.incompatible =>
+        (Icons.warning_amber_outlined, scheme.error, 'Incompatible backend'),
     };
     return Tooltip(
       message: words,

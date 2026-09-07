@@ -276,6 +276,12 @@ shell inverted it. Appearance, reconnect and quit were reachable *only* through 
 pointer was the impossible half. The menu bar is the fix, and the scenario *every action is
 reachable with a pointer alone* is the guard that should have caught it.
 
+**Icons are outlined by default and filled only for a selected state** — `folder_outlined` in the
+rail until that section is the one you are in, then `folder`. Taken from melkheftken, whose whole
+interface runs on eighteen icons; a set that mixes the two weights reads as two interfaces. Pick
+one that says what the thing *is*: a push waiting at the gate is `outbox_outlined`, because
+`Approve` is the only call in the contract that sends anything anywhere.
+
 **Nothing outside `lib/src/ui/tokens.dart` spells out a spacing, a width or a radius**, and
 nothing outside `window_size.dart` compares a width. Layout asks named questions —
 `showsTwoPanes`, `showsOpenedBeside`, `showsMenuBar` — against Material 3's own size classes

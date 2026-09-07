@@ -231,7 +231,7 @@ class OperationMark extends StatelessWidget {
       );
     }
     return Icon(
-      operation.failed ? Icons.error : Icons.check_circle,
+      operation.failed ? Icons.error_outline : Icons.check_circle_outline,
       size: 16,
       color: operation.failed ? scheme.error : scheme.primary,
     );

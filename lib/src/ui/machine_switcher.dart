@@ -77,7 +77,8 @@ class MachineSwitcher extends StatelessWidget {
           for (final machine in machines.all)
             MenuItemButton(
               leadingIcon: _Reach(fleet: machines.of(machine)),
-              trailingIcon: machine == current ? const Icon(Icons.check, size: 16) : null,
+              trailingIcon:
+                  machine == current ? const Icon(Icons.check, size: Sizes.mark) : null,
               onPressed: () => machines.select(machine),
               child: Text(machine.name),
             ),
@@ -114,7 +115,8 @@ class _Reach extends StatelessWidget {
       Reachability.connecting => (Icons.cloud_queue, scheme.outline, 'Connecting'),
       Reachability.connected => (Icons.cloud_done, scheme.primary, 'Answering'),
       Reachability.unreachable => (Icons.cloud_off, scheme.error, 'Not answering'),
-      Reachability.incompatible => (Icons.report, scheme.error, 'Speaks nothing this build knows'),
+      Reachability.incompatible =>
+        (Icons.warning_amber_outlined, scheme.error, 'Speaks nothing this build knows'),
     };
     return Tooltip(
       message: '${fleet.backend.label}: $words',
@@ -259,7 +261,7 @@ class _Recipe extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.copy, size: Sizes.rowIcon),
+            icon: const Icon(Icons.copy_outlined, size: Sizes.rowIcon),
             tooltip: 'Copy the command',
             onPressed: () => Clipboard.setData(ClipboardData(text: command)),
           ),

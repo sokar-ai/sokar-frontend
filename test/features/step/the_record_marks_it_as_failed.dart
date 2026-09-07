@@ -9,7 +9,7 @@ Future<void> theRecordMarksItAsFailed(WidgetTester tester) async {
   expect(
     find.descendant(
       of: find.byType(OperationsList),
-      matching: find.byIcon(Icons.error),
+      matching: find.byIcon(Icons.error_outline),
     ),
     findsOneWidget,
   );
