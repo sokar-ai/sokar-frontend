@@ -390,6 +390,161 @@ class Project {
   bool get canBeActedOn => file.isNotEmpty;
 }
 
+/// One host a project's work may reach, and what granted it.
+class EgressHost {
+  /// The host.
+  final String host;
+
+  /// What granted it: `agent <name>`, `provider <name>`, `set <name>`, `project` or `upstream`.
+  ///
+  /// **The first grant wins**, so a host in both a set and an agent's list is reported as the
+  /// agent's — which is why the order it arrives in is meaningful and must not be sorted away.
+  final String origin;
+
+  /// Constructor taking the host and its origin.
+  const EgressHost({required this.host, required this.origin});
+
+  /// Reads one from a reply.
+  factory EgressHost.from(Map<String, dynamic> map) =>
+      EgressHost(host: _string(map, 'host'), origin: _string(map, 'origin'));
+}
+
+/// A curated set of destinations, installed on the machine.
+class EgressSet {
+  /// What a project writes in its `egress.sets`, and what `SetEgress` takes.
+  final String name;
+
+  /// Human-readable name, for a listing.
+  final String label;
+
+  /// The hosts it grants, in the order the file declares them.
+  ///
+  /// Shown, because a set exists so nobody authors host lists by hand, and that only works if the
+  /// name can be seen through.
+  final List<String> domains;
+
+  /// Constructor taking every field.
+  const EgressSet({
+    required this.name,
+    required this.label,
+    required this.domains,
+  });
+
+  /// Reads one from a reply.
+  factory EgressSet.from(Map<String, dynamic> map) => EgressSet(
+        name: _string(map, 'name'),
+        label: _string(map, 'label'),
+        domains: _strings(map, 'domains'),
+      );
+}
+
+/// What a change to a project's egress did, or would do.
+///
+/// **Every refusal is an outcome, not an exception.** Not a Dart enum, by the rule that already
+/// covers [Outcome]: a value added later must render rather than throw.
+class EgressOutcome {
+  /// Constructor taking the name as the contract spells it.
+  const EgressOutcome(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// Applied and written to the project file.
+  static const changed = EgressOutcome('CHANGED');
+
+  /// What it would do. Nothing was written, because `dryRun` was set.
+  static const previewed = EgressOutcome('PREVIEWED');
+
+  /// The file already said that.
+  static const noChange = EgressOutcome('NO_CHANGE');
+
+  /// A named set is not installed here, so the file would name nothing real.
+  static const noSuchSet = EgressOutcome('NO_SUCH_SET');
+
+  /// An offline project declares no egress at all.
+  static const refusedByClass = EgressOutcome('REFUSED_BY_CLASS');
+
+  /// The project file could not be read.
+  static const unreadable = EgressOutcome('UNREADABLE');
+
+  /// The change was right and the file could not be written — `opens` and `closes` still say what
+  /// it would have done.
+  static const notWritten = EgressOutcome('NOT_WRITTEN');
+
+  /// The values this build knows.
+  static const known = <EgressOutcome>[
+    changed,
+    previewed,
+    noChange,
+    noSuchSet,
+    refusedByClass,
+    unreadable,
+    notWritten,
+  ];
+
+  /// Whether this build knows what it means.
+  bool get recognised => known.any((value) => value.name == name);
+
+  /// Whether anything was actually written.
+  bool get wrote => name == 'CHANGED';
+
+  /// Words for a person, unrecognised values included.
+  String get label {
+    final words = name.toLowerCase().split('_').where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return name;
+    words[0] = words.first[0].toUpperCase() + words.first.substring(1);
+    return words.join(' ');
+  }
+
+  @override
+  bool operator ==(Object other) => other is EgressOutcome && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// What a change to a project's egress did, and what it opened and closed.
+class EgressChange {
+  /// What happened.
+  final EgressOutcome outcome;
+
+  /// Hosts the change opens, in the order the sources granted them. **Never sorted.**
+  final List<EgressHost> opens;
+
+  /// Hosts it closes, in the same order.
+  final List<EgressHost> closes;
+
+  /// A sentence to show prominently, and usually empty.
+  ///
+  /// Filled only when *this* change makes a forge reachable for a guarded project, and not
+  /// repeated on later edits — a warning shown when nothing changed is one people learn to skip.
+  final String cost;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const EgressChange({
+    required this.outcome,
+    required this.opens,
+    required this.closes,
+    required this.cost,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory EgressChange.from(Map<String, dynamic> map) => EgressChange(
+        outcome: EgressOutcome(_string(map, 'outcome')),
+        opens: _list(map, 'opens').map(EgressHost.from).toList(),
+        closes: _list(map, 'closes').map(EgressHost.from).toList(),
+        cost: _string(map, 'cost'),
+        detail: _string(map, 'detail'),
+      );
+}
+
 /// One of a task's log files.
 class Log {
   /// File name. **Pass it to `Tail` unchanged** — it is a name, never a path.

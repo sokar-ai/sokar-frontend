@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
+import '../app/egress.dart';
 import '../app/gate.dart';
 import '../app/logs.dart';
 import '../app/notifications.dart';
@@ -15,6 +16,7 @@ import 'package:sokar_frontend/client.dart';
 import 'command_finder.dart';
 import 'clearance_view.dart';
 import 'command_menu_bar.dart';
+import 'egress_view.dart';
 import 'gate_view.dart';
 import 'log_view.dart';
 import 'machine_switcher.dart';
@@ -41,6 +43,7 @@ class Shell extends StatefulWidget {
     required this.logs,
     required this.gate,
     required this.notifications,
+    required this.egress,
     super.key,
   });
 
@@ -64,6 +67,9 @@ class Shell extends StatefulWidget {
 
   /// What gets told to somebody who is not looking at the window.
   final Notifications notifications;
+
+  /// What the project being looked at may reach.
+  final Egress egress;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -108,6 +114,7 @@ class _ShellState extends State<Shell> {
         askToStop: _askToStop,
         askWhichLog: _askWhichLog,
         openTheGate: _openTheGate,
+        openEgress: _openEgress,
         quit: () => SystemNavigator.pop(),
       );
 
@@ -117,6 +124,14 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openGate();
     await widget.gate.lookAt(_fleet.backend, project);
+  }
+
+  /// Opens what the selected project's work may reach.
+  Future<void> _openEgress() async {
+    final project = _fleet.selectedProject?.project;
+    if (project == null) return;
+    widget.shell.openEgress();
+    await widget.egress.lookAt(_fleet.backend, project);
   }
 
   /// Opens one waiting push, and reads what it contains.
@@ -330,6 +345,18 @@ class _ShellState extends State<Shell> {
         final task = _fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
+      case EgressOpened():
+        return EgressView(
+          egress: widget.egress,
+          onConsider: ({addSets, removeSets}) => widget.egress.consider(
+            _fleet.backend,
+            addSets: addSets,
+            removeSets: removeSets,
+          ),
+          onApply: _applyEgress,
+          onLetItBe: widget.egress.letItBe,
+          onClose: widget.shell.close,
+        );
       case GateOpened():
         return GateView(
           gate: widget.gate,
@@ -413,6 +440,26 @@ class _ShellState extends State<Shell> {
       ],
     );
   }
+
+  /// Makes the change that was previewed, with the same words it was previewed with.
+  Future<void> _applyEgress() async {
+    final asked = widget.egress.preview;
+    if (asked == null) return;
+    await widget.egress.apply(
+      _fleet.backend,
+      addSets: _setsIn(asked.opens),
+      removeSets: _setsIn(asked.closes),
+    );
+    final done = widget.egress.applied;
+    if (done != null) _fleet.say('${done.outcome.label}. ${done.detail}'.trim());
+  }
+
+  /// Which sets a preview's hosts came from, so the change can be asked for again in the same
+  /// words rather than remembered as a promise.
+  static List<String> _setsIn(List<EgressHost> hosts) => <String>{
+        for (final host in hosts)
+          if (host.origin.startsWith('set ')) host.origin.substring(4),
+      }.toList();
 
   List<Command> _workActions(Task task) => workCommands(
         task: task,

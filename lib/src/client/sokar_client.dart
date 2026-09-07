@@ -205,6 +205,62 @@ class SokarClient {
         : const <Project>[];
   }
 
+  /// The curated destination sets installed on this machine, and where they were found.
+  ///
+  /// Scanned every time rather than fixed: a set an operator drops into their own directory turns
+  /// up without anything being rebuilt, and theirs wins over a packaged one of the same name —
+  /// which is why the locations come back in search order.
+  Future<(List<EgressSet>, List<String>)> sets() async {
+    final reply = await _call('Sets');
+    final sets = reply['sets'];
+    final locations = reply['locations'];
+    return (
+      sets is List
+          ? sets.whereType<Map<String, dynamic>>().map(EgressSet.from).toList()
+          : <EgressSet>[],
+      locations is List ? locations.whereType<String>().toList() : <String>[],
+    );
+  }
+
+  /// What a project's work may reach, and what it asks for and is deliberately not given.
+  ///
+  /// The whole composition a task run uses, the agent's own grants and its provider's host
+  /// included. `refused` is the distinction a dropped packet cannot make: "we said no" and
+  /// "nobody added it" look identical to the firewall.
+  Future<(List<EgressHost>, List<String>)> egress(String project, {String? agent}) async {
+    final reply = await _call('Egress', {'project': project, 'agent': ?agent});
+    final hosts = reply['hosts'];
+    final refused = reply['refused'];
+    return (
+      hosts is List
+          ? hosts.whereType<Map<String, dynamic>>().map(EgressHost.from).toList()
+          : <EgressHost>[],
+      refused is List ? refused.whereType<String>().toList() : <String>[],
+    );
+  }
+
+  /// Changes what a project's work may reach, or says what the change would do.
+  ///
+  /// With `dryRun` it answers `PREVIEWED` and writes nothing, having worked out exactly the
+  /// `opens` and `closes` a real call would produce. **Nothing here reaches a running task**: a
+  /// container's ruleset is built when it starts, so a change applies to the next one.
+  Future<EgressChange> setEgress(
+    String project, {
+    List<String>? addSets,
+    List<String>? removeSets,
+    List<String>? addDomains,
+    List<String>? removeDomains,
+    bool? dryRun,
+  }) async =>
+      EgressChange.from(await _call('SetEgress', {
+        'project': project,
+        'addSets': ?addSets,
+        'removeSets': ?removeSets,
+        'addDomains': ?addDomains,
+        'removeDomains': ?removeDomains,
+        'dryRun': ?dryRun,
+      }));
+
   /// Which logs a task has.
   ///
   /// Asked rather than assumed: which files exist depends on what the task started — one with no

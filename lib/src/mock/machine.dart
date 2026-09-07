@@ -42,6 +42,9 @@ class MockMachine {
     daemon.pushes('Tail', _tail);
     daemon.method('Logs', _logs);
     daemon.method('Projects', _projects);
+    daemon.method('Sets', _sets);
+    daemon.method('Egress', _egress);
+    daemon.method('SetEgress', _setEgress);
     daemon.method('Pending', _pending);
     daemon.method('Review', _review);
     daemon.method('Approve', _approve);
@@ -231,6 +234,98 @@ class MockMachine {
     _waiting.remove(name);
     return <String, dynamic>{'rejected': name};
   }
+
+  /// The sets a project is using, by project file.
+  final Set<String> _using = <String>{'dart-packages'};
+
+  /// The sets installed here, scanned rather than fixed.
+  static const _installed = <Map<String, dynamic>>[
+    <String, dynamic>{
+      'name': 'dart-packages',
+      'label': 'Dart packages',
+      'domains': <String>['pub.dev', 'storage.googleapis.com'],
+    },
+    <String, dynamic>{
+      'name': 'containers',
+      'label': 'Container registries',
+      'domains': <String>['registry.fedoraproject.org', 'quay.io', 'docker.io'],
+    },
+    <String, dynamic>{
+      'name': 'forges',
+      'label': 'Code forges',
+      'domains': <String>['github.com', 'gitlab.com'],
+    },
+  ];
+
+  Map<String, dynamic> _sets(Map<String, dynamic> parameters) => <String, dynamic>{
+        'sets': _installed,
+        'locations': <String>['/etc/sokar/egress.d', '/usr/share/sokar/egress.d'],
+      };
+
+  Map<String, dynamic> _egress(Map<String, dynamic> parameters) => <String, dynamic>{
+        // In the order the sources granted them. The first grant wins, so this order is the
+        // answer to "where did this host come from" and must not be sorted.
+        'hosts': <Map<String, dynamic>>[
+          <String, dynamic>{'host': 'api.anthropic.com', 'origin': 'agent an-agent'},
+          <String, dynamic>{'host': 'github.com', 'origin': 'upstream'},
+          for (final name in _using)
+            for (final host in _domainsOf(name))
+              <String, dynamic>{'host': host, 'origin': 'set $name'},
+        ],
+        'refused': <String>['telemetry.example.test'],
+      };
+
+  Map<String, dynamic> _setEgress(Map<String, dynamic> parameters) {
+    final adding = (parameters['addSets'] as List?)?.cast<String>() ?? <String>[];
+    final removing = (parameters['removeSets'] as List?)?.cast<String>() ?? <String>[];
+    final preview = parameters['dryRun'] == true;
+
+    for (final name in <String>[...adding, ...removing]) {
+      if (!_installed.any((set) => set['name'] == name)) {
+        return <String, dynamic>{
+          'outcome': 'NO_SUCH_SET',
+          'opens': <Map<String, dynamic>>[],
+          'closes': <Map<String, dynamic>>[],
+          'cost': '',
+          'detail': '$name is not installed on this machine',
+        };
+      }
+    }
+
+    final opens = <Map<String, dynamic>>[
+      for (final name in adding)
+        for (final host in _domainsOf(name))
+          <String, dynamic>{'host': host, 'origin': 'set $name'},
+    ];
+    final closes = <Map<String, dynamic>>[
+      for (final name in removing)
+        for (final host in _domainsOf(name))
+          <String, dynamic>{'host': host, 'origin': 'set $name'},
+    ];
+    if (!preview) {
+      _using
+        ..addAll(adding)
+        ..removeAll(removing);
+    }
+    return <String, dynamic>{
+      'outcome': preview ? 'PREVIEWED' : 'CHANGED',
+      'opens': opens,
+      'closes': closes,
+      // Filled only when *this* change makes a forge reachable for a guarded project, and never
+      // repeated on a later edit.
+      'cost': adding.contains('forges')
+          ? 'the gate now rests on the container holding no credential rather than on the '
+              'host being unreachable'
+          : '',
+      'detail': '',
+    };
+  }
+
+  static List<String> _domainsOf(String name) => <String>[
+        ...(_installed.firstWhere((set) => set['name'] == name,
+                orElse: () => const <String, dynamic>{'domains': <String>[]})['domains']
+            as List<String>),
+      ];
 
   /// Every project on the machine, assembled the way the daemon assembles it.
   ///

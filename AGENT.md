@@ -340,6 +340,25 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
 
+**Nothing changes a project's egress without having shown what it would do.** `dryRun` answers
+exactly the hosts a real call would open and close, having written nothing, and the preview is
+what somebody agrees to — the change is then asked for again *in the same words* rather than
+remembered as a promise. Five things about it that are easy to get wrong:
+
+- **`opens` and `closes` are hosts, never set names.** One set opens eleven, and whoever presses
+  the button is entitled to see which. A guard that only counted them let a mutation through here
+  once; it reads the rendered hosts now.
+- **The order is the answer, so nothing sorts it.** The first grant wins, so the order says which
+  source each host came from.
+- **`cost` is usually empty and matters when it is not.** Filled only when *this* change makes a
+  forge reachable for a guarded project, and never repeated later — a warning shown when nothing
+  changed is one people learn to skip.
+- **Every refusal is an outcome**: `NO_SUCH_SET`, `REFUSED_BY_CLASS`, `UNREADABLE`, `NOT_WRITTEN`
+  — and on the last, `opens`/`closes` still say what it would have done.
+- **Nothing here reaches a running task.** A container's ruleset is built when it starts, so a
+  written change says *"applies to the next task"*. An `offline` project declares no egress at all
+  and the action is not offered for one, rather than offered and refused.
+
 **What is notified is decided in `Notifications`, and how it is raised is a seam.** The rules —
 when to speak, what to say, what to stay quiet about — are the requirement; `notify-send` is not,
 and a widget test asserts the rules against a recording notifier. Running `notify-send` is no

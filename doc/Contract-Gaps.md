@@ -112,8 +112,18 @@ not checking that it answers the requirement.**
   - *"Turning enforcement off entirely is possible, distinct, and visibly marked wherever that
     work appears"* — **the marking half is built**: `Task.clearance` arrived on 2026-09-07 and
     `off` is marked on the work. Turning it off *while a task runs* is part of the method below.
-- **F05 Project Configuration** — egress is on the wire (`Egress`, `SetEgress`). Agents, hardware
-  and deleting a project are not.
+- **F05 Project Configuration** — **the destinations third is built**: what a project's work may
+  reach and where each host came from, what is asked for and refused, the sets installed here, and
+  changing them behind a preview. Three of its six criteria have nothing behind them, and one has
+  half:
+  - *"The agent roster for a project is editable"* — **no method**.
+  - *"Hardware access is selectable from what the machine actually has"* — **no method**, and
+    nothing lists the hardware either.
+  - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method**.
+  - *"…with the same 'all, including future additions' versus explicit-list distinction"* —
+    `SetEgress` takes named sets to add and remove, and there is **no way to say "all sets,
+    including ones installed later"**. The distinction the requirement turns on cannot be
+    expressed, so the interface does not pretend to offer it. Worth asking for if it matters.
 
 ## Blocked — no method at all
 

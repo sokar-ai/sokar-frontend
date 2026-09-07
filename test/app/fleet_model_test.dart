@@ -65,6 +65,26 @@ class _Wedged implements FleetBackend {
   Future<void> reject(String projectFile, String name) async {}
 
   @override
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
+      (const <EgressHost>[], const <String>[]);
+
+  @override
+  Future<(List<EgressSet>, List<String>)> egressSets() async =>
+      (const <EgressSet>[], const <String>[]);
+
+  @override
+  Future<EgressChange> changeEgress(
+    String projectFile, {
+    List<String>? addSets,
+    List<String>? removeSets,
+    List<String>? addDomains,
+    List<String>? removeDomains,
+    bool? dryRun,
+  }) async =>
+      EgressChange.from(const <String, dynamic>{});
+
+
+  @override
   Stream<Prompt> prompts() => const Stream<Prompt>.empty();
 
   @override
@@ -150,6 +170,25 @@ class _Machine implements FleetBackend {
 
   @override
   Future<void> decide(Prompt prompt, {required bool allow}) async {}
+  @override
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
+      (const <EgressHost>[], const <String>[]);
+
+  @override
+  Future<(List<EgressSet>, List<String>)> egressSets() async =>
+      (const <EgressSet>[], const <String>[]);
+
+  @override
+  Future<EgressChange> changeEgress(
+    String projectFile, {
+    List<String>? addSets,
+    List<String>? removeSets,
+    List<String>? addDomains,
+    List<String>? removeDomains,
+    bool? dryRun,
+  }) async =>
+      EgressChange.from(const <String, dynamic>{});
+
 
 
 

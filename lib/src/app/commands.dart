@@ -124,6 +124,7 @@ List<Command> commandsFor({
   required void Function(Task task) askToStop,
   required void Function(Task task) askWhichLog,
   required VoidCallback openTheGate,
+  required VoidCallback openEgress,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
@@ -173,6 +174,23 @@ List<Command> commandsFor({
         muted: !notifications.mutedFor(selectedProject.name),
       ),
       unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
+      id: 'egress.open',
+      label: 'Change what this project may reach',
+      group: 'Work',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyE, control: true),
+      run: openEgress,
+      unavailable: selectedProject == null
+          ? 'no project selected'
+          : !selectedProject.canBeActedOn
+              ? 'no project file is recorded for ${selectedProject.name}'
+              : selectedProject.project.securityClass == 'offline'
+                  // An offline project declares no egress at all, and the daemon refuses with
+                  // REFUSED_BY_CLASS. Offering something that will be refused is worse than not
+                  // offering it and saying why.
+                  ? 'an offline project declares no egress at all'
+                  : null,
     ),
     Command(
       id: 'gate.open',

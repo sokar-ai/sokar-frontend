@@ -200,6 +200,49 @@ void main() {
     expect(task.activity.label, 'quiesced');
   });
 
+  test('a preview writes nothing, and the same change written does', () async {
+    await machineIn('work');
+    final client = await connect();
+    const project = '/srv/checkout/project.yml';
+
+    final (before, _) = await client.egress(project);
+    final previewed = await client.setEgress(project,
+        addSets: <String>['containers'], dryRun: true);
+
+    expect(previewed.outcome, EgressOutcome.previewed);
+    expect(previewed.opens, isNotEmpty);
+    // Hosts, not set names: adding one set opens three here.
+    expect(previewed.opens.map((host) => host.host), contains('quay.io'));
+    final (stillBefore, _) = await client.egress(project);
+    expect(stillBefore.length, before.length, reason: 'a preview wrote something');
+
+    final done = await client.setEgress(project, addSets: <String>['containers']);
+    expect(done.outcome, EgressOutcome.changed);
+    final (after, _) = await client.egress(project);
+    expect(after.length, greaterThan(before.length));
+  });
+
+  test('a set that is not installed is refused with its name, not an exception', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final refused = await client.setEgress('/srv/checkout/project.yml',
+        addSets: <String>['nothing-like-this']);
+
+    expect(refused.outcome, EgressOutcome.noSuchSet);
+    expect(refused.detail, contains('nothing-like-this'));
+  });
+
+  test('what is refused is answered beside what is reachable', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final (hosts, refused) = await client.egress('/srv/checkout/project.yml');
+
+    expect(hosts.first.origin, startsWith('agent '));
+    expect(refused, isNotEmpty);
+  });
+
   test('a project that has never run anything is still listed', () async {
     // The whole reason to ask rather than derive: a client that built the list from the tasks
     // could never show one, and that is the project most likely to need attention.

@@ -77,6 +77,24 @@ abstract class FleetBackend {
   /// rather than accepted and dropped.
   Future<void> decide(Prompt prompt, {required bool allow});
 
+  /// What a project's work may reach, and what is asked for and deliberately not given.
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile);
+
+  /// The destination sets installed on this machine, and where they were found.
+  Future<(List<EgressSet>, List<String>)> egressSets();
+
+  /// Changes what a project's work may reach, or says what the change would do.
+  ///
+  /// **Nothing here reaches a running task**: a container's ruleset is built when it starts.
+  Future<EgressChange> changeEgress(
+    String projectFile, {
+    List<String>? addSets,
+    List<String>? removeSets,
+    List<String>? addDomains,
+    List<String>? removeDomains,
+    bool? dryRun,
+  });
+
   /// What is waiting at a project's gate.
   ///
   /// [projectFile] is `Project.file`, passed through unchanged. A project that has none can be
@@ -183,6 +201,31 @@ class SokarBackend implements FleetBackend {
   @override
   Future<void> decide(Prompt prompt, {required bool allow}) async =>
       _opened().decide(prompt, allow: allow);
+
+  @override
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) =>
+      _opened().egress(projectFile);
+
+  @override
+  Future<(List<EgressSet>, List<String>)> egressSets() => _opened().sets();
+
+  @override
+  Future<EgressChange> changeEgress(
+    String projectFile, {
+    List<String>? addSets,
+    List<String>? removeSets,
+    List<String>? addDomains,
+    List<String>? removeDomains,
+    bool? dryRun,
+  }) =>
+      _opened().setEgress(
+        projectFile,
+        addSets: addSets,
+        removeSets: removeSets,
+        addDomains: addDomains,
+        removeDomains: removeDomains,
+        dryRun: dryRun,
+      );
 
   @override
   Future<GateState> gateOf(String projectFile) => _opened().gate(projectFile);

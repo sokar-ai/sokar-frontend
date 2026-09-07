@@ -69,6 +69,12 @@ class GateOpened extends Opened {
   const GateOpened();
 }
 
+/// What a project's work may reach.
+class EgressOpened extends Opened {
+  /// Constructor.
+  const EgressOpened();
+}
+
 /// One waiting push, being judged.
 class ReviewOpened extends Opened {
   /// Constructor.
@@ -146,6 +152,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens the push being judged.
   void openReview() => _open(const ReviewOpened());
+
+  /// Opens what the selected project's work may reach.
+  void openEgress() => _open(const EgressOpened());
 
   /// Closes whatever is open and hands the keyboard back to where it came from.
   ///

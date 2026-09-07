@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
+import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
@@ -234,6 +235,80 @@ diff --git a/lib/money.dart b/lib/money.dart
   /// Set to refuse the next gate call the way the daemon refuses one.
   VarlinkException? refuseTheGate;
 
+  /// What `Egress` answers, in the order the sources granted them.
+  List<EgressHost> theHostsItMayReach = <EgressHost>[
+    EgressHost.from(const <String, dynamic>{
+      'host': 'api.anthropic.com',
+      'origin': 'agent an-agent',
+    }),
+    EgressHost.from(const <String, dynamic>{
+      'host': 'github.com',
+      'origin': 'upstream',
+    }),
+    EgressHost.from(const <String, dynamic>{
+      'host': 'pub.dev',
+      'origin': 'set dart-packages',
+    }),
+  ];
+
+  /// What an agent asks for and is deliberately not given.
+  List<String> theHostsItIsRefused = <String>['telemetry.example.test'];
+
+  /// The sets installed on this machine.
+  List<EgressSet> theSetsItHas = <EgressSet>[
+    EgressSet.from(const <String, dynamic>{
+      'name': 'dart-packages',
+      'label': 'Dart packages',
+      'domains': <String>['pub.dev', 'storage.googleapis.com'],
+    }),
+    EgressSet.from(const <String, dynamic>{
+      'name': 'containers',
+      'label': 'Container registries',
+      'domains': <String>['registry.fedoraproject.org', 'quay.io', 'docker.io'],
+    }),
+  ];
+
+  /// What the next change answers. The scenario sets it, including every refusal.
+  EgressChange? nextChange;
+
+  /// Every change asked for, and whether it was only a preview.
+  final List<({List<String> addSets, bool preview})> changes =
+      <({List<String> addSets, bool preview})>[];
+
+  @override
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
+      (theHostsItMayReach, theHostsItIsRefused);
+
+  @override
+  Future<(List<EgressSet>, List<String>)> egressSets() async =>
+      (theSetsItHas, <String>['/etc/sokar/egress.d', '/usr/share/sokar/egress.d']);
+
+  @override
+  Future<EgressChange> changeEgress(
+    String projectFile, {
+    List<String>? addSets,
+    List<String>? removeSets,
+    List<String>? addDomains,
+    List<String>? removeDomains,
+    bool? dryRun,
+  }) async {
+    changes.add((addSets: addSets ?? <String>[], preview: dryRun == true));
+    return nextChange ??
+        EgressChange.from(<String, dynamic>{
+          'outcome': dryRun == true ? 'PREVIEWED' : 'CHANGED',
+          'opens': <Map<String, dynamic>>[
+            for (final name in addSets ?? <String>[])
+              for (final host in theSetsItHas
+                  .firstWhere((set) => set.name == name)
+                  .domains)
+                <String, dynamic>{'host': host, 'origin': 'set $name'},
+          ],
+          'closes': <Map<String, dynamic>>[],
+          'cost': '',
+          'detail': '',
+        });
+  }
+
   @override
   Future<GateState> gateOf(String projectFile) async {
     final refusal = refuseTheGate;
@@ -370,6 +445,9 @@ class World {
   /// What is waiting at the gate.
   static late Gate gate;
 
+  /// What the project being looked at may reach.
+  static late Egress egress;
+
   /// What would have been said to somebody not looking at the window.
   static late RecordingNotifier notifier;
 
@@ -492,6 +570,7 @@ class World {
     operations = Operations();
     logs = Logs();
     gate = Gate();
+    egress = Egress();
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
       ..watchOperations(operations, open: (operation) => shell.openOperation(operation.id));
@@ -530,6 +609,7 @@ class World {
       logs: logs,
       gate: gate,
       notifications: notifications,
+      egress: egress,
     ));
     await tester.pumpAndSettle();
   }
@@ -561,6 +641,7 @@ class World {
       logs: logs,
       gate: gate,
       notifications: notifications,
+      egress: egress,
     ));
     await tester.pumpAndSettle();
   }

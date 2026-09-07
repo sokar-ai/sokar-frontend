@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
+import 'egress.dart';
 import 'gate.dart';
 import 'logs.dart';
 import 'machines.dart';
@@ -20,6 +21,7 @@ class SokarApp extends StatelessWidget {
     required this.logs,
     required this.gate,
     required this.notifications,
+    required this.egress,
     super.key,
   });
 
@@ -44,6 +46,9 @@ class SokarApp extends StatelessWidget {
   /// What gets told to somebody who is not looking at the window.
   final Notifications notifications;
 
+  /// What the project being looked at may reach.
+  final Egress egress;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -58,7 +63,7 @@ class SokarApp extends StatelessWidget {
           home: ListenableBuilder(
             listenable:
                 Listenable.merge(
-                <Listenable>[machines, shell, operations, logs, gate, notifications]),
+                <Listenable>[machines, shell, operations, logs, gate, notifications, egress]),
             builder: (context, _) => Shell(
               machines: machines,
               shell: shell,
@@ -67,6 +72,7 @@ class SokarApp extends StatelessWidget {
               logs: logs,
               gate: gate,
               notifications: notifications,
+              egress: egress,
             ),
           ),
         ),
