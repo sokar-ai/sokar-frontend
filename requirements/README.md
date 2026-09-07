@@ -61,13 +61,12 @@ it is judged against the rest, not because it matters least.
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | ready | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | yes| n/a | |
 | F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
-| F23 | [Notifications](F23-Notifications.md) | A decision waiting inside a closed window still reaches the person. | yes| ready | |
 | F24 | [Agent Inventory](F24-Agent-Inventory.md) | What is installed, what it may reach and which build it pins are all visible, and nothing names a specific agent. | ready | |
 | F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | ready | |
 
 ## What was here and is finished
 
-Five requirements have been met and retired. Their files are gone; the scenarios that guard them
+Six requirements have been met and retired. Their files are gone; the scenarios that guard them
 are still in `test/features`, and what each measured is in [AGENT.md](../AGENT.md), where it will
 be read again.
 
@@ -93,6 +92,13 @@ be read again.
   and answered the same day. One thing it deliberately does **not** do: `WAITING` covers clearance
   questions only, so an agent asking its own question reads as `UNKNOWN` or `IDLE`, and labelling
   either as *probably waiting* is the guess the field exists to avoid.
+
+- **F23 Notifications.** A decision waiting inside a window nobody has open reaches the person
+  anyway, and finishing does too — told apart from failing for whatever the session started, which
+  is as far as it can honestly go, because `activity` says `DEAD` for stopped, finished and killed
+  alike. Its open question is answered rather than dropped: the transport has no channel that
+  survives the *application* closing, so what is delivered is a closed **window**, on the desktop
+  the interface is running on, for every machine it watches. A desktop that cannot notify says so.
 
 ## To be checked
 
