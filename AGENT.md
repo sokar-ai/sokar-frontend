@@ -317,6 +317,29 @@ never the reading, so the lines keep accumulating and resuming shows what arrive
 gap. A view that stopped following because somebody scrolled up would be the same as having no
 switch at all.
 
+**The egress editor, when F05 and F17 are built** — `Egress` and `SetEgress` landed 2026-09-07 and
+carry five rules that are easy to get wrong and expensive to get wrong:
+
+- **Preview, then write, and show the preview.** `dryRun: true` answers `PREVIEWED` with exactly
+  the `opens` and `closes` a real call would make, having written nothing. It is the most
+  consequential edit in the product, and applying it without showing the effect is worse than the
+  file editor it replaces.
+- **`opens` and `closes` are hosts, not set names** — adding one set opens eleven hosts, and
+  whoever presses the button is entitled to see them. **The order is meaningful**: hosts arrive
+  grouped by what granted them. Render in the order given; never sort.
+- **`cost` is usually empty, and matters when it is not.** It is filled only when *this* change
+  makes a forge reachable for a guarded project, and it is not repeated on later edits — a warning
+  shown when nothing changed is one people learn to skip.
+- **Every refusal is an outcome, not an exception**: `NO_SUCH_SET`, `REFUSED_BY_CLASS`,
+  `UNREADABLE`, `NOT_WRITTEN` — and on `NOT_WRITTEN` the `opens`/`closes` still describe what it
+  would have done.
+- **Nothing here reaches a running task.** A container's ruleset is built when it starts, so a
+  successful change says *"applies to the next task"*.
+
+`Egress.hosts` is the whole composition a task run uses, the agent's own grants and its provider's
+host included. `refused` is what an agent asks for and is deliberately not given — the distinction
+a dropped packet cannot make between "we said no" and "nobody added it".
+
 **A removal says how much it destroyed.** `Stop` returns `discarded` — how many paths the
 container had that its image did not, which is what the agent installed *inside* it and which has
 nowhere to arrive, unlike the workspace the gate holds. Nothing else records that any of it

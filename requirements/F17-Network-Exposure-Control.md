@@ -22,5 +22,5 @@ what it is being refused.
 ## Notes
 
 Related: [Clearance Prompts](https://github.com/fuinorg/sokar/blob/main/requirements/base/B02-Clearance-Prompts.md) for the decisions
-themselves, and [Egress Sets Editor](https://github.com/fuinorg/sokar/blob/main/requirements/base/B04-Egress-Sets-Editor.md) for the standing
+themselves, and [what the egress editor settled](https://github.com/fuinorg/sokar/blob/main/requirements/base/README.md#what-was-here-and-is-finished) for the standing
 rules. This file covers the live controls attached to running work.

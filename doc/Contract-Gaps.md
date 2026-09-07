@@ -96,8 +96,12 @@ not checking that it answers the requirement.**
   method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling
   out is forbidden, and it is forbidden hardest here. A lock control needs a `Lock` method added
   on the Sokar side; confirmed 2026-09-07 that it will be, if asked for.
-- **F17 Network Exposure Control** — `Prompts` and `Decide` do the live half completely.
-  *"Changeable while it runs"* has no method.
+- **F17 Network Exposure Control** — `Prompts` and `Decide` do the live half completely, and
+  `Egress`/`SetEgress` arrived on 2026-09-07 for the standing half. One line stays: **nothing here
+  reaches a running task**, because a container's ruleset and resolver are built when it starts.
+  Say *"applies to the next task"* wherever a successful change is shown; do not imply otherwise.
+- **F05 Project Configuration** — egress is on the wire (`Egress`, `SetEgress`). Agents, hardware
+  and deleting a project are not.
 
 ## Blocked — no method at all
 
@@ -105,7 +109,6 @@ not checking that it answers the requirement.**
 |---|---|
 | F03 Project Environment Preparation | rebuild, at distinguishable depths |
 | F04 Guided Project Creation | create a project |
-| F05 Project Configuration | read and write agents, hardware, egress; delete a project |
 | F06 Upstream Synchronisation And Backups | sync, list snapshots, restore, delete |
 | F07 Instruction Management | read and write instructions at both levels, and show the resolved result |
 | F12 Interactive Session Attach | attach to a running task. `Start` has only the no-attach path |
@@ -113,6 +116,18 @@ not checking that it answers the requirement.**
 | F16 Access Key Routing | create, remove and link keys |
 | F18 Emergency Stop | cut every form of access at once. `sokar panic` exists **as a CLI command only** — stops every running task and its helpers, removes nothing. There is no daemon method, and shelling out for it is forbidden hardest here. Confirmed 2026-09-07 that a method would be small to add: it is the same `TaskControl.stop` the CLI already uses. Ask for it |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
+
+### What is still worth asking for
+
+- **`Sets()`** — nothing lists the installed egress sets, so a chooser cannot be offered and a
+  name has to be typed, refused with `NO_SUCH_SET` when the machine does not have it. The Sokar
+  side has offered to add one; **it is wanted**, for the same reason `Logs` was: a client that
+  held the names would offer a set this machine does not have.
+- **`mode` and `prompt` on `Start`** — two thirds of F08 is unreachable without them.
+- **`Project` fields for whether the environment is prepared and how far the upstream has drifted**
+  — the last two facts F02 asks for.
+- **Renaming a task**, which F09 asks for and nothing can do.
+- **A method behind `sokar panic`**, which F18 needs and may not shell out for.
 
 ### F22 is a different kind of gap
 

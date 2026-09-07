@@ -43,16 +43,16 @@ it is judged against the rest, not because it matters least.
 | # | Requirement | What must be true | Backend | Open question |
 |---|---|---|---|---|
 | F01 | [Application Shell](F01-Application-Shell.md) | Projects and their work are two selections apart, every action is reachable by keyboard, and one command finder names everything the product can do. | **partial** | |
-| F02 | [Project Overview](F02-Project-Overview.md) | Every project on the machine is listed with enough state to decide whether it needs attention, without opening it. | **blocked** | |
+| F02 | [Project Overview](F02-Project-Overview.md) | Every project on the machine is listed with enough state to decide whether it needs attention, without opening it. | **partial** | |
 | F13 | [Operation Feedback And History](F13-Operation-Feedback-And-History.md) | Long operations never block or disturb the interface, and every one started in a session can be reopened with its output. | **partial** | |
 | F08 | [Task Creation And Modes](F08-Task-Creation-And-Modes.md) | Work is started with a project, an agent and a mode, and finished unattended work can be continued with a new prompt. | ready | |
 | F09 | [Task Control](F09-Task-Control.md) | Running work can be stopped, restarted, recreated, renamed and deleted, each named by its consequence. | ready | |
 | F11 | [Live Log Viewing](F11-Live-Log-Viewing.md) | Everything work produces is readable inside the interface, live, with structure visible. | ready | |
-| F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | ready | |
+| F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | **partial** | |
 | F12 | [Interactive Session Attach](F12-Interactive-Session-Attach.md) | An interactive session is one action away, and the way back is reliable. | **blocked** | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | **blocked** | |
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | **blocked** | |
-| F05 | [Project Configuration](F05-Project-Configuration.md) | Agents, hardware and reachable destinations are set per project, with open-ended and explicit selections never confused. | **blocked** | |
+| F05 | [Project Configuration](F05-Project-Configuration.md) | Agents, hardware and reachable destinations are set per project, with open-ended and explicit selections never confused. | **partial** | |
 | F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | **blocked** | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | **blocked** | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | **blocked** | |

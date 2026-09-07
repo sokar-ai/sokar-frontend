@@ -23,5 +23,5 @@ to.
 
 ## Notes
 
-Related: [Egress Sets Editor](https://github.com/fuinorg/sokar/blob/main/requirements/base/B04-Egress-Sets-Editor.md) covers editing the
+Related: [what the egress editor settled](https://github.com/fuinorg/sokar/blob/main/requirements/base/README.md#what-was-here-and-is-finished) covers editing the
 destination sets themselves; this covers choosing which of them a project uses.
