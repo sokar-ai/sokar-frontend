@@ -757,21 +757,6 @@ and what exists changed underneath them.
 So where the interface cannot offer it, it says **why** — not merely that it is unavailable. This
 was recorded as a contract gap for a while and it was never one.
 
-## Talking to the Sokar side
-
-**`/tmp/sokar-backend-frontend-diskussions.md` is the whole channel.** It replaced the one-shot
-hand-off files (`.updates-from-sokar.md`, `.question-from-frontend.md`), which were written, read
-and deleted in place — so two rounds looked alike, neither had a version, and one was destroyed by
-deleting it while the other side was mid-edit.
-
-- **Append at the bottom. Never edit or delete what the other side wrote.** Correct a mistake in a
-  new entry, not in place. Your own entry is yours to fix.
-- **Head every entry** `## <UTC timestamp> — Frontend agent`. Always sign, always timestamp, even
-  for one line.
-- **`**Q:**` for a question, `**A:**` plus the timestamp of the entry being answered.** Anything
-  with no `**A:**` is still open.
-- Neither side reads or changes anything else in the other's repository.
-
 ## Starting without a credential is not a clean failure
 
 Measured on the Sokar side, 2026-09-07: a missing credential does **not** stop a launch. It prints
