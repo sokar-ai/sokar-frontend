@@ -105,7 +105,7 @@ daemon cannot be made to produce on demand, and those are the hard requirements:
 
 - `MethodNotFound`, to prove per-feature degradation against an older backend. A real daemon
   always has all its methods, so this rule is otherwise unenforceable.
-- An unrecognised `Outcome` value, to prove the tolerance rule. A real daemon only ever sends
+- An unrecognized `Outcome` value, to prove the tolerance rule. A real daemon only ever sends
   values it knows — and a generated Dart enum with no fallback case is exactly how this breaks.
 - `GetInfo` advertising `Tasks2`, to prove the client picks the highest name it understands.
 - A stream cut mid-flight, for the requirement that tunnel loss reads as disconnection and never
@@ -160,7 +160,7 @@ Delivered as a `.deb` and an `.rpm`, from the same repository as the `sokar` pac
 ### To be checked
 
 - ~~Where the app lives in the tree.~~ **Decided: `lib/` at the root**, one package named
-  `sokar_frontend`, organisation `org.fuin`, Linux the only enabled platform. A `packages/` split
+  `sokar_frontend`, organization `org.fuin`, Linux the only enabled platform. A `packages/` split
   only pays for itself once something is genuinely shared, and nothing is yet. Revisit when a
   second consumer of the client code exists — not before.
 - **Whether the client should be generated from the IDL after all.** The contract is machine

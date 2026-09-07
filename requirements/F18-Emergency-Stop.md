@@ -3,7 +3,7 @@
 **Status:** open
 
 One action that cuts everything off, available at all times, for the moment when
-somebody realises something is badly wrong and does not yet know what.
+somebody realizes something is badly wrong and does not yet know what.
 
 ## Acceptance
 

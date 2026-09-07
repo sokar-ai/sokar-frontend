@@ -111,7 +111,7 @@ class _Reach extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (IconData icon, Color colour, String words) = switch (fleet.reachability) {
+    final (IconData icon, Color color, String words) = switch (fleet.reachability) {
       Reachability.connecting => (Icons.cloud_queue, scheme.outline, 'Connecting'),
       Reachability.connected => (Icons.cloud_done, scheme.primary, 'Answering'),
       Reachability.unreachable => (Icons.cloud_off, scheme.error, 'Not answering'),
@@ -120,7 +120,7 @@ class _Reach extends StatelessWidget {
     };
     return Tooltip(
       message: '${fleet.backend.label}: $words',
-      child: Icon(icon, size: Sizes.mark, color: colour),
+      child: Icon(icon, size: Sizes.mark, color: color),
     );
   }
 }

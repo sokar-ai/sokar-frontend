@@ -182,7 +182,7 @@ void main() {
       expect(await client.tasks(), hasLength(1));
     });
 
-    test('an unrecognised outcome is carried, not thrown on', () async {
+    test('an unrecognized outcome is carried, not thrown on', () async {
       // Adding an enum value is explicitly not a breaking change, so a client that cannot survive
       // one breaks on a routine backend release. A generated Dart enum would throw here.
       daemon.method('Stop', (_) => {
@@ -200,7 +200,7 @@ void main() {
       expect(stopped.outcome.label, 'quarantined pending review');
     });
 
-    test('an unrecognised reply field is ignored', () async {
+    test('an unrecognized reply field is ignored', () async {
       daemon.method('List', (_) => {
             'tasks': [ {...task('a'), 'somethingAddedLater': 42} ],
             'anotherNewField': true,
@@ -348,7 +348,7 @@ void main() {
   });
 
   group('leaving a stream', () {
-    test('cancelling returns rather than waiting for a daemon that will not close', () async {
+    test('canceling returns rather than waiting for a daemon that will not close', () async {
       // Socket.close() completes when the *peer* closes, and a daemon holding a stream open never
       // does. Awaiting it hung for ever, which reads as an interface that froze on the way out.
       final changes = StreamController<Map<String, dynamic>>();

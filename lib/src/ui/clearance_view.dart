@@ -160,7 +160,7 @@ class _Settled extends StatelessWidget {
     // question that simply stopped arriving would be indistinguishable from one still waiting.
     // "This host is now reachable" and never "the request that just failed will now succeed":
     // the packet that was dropped is gone, and whether the work retries is the work's business.
-    final (IconData icon, Color colour, String what) = prompt.expired
+    final (IconData icon, Color color, String what) = prompt.expired
         ? (Icons.timer_off_outlined, scheme.error, 'ran out — it stays blocked')
         : prompt.verdict == 'allow'
             ? (
@@ -172,7 +172,7 @@ class _Settled extends StatelessWidget {
 
     return ListTile(
       dense: true,
-      leading: Icon(icon, size: Sizes.mark, color: colour),
+      leading: Icon(icon, size: Sizes.mark, color: color),
       title: Text(prompt.shown,
           style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
       subtitle: Text('${prompt.task} · $what'),

@@ -496,7 +496,7 @@ class ActivityMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (IconData icon, Color colour) = switch (activity) {
+    final (IconData icon, Color color) = switch (activity) {
       Activity.waiting => (Icons.pan_tool_outlined, scheme.error),
       Activity.working => (Icons.play_circle_outline, scheme.primary),
       Activity.idle => (Icons.pause_circle_outline, scheme.outline),
@@ -511,7 +511,7 @@ class ActivityMark extends StatelessWidget {
     };
     return Tooltip(
       message: activity.label,
-      child: Icon(icon, size: Sizes.mark, color: colour),
+      child: Icon(icon, size: Sizes.mark, color: color),
     );
   }
 }

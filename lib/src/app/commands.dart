@@ -297,7 +297,7 @@ List<Command> commandsFor({
   ];
 }
 
-/// Renders a shortcut the way a keyboard is labelled.
+/// Renders a shortcut the way a keyboard is labeled.
 String describeShortcut(SingleActivator shortcut) {
   final parts = <String>[
     if (shortcut.control) 'Ctrl',

@@ -10,8 +10,8 @@ import 'mock_daemon.dart';
 /// after the tests were green.
 ///
 /// Shared by `tool/mock_daemon.dart`, which is what a person opens the interface against, and by
-/// the tests that hold this to the behaviour the interface is built on. One stand-in with one
-/// behaviour: two would drift, and a drifted mock is worse than no mock.
+/// the tests that hold this to the behavior the interface is built on. One stand-in with one
+/// behavior: two would drift, and a drifted mock is worse than no mock.
 class MockMachine {
   /// Puts a machine behind [daemon].
   ///

@@ -50,7 +50,7 @@ class FeatureNotSupported implements Exception {
 ///
 /// One [Backend] per instance. Every call opens its own connection, because the framing has no
 /// request ids and a connection therefore carries one call at a time - which costs nothing and
-/// means a stream can be cancelled without disturbing anything else.
+/// means a stream can be canceled without disturbing anything else.
 class SokarClient {
   /// Interface versions this build understands, newest first.
   ///
@@ -142,7 +142,7 @@ class SokarClient {
 
   /// Starts a task, streaming the build as it happens.
   ///
-  /// The task outlives this call: cancelling the stream stops the reporting, never the launch.
+  /// The task outlives this call: canceling the stream stops the reporting, never the launch.
   /// Building an image takes minutes, so an interface must show these lines rather than nothing.
   Stream<StartProgress> start({
     String? task,

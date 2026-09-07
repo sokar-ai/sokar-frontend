@@ -15,7 +15,7 @@ checkable at any time afterwards, with the fix offered rather than described.
 - Anything missing or misconfigured is named specifically, along with what it prevents.
 - Where the interface can fix a problem itself, it offers to; where it cannot, it says
   what a person has to do.
-- Known environment-specific obstacles are recognised as such and get their own
+- Known environment-specific obstacles are recognized as such and get their own
   guided fix rather than a generic failure.
 - Progress and output of the preparation are visible while it runs.
 

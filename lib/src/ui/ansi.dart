@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 /// The character an ANSI escape starts with, spelled out so it survives an editor.
 const _escape = '\u001B';
 
-/// Matches one complete colour escape.
+/// Matches one complete color escape.
 final _sgr = RegExp('$_escape\\[[0-9;]*m');
 
-/// Turns a line that may carry ANSI colour into spans that read on either appearance.
+/// Turns a line that may carry ANSI color into spans that read on either appearance.
 ///
-/// Agents colour their output. A log shown with the escapes left in is unreadable, and one shown
-/// with them stripped loses what the colour was carrying — so they are honoured, but never
+/// Agents color their output. A log shown with the escapes left in is unreadable, and one shown
+/// with them stripped loses what the color was carrying — so they are honored, but never
 /// literally: a terminal's black is invisible on a dark background and its bright yellow is
-/// invisible on a light one. Each colour is mapped to something from the theme with the same
+/// invisible on a light one. Each color is mapped to something from the theme with the same
 /// *meaning*, which is what "legible under whatever appearance the person has chosen" asks for.
 List<TextSpan> ansiSpans(String line, ColorScheme scheme) {
   final spans = <TextSpan>[];
@@ -51,9 +51,9 @@ String withoutAnsi(String line) => line.replaceAll(_sgr, '');
 /// One run of styling, as the escapes so far have set it.
 @immutable
 class _Sgr {
-  const _Sgr({this.colour, this.bold = false, this.faint = false});
+  const _Sgr({this.color, this.bold = false, this.faint = false});
 
-  final int? colour;
+  final int? color;
   final bool bold;
   final bool faint;
 
@@ -66,11 +66,11 @@ class _Sgr {
         case 0:
           next = const _Sgr();
         case 1:
-          next = _Sgr(colour: next.colour, bold: true, faint: next.faint);
+          next = _Sgr(color: next.color, bold: true, faint: next.faint);
         case 2:
-          next = _Sgr(colour: next.colour, bold: next.bold, faint: true);
+          next = _Sgr(color: next.color, bold: next.bold, faint: true);
         case 22:
-          next = _Sgr(colour: next.colour);
+          next = _Sgr(color: next.color);
         case 39:
           next = _Sgr(bold: next.bold, faint: next.faint);
         default:
@@ -79,7 +79,7 @@ class _Sgr {
           // ignored: a log that paints its own background cannot stay legible on both
           // appearances, and the person chose the appearance.
           if ((code >= 30 && code <= 37) || (code >= 90 && code <= 97)) {
-            next = _Sgr(colour: code % 10, bold: next.bold, faint: next.faint);
+            next = _Sgr(color: code % 10, bold: next.bold, faint: next.faint);
           }
       }
     }
@@ -88,15 +88,15 @@ class _Sgr {
 
   /// How this run should be drawn against [scheme].
   TextStyle toStyle(ColorScheme scheme) => TextStyle(
-        color: _colourOf(scheme),
+        color: _colorOf(scheme),
         fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
       );
 
-  Color? _colourOf(ColorScheme scheme) {
+  Color? _colorOf(ColorScheme scheme) {
     if (faint) return scheme.onSurfaceVariant;
-    return switch (colour) {
+    return switch (color) {
       // Mapped by meaning rather than by name, and taken from the scheme, so each appearance gets
-      // a colour that is actually readable against its own background.
+      // a color that is actually readable against its own background.
       1 => scheme.error, // red: something went wrong
       2 => scheme.primary, // green: something worked
       3 => scheme.tertiary, // yellow: something wants attention

@@ -110,7 +110,7 @@ class _Reachability extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (IconData icon, Color colour, String words) = switch (reachability) {
+    final (IconData icon, Color color, String words) = switch (reachability) {
       Reachability.connecting => (Icons.cloud_queue, scheme.outline, 'Connecting'),
       Reachability.connected => (Icons.cloud_done, scheme.primary, 'Connected'),
       Reachability.unreachable => (Icons.cloud_off, scheme.error, 'Not connected'),
@@ -119,7 +119,7 @@ class _Reachability extends StatelessWidget {
     };
     return Tooltip(
       message: words,
-      child: Icon(icon, size: Sizes.mark, color: colour),
+      child: Icon(icon, size: Sizes.mark, color: color),
     );
   }
 }

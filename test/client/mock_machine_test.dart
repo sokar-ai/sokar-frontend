@@ -5,7 +5,7 @@ import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/mock/machine.dart';
 import 'package:sokar_frontend/src/mock/mock_daemon.dart';
 
-/// Holds the stand-in to the behaviour the interface is built on, over a real socket.
+/// Holds the stand-in to the behavior the interface is built on, over a real socket.
 ///
 /// The frame's own tests run against a hand-written fake, because a widget test's clock cannot
 /// carry real input and output. That leaves the thing a person actually opens the interface
@@ -180,7 +180,7 @@ void main() {
     expect(waiting.waitingFor, isNotEmpty);
     expect(waiting.state, isNotEmpty, reason: 'state stays the runtime own words');
     expect(waiting.startedAt, isNotNull);
-    expect(waiting.mode.recognised, isTrue);
+    expect(waiting.mode.recognized, isTrue);
     // A terminal attached means nothing on this side can see it, and that is its own answer.
     expect(tasks.map((task) => task.activity), contains(Activity.unknown));
   });
@@ -196,7 +196,7 @@ void main() {
 
     final task = (await client.tasks()).single;
 
-    expect(task.activity.recognised, isFalse);
+    expect(task.activity.recognized, isFalse);
     expect(task.activity.label, 'quiesced');
   });
 

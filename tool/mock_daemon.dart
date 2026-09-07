@@ -11,7 +11,7 @@
 //
 //   dart tool/mock_daemon.dart work /tmp/sokar-elsewhere.sock
 //
-// What it answers is MockMachine, which the tests hold to the same behaviour. This file is only
+// What it answers is MockMachine, which the tests hold to the same behavior. This file is only
 // the socket, the situation and the keyboard.
 import 'dart:convert';
 import 'dart:io';

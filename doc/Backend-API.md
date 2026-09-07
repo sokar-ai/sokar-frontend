@@ -84,8 +84,8 @@ contract commits to three things, and the IDL states them in full at the top of 
    optional parameter an older daemon does not know is ignored, and it behaves as its documented
    default says.
 
-3. **Unknown values must not be fatal.** Ignore reply fields you do not recognise, and render an
-   unrecognised enum value rather than throwing on it. `Outcome` in particular will gain entries,
+3. **Unknown values must not be fatal.** Ignore reply fields you do not recognize, and render an
+   unrecognized enum value rather than throwing on it. `Outcome` in particular will gain entries,
    and adding one is explicitly *not* a breaking change — so a client that cannot survive one
    will break on a routine release. This is the rule most likely to be broken by a generated
    Dart enum with no fallback case.

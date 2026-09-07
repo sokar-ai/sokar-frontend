@@ -77,7 +77,7 @@ be read again.
   keyboard, and that every widget test was silently sized as a narrow window until the view was
   set in logical pixels.
 - **F11 Live Log Viewing.** A task's logs are asked for rather than guessed, followed as they are
-  written, and suspended without losing what arrives meanwhile. ANSI colour is honoured by meaning
+  written, and suspended without losing what arrives meanwhile. ANSI color is honored by meaning
   rather than by value, so red is the theme's red and stays legible on both appearances.
 - **F13 Operation Feedback And History.** A long operation is owned by the session, never by the
   view showing it, so leaving a build does not stop it and arriving late does not mean having
@@ -90,7 +90,7 @@ be read again.
   and never instead of them, with *"idle for forty minutes"* as arithmetic on a timestamp. Asked
   for as [B11](https://github.com/fuinorg/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
   and answered the same day. One thing it deliberately does **not** do: `WAITING` covers clearance
-  questions only, so an agent asking its own question reads as `UNKNOWN` or `IDLE`, and labelling
+  questions only, so an agent asking its own question reads as `UNKNOWN` or `IDLE`, and labeling
   either as *probably waiting* is the guess the field exists to avoid.
 
 - **F23 Notifications.** A decision waiting inside a window nobody has open reaches the person
@@ -104,7 +104,7 @@ be read again.
 
 One open question, and it is about scope rather than detail: whether the actions that
 hand off to something local — attaching to a session, opening an editor, putting
-changes on the clipboard — can be honoured from another device at all
+changes on the clipboard — can be honored from another device at all
 ([F20](F20-Access-From-Elsewhere.md)). If they cannot, the remote view is a monitoring
 and decision surface rather than a full one, and that is worth deciding before it is
 built rather than discovering afterwards.

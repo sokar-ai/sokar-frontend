@@ -93,8 +93,8 @@ in full at the top of the IDL:
   change becomes `N+1` and is served beside `N` for at least one release.
 - **Degrade per feature, not per connection.** A method an older daemon lacks answers
   `MethodNotFound`. Disable that one feature; keep the rest.
-- **Unknown values must not be fatal.** Ignore reply fields you do not recognise and render an
-  unrecognised enum value rather than throwing on it. Adding an enum value is explicitly *not* a
+- **Unknown values must not be fatal.** Ignore reply fields you do not recognize and render an
+  unrecognized enum value rather than throwing on it. Adding an enum value is explicitly *not* a
   breaking change, and `Outcome` will gain entries. **A generated Dart enum with no fallback case
   is how this rule gets broken** — it will look correct until a routine backend release.
 
@@ -107,7 +107,10 @@ The build version from `GetInfo` is for display and bug reports. Never gate a fe
   that already happened. An inline comment is **one line** — not one sentence over three. The
   reasoning that does not fit is a finding, and findings go in this file where they can be found
   without reading the code.
-- **British-leaning spelling** in prose and comments: behaviour, recognise, serialise.
+- **US English** in prose, comments, identifiers and anything the interface shows: behavior,
+  recognize, serialize, canceled, analyze, artifact. The early files were written the other way
+  and were swept, so a British spelling appearing now is a new one — the sweep is not a thing to
+  repeat.
 - Prefer a small named widget or method over a comment explaining a block.
 
 ## Tests
@@ -143,7 +146,7 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
   reply is an error" guard did **not** fail the suite — the test covering it was passing through
   the socket-error path instead, and the graceful-close path had no test at all. Two tests exist
   now because the mutation was actually run.
-- **Test observable behaviour**, not internals — what is on screen, what went down the socket.
+- **Test observable behavior**, not internals — what is on screen, what went down the socket.
 - **Three levels, and each proves something the others cannot.** They are not redundant and
   nothing above the first one can catch a mistake below it:
   1. **`test/features/`** — the frame, in widget tests, against `FakeBackend`. A widget test runs
@@ -152,7 +155,7 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
   2. **`test/client/`** — the client and the stand-in, over a **real unix socket** against
      `MockDaemon`. `mock_machine_test.dart` holds `MockMachine` — what
      `tool/mock_daemon.dart` serves, and what a person opens the interface against — to the
-     behaviour the frame is built on.
+     behavior the frame is built on.
   3. **`test/client/live_daemon_test.dart`** — the client against a **real `sokard`**, skipped
      unless `SOKAR_SOCKET` points at one. The only test that can say the hand-written client
      agrees with the daemon rather than with our reading of the IDL. Pointed at the mock it fails,
@@ -212,10 +215,10 @@ nothing to say, and that renders as a machine with no tasks on it.
 Two ways a connection hangs, both met for real and both fixed:
 
 - **`Socket.close()` completes only when the *peer* closes.** A daemon holding a stream open never
-  will, so awaiting it waits for ever. `VarlinkConnection.close()` destroys instead — cancelling a
+  will, so awaiting it waits for ever. `VarlinkConnection.close()` destroys instead — canceling a
   stream is an ordinary act, not an error.
 - **`await for` cannot be interrupted while it waits.** A generator paused on one notices it has
-  been cancelled only when the next event arrives, so leaving a `Watch` or a `Tail` hung until the
+  been canceled only when the next event arrives, so leaving a `Watch` or a `Tail` hung until the
   daemon happened to say something — on a quiet machine, for ever. `callMore` uses an explicit
   subscription with `onCancel` for exactly this reason. **Do not put `await for` back.**
 
@@ -308,9 +311,9 @@ them would offer one that was never going to exist and would never show one a la
 The same rule as a prompt's `key`, which is the daemon's derivation and not ours. When something
 is missing, ask for the method — `Logs` was asked for and arrived the same day.
 
-**ANSI colour is honoured, never printed and never stripped.** A log with the escapes left in is
-unreadable; one with them stripped loses what the colour was carrying. `ansi.dart` maps each
-colour to something from the theme with the same *meaning* — red to `error`, green to `primary` —
+**ANSI color is honored, never printed and never stripped.** A log with the escapes left in is
+unreadable; one with them stripped loses what the color was carrying. `ansi.dart` maps each
+color to something from the theme with the same *meaning* — red to `error`, green to `primary` —
 because a terminal's black is invisible on a dark background and its bright yellow is invisible on
 a light one. Backgrounds are ignored on purpose: a log that paints its own cannot stay legible on
 both, and the person chose the appearance.
@@ -476,7 +479,7 @@ that failed means gone.
 `HOLDS_WORK` is the product working: the pane says what is held, offers *push it to the mirror*,
 *discard it* and *leave it alone* in those words, and leaving it alone is the plain button. There
 is **no force button** — `force` exists only for `NOTHING_KNOWS`, where nothing can say what is
-held, and it is labelled as removing without knowing. Rescue and purge differ by one parameter and
+held, and it is labeled as removing without knowing. Rescue and purge differ by one parameter and
 one of them destroys work, which is why the guard on them reads what went down the socket rather
 than what the screen said.
 
@@ -533,7 +536,7 @@ runs against it unchanged — the socket path is the only thing that differs, wh
 property that makes a remote backend work.
 
 **It is permanent test infrastructure, not scaffolding.** It produces the states a real daemon
-cannot be made to produce on demand: `MethodNotFound` for the degradation rule, an unrecognised
+cannot be made to produce on demand: `MethodNotFound` for the degradation rule, an unrecognized
 `Outcome` for the tolerance rule, `GetInfo` advertising `Tasks2`, a stream cut mid-flight,
 `HOLDS_WORK` without a task that genuinely holds commits, a four-minute build, a prompt with a
 live deadline. Those are the hard requirements, and none of them is reachable against a real
@@ -548,14 +551,14 @@ backend.
   Neither of those two is finite, and against a held-back stream every change reaches the
   interface one change late — which looks exactly like an interface ignoring its own events.
 - **A client that leaves mid-write reports it on `Socket.done`, not from `add`.** Unhandled, that
-  asynchronous error fails whatever test happens to be running. Cancelling a stream is an ordinary
+  asynchronous error fails whatever test happens to be running. Canceling a stream is an ordinary
   act, so the mock absorbs it.
 - **One CI job runs against a real daemon** and compares the mock's surface against
   `GetInterfaceDescription`. The mock proves the client handles what it is sent; that job proves
   the contract is what we think it is. **A drifted mock is worse than no mock.**
 - Unix socket paths are limited to about 108 bytes on Linux, and test temp directories reach it.
 
-## Analysing and formatting
+## Analyzing and formatting
 
 - **`dart analyze`, never `flutter analyze`.** The latter has been seen to rewrite
   `analysis_options.yaml` with an exclude block nobody wrote, silencing findings instead of
@@ -621,7 +624,7 @@ Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
 - Files are `requirements/FNN-Name.md`. **The number is identity, not order**; the table in
   [requirements/README.md](requirements/README.md) is the order.
 - **A finished requirement is deleted**, file and index row together. What it measured — the
-  expensive facts and the traps — moves into this file, and one line summarising it into the
+  expensive facts and the traps — moves into this file, and one line summarizing it into the
   index's *"What was here and is finished"*. The set is what is left to do, not a history of what
   was done; the history is in git.
 - **Its scenarios stay.** They are the guards that keep the finished thing working, and retiring a

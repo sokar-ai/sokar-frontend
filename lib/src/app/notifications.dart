@@ -25,7 +25,7 @@ enum Urgency {
 /// One thing worth telling somebody who is not looking at the window.
 ///
 /// Not `Notification`: Flutter has one of those, and two classes with one name in a file that
-/// imports both is a needless argument with the analyser.
+/// imports both is a needless argument with the analyzer.
 @immutable
 class Announcement {
   /// Constructor taking what to say and what it is about.

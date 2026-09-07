@@ -1,7 +1,7 @@
 /// What became of a stop or a resume.
 ///
 /// **Not an enum, deliberately.** The contract says adding a value is not a breaking change and
-/// that a client must render one it does not recognise rather than fail on it. A Dart enum with
+/// that a client must render one it does not recognize rather than fail on it. A Dart enum with
 /// no fallback case is precisely how that rule gets broken - it would look correct until a
 /// routine backend release. So this carries the raw name, compares by it, and tells the caller
 /// whether it is one of the values this build knows.
@@ -89,9 +89,9 @@ class Activity {
   static const known = <Activity>[dead, waiting, working, idle, unknown];
 
   /// Whether this build knows what it means.
-  bool get recognised => known.any((value) => value.name == name);
+  bool get recognized => known.any((value) => value.name == name);
 
-  /// Words for a person, unrecognised values included.
+  /// Words for a person, unrecognized values included.
   String get label => switch (name) {
         'DEAD' => 'not running',
         'WAITING' => 'waiting',
@@ -133,7 +133,7 @@ class Mode {
   static const known = <Mode>[shell, agent, unattended];
 
   /// Whether this build knows what it means.
-  bool get recognised => known.any((value) => value.name == name);
+  bool get recognized => known.any((value) => value.name == name);
 
   /// Words for a person.
   String get label => switch (name) {
@@ -483,12 +483,12 @@ class EgressOutcome {
   ];
 
   /// Whether this build knows what it means.
-  bool get recognised => known.any((value) => value.name == name);
+  bool get recognized => known.any((value) => value.name == name);
 
   /// Whether anything was actually written.
   bool get wrote => name == 'CHANGED';
 
-  /// Words for a person, unrecognised values included.
+  /// Words for a person, unrecognized values included.
   String get label {
     final words = name.toLowerCase().split('_').where((w) => w.isNotEmpty).toList();
     if (words.isEmpty) return name;

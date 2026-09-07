@@ -84,7 +84,7 @@ class VarlinkConnection {
   /// read as an empty machine.
   ///
   /// Built on an explicit subscription rather than `await for`, because **`await for` cannot be
-  /// interrupted while it waits**. A generator paused on one only notices it has been cancelled
+  /// interrupted while it waits**. A generator paused on one only notices it has been canceled
   /// when the next event arrives - so leaving a `Watch` or a `Tail` hung until the daemon
   /// happened to say something, which on a quiet machine is for ever.
   Stream<Map<String, dynamic>> callMore(String method,
@@ -142,7 +142,7 @@ class VarlinkConnection {
   ///
   /// Destroys it rather than waiting for the far end. `Socket.close()` completes only once the
   /// peer has closed too, and a daemon holding a stream open has no reason to — so awaiting it
-  /// hangs for ever. Cancelling a stream is an ordinary act, not an error: leaving a log view or
+  /// hangs for ever. Canceling a stream is an ordinary act, not an error: leaving a log view or
   /// closing a window does it, and neither may block.
   Future<void> close() async => _socket.destroy();
 }

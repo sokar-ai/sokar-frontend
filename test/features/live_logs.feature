@@ -30,7 +30,7 @@ Feature: F11 Live Log Viewing
     When I ask which logs the work has
     Then it says it has no logs
 
-  Scenario: colour an agent wrote is rendered, never shown as escape characters
+  Scenario: color an agent wrote is rendered, never shown as escape characters
     When I read the log {'agent.log'}
     And the log prints a red line saying {'it went wrong'}
     Then the log shows {'it went wrong'}

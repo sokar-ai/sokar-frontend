@@ -149,7 +149,7 @@ class MockDaemon {
     _clients.add(client);
     // A client that goes away mid-write reports it here rather than from add(), and an
     // unhandled asynchronous error fails whatever test is running. Leaving is normal: it is
-    // what cancelling a stream looks like from this end.
+    // what canceling a stream looks like from this end.
     unawaited(client.done.catchError((Object _) => client));
     final buffer = BytesBuilder();
     client.listen(
@@ -219,10 +219,10 @@ class MockDaemon {
       client.add(utf8.encode(jsonEncode(message)));
       client.add(const [0]);
     } on StateError {
-      // The client left. That is how a cancelled stream looks from here, and it is normal.
+      // The client left. That is how a canceled stream looks from here, and it is normal.
     } on SocketException {
       // The same thing, seen a moment later: the socket is already gone rather than merely
-      // closed. Cancelling a stream is an ordinary act and must not fail the daemon.
+      // closed. Canceling a stream is an ordinary act and must not fail the daemon.
     }
   }
 }

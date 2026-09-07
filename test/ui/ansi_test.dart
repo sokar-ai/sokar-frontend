@@ -8,14 +8,14 @@ const esc = '\u001B';
 void main() {
   const scheme = ColorScheme.light();
 
-  test('a plain line is one span and takes no colour of its own', () {
+  test('a plain line is one span and takes no color of its own', () {
     final spans = ansiSpans('building the image', scheme);
 
     expect(spans, hasLength(1));
     expect(spans.single.text, 'building the image');
   });
 
-  test('an escape splits the line and colours only what follows it', () {
+  test('an escape splits the line and colors only what follows it', () {
     final spans = ansiSpans('ok $esc[31mfailed$esc[0m done', scheme);
 
     expect(spans.map((span) => span.text), <String>['ok ', 'failed', ' done']);
@@ -23,9 +23,9 @@ void main() {
     expect(spans[2].style?.color, isNot(scheme.error));
   });
 
-  test('colour comes from the theme, so it reads on either appearance', () {
+  test('color comes from the theme, so it reads on either appearance', () {
     // A terminal's own red is unreadable against one of the two backgrounds. What is carried
-    // across is what the colour meant, never the value it happened to have.
+    // across is what the color meant, never the value it happened to have.
     final light = ansiSpans('$esc[31mred', const ColorScheme.light());
     final dark = ansiSpans('$esc[31mred', const ColorScheme.dark());
 

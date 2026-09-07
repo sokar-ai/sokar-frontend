@@ -64,7 +64,7 @@ void main() {
       await itSaysItHasNoLogs(tester);
     });
     testWidgets(
-        '''colour an agent wrote is rendered, never shown as escape characters''',
+        '''color an agent wrote is rendered, never shown as escape characters''',
         (tester) async {
       await bddSetUp(tester);
       await iReadTheLog(tester, 'agent.log');
