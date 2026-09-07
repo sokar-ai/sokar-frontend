@@ -635,3 +635,16 @@ Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
 
 One brief line. The reasoning behind a change is a finding, and a finding goes in this file
 where it can be found later without `git log`.
+
+## Raising a window is the desktop's business
+
+Dart cannot present a window; nothing in `dart:ui` or `dart:io` reaches the window manager. The
+Linux runner carries a `sokar/window` channel with one method, `present`, calling
+`gtk_window_present_with_time`, and `Window.comeForward()` is the whole Dart side of it. It is
+quiet when it fails — a desktop that will not raise a window, or a host that has none, is not
+something to report to somebody who is looking at another window anyway.
+
+A second launch exits before Flutter's debugger attaches, so `flutter run` reports
+*"Error connecting to the service protocol"* for it. That is the tooling, not the interface: the
+running window did come forward. Anything that exits early from `main` will read the same way, so
+say what happened on stderr first — a launch that simply vanishes reads as one that crashed.

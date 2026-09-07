@@ -93,6 +93,21 @@ then in the interface: the switcher above the rail → *Watch another machine…
 socket forwarded from another machine. It is a stopgap until
 [F20](requirements/F20-Access-From-Elsewhere.md) gives a person a way to choose.
 
+### Launching it twice
+
+The second launch does not open a second window. It asks the one already running to come forward,
+prints a line saying so, and leaves — two interfaces watch the same machines, so every clearance
+question would be raised twice and answered from whichever window somebody happened to see.
+
+Under `flutter run` that exit is reported as a tooling error:
+
+```
+Error connecting to the service protocol: failed to connect to http://127.0.0.1:.../
+```
+
+Nothing went wrong. `flutter run` attaches a debugger to a process that has already gone; the
+window it asked for did come forward. Launching the built binary twice shows the line instead.
+
 ### On a build server
 
 One run, two reports — the XML for the build server's own test tab, the HTML to publish as an

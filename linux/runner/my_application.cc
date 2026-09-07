@@ -19,6 +19,25 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Brings this window forward, for when a second launch asks the one already running to come
+// forward rather than competing with it. Presenting a window is the desktop's own business and
+// there is no way to ask for it from Dart, so this is the smallest possible bridge to it.
+static void present_cb(FlMethodChannel* channel, FlMethodCall* method_call,
+                       gpointer user_data) {
+  GtkWindow* window = GTK_WINDOW(user_data);
+  if (g_strcmp0(fl_method_call_get_name(method_call), "present") == 0) {
+    gtk_window_present_with_time(window, GDK_CURRENT_TIME);
+    g_autoptr(FlValue) yes = fl_value_new_bool(TRUE);
+    g_autoptr(FlMethodResponse) response =
+        FL_METHOD_RESPONSE(fl_method_success_response_new(yes));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+  g_autoptr(FlMethodResponse) unknown =
+      FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  fl_method_call_respond(method_call, unknown, nullptr);
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -74,6 +93,13 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  FlMethodChannel* window_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), "sokar/window",
+      FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(window_channel, present_cb, window,
+                                            nullptr);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

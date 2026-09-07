@@ -10,6 +10,7 @@ import 'src/app/machines.dart';
 import 'src/app/newer_version.dart';
 import 'src/app/one_instance.dart';
 import 'src/app/where_you_were.dart';
+import 'src/app/window.dart';
 import 'src/app/operations.dart';
 import 'src/app/settings.dart';
 import 'src/app/shell_model.dart';
@@ -25,9 +26,12 @@ Future<void> main() async {
   final machines = Machines(settings);
 
   // Two interfaces watching the same machines raise every question twice and answer it from
-  // whichever window somebody happened to see. A second launch asks the first to come forward.
-  final only = await OneInstance.take(comeForward: () {});
+  // whichever window somebody happened to see. A second launch asks the first to come forward and
+  // then leaves, saying so — a launch that simply vanished would read as one that crashed.
+  final only = await OneInstance.take(comeForward: Window.comeForward);
   if (!only.inCharge) {
+    stderr.writeln('Sokar is already open, and has been brought to the front. '
+        'One interface watches each machine: a second would raise every decision twice.');
     exit(0);
   }
 
