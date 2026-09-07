@@ -58,6 +58,45 @@ void main() {
       expect(stopped.work, '2 commits on main');
     });
 
+    test('a removal says how much it destroyed that exists nowhere else', () async {
+      // The agent's own installs go with the container and have nowhere to arrive, unlike the
+      // workspace. Nothing else records that any of it existed, so a removal that does not
+      // mention it is the last chance to know, gone.
+      daemon.method('Stop', (_) => {
+            'outcome': 'STOPPED',
+            'work': '',
+            'rescuedRef': '',
+            'removed': true,
+            'helpers': 2,
+            'surviving': 0,
+            'detail': '',
+            'discarded': 1284,
+          });
+
+      final stopped = await (await connect()).stop('sokar-demo-shell-1');
+
+      expect(stopped.discarded, 1284);
+    });
+
+    test('a reply from a daemon too old to count it reads as none', () async {
+      // Additive: a backend that has not gained the field yet simply does not send it, and that
+      // has to read as zero rather than as a client that cannot talk to it.
+      daemon.method('Stop', (_) => {
+            'outcome': 'STOPPED',
+            'work': '',
+            'rescuedRef': '',
+            'removed': true,
+            'helpers': 0,
+            'surviving': 0,
+            'detail': '',
+          });
+
+      final stopped = await (await connect()).stop('sokar-demo-shell-1');
+
+      expect(stopped.discarded, 0);
+      expect(stopped.removed, isTrue);
+    });
+
     test('a named error keeps its name so one refusal can be told from another', () async {
       daemon.fails('Decide', 'org.fuin.sokar.Tasks1.NoClearance', {'task': 'gone'});
       final client = await connect();

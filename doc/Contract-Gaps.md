@@ -105,7 +105,7 @@ not checking that it answers the requirement.**
 | F12 Interactive Session Attach | attach to a running task. `Start` has only the no-attach path |
 | F14 Authentication Flows | authenticate an agent or a provider. `Credentials` is read-only |
 | F16 Access Key Routing | create, remove and link keys |
-| F18 Emergency Stop | cut every form of access at once |
+| F18 Emergency Stop | cut every form of access at once. `sokar panic` exists **as a CLI command only** — stops every running task and its helpers, removes nothing. There is no daemon method, and shelling out for it is forbidden hardest here. Confirmed 2026-09-07 that a method would be small to add: it is the same `TaskControl.stop` the CLI already uses. Ask for it |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
 
 ### F22 is a different kind of gap

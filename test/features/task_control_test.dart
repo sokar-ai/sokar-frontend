@@ -9,7 +9,8 @@ import './step/the_app_is_running.dart';
 import './step/i_select_the_project.dart';
 import './step/i_select_the_work.dart';
 import './step/stopping_will_refuse_because_the_work_is_held.dart';
-import './step/i_stop_the_selected_work.dart';
+import './step/i_ask_to_stop_the_selected_work.dart';
+import './step/i_confirm.dart';
 import './step/what_is_held_is_shown.dart';
 import './step/the_status_line_mentions.dart';
 import './step/i_choose.dart';
@@ -18,6 +19,7 @@ import './step/the_stop_asked_to_rescue_what_was_held.dart';
 import './step/the_stop_asked_to_discard_what_was_held.dart';
 import './step/nothing_more_was_asked_of_the_backend.dart';
 import './step/the_work_is_no_longer_listed.dart';
+import './step/the_confirmation_says.dart';
 import './step/i_open_the_actions_for.dart';
 import './step/the_action_is_offered_as_unavailable.dart';
 
@@ -35,7 +37,8 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iStopTheSelectedWork(tester);
+      await iAskToStopTheSelectedWork(tester);
+      await iConfirm(tester);
       await whatIsHeldIsShown(tester);
       await theStatusLineMentions(
           tester, 'holds work that never reached the gate');
@@ -47,7 +50,8 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iStopTheSelectedWork(tester);
+      await iAskToStopTheSelectedWork(tester);
+      await iConfirm(tester);
       await iChoose(tester, 'Push what it holds to the mirror, then remove it');
       await theStopAskedToRescueWhatWasHeld(tester);
     });
@@ -56,14 +60,16 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iStopTheSelectedWork(tester);
+      await iAskToStopTheSelectedWork(tester);
+      await iConfirm(tester);
       await iChoose(tester, 'Discard what it holds and remove it');
       await theStopAskedToDiscardWhatWasHeld(tester);
     });
     testWidgets('''leaving a refusal alone touches nothing''', (tester) async {
       await bddSetUp(tester);
       await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iStopTheSelectedWork(tester);
+      await iAskToStopTheSelectedWork(tester);
+      await iConfirm(tester);
       await iChoose(tester, 'Leave it alone');
       await nothingMoreWasAskedOfTheBackend(tester);
       await theWorkIsListed(tester, 'sokar-checkout-shell');
@@ -72,9 +78,19 @@ void main() {
     testWidgets('''work with nothing held is stopped, and stops being listed''',
         (tester) async {
       await bddSetUp(tester);
-      await iStopTheSelectedWork(tester);
+      await iAskToStopTheSelectedWork(tester);
+      await iConfirm(tester);
       await theStatusLineMentions(tester, 'was stopped and removed');
+      await theStatusLineMentions(
+          tester, '128 paths it had added went with it');
       await theWorkIsNoLongerListed(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''the confirmation names what is destroyed along with the work''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToStopTheSelectedWork(tester);
+      await theConfirmationSays(tester, 'exists nowhere else');
     });
     testWidgets(
         '''an action the state does not allow is offered as unavailable, not hidden''',

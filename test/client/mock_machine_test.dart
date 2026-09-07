@@ -32,7 +32,7 @@ void main() {
   test('a task that is stopped stops being listed', () async {
     await machineIn('work');
     final client = await connect();
-    expect(await client.tasks(), hasLength(4));
+    expect(await client.tasks(), hasLength(5));
 
     final stopped = await client.stop('sokar-checkout-migrate');
 
@@ -103,8 +103,8 @@ void main() {
     await client.stop('sokar-checkout-migrate');
     await second.future;
 
-    expect(seen.first, 4);
-    expect(seen.last, 3);
+    expect(seen.first, 5);
+    expect(seen.last, 4);
     await watching.cancel();
   });
 

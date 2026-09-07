@@ -10,7 +10,8 @@ Feature: F09 Task Control
 
   Scenario: work holding commits that never reached the gate is refused, not removed
     Given stopping will refuse because the work is held
-    When I stop the selected work
+    When I ask to stop the selected work
+    And I confirm
     Then what is held is shown
     And the status line mentions {'holds work that never reached the gate'}
     When I choose {'Leave it alone'}
@@ -18,28 +19,37 @@ Feature: F09 Task Control
 
   Scenario: what is held can be pushed to the mirror before it is removed
     Given stopping will refuse because the work is held
-    When I stop the selected work
+    When I ask to stop the selected work
+    And I confirm
     And I choose {'Push what it holds to the mirror, then remove it'}
     Then the stop asked to rescue what was held
 
   Scenario: what is held is discarded only when that is chosen in those words
     Given stopping will refuse because the work is held
-    When I stop the selected work
+    When I ask to stop the selected work
+    And I confirm
     And I choose {'Discard what it holds and remove it'}
     Then the stop asked to discard what was held
 
   Scenario: leaving a refusal alone touches nothing
     Given stopping will refuse because the work is held
-    When I stop the selected work
+    When I ask to stop the selected work
+    And I confirm
     And I choose {'Leave it alone'}
     Then nothing more was asked of the backend
     And the work {'sokar-checkout-shell'} is listed
     And the status line mentions {'nothing was touched'}
 
   Scenario: work with nothing held is stopped, and stops being listed
-    When I stop the selected work
+    When I ask to stop the selected work
+    And I confirm
     Then the status line mentions {'was stopped and removed'}
+    And the status line mentions {'128 paths it had added went with it'}
     And the work {'sokar-checkout-shell'} is no longer listed
+
+  Scenario: the confirmation names what is destroyed along with the work
+    When I ask to stop the selected work
+    Then the confirmation says {'exists nowhere else'}
 
   Scenario: an action the state does not allow is offered as unavailable, not hidden
     When I open the actions for {'sokar-checkout-shell'}

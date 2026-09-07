@@ -270,6 +270,18 @@ lives in the session record, so closing the window onto a build does not stop th
 arriving late does not mean having missed the output. That is the whole class: F13 is the
 machinery, and F03, F06 and F08 are the things that will use it.
 
+**A removal says how much it destroyed.** `Stop` returns `discarded` — how many paths the
+container had that its image did not, which is what the agent installed *inside* it and which has
+nowhere to arrive, unlike the workspace the gate holds. Nothing else records that any of it
+existed, so a removal that does not mention it is the last chance to know, gone. It is a count and
+never a list: a container that ran at all reports `/etc` and `/var` as changed, so only added
+paths are counted and there is nothing behind the number to show.
+
+**A failed run is no longer swept away.** A non-zero exit stops the container and leaves it in
+place — workspace, logs and unpushed commits intact — so `List` carries more exited tasks than it
+used to. They are resumable, and `Stop` with `purge` is what discards one. Nothing here may assume
+that failed means gone.
+
 **A refusal takes the place of whatever was open, and is not a dialog.** `Stop` answering
 `HOLDS_WORK` is the product working: the pane says what is held, offers *push it to the mirror*,
 *discard it* and *leave it alone* in those words, and leaving it alone is the plain button. There

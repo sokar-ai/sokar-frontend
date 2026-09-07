@@ -302,6 +302,14 @@ class Stopped {
   /// Why, in words, for an outcome that needs one.
   final String detail;
 
+  /// How many paths the container had that its image did not.
+  ///
+  /// What the agent installed *inside* it — packages, caches, a built toolchain — which goes with
+  /// the container and has nowhere to arrive, unlike the workspace the gate holds. A count and not
+  /// a list: a container that ran at all reports `/etc` and `/var` as changed, so only added paths
+  /// are counted and there is nothing behind it to enumerate. Zero unless [removed].
+  final int discarded;
+
   /// Constructor taking every field.
   const Stopped({
     required this.outcome,
@@ -311,6 +319,7 @@ class Stopped {
     required this.helpers,
     required this.surviving,
     required this.detail,
+    required this.discarded,
   });
 
   /// Reads one from a reply.
@@ -322,6 +331,7 @@ class Stopped {
         helpers: _int(map, 'helpers'),
         surviving: _int(map, 'surviving'),
         detail: _string(map, 'detail'),
+        discarded: _int(map, 'discarded'),
       );
 }
 

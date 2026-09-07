@@ -89,6 +89,7 @@ class FakeBackend implements FleetBackend {
     'helpers': 0,
     'surviving': 0,
     'detail': '',
+    'discarded': 128,
   });
 
   /// What the next [resumeTask] answers.

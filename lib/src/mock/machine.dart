@@ -102,6 +102,8 @@ class MockMachine {
       'helpers': 0,
       'surviving': situation == 'holds-work' ? 2 : 0,
       'detail': '',
+      // Counted only when it was removed, and nothing else ever records that any of it existed.
+      'discarded': 0,
     };
     // Purge and rescue are the caller having decided about what is held, so they get through.
     final insisted = parameters['purge'] == true ||
@@ -109,6 +111,7 @@ class MockMachine {
         parameters['force'] == true;
     if (answer['removed'] == true || insisted) {
       answer['removed'] = true;
+      answer['discarded'] = 128;
       if (insisted) answer['outcome'] = 'STOPPED';
       tasks = tasks.where((task) => task['name'] != parameters['task']).toList();
       _changes.add(<String, dynamic>{'tasks': tasks});
@@ -169,6 +172,10 @@ class MockMachine {
         // A container up with no helpers has lost its gate or its clearance watcher, which the
         // detail calls out. Worth having on screen while the frame is being looked at.
         _task('sokar-billing-audit', 'billing', helpers: 0),
+        // A failed run is no longer swept away: a non-zero exit stops the container and leaves it
+        // in place, workspace and logs intact, because the run worth looking at is the one that
+        // went wrong. So a list has more exited tasks on it than it used to.
+        _task('sokar-checkout-tests', 'checkout', running: false, helpers: 0),
       ];
 
   static Map<String, dynamic> _task(
@@ -182,7 +189,7 @@ class MockMachine {
         'name': name,
         'project': project,
         'securityClass': securityClass,
-        'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
+        'state': running ? 'Up 4 minutes' : 'Exited (1) 12 minutes ago',
         'running': running,
         'helpers': helpers,
       };

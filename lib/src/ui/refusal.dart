@@ -119,8 +119,10 @@ Future<bool> confirmStop(
         content: Text(
           'The container goes, and so do the '
           '${helpers == 1 ? 'helper' : '$helpers helpers'} beside it. '
-          'Anything the task holds that never reached the gate will stop this, and say so, '
-          'rather than being destroyed.',
+          'Whatever the agent installed inside it — packages, caches, anything it built — goes '
+          'with it and exists nowhere else.\n\n'
+          'Work it holds that never reached the gate will stop this, and say so, rather than '
+          'being destroyed.',
         ),
         actions: <Widget>[
           TextButton(

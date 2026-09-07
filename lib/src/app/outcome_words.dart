@@ -8,8 +8,14 @@ import 'package:sokar_frontend/client.dart';
 String stopWords(String task, Stopped result) {
   final surviving =
       result.surviving == 0 ? '' : ' ${result.surviving} helpers are still alive.';
+  // Nothing else records that what the agent installed inside the container ever existed, so a
+  // removal that does not mention it is the last chance to know gone. "How much", never "what":
+  // there is no list behind the number.
+  final discarded = result.discarded == 0
+      ? ''
+      : ' ${result.discarded} paths it had added went with it.';
   return switch (result.outcome) {
-    Outcome.stopped => '$task was stopped and removed.$surviving',
+    Outcome.stopped => '$task was stopped and removed.$discarded$surviving',
     Outcome.holdsWork =>
       '$task holds work that never reached the gate, so nothing was touched.',
     Outcome.notATask => '$task is not a task Sokar created. Nothing was touched.',
