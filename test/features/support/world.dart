@@ -6,6 +6,7 @@ import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
+import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/operations.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
 import 'package:sokar_frontend/src/app/shell_model.dart';
@@ -181,8 +182,14 @@ class World {
   /// The interface's own preferences.
   static late Settings settings;
 
-  /// What is on the machine.
-  static late FleetModel fleet;
+  /// Every machine being watched, and which one is being acted on.
+  static late Machines machines;
+
+  /// What is on the machine being acted on.
+  static FleetModel get fleet => machines.fleet;
+
+  /// Another machine, for the scenarios about reaching several.
+  static late FakeBackend elsewhere;
 
   /// What is open and where the keyboard is.
   static late ShellModel shell;
@@ -229,26 +236,38 @@ class World {
   /// At a desktop size, because that is what this is: the default 800x600 test surface is a
   /// narrow window, and every scenario would have been judging the fallback layout by accident.
   static Future<void> startApp(WidgetTester tester) async {
-    await tester.binding.setSurfaceSize(const Size(1280, 800));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    // The view rather than the surface, at a pixel ratio of one: the surface is set in *physical*
+    // pixels, so a default ratio quietly turns a desktop window into a narrow one and every
+    // scenario judges the fallback layout without saying so.
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     store = MemorySettingsStore();
     settings = Settings(store);
     shell = ShellModel();
     operations = Operations();
     logs = Logs();
-    fleet = FleetModel(backend);
-    addTearDown(fleet.dispose);
+    elsewhere = FakeBackend(<Task>[_task('sokar-shared-shell', 'shared')]);
+    addTearDown(elsewhere.stop);
+
+    // One machine to begin with, and a second only when a scenario asks. Reaching several is
+    // F20, and every scenario that does not care must not pay for it.
+    machines = Machines(
+      settings,
+      reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
+    );
+    await machines.load();
+    addTearDown(machines.dispose);
     addTearDown(operations.dispose);
     addTearDown(logs.dispose);
 
     await tester.pumpWidget(SokarApp(
-      fleet: fleet,
+      machines: machines,
       shell: shell,
       settings: settings,
       operations: operations,
       logs: logs,
     ));
-    await fleet.connect();
     await tester.pumpAndSettle();
   }
 
@@ -261,7 +280,7 @@ class World {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(SokarApp(
-      fleet: fleet,
+      machines: machines,
       shell: shell,
       settings: settings,
       operations: operations,

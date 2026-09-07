@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'machines.dart';
+
 /// Where the interface's own preferences live.
 ///
 /// Deliberately a file this application writes itself rather than a preferences plugin: the
@@ -85,6 +87,13 @@ class Settings extends ChangeNotifier {
   Future<void> load() async {
     final stored = await _store.read();
     _appearance = _appearanceNamed(stored['appearance']);
+    final machines = stored['machines'];
+    if (machines is List) {
+      _machines = <Map<String, Object?>>[
+        for (final each in machines)
+          if (each is Map<String, Object?>) each,
+      ];
+    }
     notifyListeners();
   }
 
@@ -93,8 +102,33 @@ class Settings extends ChangeNotifier {
     if (appearance == _appearance) return;
     _appearance = appearance;
     notifyListeners();
-    await _store.write(<String, Object?>{'appearance': appearance.name});
+    await _write();
   }
+
+  /// The machines an earlier run was watching.
+  Future<List<Machine>> machines() async {
+    final stored = (await _store.read())['machines'];
+    if (stored is! List) return const <Machine>[];
+    return <Machine>[
+      for (final each in stored)
+        if (each is Map<String, Object?>) Machine.fromStored(each),
+    ];
+  }
+
+  /// Remembers which machines to open next time.
+  Future<void> rememberMachines(List<Machine> machines) async {
+    _machines = <Map<String, Object?>>[
+      for (final machine in machines) machine.stored,
+    ];
+    await _write();
+  }
+
+  List<Map<String, Object?>> _machines = const <Map<String, Object?>>[];
+
+  Future<void> _write() => _store.write(<String, Object?>{
+        'appearance': _appearance.name,
+        'machines': _machines,
+      });
 
   static ThemeMode _appearanceNamed(Object? name) => ThemeMode.values.firstWhere(
         (mode) => mode.name == name,

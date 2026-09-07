@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
-import 'fleet_model.dart';
 import 'logs.dart';
+import 'machines.dart';
 import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
@@ -11,7 +11,7 @@ import 'shell_model.dart';
 class SokarApp extends StatelessWidget {
   /// Constructor taking the state the whole interface is drawn from.
   const SokarApp({
-    required this.fleet,
+    required this.machines,
     required this.shell,
     required this.settings,
     required this.operations,
@@ -19,8 +19,8 @@ class SokarApp extends StatelessWidget {
     super.key,
   });
 
-  /// What is on the machine.
-  final FleetModel fleet;
+  /// Every machine being watched.
+  final Machines machines;
 
   /// What is open and where the keyboard is.
   final ShellModel shell;
@@ -46,9 +46,9 @@ class SokarApp extends StatelessWidget {
           darkTheme: ThemeData(colorSchemeSeed: Colors.teal, brightness: Brightness.dark),
           themeMode: settings.appearance,
           home: ListenableBuilder(
-            listenable: Listenable.merge(<Listenable>[fleet, shell, operations, logs]),
+            listenable: Listenable.merge(<Listenable>[machines, shell, operations, logs]),
             builder: (context, _) => Shell(
-              fleet: fleet,
+              machines: machines,
               shell: shell,
               settings: settings,
               operations: operations,

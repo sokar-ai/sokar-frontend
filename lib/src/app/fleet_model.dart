@@ -104,13 +104,21 @@ class Refusal {
 /// machine is reachable — and one place that keeps the last answer when it stops being.
 class FleetModel extends ChangeNotifier {
   /// Constructor taking the backend to talk to.
-  FleetModel(this.backend);
+  ///
+  /// [retryAfter] is how long to wait before trying a machine that stopped answering. A tunnel
+  /// that drops has to recover without anybody restarting the interface, so this is a loop and
+  /// not a button — the button is there as well, for somebody who does not want to wait.
+  FleetModel(this.backend, {this.retryAfter = const Duration(seconds: 2)});
 
   /// Which machine this is.
   final FleetBackend backend;
 
+  /// How long to wait before trying a machine that stopped answering.
+  final Duration retryAfter;
+
   ServiceInfo? _info;
   StreamSubscription<List<Task>>? _watching;
+  Timer? _retry;
   bool _disposed = false;
 
   Reachability _reachability = Reachability.connecting;
@@ -174,6 +182,7 @@ class FleetModel extends ChangeNotifier {
     try {
       final info = await backend.open();
       _info = info;
+      _retry?.cancel();
       _reachability = Reachability.connected;
       _say('Connected to ${backend.label}, ${info.product} ${info.version}.');
       await _readOnce();
@@ -181,6 +190,7 @@ class FleetModel extends ChangeNotifier {
     } on VarlinkDisconnected catch (ex) {
       _reachability = Reachability.unreachable;
       _say('Cannot reach ${backend.label}: ${ex.message}');
+      _tryAgainLater();
     } on StateError catch (ex) {
       _reachability = Reachability.incompatible;
       _say(ex.message);
@@ -332,6 +342,20 @@ class FleetModel extends ChangeNotifier {
     _reachability = Reachability.unreachable;
     _live = false;
     _say('Lost contact with ${backend.label}: ${ex.message}');
+    _tryAgainLater();
+  }
+
+  /// Tries again on its own, so a tunnel coming back does not need anybody to notice.
+  ///
+  /// A cut stream is resumed rather than left dead: reconnecting reads the list again and starts
+  /// watching again, which is the whole of what was lost.
+  void _tryAgainLater() {
+    if (_disposed || retryAfter == Duration.zero) return;
+    _retry?.cancel();
+    _retry = Timer(retryAfter, () {
+      if (_disposed) return;
+      unawaited(connect());
+    });
   }
 
   void _say(String status) {
@@ -347,6 +371,7 @@ class FleetModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _retry?.cancel();
     _watching?.cancel();
     super.dispose();
   }

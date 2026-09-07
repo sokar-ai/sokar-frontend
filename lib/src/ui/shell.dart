@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/logs.dart';
+import '../app/machines.dart';
 import '../app/operations.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
@@ -12,6 +13,7 @@ import 'package:sokar_frontend/client.dart';
 import 'command_finder.dart';
 import 'command_menu_bar.dart';
 import 'log_view.dart';
+import 'machine_switcher.dart';
 import 'operations.dart';
 import 'panes.dart';
 import 'refusal.dart';
@@ -28,7 +30,7 @@ import 'window_size.dart';
 class Shell extends StatefulWidget {
   /// Constructor taking everything the frame renders and acts on.
   const Shell({
-    required this.fleet,
+    required this.machines,
     required this.shell,
     required this.settings,
     required this.operations,
@@ -36,8 +38,8 @@ class Shell extends StatefulWidget {
     super.key,
   });
 
-  /// What is on the machine.
-  final FleetModel fleet;
+  /// Every machine being watched, and which one is being acted on.
+  final Machines machines;
 
   /// Where you are, what is open and where the keyboard is.
   final ShellModel shell;
@@ -56,6 +58,10 @@ class Shell extends StatefulWidget {
 }
 
 class _ShellState extends State<Shell> {
+  /// What is on the machine being acted on. Everything the frame draws comes from here, so
+  /// switching machine changes the whole frame and nothing has to know it happened.
+  FleetModel get _fleet => widget.machines.fleet;
+
   final _projectsFocus = FocusNode(debugLabel: 'projects');
   final _workFocus = FocusNode(debugLabel: 'work');
   final _openedFocus = FocusNode(debugLabel: 'opened');
@@ -80,7 +86,7 @@ class _ShellState extends State<Shell> {
   }
 
   List<Command> _commands() => commandsFor(
-        fleet: widget.fleet,
+        fleet: _fleet,
         shell: widget.shell,
         settings: widget.settings,
         operations: widget.operations,
@@ -91,15 +97,22 @@ class _ShellState extends State<Shell> {
         quit: () => SystemNavigator.pop(),
       );
 
+  /// Asks for another machine to watch, and starts watching it.
+  Future<void> _addAMachine() async {
+    final machine = await askForAMachine(context);
+    if (machine == null) return;
+    await widget.machines.add(machine);
+  }
+
   /// Asks which log, then opens it. Reading starts whether or not it stays on screen.
   Future<void> _askWhichLog(Task task) async {
     final log = await askWhichLog(
       context,
       task: task.name,
-      logs: widget.fleet.backend.logsOf(task.name),
+      logs: _fleet.backend.logsOf(task.name),
     );
     if (log == null) return;
-    widget.logs.open(widget.fleet.backend, task.name, log);
+    widget.logs.open(_fleet.backend, task.name, log);
     widget.shell.openLog(task.name, log);
   }
 
@@ -111,7 +124,7 @@ class _ShellState extends State<Shell> {
       helpers: task.helpers,
     );
     if (!agreed) return;
-    await widget.fleet.stopWork(task.name);
+    await _fleet.stopWork(task.name);
   }
 
   Future<void> _openFinder() async {
@@ -120,7 +133,7 @@ class _ShellState extends State<Shell> {
   }
 
   void _openWork() {
-    if (widget.fleet.selectedTask == null) return;
+    if (_fleet.selectedTask == null) return;
     widget.shell.openDetail();
   }
 
@@ -133,7 +146,7 @@ class _ShellState extends State<Shell> {
   void _checkWorkCanStart() {
     final operation = widget.operations.run(
       title: 'Check that work can start',
-      output: widget.fleet.backend.startTask(dryRun: true),
+      output: _fleet.backend.startTask(dryRun: true),
     );
     widget.shell.openOperation(operation.id);
   }
@@ -174,14 +187,23 @@ class _ShellState extends State<Shell> {
                 Expanded(
                   child: Row(
                     children: <Widget>[
-                      _rail(size),
+                      Column(
+                        children: <Widget>[
+                          MachineSwitcher(
+                            machines: widget.machines,
+                            onAdd: _addAMachine,
+                            extended: size.railShowsLabels,
+                          ),
+                          Expanded(child: _rail(size)),
+                        ],
+                      ),
                       const VerticalDivider(width: 1),
                       Expanded(child: LayoutBuilder(builder: _section)),
                     ],
                   ),
                 ),
                 StatusLine(
-                  fleet: widget.fleet,
+                  fleet: _fleet,
                   operations: widget.operations,
                   onShowOperations: () => widget.shell.goTo(Section.operations),
                 ),
@@ -239,7 +261,7 @@ class _ShellState extends State<Shell> {
       case NothingOpened():
         return null;
       case WorkOpened():
-        final task = widget.fleet.selectedTask;
+        final task = _fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
       case LogOpened(:final task, :final log):
@@ -264,23 +286,23 @@ class _ShellState extends State<Shell> {
   Widget _work(WindowSize size) {
     // A refusal takes the place of whatever was open. It is the most important thing on the
     // screen until somebody has decided about it, and it is not dismissible by accident.
-    final refusal = widget.fleet.refusal;
+    final refusal = _fleet.refusal;
     final opened = refusal != null
-        ? RefusalView(refusal: refusal, fleet: widget.fleet)
+        ? RefusalView(refusal: refusal, fleet: _fleet)
         : _opened();
     if (!size.showsTwoPanes) return _onePane(opened);
 
     final projects = SizedBox(
       width: Sizes.projectsPane,
       child: ProjectsPane(
-        fleet: widget.fleet,
+        fleet: _fleet,
         focusNode: _projectsFocus,
         onFocused: () => widget.shell.focus(Pane.projects),
         onActivate: () => widget.shell.focus(Pane.work),
       ),
     );
     final work = WorkPane(
-      fleet: widget.fleet,
+      fleet: _fleet,
       focusNode: _workFocus,
       onFocused: () => widget.shell.focus(Pane.work),
       onActivate: _openWork,
@@ -312,16 +334,16 @@ class _ShellState extends State<Shell> {
 
   List<Command> _workActions(Task task) => workCommands(
         task: task,
-        fleet: widget.fleet,
+        fleet: _fleet,
         askToStop: _askToStop,
         askWhichLog: _askWhichLog,
       );
 
   Widget _onePane(Widget? opened) {
     if (opened != null) return opened;
-    if (widget.shell.pane == Pane.work && widget.fleet.selectedProject != null) {
+    if (widget.shell.pane == Pane.work && _fleet.selectedProject != null) {
       return WorkPane(
-        fleet: widget.fleet,
+        fleet: _fleet,
         focusNode: _workFocus,
         onFocused: () => widget.shell.focus(Pane.work),
         onActivate: _openWork,
@@ -330,7 +352,7 @@ class _ShellState extends State<Shell> {
       );
     }
     return ProjectsPane(
-      fleet: widget.fleet,
+      fleet: _fleet,
       focusNode: _projectsFocus,
       onFocused: () => widget.shell.focus(Pane.projects),
       onActivate: () => widget.shell.focus(Pane.work),

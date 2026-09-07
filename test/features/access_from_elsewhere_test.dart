@@ -1,0 +1,67 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import './step/a_backend_with_work_on_it.dart';
+import './step/the_app_is_running.dart';
+import './step/the_machine_shown_is.dart';
+import './step/i_watch_another_machine_called.dart';
+import './step/i_switch_to_the_machine.dart';
+import './step/the_project_is_listed.dart';
+import './step/every_machine_is_being_watched.dart';
+import './step/i_select_the_project.dart';
+import './step/the_tunnel_drops.dart';
+import './step/the_machine_is_shown_as_not_answering.dart';
+import './step/the_work_is_listed.dart';
+import './step/enough_time_passes_for_another_try.dart';
+import './step/the_machine_is_shown_as_answering.dart';
+
+void main() {
+  group('''F20 Access From Elsewhere''', () {
+    Future<void> bddSetUp(WidgetTester tester) async {
+      await aBackendWithWorkOnIt(tester);
+      await theAppIsRunning(tester);
+    }
+
+    testWidgets('''which machine an action will act on is always visible''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineShownIs(tester, 'this machine');
+    });
+    testWidgets(
+        '''another machine is watched, and switching moves the whole frame to it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iSwitchToTheMachine(tester, 'elsewhere');
+      await theMachineShownIs(tester, 'elsewhere');
+      await theProjectIsListed(tester, 'shared');
+    });
+    testWidgets(
+        '''every machine is watched at once, not only the one being acted on''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await everyMachineIsBeingWatched(tester);
+    });
+    testWidgets('''adding a machine does not move what is being acted on''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await theMachineShownIs(tester, 'this machine');
+    });
+    testWidgets(
+        '''a lost tunnel reads as a disconnection, never as a machine with nothing on it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await theTunnelDrops(tester);
+      await theMachineIsShownAsNotAnswering(tester);
+      await theWorkIsListed(tester, 'sokar-checkout-shell');
+      await enoughTimePassesForAnotherTry(tester);
+      await theMachineIsShownAsAnswering(tester);
+    });
+  });
+}

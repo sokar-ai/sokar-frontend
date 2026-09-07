@@ -241,6 +241,19 @@ draws it. Three things there are decisions, not accidents:
 - **Losing contact keeps the last task list.** Clearing it would draw a machine with nothing
   running on it, which is the one reading a dropped tunnel must never produce.
 
+**Connected to every machine, acting on one.** `Machines` opens a `FleetModel` per configured
+host and keeps them all open, because a clearance prompt has a deadline and is never asked twice —
+a machine nobody is connected to is one whose blocked work expires unseen. Which machine an action
+lands on is a separate question, answered by the switcher **pinned above the rail** and never by
+which host happens to be reachable. It is pinned rather than scrollable on purpose: a host that is
+a collapsible ancestor in a tree scrolls out of view, leaving a row that does not say which
+machine it is on, and that is how somebody stops a task on the wrong one.
+
+A host is a name and a socket path, and raising the forward is somebody else's job —
+[F27](requirements/F27-Managed-Tunnels.md) is the interface doing it, and it must never become the
+only way in. Running `ssh` would not breach the no-shelling-out rule, which is about never
+re-implementing the *domain* through the CLI; `ssh` is transport.
+
 **Three surfaces, one list of actions.** The rail says *where you are* (sections), the menu bar
 says *what you can do*, the command finder is *how you find one fast*. All three read
 `commands.dart`, so an action added once turns up in all of them and a shortcut cannot come to
@@ -326,9 +339,10 @@ Two interface traps already met:
   affordance; do not put double-tap on a row to open something.
 - **A widget built eagerly outside the branch that shows it still runs its null checks.** A
   detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
-- **Widget tests run at 1280x800**, set in `World.startApp`. The default surface is 800x600, which
-  under the Material 3 size classes is a *narrow* window — every scenario was judging the
-  single-pane fallback by accident, and none of them said so.
+- **Widget tests run at 1280x800**, set on `tester.view` with `devicePixelRatio = 1`, not with
+  `setSurfaceSize`. The surface is set in *physical* pixels, so the default ratio quietly turned a
+  desktop window into a narrow one and every scenario judged the fallback layout without saying
+  so. Twice: first as the 800x600 default, then again through the ratio.
 - **`World.settle` pumps three frames, not two.** A theme change animates, and the frame that ends
   the animation is not the frame that draws its result.
 - **`pumpAndSettle` never returns while a spinner is on screen.** A running operation shows a

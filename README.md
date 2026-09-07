@@ -78,6 +78,15 @@ for on demand:
 | `dart tool/mock_daemon.dart newer-interface` | a backend serving `Tasks2` beside the `Tasks1` this build understands |
 | `dart tool/mock_daemon.dart failing-start` | a launch that prints for a while and then comes back non-zero |
 
+A second one, to try reaching several machines at once — the interface watches all of them and
+acts on the one named above the rail:
+
+```
+dart tool/mock_daemon.dart work /tmp/sokar-elsewhere.sock
+```
+
+then in the interface: the switcher above the rail → *Watch another machine…*
+
 `SOKAR_SOCKET` is how the interface is pointed at anything but the local daemon — the mock, or a
 socket forwarded from another machine. It is a stopgap until
 [F20](requirements/F20-Access-From-Elsewhere.md) gives a person a way to choose.

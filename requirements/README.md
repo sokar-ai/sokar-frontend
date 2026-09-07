@@ -64,6 +64,7 @@ it is judged against the rest, not because it matters least.
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | ready | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | yes| n/a | |
 | F20 | [Access From Elsewhere](F20-Access-From-Elsewhere.md) | Another machine's Sokar is reached over a forwarded socket, and which host an action will act on is never ambiguous. | yes| ready | |
+| F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
 | F22 | [Task State Visibility](F22-Task-State-Visibility.md) | Working, idle and waiting are told apart, with a timestamp, for every piece of work at once. | yes| **blocked** | |
 | F23 | [Notifications](F23-Notifications.md) | A decision waiting inside a closed window still reaches the person. | yes| ready | |
 | F24 | [Agent Inventory](F24-Agent-Inventory.md) | What is installed, what it may reach and which build it pins are all visible, and nothing names a specific agent. | ready | |
