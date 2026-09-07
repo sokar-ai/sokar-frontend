@@ -64,6 +64,13 @@ class _Wedged implements FleetBackend {
   @override
   Future<void> reject(String projectFile, String name) async {}
 
+  @override
+  Stream<Prompt> prompts() => const Stream<Prompt>.empty();
+
+  @override
+  Future<void> decide(Prompt prompt, {required bool allow}) async {}
+
+
 
   @override
   Stream<List<String>> tailLog(String task, String log) =>
@@ -137,6 +144,13 @@ class _Machine implements FleetBackend {
 
   @override
   Future<void> reject(String projectFile, String name) async {}
+
+  @override
+  Stream<Prompt> prompts() => const Stream<Prompt>.empty();
+
+  @override
+  Future<void> decide(Prompt prompt, {required bool allow}) async {}
+
 
 
   @override

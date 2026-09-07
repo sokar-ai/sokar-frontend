@@ -12,6 +12,7 @@ import '../app/shell_model.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'command_finder.dart';
+import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'gate_view.dart';
 import 'log_view.dart';
@@ -254,6 +255,10 @@ class _ShellState extends State<Shell> {
     );
   }
 
+  /// The rail, with a count on anything that is waiting for a person.
+  ///
+  /// A question has a deadline and is never asked twice, so "somebody must do something" cannot
+  /// be a thing you find by looking in the right place.
   Widget _rail(WindowSize size) => NavigationRail(
         extended: size.railShowsLabels,
         labelType:
@@ -261,16 +266,26 @@ class _ShellState extends State<Shell> {
         selectedIndex: Section.values.indexOf(widget.shell.section),
         onDestinationSelected: (chosen) =>
             widget.shell.goTo(Section.values[chosen]),
-        destinations: const <NavigationRailDestination>[
-          NavigationRailDestination(
+        destinations: <NavigationRailDestination>[
+          const NavigationRailDestination(
             icon: Icon(Icons.folder_outlined),
             selectedIcon: Icon(Icons.folder),
             label: Text('Work'),
           ),
-          NavigationRailDestination(
+          const NavigationRailDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: Text('This session'),
+          ),
+          NavigationRailDestination(
+            icon: Badge(
+              key: const Key('waiting-count'),
+              isLabelVisible: _fleet.clearance.count > 0,
+              label: Text('${_fleet.clearance.count}'),
+              child: const Icon(Icons.pan_tool_outlined),
+            ),
+            selectedIcon: const Icon(Icons.pan_tool),
+            label: const Text('Blocked'),
           ),
         ],
       );
@@ -279,6 +294,11 @@ class _ShellState extends State<Shell> {
       switch (widget.shell.section) {
         Section.work => _work(WindowSize.of(constraints.maxWidth)),
         Section.operations => _thisSession(),
+        Section.clearance => ClearanceView(
+            clearance: _fleet.clearance,
+            onDecide: (prompt, {required allow}) =>
+                _fleet.clearance.decide(_fleet.backend, prompt, allow: allow),
+          ),
       };
 
   Widget _thisSession() {

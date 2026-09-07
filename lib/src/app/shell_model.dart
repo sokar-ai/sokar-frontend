@@ -10,7 +10,10 @@ enum Section {
   work('Work'),
 
   /// Everything this session has run.
-  operations('This session');
+  operations('This session'),
+
+  /// Blocked connections waiting for an answer.
+  clearance('Blocked');
 
   const Section(this.label);
 

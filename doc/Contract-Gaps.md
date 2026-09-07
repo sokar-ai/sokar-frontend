@@ -95,10 +95,19 @@ not checking that it answers the requirement.**
   method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling
   out is forbidden, and it is forbidden hardest here. A lock control needs a `Lock` method added
   on the Sokar side; confirmed 2026-09-07 that it will be, if asked for.
-- **F17 Network Exposure Control** — `Prompts` and `Decide` do the live half completely, and
-  `Egress`/`SetEgress` arrived on 2026-09-07 for the standing half. One line stays: **nothing here
-  reaches a running task**, because a container's ruleset and resolver are built when it starts.
-  Say *"applies to the next task"* wherever a successful change is shown; do not imply otherwise.
+- **F17 Network Exposure Control** — **the live half is built**: blocked connections from every
+  task in one view, allowed or denied from there, and an expired question kept and marked. Three
+  of its six criteria are left, and all three need something that does not exist:
+  - *"The exposure level of running work can be changed **without restarting it**"* — **no
+    method**. `SetEgress` writes the project file and a container's ruleset is built when it
+    starts, so it changes the *next* task. Worth asking for, and not obviously impossible: the
+    daemon already reaches into a running container with `nsenter` to apply a clearance decision.
+  - *"The available levels are named by what they permit, and the current level is always visible
+    on the work"* — visible **yes**, `Task.securityClass` carries it; changeable **no**, nothing
+    sets a project's class.
+  - *"Turning enforcement off entirely is possible, distinct, and visibly marked wherever that
+    work appears"* — `Start(clearance:)` chooses it at start, and **`Task` does not carry it**, so
+    it cannot be marked on the work. A reply field would fix the marking half.
 - **F05 Project Configuration** — egress is on the wire (`Egress`, `SetEgress`). Agents, hardware
   and deleting a project are not.
 

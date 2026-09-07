@@ -66,6 +66,17 @@ abstract class FleetBackend {
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
 
+  /// Blocked connections from every task on this machine, as they happen.
+  ///
+  /// Streaming only, and one subscription covers tasks started after the call.
+  Stream<Prompt> prompts();
+
+  /// Answers one blocked connection.
+  ///
+  /// A task that is not running has no watcher to tell, and that is refused with `NoClearance`
+  /// rather than accepted and dropped.
+  Future<void> decide(Prompt prompt, {required bool allow});
+
   /// What is waiting at a project's gate.
   ///
   /// [projectFile] is `Project.file`, passed through unchanged. A project that has none can be
@@ -165,6 +176,13 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Stream<Prompt> prompts() => _opened().prompts();
+
+  @override
+  Future<void> decide(Prompt prompt, {required bool allow}) async =>
+      _opened().decide(prompt, allow: allow);
 
   @override
   Future<GateState> gateOf(String projectFile) => _opened().gate(projectFile);

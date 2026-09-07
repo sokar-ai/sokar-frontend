@@ -122,6 +122,53 @@ void main() {
     );
   });
 
+  test('a blocked connection arrives, and its answer comes back on the same stream', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final seen = <Prompt>[];
+    final asked = Completer<void>();
+    final answered = Completer<void>();
+    final watching = client.prompts().listen((prompt) {
+      seen.add(prompt);
+      if (seen.length == 1) asked.complete();
+      if (seen.length == 2) answered.complete();
+    });
+
+    machine.blocks('api.example.test:443');
+    await asked.future;
+    expect(seen.single.settled, isFalse);
+    expect(seen.single.prefix, isNotEmpty);
+
+    await client.decide(seen.first, allow: true);
+    await answered.future;
+
+    // The same question a second time, carrying its answer — matched by task and key, because
+    // `at` means the decision time here and `prefix` is empty.
+    expect(seen.last.identity, seen.first.identity);
+    expect(seen.last.settled, isTrue);
+    expect(seen.last.verdict, 'allow');
+    expect(seen.last.prefix, isEmpty);
+    await watching.cancel();
+  });
+
+  test('a question that runs out says so, because nothing asks again', () async {
+    await machineIn('work');
+    final client = await connect();
+    final seen = <Prompt>[];
+    final expired = Completer<void>();
+    final watching = client.prompts().listen((prompt) {
+      seen.add(prompt);
+      if (prompt.expired) expired.complete();
+    });
+
+    machine.expires(machine.blocks('api.example.test:443'));
+    await expired.future;
+
+    expect(seen.last.expired, isTrue);
+    await watching.cancel();
+  });
+
   test('a task says what it is doing, beside what the runtime says', () async {
     await machineIn('work');
     final client = await connect();

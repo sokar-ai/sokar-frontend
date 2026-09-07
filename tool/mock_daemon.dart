@@ -47,18 +47,35 @@ Future<void> main(List<String> args) async {
   print('');
   print('  SOKAR_SOCKET=$stableSocket flutter run -d linux');
   print('');
-  print('  RETURN adds a task and pushes the change, ctrl-d stops');
+  print('  RETURN adds a task and pushes the change');
+  print('  b blocks a connection, a allows it, d denies it, x lets it run out');
+  print('  ctrl-d stops');
 
   // Asynchronously, and that is not a style choice: stdin.readLineSync() blocks the isolate, so a
   // daemon that waited on it would accept a connection and then never answer a call. It looks
   // exactly like a hung backend, because it is one.
   var added = 0;
+  var blocked = 0;
+  Map<String, dynamic>? asked;
   final typing = stdin
       .transform(utf8.decoder)
       .transform(const LineSplitter())
-      .listen((_) {
-    machine.addTask('sokar-checkout-fix-${++added}', 'checkout');
-    print('published ${machine.tasks.length} tasks');
+      .listen((line) {
+    switch (line.trim()) {
+      case 'b':
+        asked = machine.blocks('api${++blocked}.example.test:443');
+        print('blocked api$blocked.example.test:443 — answer it in the interface');
+      case 'x':
+        if (asked == null) {
+          print('nothing is blocked; press b first');
+        } else {
+          machine.expires(asked!);
+          print('that question ran out — it stays blocked and is never asked again');
+        }
+      default:
+        machine.addTask('sokar-checkout-fix-${++added}', 'checkout');
+        print('published ${machine.tasks.length} tasks');
+    }
   });
   await typing.asFuture<void>();
 

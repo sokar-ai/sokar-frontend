@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 
+import 'clearance.dart';
 import 'fleet_backend.dart';
 import 'outcome_words.dart';
 
@@ -96,6 +97,12 @@ class FleetModel extends ChangeNotifier {
 
   /// How long to wait before trying a machine that stopped answering.
   final Duration retryAfter;
+
+  /// Blocked connections on this machine, watched for as long as it is.
+  ///
+  /// Per machine and not per selection: a question has a deadline and is never asked twice, so a
+  /// machine somebody happens not to be looking at is exactly the one whose work expires unseen.
+  final clearance = Clearance();
 
   ServiceInfo? _info;
   StreamSubscription<List<Task>>? _watching;
@@ -205,6 +212,9 @@ class FleetModel extends ChangeNotifier {
       _say('Connected to ${backend.label}, ${info.product} ${info.version}.');
       await _readOnce();
       _follow();
+      clearance
+        ..addListener(_notify)
+        ..watch(backend);
     } on VarlinkDisconnected catch (ex) {
       _reachability = Reachability.unreachable;
       _say('Cannot reach ${backend.label}: ${ex.message}');
@@ -397,6 +407,9 @@ class FleetModel extends ChangeNotifier {
     _disposed = true;
     _retry?.cancel();
     _watching?.cancel();
+    clearance
+      ..removeListener(_notify)
+      ..dispose();
     super.dispose();
   }
 }

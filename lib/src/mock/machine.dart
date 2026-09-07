@@ -46,6 +46,20 @@ class MockMachine {
     daemon.method('Review', _review);
     daemon.method('Approve', _approve);
     daemon.method('Reject', _reject);
+    // Prompts streams and only streams: answering it once would look like it worked and then
+    // deliver nothing ever again.
+    daemon.pushes('Prompts', (_) async* {
+      // Anything raised before anybody was watching is handed over first. A real daemon has the
+      // task blocked and waiting either way; without this a test would have to win a race that
+      // says nothing about the interface.
+      for (final asked in _raisedBeforeAnybodyWatched) {
+        yield asked;
+      }
+      _raisedBeforeAnybodyWatched.clear();
+      _watched = true;
+      yield* _asking.stream;
+    });
+    daemon.method('Decide', _decide);
     daemon.method('Resume', _resume);
 
     switch (situation) {
@@ -94,7 +108,10 @@ class MockMachine {
   }
 
   /// Stops answering.
-  Future<void> close() => _changes.close();
+  Future<void> close() async {
+    await _changes.close();
+    await _asking.close();
+  }
 
   /// The logs this machine has.
   ///
@@ -102,6 +119,60 @@ class MockMachine {
   /// Nothing lists them — which is why the interface has to ask, and why this has to be able to
   /// refuse a name rather than only a method.
   static const logs = <String>{'agent.log', 'gate.log'};
+
+  final _asking = StreamController<Map<String, dynamic>>.broadcast();
+  final _raisedBeforeAnybodyWatched = <Map<String, dynamic>>[];
+  bool _watched = false;
+
+  void _raise(Map<String, dynamic> event) {
+    if (_watched) {
+      _asking.add(event);
+    } else {
+      _raisedBeforeAnybodyWatched.add(event);
+    }
+  }
+
+  /// Raises a blocked connection, and gives back the question so it can be answered or expired.
+  ///
+  /// Driven by whoever is testing, never by a clock — the same rule the automated tests follow.
+  Map<String, dynamic> blocks(String destination, {String task = 'sokar-checkout-shell'}) {
+    final parts = destination.split(':');
+    final asked = <String, dynamic>{
+      'task': task,
+      'key': 'tcp/$destination',
+      'destination': parts.first,
+      'protocol': 'tcp',
+      'port': int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
+      'at': DateTime.now().toUtc().toIso8601String(),
+      'prefix': 'egress/deny',
+    };
+    _raise(asked);
+    return asked;
+  }
+
+  /// Lets a question run out, which is the one case nothing asks about again.
+  void expires(Map<String, dynamic> asked) => _raise(<String, dynamic>{
+        ...asked,
+        'at': DateTime.now().toUtc().toIso8601String(),
+        'prefix': '',
+        'verdict': 'timeout',
+      });
+
+  Map<String, dynamic> _decide(Map<String, dynamic> parameters) {
+    // The answer comes back on the same stream, which is also how a client sees the echo of its
+    // own decision. It must not be applied twice.
+    _raise(<String, dynamic>{
+      'task': parameters['task'],
+      'key': parameters['key'],
+      'destination': parameters['address'],
+      'protocol': 'tcp',
+      'port': 0,
+      'at': DateTime.now().toUtc().toIso8601String(),
+      'prefix': '',
+      'verdict': parameters['allow'] == true ? 'allow' : 'deny',
+    });
+    return <String, dynamic>{'ok': true};
+  }
 
   /// What is waiting at the gate, by ref name. Approving or dropping one takes it out.
   final Map<String, Map<String, dynamic>> _waiting = <String, Map<String, dynamic>>{

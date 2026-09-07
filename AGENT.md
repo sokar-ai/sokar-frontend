@@ -340,6 +340,23 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
 
+**A clearance question is the one place where interface latency costs something real.** The task
+is stopped while it waits and the watcher gives up on its own timeout, so `Prompts` is a stream,
+never a poll — and it is watched **per machine, for as long as that machine is watched**, because
+one nobody is connected to is exactly the one whose work expires unseen. The count sits on the
+rail: "somebody must do something" cannot be a thing you find only by having looked in the right
+place.
+
+- **An answer is not applied optimistically.** The row stays until the stream confirms it. The
+  answer is real when whatever asked has taken it, and a row that vanished on the press would
+  claim something nobody had confirmed.
+- **A client sees the echo of its own `Decide`** — matched by `task` + `key` and removed, which is
+  idempotent, so applying it twice is impossible rather than merely avoided.
+- **`NoClearance` is an answer**: the task stopped running, so nothing could be told. Said plainly,
+  because an answer that went nowhere would leave somebody believing they had unblocked something.
+- **An expired question is kept and marked.** Nothing asks about it again, so one that merely
+  stopped arriving would be indistinguishable from one still waiting for its operator.
+
 **`activity` sits beside `state`, never instead of it**, and `state` is still the runtime's own
 words and still never parsed. Five values, and two of them are traps:
 

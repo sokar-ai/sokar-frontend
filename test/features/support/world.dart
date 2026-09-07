@@ -174,6 +174,27 @@ class FakeBackend implements FleetBackend {
   /// Logs this machine has. What `Logs` answers, and what `Tail` accepts.
   Set<String> theLogsItHas = <String>{'agent.log'};
 
+  /// Blocked connections, driven by the scenario. Nothing here is on a clock: a question with a
+  /// deadline tested against wall time is a flaky test of the one thing that must not be flaky.
+  final asking = StreamController<Prompt>.broadcast();
+
+  /// Every answer that was sent, and what it said.
+  final List<({String key, bool allow})> decisions =
+      <({String key, bool allow})>[];
+
+  /// Set to refuse the next answer, the way a task that has stopped running does.
+  VarlinkException? refuseTheAnswer;
+
+  @override
+  Stream<Prompt> prompts() => asking.stream;
+
+  @override
+  Future<void> decide(Prompt prompt, {required bool allow}) async {
+    final refusal = refuseTheAnswer;
+    if (refusal != null) throw refusal;
+    decisions.add((key: prompt.key, allow: allow));
+  }
+
   /// What is waiting at the gate. Set by the scenario.
   GateState theGate = GateState.from(const <String, dynamic>{
     'mirror': '/srv/checkout/.sokar/mirror',
@@ -285,7 +306,10 @@ diff --git a/lib/money.dart b/lib/money.dart
   void lose() => _changes.addError(const VarlinkDisconnected('the tunnel went away'));
 
   /// Closes the change stream.
-  Future<void> stop() => _changes.close();
+  Future<void> stop() async {
+    await _changes.close();
+    await asking.close();
+  }
 }
 
 /// What one scenario's steps share.
@@ -344,6 +368,37 @@ class World {
         'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
         'running': running,
         'helpers': helpers,
+      });
+
+  /// One blocked connection, as the daemon raises it.
+  ///
+  /// Wire-shaped, and driven by the scenario rather than by a clock: this is the one event with a
+  /// deadline, and a flaky test of it is a flaky test of the thing that matters most.
+  static Prompt blocked(String destination, {String task = 'sokar-checkout-shell'}) {
+    final parts = destination.split(':');
+    return Prompt.from(<String, dynamic>{
+      'task': task,
+      'key': 'tcp/$destination',
+      'destination': parts.first,
+      'protocol': 'tcp',
+      'port': int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
+      'at': '2026-09-07T15:00:00Z',
+      'prefix': 'egress/deny',
+    });
+  }
+
+  /// The same question a second time, carrying its answer.
+  static Prompt settled(Prompt asked, String verdict) => Prompt.from(<String, dynamic>{
+        'task': asked.task,
+        'key': asked.key,
+        'destination': asked.destination,
+        'protocol': asked.protocol,
+        'port': asked.port,
+        // Two things this field means: the block time on the question, the decision time here.
+        'at': '2026-09-07T15:04:00Z',
+        // Empty on an answer: nothing decided it a second time.
+        'prefix': '',
+        'verdict': verdict,
       });
 
   /// Replaces one task with the same task in a different activity.
