@@ -42,8 +42,15 @@ class ProjectOnScreen {
   /// What to call it on screen.
   String get label => name.isEmpty ? 'No project recorded' : name;
 
-  /// How many of its tasks the runtime says are up.
-  int get running => tasks.where((task) => task.running).length;
+  /// How many of its tasks are up, and how many it has.
+  ///
+  /// The daemon's own counts, not a count of [tasks]: it assembles them from the gate mirrors,
+  /// the tasks that exist and the recorded project files, and knows about work this end may not
+  /// have matched by name. Derive nothing here that the far end already knows.
+  int get running => project.running;
+
+  /// How many tasks it has, running or stopped.
+  int get howMuchWork => project.tasks;
 
   /// Whether anything can be done to it beyond looking at it.
   bool get canBeActedOn => project.canBeActedOn;
@@ -155,6 +162,7 @@ class FleetModel extends ChangeNotifier {
           mirror: '',
           pending: 0,
           tasks: orphaned.value.length,
+          running: orphaned.value.where((task) => task.running).length,
         ),
         tasks: orphaned.value..sort((a, b) => a.name.compareTo(b.name)),
       ));

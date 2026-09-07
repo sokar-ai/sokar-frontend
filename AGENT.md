@@ -337,6 +337,14 @@ action that simply is not there reads as one nobody thought of; one that says *"
 method for renaming work"* reads as what it is. `workCommands` builds the row's own menu and the
 menu bar's entries from one list, so neither can offer what the other forgot.
 
+**`Projects` lists every project, not only the busy ones**, and gives both `tasks` and `running`
+rather than leaving one to be inferred. A project with nothing running is the ordinary case —
+between tasks, or after one was stopped and can still be resumed, which keeps its workspace. A
+list of only active projects would be empty on a machine with a dozen projects on it. Filtering to
+a busy view is this end's job and must never be assumed of the other; the counts on a row are the
+daemon's, because it assembles them from the gate mirrors, the tasks that exist and the recorded
+project files, and knows about work this end may not have matched by name.
+
 **Projects are asked for, never derived from the task list.** `Projects()` answers them, and a
 project that has never run anything is exactly the one a derived list could not show. Its `file`
 is the path every gate method and `Start` take — **pass it through unchanged, never build one, and

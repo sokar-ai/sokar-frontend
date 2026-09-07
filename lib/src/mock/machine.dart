@@ -114,6 +114,9 @@ class MockMachine {
             'mirror': '/srv/checkout/.sokar/mirror',
             'pending': 2,
             'tasks': tasks.where((task) => task['project'] == 'checkout').length,
+            'running': tasks
+                .where((task) => task['project'] == 'checkout' && task['running'] == true)
+                .length,
           },
           <String, dynamic>{
             'name': 'billing',
@@ -122,6 +125,9 @@ class MockMachine {
             'mirror': '',
             'pending': 0,
             'tasks': tasks.where((task) => task['project'] == 'billing').length,
+            'running': tasks
+                .where((task) => task['project'] == 'billing' && task['running'] == true)
+                .length,
           },
           <String, dynamic>{
             'name': 'never-run',
@@ -130,6 +136,7 @@ class MockMachine {
             'mirror': '',
             'pending': 0,
             'tasks': 0,
+            'running': 0,
           },
           <String, dynamic>{
             'name': 'moved-away',
@@ -138,6 +145,7 @@ class MockMachine {
             'mirror': '/srv/moved/.sokar/mirror',
             'pending': 1,
             'tasks': 0,
+            'running': 0,
           },
         ],
       };

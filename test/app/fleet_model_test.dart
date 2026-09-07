@@ -69,6 +69,13 @@ class _Machine implements FleetBackend {
   @override
   Future<List<Project>> projects() async => <Project>[
         Project.from(const <String, dynamic>{'name': 'never-run', 'tasks': 0}),
+        // Counts that do not match what List returned, on purpose: the daemon assembles them from
+        // the mirrors and the tasks that exist, and knows about work this end has not matched.
+        Project.from(const <String, dynamic>{
+          'name': 'busy',
+          'tasks': 7,
+          'running': 3,
+        }),
       ];
 
   @override
@@ -125,6 +132,21 @@ void main() {
         fleet.projects.firstWhere((project) => project.name == 'vanished');
     expect(vanished.tasks, hasLength(1));
     expect(vanished.canBeActedOn, isFalse);
+    fleet.dispose();
+  });
+
+  test('how much work a project has is the daemon count, not one made up here', () async {
+    // Projects lists every project, not only the busy ones, and gives both numbers rather than
+    // leaving one to be inferred. Counting the tasks this end happened to match would report
+    // nothing for a project whose work it could not pair up.
+    final fleet = FleetModel(_Machine());
+
+    await fleet.connect();
+
+    final busy = fleet.projects.firstWhere((project) => project.name == 'busy');
+    expect(busy.howMuchWork, 7);
+    expect(busy.running, 3);
+    expect(busy.tasks, isEmpty);
     fleet.dispose();
   });
 }

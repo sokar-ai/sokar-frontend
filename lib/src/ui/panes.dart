@@ -144,7 +144,7 @@ class _ProjectRow extends StatelessWidget {
             children: <Widget>[
               Text(project.label, style: Theme.of(context).textTheme.bodyLarge),
               Text(
-                '${project.running} of ${project.tasks.length} running'
+                '${project.running} of ${project.howMuchWork} running'
                 '${classification.isEmpty ? '' : ' · $classification'}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),

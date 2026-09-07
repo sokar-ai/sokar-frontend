@@ -72,6 +72,7 @@ class FakeBackend implements FleetBackend {
       'mirror': '/srv/checkout/.sokar/mirror',
       'pending': 2,
       'tasks': 2,
+      'running': 1,
     }),
     Project.from(const <String, dynamic>{
       'name': 'billing',
@@ -80,6 +81,7 @@ class FakeBackend implements FleetBackend {
       'mirror': '',
       'pending': 0,
       'tasks': 1,
+      'running': 1,
     }),
   ];
 

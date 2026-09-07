@@ -193,6 +193,14 @@ class Project {
   /// How many of its tasks exist right now, running or stopped.
   final int tasks;
 
+  /// How many of those are up.
+  ///
+  /// Given rather than inferred, and a project with none is the ordinary case — between tasks, or
+  /// after one was stopped and can still be resumed, which keeps its workspace. **`Projects`
+  /// lists every project, not only the busy ones**; filtering to a busy view is this end's job
+  /// and must never be assumed of the other.
+  final int running;
+
   /// Constructor taking every field.
   const Project({
     required this.name,
@@ -201,6 +209,7 @@ class Project {
     required this.mirror,
     required this.pending,
     required this.tasks,
+    required this.running,
   });
 
   /// Reads one from a reply.
@@ -211,6 +220,7 @@ class Project {
         mirror: _string(map, 'mirror'),
         pending: _int(map, 'pending'),
         tasks: _int(map, 'tasks'),
+        running: _int(map, 'running'),
       );
 
   /// Whether anything can be done to it beyond looking at it.
