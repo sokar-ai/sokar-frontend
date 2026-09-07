@@ -64,7 +64,10 @@ missing, ask.**
   local and the upstream is on the network, so answering it live would make `Projects` perform a
   fetch — and `Projects` is asked again after anything that changes it. Asked for instead as a
   number *with the age of the measurement beside it*, fetched on the daemon's own schedule. A
-  number with no age would have to be drawn as though it were current.
+  number with no age would have to be drawn as though it were current. Agreed on the Sokar side,
+  and it comes with **a reason enumeration** rather than a bare timestamp: never checked, the
+  vault was locked when the fetch was tried, or the project reaches nothing by design. The middle
+  one is somebody's to fix and the other two are not, which is why they cannot be one value.
 
 Four of these were listed as *ready* until 2026-09-07, when they were walked against the IDL
 method by method rather than by name. Starting is one call, so F08 read as covered; the call has
@@ -119,12 +122,11 @@ not checking that it answers the requirement.**
   What genuinely has no method is reopening the output of an operation started *before* this
   window, or by something else — no requirement asks for that today. Nothing here needs the
   backend to persist anything.
-- **F15 Secret Store Control** — `Credentials` reports the store's state. **`readable` does not
-  do what its comment claims**: measured on 2026-09-07, an unlocked but empty vault answers
-  `readable: false`, exactly as a locked one does, because the field is inferred from an empty
-  credential map and the map is empty for three different reasons. A fix is coming; until it
-  lands, nothing may hang an "unlock" prompt on it. `Lock` was agreed the same day and is being
-  built. Nothing can *change* it: the contract has no vault-mutating
+- **F15 Secret Store Control** — `Credentials` reports the store's state. `readable` **was** wrong — an
+  unlocked but empty vault answered `false`, exactly as a locked one did — and was fixed the same
+  day in `758969f`, before anything here consumed it. It can now be trusted: unlocked and empty is
+  `true`, locked and undecryptable are `false`, and a vault that does not exist yet is readable
+  and empty. `Lock` is being built. Nothing can *change* it: the contract has no vault-mutating
   method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling
   out is forbidden, and it is forbidden hardest here. A lock control needs a `Lock` method added
   on the Sokar side; confirmed 2026-09-07 that it will be, if asked for.

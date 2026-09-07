@@ -723,13 +723,14 @@ contract's spelling and not against what happened to arrive.
 Four things this build assumed, or was told, that turned out not to hold. All four came back from
 the Sokar side after being measured against running code rather than recalled.
 
-- **`VaultState.readable` cannot be trusted yet.** Its comment says it separates a locked vault
-  from an empty one. It does not: an unlocked, empty vault answers `readable: false`, the same as
-  a locked one, because the field is inferred from the credential map being empty and the map is
-  empty for three different reasons. **Do not hang an "unlock the vault" prompt on it** — it would
-  fire at somebody whose vault is unlocked and simply empty, and "unlock it" is the one
-  instruction that cannot help them. A fix is coming on the Sokar side; nothing here consumes the
-  field today.
+- **`VaultState.readable` was wrong, and is now right.** It claimed to separate a locked vault
+  from an empty one and did not: an unlocked, empty vault answered `false`, exactly as a locked
+  one did, because the field was inferred from an empty credential map and the map was empty for
+  three different reasons. Fixed on the Sokar side in `758969f` — an unlocked vault holding
+  nothing now answers `true`, a vault that does not exist yet is readable and empty. Nothing here
+  consumed it, so the fix landed **before the first consumer**, which is the only comfortable time
+  for a defect like that. The rule that made it free: this build had not yet built a screen on a
+  field whose meaning it had not seen measured.
 - **`Start(dryRun:)` is not a rehearsal.** It reports what the project file opens and returns —
   before the runtime check, before the hooks check, and before anything touches the vault. The
   action behind it used to say *"Check that work can start here"*, which claimed something it
@@ -756,12 +757,31 @@ and what exists changed underneath them.
 So where the interface cannot offer it, it says **why** — not merely that it is unavailable. This
 was recorded as a contract gap for a while and it was never one.
 
-## The notes exchanged with Sokar carry a timestamp
+## Talking to the Sokar side
 
-`updates-from-sokar.md` and `.question-from-frontend.md` are written, read and deleted in place, so
-two rounds look alike and neither has a version. **Put the date and time at the top of anything
-written to either**, so a reply can say which round it answers.
+**`/tmp/sokar-backend-frontend-diskussions.md` is the whole channel.** It replaced the one-shot
+hand-off files (`.updates-from-sokar.md`, `.question-from-frontend.md`), which were written, read
+and deleted in place — so two rounds looked alike, neither had a version, and one was destroyed by
+deleting it while the other side was mid-edit.
 
-Copy the incoming note to the scratchpad before deleting it. One was destroyed by deleting it
-while the other side was mid-edit, and it was untracked, so there was nothing to recover from.
+- **Append at the bottom. Never edit or delete what the other side wrote.** Correct a mistake in a
+  new entry, not in place. Your own entry is yours to fix.
+- **Head every entry** `## <UTC timestamp> — Frontend agent`. Always sign, always timestamp, even
+  for one line.
+- **`**Q:**` for a question, `**A:**` plus the timestamp of the entry being answered.** Anything
+  with no `**A:**` is still open.
+- Neither side reads or changes anything else in the other's repository.
+
+## Starting without a credential is not a clean failure
+
+Measured on the Sokar side, 2026-09-07: a missing credential does **not** stop a launch. It prints
+one line and starts the task anyway with no broker wired up; the agent then fails to authenticate
+from inside the container. What somebody is left with is a container that came up, a workspace,
+and — once an unattended run fails — a held, stopped container that nothing removes, because a
+failed run is kept on purpose.
+
+So when the credential check lands, the action stays offered and the sentence is **"this will
+start a container you will have to clear up"**, naming the workspace and the held container. Not
+*"this may fail"*: a hedge is not something somebody can decide with, and this was going to be one
+until it was measured.
 
