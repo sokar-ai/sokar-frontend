@@ -373,12 +373,24 @@ deleted file mode 100644
 
   static List<Map<String, dynamic>> _aMachineWithWorkOnIt() =>
       <Map<String, dynamic>>[
-        _task('sokar-checkout-shell', 'checkout'),
+        // One of each, because the difference between them is what F22 exists for and a
+        // machine with only working tasks on it proves nothing.
+        _task('sokar-checkout-shell', 'checkout',
+            activity: 'WAITING',
+            waitingFor: 'api.example.test:443',
+            minutesAgo: 6),
         _task('sokar-checkout-migrate', 'checkout', running: false, helpers: 0),
-        _task('sokar-billing-shell', 'billing', securityClass: 'offline', helpers: 1),
+        _task('sokar-billing-shell', 'billing',
+            securityClass: 'offline',
+            helpers: 1,
+            activity: 'IDLE',
+            mode: 'SHELL',
+            minutesAgo: 47),
         // A container up with no helpers has lost its gate or its clearance watcher, which the
         // detail calls out. Worth having on screen while the frame is being looked at.
-        _task('sokar-billing-audit', 'billing', helpers: 0),
+        // A terminal is attached to this one, so nothing on this side can see what it is doing.
+        _task('sokar-billing-audit', 'billing',
+            helpers: 0, activity: 'UNKNOWN', mode: 'AGENT'),
         // A failed run is no longer swept away: a non-zero exit stops the container and leaves it
         // in place, workspace and logs intact, because the run worth looking at is the one that
         // went wrong. So a list has more exited tasks on it than it used to.
@@ -391,13 +403,30 @@ deleted file mode 100644
     bool running = true,
     int helpers = 2,
     String securityClass = 'guarded',
+    String activity = 'WORKING',
+    String waitingFor = '',
+    String mode = 'UNATTENDED',
+    String agent = 'an-agent',
+    int minutesAgo = 4,
   }) =>
       <String, dynamic>{
         'name': name,
         'project': project,
         'securityClass': securityClass,
-        'state': running ? 'Up 4 minutes' : 'Exited (1) 12 minutes ago',
+        'state': running ? 'Up $minutesAgo minutes' : 'Exited (1) 12 minutes ago',
         'running': running,
         'helpers': helpers,
+        'agent': agent,
+        'mode': mode,
+        'prompt': mode == 'UNATTENDED'
+            ? 'Fix the rounding in Money.pennies and add a test for it'
+            : '',
+        'branch': 'refs/sokar/incoming/$name',
+        'since': DateTime.now()
+            .toUtc()
+            .subtract(Duration(minutes: minutesAgo))
+            .toIso8601String(),
+        'activity': running ? activity : 'DEAD',
+        'waitingFor': waitingFor,
       };
 }

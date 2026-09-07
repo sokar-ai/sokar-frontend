@@ -74,12 +74,8 @@ not checking that it answers the requirement.**
   finished work cannot be continued with a new one. Worth asking for.
 - **F09 Task Control** — **built**, except that **renaming has no method at all**. Recreating is
   `Stop` then `Start`, which `Project.file` now makes possible; it is unbuilt rather than blocked.
-- **F10 Task Inspection And Work Handover** — **the handover half is built**: what is waiting at
-  a project's gate, each push file by file, copy the diff, forward it onto a named branch or drop
-  the request. The *inspection* half is what is left, and it is short of fields rather than
-  methods: `Task` carries no **agent**, no **mode**, no **branch it works on** and no timestamp,
-  so "its agent, its mode, and how long it has been in its state" cannot be shown. Those are
-  reply fields on `Task`, which is the cheap kind of change — the same ask as F22.
+- ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection
+  half needed, the same day it was asked for.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one
@@ -122,17 +118,36 @@ not checking that it answers the requirement.**
 
 ### What is still worth asking for
 
-- **`Sets()`** — nothing lists the installed egress sets, so a chooser cannot be offered and a
-  name has to be typed, refused with `NO_SUCH_SET` when the machine does not have it. The Sokar
-  side has offered to add one; **it is wanted**, for the same reason `Logs` was: a client that
-  held the names would offer a set this machine does not have.
-- **`mode` and `prompt` on `Start`** — two thirds of F08 is unreachable without them.
+- **Running an unattended task over the socket.** `Start` takes `mode` and `prompt` since
+  2026-09-07 and *records* both, but does not run the agent headlessly and stream its output — it
+  starts the container and returns. That is the remaining half of F08, and the Sokar side has
+  offered to build it. **It is wanted.**
 - **`Project` fields for whether the environment is prepared and how far the upstream has drifted**
   — the last two facts F02 asks for.
 - **Renaming a task**, which F09 asks for and nothing can do.
 - **A method behind `sokar panic`**, which F18 needs and may not shell out for.
+- **Telling "waiting on a clearance decision" apart from "waiting on its own prompt"** — a
+  per-agent capability, still open on both sides.
 
-### F22 is a different kind of gap
+`Sets()` was on this list and arrived on 2026-09-07: `name`, `label`, the `domains` each grants,
+and the directories searched in order. Show the domains or at least how many, because a set exists
+so nobody authors host lists by hand and that only works if the name can be seen through. One
+caveat came with it: `os-packages-fedora` reaches mirrors named by a mirrorlist, so hosts beyond
+its list still arrive as clearance prompts — do not badge it as complete.
+
+### F22 is built
+
+Asked for as [B11](https://github.com/fuinorg/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
+and answered the same day: `Task` gained `agent`, `mode`, `prompt`, `branch`, `since`, `activity`
+and `waitingFor`, and `Watch` redraws on all of them — so a task that starts waiting arrives as a
+change, which it could not before, because the runtime's own words do not change when it does.
+
+What is deliberately *not* settled, and must not be papered over: **`WAITING` covers clearance
+questions only.** An agent asking its own question inside a session produces no signal Sokar can
+see, so it reads `UNKNOWN` when attached and `IDLE` when quiet. Telling those apart needs a
+per-agent capability and is still open.
+
+### What was here before that
 
 [F22](../requirements/F22-Task-State-Visibility.md) needs waiting detected from the work's own
 signals, idle told apart from finished, and a timestamp so *"idle for 40 minutes"* is answerable.

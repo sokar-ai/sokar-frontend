@@ -272,6 +272,9 @@ diff --git a/lib/money.dart b/lib/money.dart
     return tailing.stream;
   }
 
+  /// What the machine has on it right now.
+  List<Task> get tasksNow => _tasks;
+
   /// Changes what is on the machine, as a backend does when something elsewhere moves.
   void publish(List<Task> tasks) {
     _tasks = tasks;
@@ -342,6 +345,39 @@ class World {
         'running': running,
         'helpers': helpers,
       });
+
+  /// Replaces one task with the same task in a different activity.
+  ///
+  /// Wire-shaped, so a fixture cannot describe a task the contract could not deliver.
+  static void theWorkIs(
+    String name, {
+    required String activity,
+    String waitingFor = '',
+    String since = '',
+    bool running = true,
+  }) {
+    final was = backend.tasksNow.firstWhere((task) => task.name == name);
+    backend.publish(<Task>[
+      for (final task in backend.tasksNow)
+        if (task.name != name)
+          task
+        else
+          Task.from(<String, dynamic>{
+            'name': was.name,
+            'project': was.project,
+            'securityClass': was.securityClass,
+            'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
+            'running': running,
+            'helpers': was.helpers,
+            'agent': 'an-agent',
+            'mode': 'UNATTENDED',
+            'branch': 'refs/sokar/incoming/shell',
+            'since': since,
+            'activity': activity,
+            'waitingFor': waitingFor,
+          }),
+    ]);
+  }
 
   /// Puts a backend behind the interface, and closes it when the scenario ends.
   static Future<void> startBackend(List<Task> tasks) async {

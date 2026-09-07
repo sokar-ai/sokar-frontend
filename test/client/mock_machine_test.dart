@@ -122,6 +122,37 @@ void main() {
     );
   });
 
+  test('a task says what it is doing, beside what the runtime says', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final tasks = await client.tasks();
+    final waiting =
+        tasks.firstWhere((task) => task.activity == Activity.waiting);
+
+    expect(waiting.waitingFor, isNotEmpty);
+    expect(waiting.state, isNotEmpty, reason: 'state stays the runtime own words');
+    expect(waiting.startedAt, isNotNull);
+    expect(waiting.mode.recognised, isTrue);
+    // A terminal attached means nothing on this side can see it, and that is its own answer.
+    expect(tasks.map((task) => task.activity), contains(Activity.unknown));
+  });
+
+  test('an activity from a later release renders rather than throwing', () async {
+    await machineIn('work');
+    daemon.method('List', (_) => <String, dynamic>{
+          'tasks': <Map<String, dynamic>>[
+            <String, dynamic>{'name': 'a-task', 'activity': 'QUIESCED'},
+          ],
+        });
+    final client = await connect();
+
+    final task = (await client.tasks()).single;
+
+    expect(task.activity.recognised, isFalse);
+    expect(task.activity.label, 'quiesced');
+  });
+
   test('a project that has never run anything is still listed', () async {
     // The whole reason to ask rather than derive: a client that built the list from the tasks
     // could never show one, and that is the project most likely to need attention.

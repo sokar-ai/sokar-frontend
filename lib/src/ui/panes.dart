@@ -4,6 +4,7 @@ import 'package:sokar_frontend/client.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import 'command_menu.dart';
+import 'how_long.dart';
 import 'selection_list.dart';
 import 'tokens.dart';
 
@@ -136,7 +137,16 @@ class _ProjectRow extends StatelessWidget {
     final classification = project.project.securityClass;
     return Row(
       children: <Widget>[
-        _RunningDot(running: project.running > 0),
+        // A project is not a task: what it has is work running or not, so a dot rather than an
+        // activity, which belongs to one piece of work and not to a group of them.
+        Container(
+          width: Sizes.dot,
+          height: Sizes.dot,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: project.running > 0 ? scheme.primary : scheme.outlineVariant,
+          ),
+        ),
         const SizedBox(width: Space.small),
         Expanded(
           child: Column(
@@ -271,23 +281,45 @@ class _WorkRow extends StatelessWidget {
   final List<Command> actions;
 
   @override
-  Widget build(BuildContext context) => Row(
-        children: <Widget>[
-          _RunningDot(running: task.running),
-          const SizedBox(width: Space.small),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(task.name, style: Theme.of(context).textTheme.bodyLarge),
-                Text(task.state, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
+  Widget build(BuildContext context) {
+    final age = howLong(task);
+    return Row(
+      children: <Widget>[
+        ActivityMark(activity: task.activity, running: task.running),
+        const SizedBox(width: Space.small),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(task.name, style: Theme.of(context).textTheme.bodyLarge),
+              // The activity and how long it has been that way, then the runtime's own words.
+              // "Idle for forty minutes" is arithmetic on `since`; `state` is prose and is never
+              // parsed for it.
+              Text(
+                <String>[
+                  task.activity.label,
+                  if (age != null) 'for $age',
+                  if (task.state.isNotEmpty) '· ${task.state}',
+                ].join(' '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (task.activity == Activity.waiting && task.waitingFor.isNotEmpty)
+                Text(
+                  'waiting on ${task.waitingFor}',
+                  key: const Key('waiting-for'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+            ],
           ),
-          _OpenButton(tooltip: 'Open ${task.name}', onPressed: onOpen),
-          CommandMenu(commands: actions, tooltip: 'What ${task.name} can be told to do'),
-        ],
-      );
+        ),
+        _OpenButton(tooltip: 'Open ${task.name}', onPressed: onOpen),
+        CommandMenu(commands: actions, tooltip: 'What ${task.name} can be told to do'),
+      ],
+    );
+  }
 }
 
 /// Opens what a row points at, for somebody working with a pointer.
@@ -345,9 +377,17 @@ class WorkDetail extends StatelessWidget {
                 name: 'Security class',
                 value: task.securityClass.isEmpty ? '—' : task.securityClass,
               ),
+              _Field(name: 'Agent', value: task.agent.isEmpty ? '—' : task.agent),
+              _Field(name: 'Mode', value: task.mode.label),
+              _Field(name: 'Branch', value: task.branch.isEmpty ? '—' : task.branch),
+              _Field(name: 'Doing', value: task.activity.label),
+              if (task.activity == Activity.waiting && task.waitingFor.isNotEmpty)
+                _Field(name: 'Waiting on', value: task.waitingFor),
+              _Field(name: 'For', value: howLong(task) ?? 'not recorded'),
               _Field(name: 'Runtime says', value: task.state),
-              _Field(name: 'Up', value: task.running ? 'yes' : 'no'),
               _Field(name: 'Helpers alive', value: '${task.helpers}'),
+              if (task.prompt.isNotEmpty)
+                _Field(name: 'Asked to', value: task.prompt),
               if (ungated) ...<Widget>[
                 const SizedBox(height: Space.wide),
                 Card(
@@ -391,20 +431,40 @@ class _Field extends StatelessWidget {
       );
 }
 
-class _RunningDot extends StatelessWidget {
-  const _RunningDot({required this.running});
+/// What the work is doing, in the space of a dot.
+///
+/// **`UNKNOWN` gets its own mark and is never drawn as idle.** It is the normal answer for a task
+/// somebody attached a terminal to, and a state that is silently wrong is worse than one that
+/// says it cannot see.
+class ActivityMark extends StatelessWidget {
+  /// Constructor taking what the work is doing and whether the container is up.
+  const ActivityMark({required this.activity, required this.running, super.key});
 
+  /// What the work is doing.
+  final Activity activity;
+
+  /// Whether the runtime says the container is up.
   final bool running;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: Sizes.dot,
-        height: Sizes.dot,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: running
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.outlineVariant,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (IconData icon, Color colour) = switch (activity) {
+      Activity.waiting => (Icons.pan_tool_outlined, scheme.error),
+      Activity.working => (Icons.play_circle_outline, scheme.primary),
+      Activity.idle => (Icons.pause_circle_outline, scheme.outline),
+      Activity.dead => (Icons.stop_circle_outlined, scheme.outlineVariant),
+      Activity.unknown => (Icons.help_outline, scheme.outline),
+      // A value from a later release, or a task older than these fields. Fall back to the one
+      // thing that has always been there rather than picking a meaning.
+      _ => (
+          running ? Icons.play_circle_outline : Icons.stop_circle_outlined,
+          scheme.outlineVariant
         ),
-      );
+    };
+    return Tooltip(
+      message: activity.label,
+      child: Icon(icon, size: Sizes.mark, color: colour),
+    );
+  }
 }

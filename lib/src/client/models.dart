@@ -54,6 +54,106 @@ class Outcome {
   String toString() => name;
 }
 
+/// What the work is doing, beside — never instead of — the runtime's own words.
+///
+/// Deliberately not a Dart enum, by the same rule as [Outcome]: adding a value is not a breaking
+/// change, so a closed enum is a client that breaks on a routine release.
+class Activity {
+  /// Constructor taking the name as the contract spells it.
+  const Activity(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// Its container is not up. Stopped, finished or killed — all three.
+  static const dead = Activity('DEAD');
+
+  /// Waiting for a person to answer something. **Said by whatever asked**, never guessed from how
+  /// long it has been quiet. [Task.waitingFor] says what about.
+  static const waiting = Activity('WAITING');
+
+  /// Producing output.
+  static const working = Activity('WORKING');
+
+  /// Up, producing nothing, and not waiting for anybody as far as anything can tell.
+  static const idle = Activity('IDLE');
+
+  /// Up, and nothing on this side can see what it is doing.
+  ///
+  /// The normal answer for a task somebody attached a terminal to: its work goes to that terminal
+  /// and not to anything the daemon reads. **Never render this as idle** — a state that is
+  /// silently wrong is worse than one that says it does not know.
+  static const unknown = Activity('UNKNOWN');
+
+  /// The values this build knows. Not a validation list.
+  static const known = <Activity>[dead, waiting, working, idle, unknown];
+
+  /// Whether this build knows what it means.
+  bool get recognised => known.any((value) => value.name == name);
+
+  /// Words for a person, unrecognised values included.
+  String get label => switch (name) {
+        'DEAD' => 'not running',
+        'WAITING' => 'waiting',
+        'WORKING' => 'working',
+        'IDLE' => 'idle',
+        'UNKNOWN' => 'cannot be seen',
+        '' => 'not recorded',
+        _ => name.toLowerCase().replaceAll('_', ' '),
+      };
+
+  @override
+  bool operator ==(Object other) => other is Activity && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// How somebody is meant to be involved in a task.
+class Mode {
+  /// Constructor taking the name as the contract spells it.
+  const Mode(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// A terminal in the container, driven by hand.
+  static const shell = Mode('SHELL');
+
+  /// The agent's own session, attached, with a person working through it.
+  static const agent = Mode('AGENT');
+
+  /// Started with a prompt and left to run. Nobody is expected to be watching.
+  static const unattended = Mode('UNATTENDED');
+
+  /// The values this build knows.
+  static const known = <Mode>[shell, agent, unattended];
+
+  /// Whether this build knows what it means.
+  bool get recognised => known.any((value) => value.name == name);
+
+  /// Words for a person.
+  String get label => switch (name) {
+        'SHELL' => 'a shell, driven by hand',
+        'AGENT' => 'an agent session, worked through',
+        'UNATTENDED' => 'unattended, against a prompt',
+        '' => 'not recorded',
+        _ => name.toLowerCase().replaceAll('_', ' '),
+      };
+
+  @override
+  bool operator ==(Object other) => other is Mode && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
 /// One task on the machine, running or not.
 class Task {
   /// Container name, which every other call takes.
@@ -77,6 +177,35 @@ class Task {
   /// not the same thing as a healthy task.
   final int helpers;
 
+  /// Which agent is running in it, by the name `Agents` reports. Empty when nothing recorded one.
+  final String agent;
+
+  /// How somebody is meant to be involved.
+  final Mode mode;
+
+  /// What an unattended task was asked to do. Kept after it has finished.
+  final String prompt;
+
+  /// The ref its work goes to, such as `refs/sokar/incoming/shell`.
+  final String branch;
+
+  /// When the **current** state began, ISO-8601.
+  ///
+  /// Empty when the runtime cannot say — a container created and never started answers a zero
+  /// time, which renders as a date centuries out. Compute "idle for forty minutes" from this and
+  /// never from [state].
+  final String since;
+
+  /// What the work is doing, beside [state].
+  final Activity activity;
+
+  /// What it is waiting to be told, when [activity] is `WAITING`. A destination, such as
+  /// `api.example.test:443`.
+  final String waitingFor;
+
+  /// When the current state began, or null when the runtime could not say.
+  DateTime? get startedAt => since.isEmpty ? null : DateTime.tryParse(since);
+
   /// Constructor taking every field.
   const Task({
     required this.name,
@@ -85,6 +214,13 @@ class Task {
     required this.state,
     required this.running,
     required this.helpers,
+    this.agent = '',
+    this.mode = const Mode(''),
+    this.prompt = '',
+    this.branch = '',
+    this.since = '',
+    this.activity = const Activity(''),
+    this.waitingFor = '',
   });
 
   /// Reads one from a reply.
@@ -95,6 +231,15 @@ class Task {
         state: _string(map, 'state'),
         running: map['running'] == true,
         helpers: _int(map, 'helpers'),
+        // A task started before these fields existed answers empty for all of them. That is an
+        // absence to render, not an error.
+        agent: _string(map, 'agent'),
+        mode: Mode(_string(map, 'mode')),
+        prompt: _string(map, 'prompt'),
+        branch: _string(map, 'branch'),
+        since: _string(map, 'since'),
+        activity: Activity(_string(map, 'activity')),
+        waitingFor: _string(map, 'waitingFor'),
       );
 }
 

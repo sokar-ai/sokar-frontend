@@ -48,7 +48,7 @@ it is judged against the rest, not because it matters least.
 | F08 | [Task Creation And Modes](F08-Task-Creation-And-Modes.md) | Work is started with a project, an agent and a mode, and finished unattended work can be continued with a new prompt. | ready | |
 | F09 | [Task Control](F09-Task-Control.md) | Running work can be stopped, restarted, recreated, renamed and deleted, each named by its consequence. | ready | |
 | F11 | [Live Log Viewing](F11-Live-Log-Viewing.md) | Everything work produces is readable inside the interface, live, with structure visible. | ready | |
-| F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | **partial** | |
+| F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | ready | |
 | F12 | [Interactive Session Attach](F12-Interactive-Session-Attach.md) | An interactive session is one action away, and the way back is reliable. | **blocked** | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | **blocked** | |
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | **blocked** | |
@@ -65,7 +65,7 @@ it is judged against the rest, not because it matters least.
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | yes| n/a | |
 | F20 | [Access From Elsewhere](F20-Access-From-Elsewhere.md) | Another machine's Sokar is reached over a forwarded socket, and which host an action will act on is never ambiguous. | yes| ready | |
 | F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
-| F22 | [Task State Visibility](F22-Task-State-Visibility.md) | Working, idle and waiting are told apart, with a timestamp, for every piece of work at once. | yes| **blocked** | |
+| F22 | [Task State Visibility](F22-Task-State-Visibility.md) | Working, idle and waiting are told apart, with a timestamp, for every piece of work at once. | ready | |
 | F23 | [Notifications](F23-Notifications.md) | A decision waiting inside a closed window still reaches the person. | yes| ready | |
 | F24 | [Agent Inventory](F24-Agent-Inventory.md) | What is installed, what it may reach and which build it pins are all visible, and nothing names a specific agent. | ready | |
 | F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | ready | |

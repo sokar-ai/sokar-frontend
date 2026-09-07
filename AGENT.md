@@ -340,6 +340,26 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
 
+**`activity` sits beside `state`, never instead of it**, and `state` is still the runtime's own
+words and still never parsed. Five values, and two of them are traps:
+
+- **`UNKNOWN` must never be drawn as idle.** It is the *normal* answer for a task somebody
+  attached a terminal to — the work goes to that terminal, not to anything the daemon reads. B11
+  asked for a value that says "cannot see" precisely because a state that is silently wrong is
+  worse than one that admits it, so spending it on "idle" throws away what was asked for.
+- **`WAITING` is a signal, never a timeout.** Whatever asks the question writes it down and
+  removes it when the answer comes. Quiet is `IDLE`. **Do not label `IDLE` as "probably waiting"**
+  — today the signal covers clearance questions only, an agent asking its own question inside a
+  session produces nothing Sokar can see, and guessing is the thing this field exists to avoid.
+
+**"Idle for forty minutes" is arithmetic on `since`**, never a reading of `state`. `since` is
+empty when the runtime cannot say — a container created and never started answers a zero time,
+which renders as a date centuries out — and `howLong` answers null for that, and for a clock that
+disagrees, which two machines and a forwarded socket make ordinary.
+
+**A task older than these fields answers empty for all of them.** Render the absence; it is not an
+error.
+
 **Approving is the only thing this interface does that sends anything anywhere**, and the branch
 is typed, never inferred — `Approve` requires one, and a push forwarded onto a guess is one nobody
 decided about. Dropping a request sends nothing at all: the work stays in the mirror and only the
