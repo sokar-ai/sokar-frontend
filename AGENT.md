@@ -8,8 +8,7 @@ measured rather than assumed. What must be *true for a person using it* is in
 
 ## Start here
 
-Nothing is built yet: this repository holds the requirements, the decisions and the contract, and
-no Flutter application. In order:
+The frame and the client exist; the rest of the product does not. In order:
 
 1. **[Backend API](doc/Backend-API.md)** — how to talk to the daemon, and the compatibility
    rules. Do not write a call before reading it.
@@ -21,9 +20,20 @@ no Flutter application. In order:
 4. **[Requirements](requirements/README.md)** — the work, ordered, with a **Backend** column
    saying what is reachable today.
 
-The scaffold exists and is green: `flutter analyze` clean, `flutter test` passing,
-`flutter build linux --release` producing a bundle. `lib/main.dart` is a placeholder that says so
-— [F01](requirements/F01-Application-Shell.md) replaces it. Do not build around it.
+Green means `dart analyze` at "No issues found!", `flutter test` passing, and
+`flutter build linux --release` producing a bundle — measured 2026-09-07 at 13 s and 23 MB.
+
+[F01](requirements/F01-Application-Shell.md) is built: `lib/src/app/` is the state the frame is
+drawn from, `lib/src/ui/` the frame itself. To open it against no daemon at all:
+
+```
+dart tool/mock_daemon.dart          # prints the socket, and a situation to choose
+SOKAR_SOCKET=<that socket> flutter run -d linux
+```
+
+`SOKAR_SOCKET` is the only way to point the interface anywhere but the local daemon today.
+[F20](requirements/F20-Access-From-Elsewhere.md) replaces it with something a person can choose;
+until then it is what the mock and a forwarded socket both use.
 
 ## The one architectural rule
 
@@ -116,6 +126,13 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
 - **Test observable behaviour**, not internals — what is on screen, what went down the socket.
 - **A test that needs a real daemon is not a unit test.** Unit and widget tests must run with no
   backend, no podman and no container runtime present. That is what the mock is for.
+- **The mock daemon does not work inside `testWidgets`.** Measured 2026-09-07: a widget test runs
+  on a fake clock, and a `MockDaemon` connection opened inside one never completes — `flutter test`
+  hangs until it is killed, `tester.runAsync` included, whether the daemon is started in the same
+  `runAsync` as the call or an earlier one. So the two levels are tested at different seams: the
+  **wire** over a real socket against the mock, in plain `test()` in `test/client`; the **frame**
+  against a `FleetBackend` stub, in `testWidgets`. Do not try to put a socket back into a widget
+  test — it looks like it should work, and it costs an afternoon.
 - **Never commit with a failing suite.** Run `flutter test` as its own step, read the result,
   then commit. Chaining test-and-commit in one command is how red commits get into a history.
 
@@ -148,6 +165,37 @@ how they get forgotten:
 A stream ends *only* on a final reply. Ending any other way — a destroyed socket or a polite
 close — is an error, because a stream that completes quietly is indistinguishable from one with
 nothing to say, and that renders as a machine with no tasks on it.
+
+## The frame
+
+`lib/src/app/` holds what the interface knows — `FleetModel` (what is on the machine and what is
+selected), `ShellModel` (what is open and where the keyboard is), `Settings` — and `lib/src/ui/`
+draws it. Three things there are decisions, not accidents:
+
+- **Every action is a `Command` in `commands.dart`, including the ones that cannot run now.** The
+  finder and the keyboard read the same list, so a shortcut cannot come to mean something other
+  than the entry naming it, and an action belonging to a screen that is not open is still
+  findable. An unavailable command is listed **with its reason** — hiding it answers "there is no
+  such action" when the truth is "not yet, and here is why".
+- **The frame talks to `FleetBackend`, not to `SokarClient`.** Four members wide, and it exists so
+  the frame can be judged when the backend refuses, has no `Watch`, or goes away — see the
+  measurement under Tests. Anything that widens it is probably a screen reaching past the frame
+  for something it should ask the client for directly.
+- **Losing contact keeps the last task list.** Clearing it would draw a machine with nothing
+  running on it, which is the one reading a dropped tunnel must never produce.
+
+**Projects are derived from `Task.project`, not asked for.** There is no method that lists
+projects, so a project that has never run anything is invisible in the opening view. That is
+[F02](requirements/F02-Project-Overview.md), it is a real gap, and the empty state says so rather
+than implying the machine is bare.
+
+Two interface traps already met:
+
+- **An `InkWell` with both `onTap` and `onDoubleTap` holds every single tap back** until the
+  double-tap timeout passes. Rows select on a single tap and open with Return or a named
+  affordance; do not put double-tap on a row to open something.
+- **A widget built eagerly outside the branch that shows it still runs its null checks.** A
+  detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
 
 ## The mock backend
 

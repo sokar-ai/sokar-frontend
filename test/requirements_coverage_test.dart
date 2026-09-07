@@ -16,8 +16,12 @@ void main() {
   ///
   /// `F26` is expected to stay: it is about installing a package, which no widget test can
   /// exercise. It is proven by the packaging job instead.
+  /// `F09` grew this list once, deliberately and only once. The feature naming it was the
+  /// scaffold's placeholder scenario — `Given the app is running, Then the placeholder is
+  /// shown` — which asserted the text F01 replaced. It read as coverage and was not: nothing in
+  /// it exercised stopping, restarting or deleting work. It is back here until F09 is built.
   const pending = <String>{
-    'F01', 'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F10', 'F11',
+    'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F09', 'F10', 'F11',
     'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21',
     'F22', 'F23', 'F24', 'F25', 'F26',
   };
