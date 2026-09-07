@@ -22,6 +22,12 @@ abstract class FleetBackend {
   /// Every task on it, running or stopped.
   Future<List<Task>> tasks();
 
+  /// Every project on it.
+  ///
+  /// Asked for, never derived from the task list: a project that has never run anything would be
+  /// invisible, and that is the one most likely to need attention.
+  Future<List<Project>> projects();
+
   /// The task list, again whenever it changes.
   ///
   /// Errors with [FeatureNotSupported] against a backend too old to have `Watch`, which is a
@@ -94,6 +100,9 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<List<Task>> tasks() => _opened().tasks();
+
+  @override
+  Future<List<Project>> projects() => _opened().projects();
 
   @override
   Stream<List<Task>> watch() => _opened().watchTasks();

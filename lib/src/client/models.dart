@@ -161,6 +161,65 @@ class Credential {
       );
 }
 
+/// One project on the machine.
+///
+/// Assembled by the daemon from the gate mirrors, the tasks that exist and the project files task
+/// starts have recorded — not stored, and not registered. A project appears the first time
+/// somebody runs a task with it.
+class Project {
+  /// Project name, as its file declares it.
+  final String name;
+
+  /// offline, guarded or online. Empty when no task has recorded one.
+  final String securityClass;
+
+  /// Absolute path of its `project.yml` **on the daemon's machine**.
+  ///
+  /// This is the parameter every gate method wants, and `Start` too. **Pass it through unchanged;
+  /// never build one**, and never offer a file picker for it — over a forwarded socket there is no
+  /// filesystem on that machine to pick from.
+  ///
+  /// Empty when no task start has recorded a path yet, or when the recorded file has moved. A
+  /// moved file is reported absent rather than as a path nothing can read, because a gate call
+  /// made with it would fail in a way that looks like a fault in the daemon.
+  final String file;
+
+  /// The gate's mirror for it. Empty when it has never used the gate.
+  final String mirror;
+
+  /// How many pushes are waiting for review in that mirror. The same number `Pending` returns.
+  final int pending;
+
+  /// How many of its tasks exist right now, running or stopped.
+  final int tasks;
+
+  /// Constructor taking every field.
+  const Project({
+    required this.name,
+    required this.securityClass,
+    required this.file,
+    required this.mirror,
+    required this.pending,
+    required this.tasks,
+  });
+
+  /// Reads one from a reply.
+  factory Project.from(Map<String, dynamic> map) => Project(
+        name: _string(map, 'name'),
+        securityClass: _string(map, 'securityClass'),
+        file: _string(map, 'file'),
+        mirror: _string(map, 'mirror'),
+        pending: _int(map, 'pending'),
+        tasks: _int(map, 'tasks'),
+      );
+
+  /// Whether anything can be done to it beyond looking at it.
+  ///
+  /// Every method that acts on a project takes [file], so a project without one can be listed and
+  /// not acted on. That is a state to render, never an error.
+  bool get canBeActedOn => file.isNotEmpty;
+}
+
 /// One of a task's log files.
 class Log {
   /// File name. **Pass it to `Tail` unchanged** — it is a name, never a path.

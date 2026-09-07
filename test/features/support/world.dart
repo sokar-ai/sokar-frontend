@@ -62,6 +62,30 @@ class FakeBackend implements FleetBackend {
   @override
   Future<List<Task>> tasks() async => _tasks;
 
+  /// What `Projects` answers. Assembled by the daemon, so a scenario sets it rather than the
+  /// interface deriving it.
+  List<Project> theProjectsItHas = <Project>[
+    Project.from(const <String, dynamic>{
+      'name': 'checkout',
+      'securityClass': 'guarded',
+      'file': '/srv/checkout/project.yml',
+      'mirror': '/srv/checkout/.sokar/mirror',
+      'pending': 2,
+      'tasks': 2,
+    }),
+    Project.from(const <String, dynamic>{
+      'name': 'billing',
+      'securityClass': 'offline',
+      'file': '/srv/billing/project.yml',
+      'mirror': '',
+      'pending': 0,
+      'tasks': 1,
+    }),
+  ];
+
+  @override
+  Future<List<Project>> projects() async => theProjectsItHas;
+
   @override
   Stream<List<Task>> watch() async* {
     if (withoutWatch) throw const FeatureNotSupported('Watch');

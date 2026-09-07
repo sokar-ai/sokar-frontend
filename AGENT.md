@@ -327,10 +327,13 @@ action that simply is not there reads as one nobody thought of; one that says *"
 method for renaming work"* reads as what it is. `workCommands` builds the row's own menu and the
 menu bar's entries from one list, so neither can offer what the other forgot.
 
-**Projects are derived from `Task.project`, not asked for.** There is no method that lists
-projects, so a project that has never run anything is invisible in the opening view. That is
-[F02](requirements/F02-Project-Overview.md), it is a real gap, and the empty state says so rather
-than implying the machine is bare.
+**Projects are asked for, never derived from the task list.** `Projects()` answers them, and a
+project that has never run anything is exactly the one a derived list could not show. Its `file`
+is the path every gate method and `Start` take — **pass it through unchanged, never build one, and
+never offer a file picker**: over a forwarded socket there is no filesystem on that machine to
+pick from. An empty `file` is a project that can be listed and not acted on, which the row says
+rather than leaving to a refusal later. Nothing refreshes the list, so it is asked for again
+beside the tasks.
 
 Two interface traps already met:
 

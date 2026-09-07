@@ -193,6 +193,18 @@ class SokarClient {
   Future<Resumed> resume(String task) async =>
       Resumed.from(await _call('Resume', {'task': task}));
 
+  /// Every project on the machine.
+  ///
+  /// Nothing refreshes this: there is no `WatchProjects`, so it is asked again after anything
+  /// that would change it — a task started or removed, a push approved.
+  Future<List<Project>> projects() async {
+    final reply = await _call('Projects');
+    final projects = reply['projects'];
+    return projects is List
+        ? projects.whereType<Map<String, dynamic>>().map(Project.from).toList()
+        : const <Project>[];
+  }
+
   /// Which logs a task has.
   ///
   /// Asked rather than assumed: which files exist depends on what the task started — one with no

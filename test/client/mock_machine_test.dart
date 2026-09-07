@@ -122,6 +122,34 @@ void main() {
     );
   });
 
+  test('a project that has never run anything is still listed', () async {
+    // The whole reason to ask rather than derive: a client that built the list from the tasks
+    // could never show one, and that is the project most likely to need attention.
+    await machineIn('work');
+    final client = await connect();
+
+    final projects = await client.projects();
+
+    expect(projects.map((project) => project.name), contains('never-run'));
+    expect(
+      projects.firstWhere((project) => project.name == 'never-run').tasks,
+      0,
+    );
+  });
+
+  test('a project with no file recorded is listed and cannot be acted on', () async {
+    // A state to render, not an error. Every method that acts on a project takes its file.
+    await machineIn('work');
+    final client = await connect();
+
+    final moved = (await client.projects())
+        .firstWhere((project) => project.name == 'moved-away');
+
+    expect(moved.file, isEmpty);
+    expect(moved.canBeActedOn, isFalse);
+    expect(moved.pending, 1);
+  });
+
   test('which logs a task has is asked, and an empty answer is normal', () async {
     await machineIn('work');
     final client = await connect();

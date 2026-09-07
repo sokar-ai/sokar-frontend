@@ -26,23 +26,24 @@ is the only way in* a hard constraint rather than a preference.
 
 So a gap here is a backend method that has to be added, not a workaround waiting to be found.
 
-## A project is a name here and a path there
+## A project used to be a name here and a path there
 
-**Read this before the table.** It is the single largest gap and it does not look like one,
-because every method involved exists.
+**Settled 2026-09-07.** `Projects()` answers a `Project` carrying `file` — the absolute path every
+gate method and `Start` take — beside its name, security class, mirror, how many pushes wait for
+review and how many tasks it has. Take `file` from there and **pass it through unchanged**: never
+build one, and never offer a file picker, because over a forwarded socket there is no filesystem
+on that machine to pick from.
 
-`Task.project` is a **name** — the string a task recorded for itself. Every method that takes a
-project takes a **path to its file**: `Start(project:)` is *"path to the project file, as the CLI
-takes it"*, and `Pending`, `Review`, `Approve` and `Reject` all say the same. **Nothing maps one
-to the other, and nothing lists the projects on the machine.**
+Two things about it that are states rather than errors:
 
-So an interface knows that a task belongs to `checkout` and has no way to name `checkout` to any
-method that would act on it. Everything below marked *needs a project path* is blocked on this one
-thing, and one method — list the projects with their paths — unblocks all of it at once.
+- **`file` can be empty**, meaning nothing recorded a path yet or the recorded file has moved. Such
+  a project is listed and cannot be acted on; a call made with a stale path would fail in a way
+  that looked like a fault in the daemon, which is why it is reported absent instead.
+- **Nothing refreshes the list.** There is no `WatchProjects`, so it is asked for again after
+  anything that would change it — a task started or removed, a push approved.
 
-**It has been asked for and is on its way** (2026-09-07). `Logs` was asked for and arrived the same
-day, so treat the rows below as due to move rather than as permanent. Do not design a workaround
-for any of them in the meantime.
+Asked for on the day it was needed and answered the same day, as `Logs` was. **When something is
+missing, ask.**
 
 ## Ready — the contract covers these
 
@@ -55,30 +56,32 @@ for any of them in the meantime.
 
 ## Partly ready — build the covered half, stop at the line
 
+- **F02 Project Overview** — `Projects()` answers the name, the security class, how much work it
+  has, how many pushes wait for review, and whether it can be acted on at all. Two of its criteria
+  still have nothing behind them: **whether a project's environment is prepared and usable**, and
+  **whether its copy of the upstream has fallen behind, and by how much**. Both would be fields on
+  `Project`, which is the cheap kind of change. Ask.
+
 Four of these were listed as *ready* until 2026-09-07, when they were walked against the IDL
 method by method rather than by name. Starting is one call, so F08 read as covered; the call has
 no parameter for two thirds of what the requirement asks for. **Checking that a method exists is
 not checking that it answers the requirement.**
 
-- **F08 Task Creation And Modes** — `Start` takes a name and an agent, and streams the build.
-  Everything else it asks for is missing: there is **no `mode` parameter**, so "driving it
-  interactively, a richer session, or unattended" cannot be offered; **no `prompt` parameter**, so
-  an unattended run cannot collect one, nothing retains one, and finished work cannot be continued
-  with a new one; and it *needs a project path*, so which project to start in is unanswerable.
-  What is left is: start a task, in whatever project the daemon defaults to, with a name and an
-  agent.
-- **F09 Task Control** — `Stop` and `Resume` are complete, take a container name rather than a
-  path, and the full `Outcome` set is there including the `HOLDS_WORK` refusal. **Renaming has no
-  method at all.** Recreating is `Stop` then `Start`, so it *needs a project path*.
-- **F10 Task Inspection And Work Handover** — every gate method *needs a project path*. The
-  inspection half reads off `Task`; the handover half — the part the requirement is named for —
-  cannot be reached from a task at all.
+- **F08 Task Creation And Modes** — which project to start in is answerable now, from
+  `Project.file`. What is still missing is what the requirement is named for: there is **no `mode`
+  parameter**, so "driving it interactively, a richer session, or unattended" cannot be offered,
+  and **no `prompt` parameter**, so an unattended run cannot collect one, nothing retains one, and
+  finished work cannot be continued with a new one. Worth asking for.
+- **F09 Task Control** — **built**, except that **renaming has no method at all**. Recreating is
+  `Stop` then `Start`, which `Project.file` now makes possible; it is unbuilt rather than blocked.
+- **F10 Task Inspection And Work Handover** — **unblocked and unbuilt.** `Project.file` is what
+  `Pending`, `Review`, `Approve` and `Reject` want, and `Project.pending` already says how many
+  are waiting. Nothing is missing from the contract here any more.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one
   that was never going to exist and would never show one a later release adds.
-- **F25 Task Templates** — `Start` with fixed parameters, and *needs a project path* for the same
-  reason F08 does.
+- **F25 Task Templates** — `Start` with fixed parameters. Nothing missing from the contract.
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.
@@ -100,7 +103,6 @@ not checking that it answers the requirement.**
 
 | | Needs |
 |---|---|
-| F02 Project Overview | list the projects on the machine. Projects only exist today as a *field on a task*, so a project with no tasks is invisible |
 | F03 Project Environment Preparation | rebuild, at distinguishable depths |
 | F04 Guided Project Creation | create a project |
 | F05 Project Configuration | read and write agents, hardware, egress; delete a project |

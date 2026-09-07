@@ -41,6 +41,7 @@ class MockMachine {
     // deliver every line one line late.
     daemon.pushes('Tail', _tail);
     daemon.method('Logs', _logs);
+    daemon.method('Projects', _projects);
     daemon.method('Resume', _resume);
 
     switch (situation) {
@@ -97,6 +98,49 @@ class MockMachine {
   /// Nothing lists them — which is why the interface has to ask, and why this has to be able to
   /// refuse a name rather than only a method.
   static const logs = <String>{'agent.log', 'gate.log'};
+
+  /// Every project on the machine, assembled the way the daemon assembles it.
+  ///
+  /// `never-run` is here on purpose: a project with no tasks, which a client deriving projects
+  /// from the task list could never show. `no-file` is the other state worth having — listed, and
+  /// nothing can act on it.
+  Map<String, dynamic> _projects(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
+        'projects': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'name': 'checkout',
+            'securityClass': 'guarded',
+            'file': '/srv/checkout/project.yml',
+            'mirror': '/srv/checkout/.sokar/mirror',
+            'pending': 2,
+            'tasks': tasks.where((task) => task['project'] == 'checkout').length,
+          },
+          <String, dynamic>{
+            'name': 'billing',
+            'securityClass': 'offline',
+            'file': '/srv/billing/project.yml',
+            'mirror': '',
+            'pending': 0,
+            'tasks': tasks.where((task) => task['project'] == 'billing').length,
+          },
+          <String, dynamic>{
+            'name': 'never-run',
+            'securityClass': '',
+            'file': '/srv/never-run/project.yml',
+            'mirror': '',
+            'pending': 0,
+            'tasks': 0,
+          },
+          <String, dynamic>{
+            'name': 'moved-away',
+            'securityClass': 'guarded',
+            'file': '',
+            'mirror': '/srv/moved/.sokar/mirror',
+            'pending': 1,
+            'tasks': 0,
+          },
+        ],
+      };
 
   /// Which logs a task has. A task that was purged has none, and that is a normal answer.
   Map<String, dynamic> _logs(Map<String, dynamic> parameters) => <String, dynamic>{

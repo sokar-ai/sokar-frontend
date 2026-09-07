@@ -21,58 +21,32 @@ enum Reachability {
   incompatible,
 }
 
-/// One project, as far as a task list can say what a project is.
+/// One project and the work under it, as the frame draws them.
 ///
-/// Derived from [Task.project] rather than asked for, because the backend has no method that
-/// lists projects yet: a project with no tasks on it is invisible here. That is a real gap
-/// rather than a simplification, and it is [F02](../../../requirements/F02-Project-Overview.md).
+/// The project itself is the daemon's — assembled from the gate mirrors, the tasks that exist and
+/// the files task starts recorded. Only the pairing with its tasks is done here.
 @immutable
-class Project {
-  /// Constructor taking the name and the work under it.
-  const Project({required this.name, required this.tasks});
+class ProjectOnScreen {
+  /// Constructor taking the project and the work under it.
+  const ProjectOnScreen({required this.project, required this.tasks});
 
-  /// Name the tasks recorded, or empty when nothing recorded one.
-  final String name;
+  /// What the daemon says the project is.
+  final Project project;
 
-  /// Every task belonging to it, running or not.
+  /// Its tasks, running or not.
   final List<Task> tasks;
 
-  /// How many of them the runtime says are up.
-  int get running => tasks.where((task) => task.running).length;
+  /// Name as the daemon reports it.
+  String get name => project.name;
 
   /// What to call it on screen.
   String get label => name.isEmpty ? 'No project recorded' : name;
 
-  /// The security classes its tasks run under, which is the one thing worth seeing unopened.
-  List<String> get securityClasses {
-    final classes = tasks
-        .map((task) => task.securityClass)
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    return classes;
-  }
-}
+  /// How many of its tasks the runtime says are up.
+  int get running => tasks.where((task) => task.running).length;
 
-/// Groups tasks into projects, with the unattributed ones last.
-///
-/// Last rather than first: a task whose project nothing recorded is the odd case, and putting
-/// it at the top would push the real projects down on every machine that has one.
-List<Project> projectsOf(List<Task> tasks) {
-  final grouped = <String, List<Task>>{};
-  for (final task in tasks) {
-    grouped.putIfAbsent(task.project, () => <Task>[]).add(task);
-  }
-  final names = grouped.keys.toList()
-    ..sort((a, b) {
-      if (a.isEmpty != b.isEmpty) return a.isEmpty ? 1 : -1;
-      return a.compareTo(b);
-    });
-  return <Project>[
-    for (final name in names)
-      Project(name: name, tasks: grouped[name]!..sort((a, b) => a.name.compareTo(b.name))),
-  ];
+  /// Whether anything can be done to it beyond looking at it.
+  bool get canBeActedOn => project.canBeActedOn;
 }
 
 /// A `Stop` that came back refusing, and what it said.
@@ -126,6 +100,7 @@ class FleetModel extends ChangeNotifier {
   bool _busy = false;
   bool _live = false;
   List<Task> _tasks = const <Task>[];
+  List<Project> _known = const <Project>[];
   String? _selectedProject;
   String? _selectedTask;
   Refusal? _refusal;
@@ -149,11 +124,46 @@ class FleetModel extends ChangeNotifier {
   /// Every task on the machine, as last answered.
   List<Task> get tasks => _tasks;
 
-  /// The projects those tasks belong to.
-  List<Project> get projects => projectsOf(_tasks);
+  /// Every project the daemon lists, each with the work under it.
+  ///
+  /// Asked for rather than derived from the task list. A project that has never run anything is
+  /// invisible to a client that derives them, and that is the project most likely to need
+  /// attention.
+  List<ProjectOnScreen> get projects {
+    final under = <String, List<Task>>{};
+    for (final task in _tasks) {
+      under.putIfAbsent(task.project, () => <Task>[]).add(task);
+    }
+    final screen = <ProjectOnScreen>[
+      for (final project in _known)
+        ProjectOnScreen(
+          project: project,
+          tasks: (under.remove(project.name) ?? <Task>[])
+            ..sort((a, b) => a.name.compareTo(b.name)),
+        ),
+    ]..sort((a, b) => a.name.compareTo(b.name));
+
+    // Whatever is left belongs to no project the daemon lists — a task that recorded no project,
+    // or one recorded under a name it no longer knows. Listing it is the point: work that belongs
+    // nowhere is not work that stops existing.
+    for (final orphaned in under.entries) {
+      screen.add(ProjectOnScreen(
+        project: Project(
+          name: orphaned.key,
+          securityClass: orphaned.value.first.securityClass,
+          file: '',
+          mirror: '',
+          pending: 0,
+          tasks: orphaned.value.length,
+        ),
+        tasks: orphaned.value..sort((a, b) => a.name.compareTo(b.name)),
+      ));
+    }
+    return screen;
+  }
 
   /// The selected project, or null before anything is chosen.
-  Project? get selectedProject {
+  ProjectOnScreen? get selectedProject {
     final name = _selectedProject;
     if (name == null) return null;
     for (final project in projects) {
@@ -292,6 +302,9 @@ class FleetModel extends ChangeNotifier {
 
   Future<void> _readOnce() async {
     try {
+      // Nothing refreshes the project list on its own — there is no `WatchProjects` — so it is
+      // asked for again beside the tasks, after anything that would have changed it.
+      _known = await backend.projects();
       _adopt(await backend.tasks());
     } on VarlinkDisconnected catch (ex) {
       _lostContact(ex);

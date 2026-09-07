@@ -93,7 +93,7 @@ class ProjectsPane extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: SelectionList<Project>(
+          child: SelectionList<ProjectOnScreen>(
             items: projects,
             idOf: (project) => project.name,
             selected: fleet.selectedProject?.name,
@@ -127,12 +127,13 @@ class ProjectsPane extends StatelessWidget {
 class _ProjectRow extends StatelessWidget {
   const _ProjectRow({required this.project, required this.onOpen});
 
-  final Project project;
+  final ProjectOnScreen project;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final classes = project.securityClasses.join(', ');
+    final scheme = Theme.of(context).colorScheme;
+    final classification = project.project.securityClass;
     return Row(
       children: <Widget>[
         _RunningDot(running: project.running > 0),
@@ -144,12 +145,31 @@ class _ProjectRow extends StatelessWidget {
               Text(project.label, style: Theme.of(context).textTheme.bodyLarge),
               Text(
                 '${project.running} of ${project.tasks.length} running'
-                '${classes.isEmpty ? '' : ' · $classes'}',
+                '${classification.isEmpty ? '' : ' · $classification'}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
         ),
+        // Waiting for review is the one thing that makes a project need somebody, so it is a
+        // number on the row rather than something found by opening it.
+        if (project.project.pending > 0)
+          Tooltip(
+            message: '${project.project.pending} waiting for review',
+            child: Chip(
+              label: Text('${project.project.pending}'),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: scheme.tertiaryContainer,
+            ),
+          ),
+        // A project the daemon has no file for can be listed and not acted on. Saying so on the
+        // row beats a refusal at the point somebody tries.
+        if (!project.canBeActedOn)
+          Tooltip(
+            message: 'No project file recorded, so nothing can act on it. '
+                'Running a task with it once records one.',
+            child: Icon(Icons.link_off, size: Sizes.rowIcon, color: scheme.outline),
+          ),
         _OpenButton(tooltip: 'Show the work in ${project.label}', onPressed: onOpen),
       ],
     );
