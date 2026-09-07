@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
@@ -326,6 +327,25 @@ class World {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pump(const Duration(milliseconds: 350));
+  }
+
+  /// Whatever has been put on the clipboard since [watchTheClipboard].
+  static final List<String> copied = <String>[];
+
+  /// Listens for anything copied, which crosses a platform channel rather than staying in Dart.
+  static void watchTheClipboard(WidgetTester tester) {
+    copied.clear();
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied.add((call.arguments as Map<Object?, Object?>)['text']! as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
   }
 
   /// The theme the interface is actually drawn with.

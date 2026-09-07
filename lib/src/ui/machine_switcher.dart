@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app/fleet_model.dart';
 import '../app/machines.dart';
@@ -145,6 +146,22 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   final _socket = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // The recipe names the socket being asked for, so it follows what is typed rather than
+    // showing an example that has to be edited twice — once here and once in the shell.
+    _socket.addListener(() => setState(() {}));
+  }
+
+  /// The line that forwards the socket, with the local end filled in.
+  String get _recipe {
+    final local = _socket.text.trim().isEmpty
+        ? '/tmp/sokard-remote.sock'
+        : _socket.text.trim();
+    return 'ssh -L $local:/run/user/1001/sokar/sokard.sock user@host -N';
+  }
+
+  @override
   Widget build(BuildContext context) => AlertDialog(
         title: const Text('Watch another machine'),
         content: SizedBox(
@@ -173,8 +190,13 @@ class _AskForAMachineState extends State<_AskForAMachine> {
               ),
               const SizedBox(height: Space.normal),
               Text(
-                'Forward it first, and this opens it:\n'
-                'ssh -L /tmp/sokard-remote.sock:/run/user/1001/sokar/sokard.sock user@host -N\n\n'
+                'Forward it first, and this opens it:',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: Space.tight),
+              _Recipe(command: _recipe),
+              const SizedBox(height: Space.normal),
+              Text(
                 'A remote Sokar is its own socket, forwarded — same calls, same replies, same '
                 'code. Raising the tunnel is not this interface’s job yet.',
                 key: const Key('how-to-forward'),
@@ -206,5 +228,43 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     _name.dispose();
     _socket.dispose();
     super.dispose();
+  }
+}
+
+/// The line that raises the forward, ready to be taken to a shell.
+///
+/// Copyable rather than only readable: it is going to be typed into a terminal, and retyping a
+/// socket path from a screen is how a path ends up almost right.
+class _Recipe extends StatelessWidget {
+  const _Recipe({required this.command});
+
+  final String command;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(Radii.small),
+      ),
+      padding: const EdgeInsets.fromLTRB(Space.normal, Space.small, Space.tight, Space.small),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: SelectableText(
+              command,
+              key: const Key('forwarding-command'),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: Sizes.rowIcon),
+            tooltip: 'Copy the command',
+            onPressed: () => Clipboard.setData(ClipboardData(text: command)),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -10,6 +10,10 @@ import './step/the_machine_shown_is.dart';
 import './step/i_watch_another_machine_called.dart';
 import './step/i_switch_to_the_machine.dart';
 import './step/the_project_is_listed.dart';
+import './step/i_start_watching_another_machine.dart';
+import './step/i_name_the_socket.dart';
+import './step/i_copy_the_forwarding_command.dart';
+import './step/what_was_copied_is.dart';
 import './step/every_machine_is_being_watched.dart';
 import './step/i_select_the_project.dart';
 import './step/the_tunnel_drops.dart';
@@ -38,6 +42,16 @@ void main() {
       await iSwitchToTheMachine(tester, 'elsewhere');
       await theMachineShownIs(tester, 'elsewhere');
       await theProjectIsListed(tester, 'shared');
+    });
+    testWidgets(
+        '''the command that forwards a socket is copied rather than retyped''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iNameTheSocket(tester, '/tmp/sokar-elsewhere.sock');
+      await iCopyTheForwardingCommand(tester);
+      await whatWasCopiedIs(tester,
+          'ssh -L /tmp/sokar-elsewhere.sock:/run/user/1001/sokar/sokard.sock user@host -N');
     });
     testWidgets(
         '''every machine is watched at once, not only the one being acted on''',

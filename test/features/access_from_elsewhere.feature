@@ -15,6 +15,12 @@ Feature: F20 Access From Elsewhere
     Then the machine shown is {'elsewhere'}
     And the project {'shared'} is listed
 
+  Scenario: the command that forwards a socket is copied rather than retyped
+    When I start watching another machine
+    And I name the socket {'/tmp/sokar-elsewhere.sock'}
+    And I copy the forwarding command
+    Then what was copied is {'ssh -L /tmp/sokar-elsewhere.sock:/run/user/1001/sokar/sokard.sock user@host -N'}
+
   Scenario: every machine is watched at once, not only the one being acted on
     When I watch another machine called {'elsewhere'}
     Then every machine is being watched
