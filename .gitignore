@@ -1,0 +1,13 @@
+# Dotfiles are ignored by default; what Flutter needs tracked is listed back in.
+.*
+!.gitignore
+!.gitkeep
+!.github
+!.metadata
+
+*.log
+*.iml
+
+# Flutter/Dart build output. Per-platform generated files get their own
+# .gitignore from `flutter create`.
+build/
