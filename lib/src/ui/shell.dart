@@ -5,6 +5,7 @@ import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/gate.dart';
 import '../app/logs.dart';
+import '../app/notifications.dart';
 import '../app/machines.dart';
 import '../app/operations.dart';
 import '../app/settings.dart';
@@ -39,6 +40,7 @@ class Shell extends StatefulWidget {
     required this.operations,
     required this.logs,
     required this.gate,
+    required this.notifications,
     super.key,
   });
 
@@ -59,6 +61,9 @@ class Shell extends StatefulWidget {
 
   /// What is waiting at the gate of the project being looked at.
   final Gate gate;
+
+  /// What gets told to somebody who is not looking at the window.
+  final Notifications notifications;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -97,6 +102,7 @@ class _ShellState extends State<Shell> {
         shell: widget.shell,
         settings: widget.settings,
         operations: widget.operations,
+        notifications: widget.notifications,
         openFinder: _openFinder,
         checkWorkCanStart: _checkWorkCanStart,
         askToStop: _askToStop,
@@ -245,6 +251,7 @@ class _ShellState extends State<Shell> {
                 StatusLine(
                   fleet: _fleet,
                   operations: widget.operations,
+                  cannotNotify: widget.notifications.problem,
                   onShowOperations: () => widget.shell.goTo(Section.operations),
                 ),
               ],
@@ -373,6 +380,7 @@ class _ShellState extends State<Shell> {
         focusNode: _projectsFocus,
         onFocused: () => widget.shell.focus(Pane.projects),
         onActivate: () => widget.shell.focus(Pane.work),
+        mutedProjects: widget.notifications.muted,
       ),
     );
     final work = WorkPane(
@@ -430,6 +438,7 @@ class _ShellState extends State<Shell> {
       focusNode: _projectsFocus,
       onFocused: () => widget.shell.focus(Pane.projects),
       onActivate: () => widget.shell.focus(Pane.work),
+      mutedProjects: widget.notifications.muted,
     );
   }
 

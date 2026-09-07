@@ -340,6 +340,24 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
 
+**What is notified is decided in `Notifications`, and how it is raised is a seam.** The rules —
+when to speak, what to say, what to stay quiet about — are the requirement; `notify-send` is not,
+and a widget test asserts the rules against a recording notifier. Running `notify-send` is no
+breach of the no-shelling-out rule: that rule is about never re-implementing the *domain* through
+the `sokar` CLI, and this is the desktop.
+
+- **Raised once per thing, never per event.** `Prompts` re-arrives whenever anything changes, so
+  raising per event would say the same sentence until somebody turned the lot off.
+- **A waiting decision is the only thing entitled to insist** — `critical`, because the watcher
+  gives up on its own and a question queued politely behind everything else is one that expires.
+- **Finishing is told apart from failing**, which the session can do for what it started. A *task*
+  that ends cannot be: `activity` is `DEAD` for stopped, finished and killed alike, and `state` is
+  prose that must not be parsed.
+- **A desktop with no `notify-send` is said out loud** in the status line. Believing notifications
+  are on when they are not is worse than knowing they are off, which is the whole requirement.
+- **The per-project switch is visible on the project**, because a switch whose state cannot be seen
+  is one people turn off twice and never back on.
+
 **A task running with `clearance: "off"` is marked wherever it appears.** Nothing asks and
 nothing is refused — the firewall is loaded and no decision is ever put to anybody. Somebody chose
 that deliberately, and a run shown like any other hides the choice. `""` means a task older than

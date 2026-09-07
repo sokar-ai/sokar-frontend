@@ -9,6 +9,7 @@ import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
+import 'package:sokar_frontend/src/app/notifications.dart';
 import 'package:sokar_frontend/src/app/operations.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
 import 'package:sokar_frontend/src/app/shell_model.dart';
@@ -312,6 +313,30 @@ diff --git a/lib/money.dart b/lib/money.dart
   }
 }
 
+/// Records what would have been raised, so the rules can be judged without a notification daemon.
+///
+/// What is being tested is *when* something is said, what it says and what it stays quiet about.
+/// The desktop's own machinery is not the requirement.
+class RecordingNotifier implements Notifier {
+  /// Everything raised, in order.
+  final List<Announcement> raised = <Announcement>[];
+
+  /// What acting on each one would do.
+  final Map<String, VoidCallback> opening = <String, VoidCallback>{};
+
+  @override
+  String? problem;
+
+  @override
+  Future<void> raise(Announcement note, {required VoidCallback onOpened}) async {
+    raised.add(note);
+    opening[note.id] = onOpened;
+  }
+
+  /// Acts on the last one, as somebody clicking it would.
+  void act() => opening[raised.last.id]?.call();
+}
+
 /// What one scenario's steps share.
 class World {
   /// The backend under test.
@@ -344,6 +369,12 @@ class World {
 
   /// What is waiting at the gate.
   static late Gate gate;
+
+  /// What would have been said to somebody not looking at the window.
+  static late RecordingNotifier notifier;
+
+  /// The rules about when to say it.
+  static late Notifications notifications;
 
   /// One machine with two projects on it, one of them with work stopped.
   static List<Task> get work => <Task>[
@@ -461,6 +492,11 @@ class World {
     operations = Operations();
     logs = Logs();
     gate = Gate();
+    notifier = RecordingNotifier();
+    notifications = Notifications(notifier, settings)
+      ..watchOperations(operations, open: (operation) => shell.openOperation(operation.id));
+    addTearDown(notifications.dispose);
+    await notifications.load();
     elsewhere = FakeBackend(<Task>[_task('sokar-shared-shell', 'shared')]);
     addTearDown(elsewhere.stop);
 
@@ -475,6 +511,17 @@ class World {
     addTearDown(operations.dispose);
     addTearDown(logs.dispose);
 
+    // Clearance is per machine, so the hook goes on the one being acted on — a question knows its
+    // task and the switch is per project, which only the fleet can resolve.
+    notifications.watchClearance(
+      fleet.clearance,
+      projectOf: (task) => fleet.tasks
+          .firstWhere((each) => each.name == task,
+              orElse: () => Task.from(const <String, dynamic>{}))
+          .project,
+      open: (_) => shell.goTo(Section.clearance),
+    );
+
     await tester.pumpWidget(SokarApp(
       machines: machines,
       shell: shell,
@@ -482,6 +529,7 @@ class World {
       operations: operations,
       logs: logs,
       gate: gate,
+      notifications: notifications,
     ));
     await tester.pumpAndSettle();
   }
@@ -494,6 +542,17 @@ class World {
     shell = ShellModel();
 
     await tester.pumpWidget(const SizedBox.shrink());
+    // Clearance is per machine, so the hook goes on the one being acted on — a question knows its
+    // task and the switch is per project, which only the fleet can resolve.
+    notifications.watchClearance(
+      fleet.clearance,
+      projectOf: (task) => fleet.tasks
+          .firstWhere((each) => each.name == task,
+              orElse: () => Task.from(const <String, dynamic>{}))
+          .project,
+      open: (_) => shell.goTo(Section.clearance),
+    );
+
     await tester.pumpWidget(SokarApp(
       machines: machines,
       shell: shell,
@@ -501,6 +560,7 @@ class World {
       operations: operations,
       logs: logs,
       gate: gate,
+      notifications: notifications,
     ));
     await tester.pumpAndSettle();
   }

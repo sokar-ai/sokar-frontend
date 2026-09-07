@@ -15,6 +15,7 @@ class StatusLine extends StatelessWidget {
     required this.fleet,
     required this.operations,
     required this.onShowOperations,
+    this.cannotNotify,
     super.key,
   });
 
@@ -26,6 +27,9 @@ class StatusLine extends StatelessWidget {
 
   /// Opens the record.
   final VoidCallback onShowOperations;
+
+  /// Why nothing can be notified, when that is so.
+  final String? cannotNotify;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +69,17 @@ class StatusLine extends StatelessWidget {
                 operations: operations,
                 onShow: onShowOperations,
               ),
+              // Said rather than left silent: believing notifications are on when they are not is
+              // worse than knowing they are off, which is the whole point of the requirement.
+              if (cannotNotify != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: Space.small),
+                  child: Tooltip(
+                    message: cannotNotify!,
+                    child: Icon(Icons.notifications_off_outlined,
+                        size: Sizes.mark, color: theme.colorScheme.error),
+                  ),
+                ),
               if (fleet.reachability == Reachability.connected && !fleet.liveUpdates)
                 Padding(
                   padding: const EdgeInsets.only(left: Space.small),

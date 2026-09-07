@@ -87,6 +87,8 @@ class Settings extends ChangeNotifier {
   Future<void> load() async {
     final stored = await _store.read();
     _appearance = _appearanceNamed(stored['appearance']);
+    final muted = stored['muted'];
+    if (muted is List) _muted = muted.whereType<String>().toList();
     final machines = stored['machines'];
     if (machines is List) {
       _machines = <Map<String, Object?>>[
@@ -115,6 +117,20 @@ class Settings extends ChangeNotifier {
     ];
   }
 
+  /// Projects nobody wants to be told about.
+  Future<Set<String>> mutedProjects() async {
+    final stored = (await _store.read())['muted'];
+    return stored is List ? stored.whereType<String>().toSet() : <String>{};
+  }
+
+  /// Remembers which projects are turned off.
+  Future<void> rememberMutedProjects(Set<String> projects) async {
+    _muted = projects.toList()..sort();
+    await _write();
+  }
+
+  List<String> _muted = const <String>[];
+
   /// Remembers which machines to open next time.
   Future<void> rememberMachines(List<Machine> machines) async {
     _machines = <Map<String, Object?>>[
@@ -128,6 +144,7 @@ class Settings extends ChangeNotifier {
   Future<void> _write() => _store.write(<String, Object?>{
         'appearance': _appearance.name,
         'machines': _machines,
+        'muted': _muted,
       });
 
   static ThemeMode _appearanceNamed(Object? name) => ThemeMode.values.firstWhere(

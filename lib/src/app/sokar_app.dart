@@ -4,6 +4,7 @@ import '../ui/shell.dart';
 import 'gate.dart';
 import 'logs.dart';
 import 'machines.dart';
+import 'notifications.dart';
 import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
@@ -18,6 +19,7 @@ class SokarApp extends StatelessWidget {
     required this.operations,
     required this.logs,
     required this.gate,
+    required this.notifications,
     super.key,
   });
 
@@ -39,6 +41,9 @@ class SokarApp extends StatelessWidget {
   /// What is waiting at the gate of the project being looked at.
   final Gate gate;
 
+  /// What gets told to somebody who is not looking at the window.
+  final Notifications notifications;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -52,7 +57,8 @@ class SokarApp extends StatelessWidget {
           themeMode: settings.appearance,
           home: ListenableBuilder(
             listenable:
-                Listenable.merge(<Listenable>[machines, shell, operations, logs, gate]),
+                Listenable.merge(
+                <Listenable>[machines, shell, operations, logs, gate, notifications]),
             builder: (context, _) => Shell(
               machines: machines,
               shell: shell,
@@ -60,6 +66,7 @@ class SokarApp extends StatelessWidget {
               operations: operations,
               logs: logs,
               gate: gate,
+              notifications: notifications,
             ),
           ),
         ),

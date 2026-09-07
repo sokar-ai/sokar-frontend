@@ -58,6 +58,7 @@ class ProjectsPane extends StatelessWidget {
     required this.focusNode,
     required this.onActivate,
     required this.onFocused,
+    required this.mutedProjects,
     this.leading,
     super.key,
   });
@@ -74,6 +75,9 @@ class ProjectsPane extends StatelessWidget {
   /// Called when the pointer puts the keyboard in this pane, so closing something opened from
   /// here comes back here rather than wherever the keyboard happened to be last.
   final VoidCallback onFocused;
+
+  /// Projects nothing is notified about.
+  final Set<String> mutedProjects;
 
   /// A way back, on a window too narrow for two panes.
   final Widget? leading;
@@ -105,8 +109,11 @@ class ProjectsPane extends StatelessWidget {
             onActivate: (_) => onActivate(),
             focusNode: focusNode,
             emptyMessage: _emptyMessage(fleet),
-            rowOf: (context, project, selected) =>
-                _ProjectRow(project: project, onOpen: onActivate),
+            rowOf: (context, project, selected) => _ProjectRow(
+              project: project,
+              onOpen: onActivate,
+              muted: mutedProjects.contains(project.name),
+            ),
           ),
         ),
       ],
@@ -126,10 +133,18 @@ class ProjectsPane extends StatelessWidget {
 }
 
 class _ProjectRow extends StatelessWidget {
-  const _ProjectRow({required this.project, required this.onOpen});
+  const _ProjectRow({
+    required this.project,
+    required this.onOpen,
+    required this.muted,
+  });
 
   final ProjectOnScreen project;
   final VoidCallback onOpen;
+
+  /// Whether nothing about this project is notified. Shown, because a switch nobody can see the
+  /// state of is one people turn off twice and never back on.
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +176,12 @@ class _ProjectRow extends StatelessWidget {
             ],
           ),
         ),
+        if (muted)
+          Tooltip(
+            message: 'Nothing about this project will be notified.',
+            child: Icon(Icons.notifications_off_outlined,
+                size: Sizes.rowIcon, color: scheme.outline),
+          ),
         // Waiting for review is the one thing that makes a project need a person, so it is a
         // number on the row rather than something found by opening it. It says what is waiting
         // and what happens next: a bare count needed explaining, which means it was not saying

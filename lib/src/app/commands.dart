@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
+import 'notifications.dart';
 import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
@@ -117,6 +118,7 @@ List<Command> commandsFor({
   required ShellModel shell,
   required Settings settings,
   required Operations operations,
+  required Notifications notifications,
   required VoidCallback openFinder,
   required VoidCallback checkWorkCanStart,
   required void Function(Task task) askToStop,
@@ -159,6 +161,18 @@ List<Command> commandsFor({
       fleet: fleet,
       askToStop: askToStop,
       askWhichLog: askWhichLog,
+    ),
+    Command(
+      id: 'notifications.mute',
+      label: selectedProject != null && notifications.mutedFor(selectedProject.name)
+          ? 'Tell me about ${selectedProject.name} again'
+          : 'Stop telling me about this project',
+      group: 'Work',
+      run: () => notifications.setMuted(
+        selectedProject!.name,
+        muted: !notifications.mutedFor(selectedProject.name),
+      ),
+      unavailable: selectedProject == null ? 'no project selected' : null,
     ),
     Command(
       id: 'gate.open',

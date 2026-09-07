@@ -19,9 +19,15 @@ Moved here from the central index, where it was 0010.
 Deliverable on the desktop. The daemon's `Prompts` call carries a waiting decision to whatever is
 listening, so what is missing is the raising, not the knowing.
 
-## To be checked
+## Settled
 
-- **This may be unachievable from elsewhere.** Delivery to a client that is closed needs a channel
-  that survives the client being closed, and a tunnel-only transport has none. If
-  [F20](F20-Access-From-Elsewhere.md) confirms that, this should be cut to local-only rather than
-  left to fail quietly on a phone.
+**The open question is answered, and the answer narrows this rather than cutting it.** F20 is
+built and it confirms the transport has no channel that survives the client being closed — so
+*delivery to a closed application* is out, and nothing here pretends otherwise. What is delivered
+is a **closed window**: the interface is running, watching every machine it is configured for, and
+raises on the desktop it is running on. That covers the case this requirement is named for, an
+unattended run reaching a decision while nobody is looking at it, and it covers a remote machine
+exactly as well as a local one because the watching is the same.
+
+What is left undone by that: nothing reaches somebody whose interface is not running. Nothing can,
+without the daemon binding something, which is the one thing the product does not do.
