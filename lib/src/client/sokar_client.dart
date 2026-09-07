@@ -79,8 +79,10 @@ class SokarClient {
   static Future<SokarClient> connect(Backend backend) async {
     final connection = await VarlinkConnection.open(backend.socketPath);
     try {
-      final info = ServiceInfo.from(
-          await connection.call('org.varlink.service.GetInfo'));
+      // Shorter than the default: "is there a daemon on the other end of this socket" has to
+      // answer quickly, or the window sits on an empty frame saying it is connecting.
+      final info = ServiceInfo.from(await connection.call(
+          'org.varlink.service.GetInfo', const {}, const Duration(seconds: 5)));
       final agreed = supported.where(info.interfaces.contains);
       if (agreed.isEmpty) {
         throw StateError(

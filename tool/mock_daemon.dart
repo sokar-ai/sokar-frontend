@@ -9,6 +9,7 @@
 // RETURN publishes a change to every open Watch. Events are driven by whoever is testing and
 // never by a clock, which is the same rule the automated tests follow and for the same reason.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:sokar_frontend/src/mock/mock_daemon.dart';
@@ -45,7 +46,9 @@ Future<void> main(List<String> args) async {
         'agents': <Map<String, dynamic>>[],
         'failures': <String, dynamic>{},
       });
-  daemon.stream(
+  // pushes, not stream: Watch never ends, and a held-back stream would deliver every change one
+  // change late.
+  daemon.pushes(
     'Watch',
     (_) async* {
       yield <String, dynamic>{'tasks': tasks};
@@ -77,8 +80,14 @@ Future<void> main(List<String> args) async {
   print('');
   print('  RETURN adds a task and pushes the change, ctrl-d stops');
 
+  // Asynchronously, and that is not a style choice: stdin.readLineSync() blocks the isolate, so
+  // a daemon that waited on it would accept a connection and then never answer a call. It looks
+  // exactly like a hung backend, because it is one.
   var added = 0;
-  while (stdin.readLineSync() != null) {
+  final typing = stdin
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .listen((_) {
     added++;
     tasks = <Map<String, dynamic>>[
       ...tasks,
@@ -86,7 +95,8 @@ Future<void> main(List<String> args) async {
     ];
     changes.add(<String, dynamic>{'tasks': tasks});
     print('published ${tasks.length} tasks');
-  }
+  });
+  await typing.asFuture<void>();
 
   await changes.close();
   await daemon.stop();

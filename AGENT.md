@@ -166,6 +166,13 @@ A stream ends *only* on a final reply. Ending any other way — a destroyed sock
 close — is an error, because a stream that completes quietly is indistinguishable from one with
 nothing to say, and that renders as a machine with no tasks on it.
 
+**A single call has a deadline; a stream does not.** `VarlinkConnection.answerWithin` is 30 s, and
+`GetInfo` gets 5 s because "is there a daemon on this socket" has to answer fast. A backend that
+accepts the connection and then says nothing is a real state — met for real here — and without a
+deadline the window sits on an empty frame saying it is connecting, with nothing to report and no
+way out. **Do not put a deadline on a stream**: `Prompts` may legitimately have nothing to say for
+hours, and a timeout there would report a working backend as a broken one.
+
 ## The frame
 
 `lib/src/app/` holds what the interface knows — `FleetModel` (what is on the machine and what is
@@ -197,6 +204,13 @@ Two interface traps already met:
 - **A widget built eagerly outside the branch that shows it still runs its null checks.** A
   detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
 
+**`stdin.readLineSync()` blocks the whole isolate.** `tool/mock_daemon.dart` waits for RETURN and
+also serves a socket; reading stdin synchronously made it accept connections and then answer
+nothing at all, so the interface sat on "asking the backend what is here" for ever. It cost an
+afternoon and is exactly what a wedged daemon looks like from outside — which is why
+`MockDaemon.neverAnswers` now produces it on demand. Read stdin asynchronously in anything that
+also serves.
+
 ## The mock backend
 
 A small Dart program that binds a real unix socket and speaks real varlink. The app's own client
@@ -214,6 +228,13 @@ backend.
   deleted; the situation outlives it.
 - **Events are driven by the test, never by wall clock**, or stream tests become flaky and flaky
   tests get deleted.
+- **`pushes` for `Watch` and `Prompts`, `stream` for anything finite.** `stream` holds each event
+  back until the next one arrives, because a finite stream has to know which reply is its last.
+  Neither of those two is finite, and against a held-back stream every change reaches the
+  interface one change late — which looks exactly like an interface ignoring its own events.
+- **A client that leaves mid-write reports it on `Socket.done`, not from `add`.** Unhandled, that
+  asynchronous error fails whatever test happens to be running. Cancelling a stream is an ordinary
+  act, so the mock absorbs it.
 - **One CI job runs against a real daemon** and compares the mock's surface against
   `GetInterfaceDescription`. The mock proves the client handles what it is sent; that job proves
   the contract is what we think it is. **A drifted mock is worse than no mock.**

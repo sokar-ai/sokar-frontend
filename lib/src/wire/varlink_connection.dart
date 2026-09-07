@@ -48,12 +48,30 @@ class VarlinkConnection {
     }
   }
 
+  /// How long a single call may go unanswered before it is treated as a lost backend.
+  ///
+  /// A backend that accepts a connection and then says nothing is indistinguishable from one
+  /// answering slowly, and an interface that waited on it forever would sit saying it was
+  /// connecting with no way out. Generous, because stopping a task can genuinely take a while;
+  /// finite, because "no answer" has to become an answer eventually.
+  static const answerWithin = Duration(seconds: 30);
+
   /// Sends one call and returns its single reply.
+  ///
+  /// Only for calls that answer once. A stream deliberately has no deadline here: `Prompts` may
+  /// legitimately have nothing to say for hours, and a timeout on it would report a working
+  /// backend as a broken one.
   Future<Map<String, dynamic>> call(String method,
-      [Map<String, dynamic> parameters = const {}]) async {
+      [Map<String, dynamic> parameters = const {},
+      Duration timeout = answerWithin]) async {
     _send(method, parameters, more: false);
-    await for (final reply in _replies.stream) {
-      return _parameters(reply);
+    try {
+      await for (final reply in _replies.stream.timeout(timeout)) {
+        return _parameters(reply);
+      }
+    } on TimeoutException {
+      throw VarlinkDisconnected(
+          '$method was not answered within ${timeout.inSeconds} seconds');
     }
     throw const VarlinkDisconnected('the connection closed before the call was answered');
   }

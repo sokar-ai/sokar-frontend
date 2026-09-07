@@ -201,6 +201,65 @@ void main() {
     });
   });
 
+  group('an endless stream', () {
+    test('delivers each event as it happens, not one event late', () async {
+      // Watch and Prompts are never finite. A backend that held each event until the next one
+      // arrived would make every change reach the interface one change late, which is
+      // indistinguishable from an interface that ignores its own events.
+      final changes = StreamController<Map<String, dynamic>>();
+      daemon.pushes('Watch', (_) => changes.stream);
+      final client = await connect();
+
+      final seen = <int>[];
+      final first = Completer<void>();
+      final second = Completer<void>();
+      final watching = client.watchTasks().listen((tasks) {
+        seen.add(tasks.length);
+        if (seen.length == 1) first.complete();
+        if (seen.length == 2) second.complete();
+      });
+
+      changes.add(<String, dynamic>{'tasks': <Map<String, dynamic>>[task('a')]});
+      await first.future;
+      changes.add(<String, dynamic>{
+        'tasks': <Map<String, dynamic>>[task('a'), task('b')],
+      });
+      await second.future;
+
+      expect(seen, <int>[1, 2]);
+      await watching.cancel();
+      await changes.close();
+    });
+  });
+
+  group('a backend that accepts a call and never answers it', () {
+    test('gives up rather than waiting forever', () async {
+      // The state that cost an afternoon: the socket is healthy, the connection is accepted, and
+      // nothing ever comes back. Without a deadline the interface sits saying it is connecting,
+      // with no way out and nothing to report.
+      daemon.neverAnswers('List');
+      final connection = await VarlinkConnection.open(daemon.socketPath);
+
+      await expectLater(
+        connection.call('org.fuin.sokar.Tasks1.List', const {},
+            const Duration(milliseconds: 100)),
+        throwsA(isA<VarlinkDisconnected>()),
+      );
+    });
+
+    test('a stream is left alone, because having nothing to say is not a fault', () async {
+      // Prompts may legitimately be silent for hours. A deadline on a stream would report a
+      // working backend as a broken one, which is why the deadline is on single calls only.
+      daemon.neverAnswers('Prompts');
+      final client = await connect();
+
+      await expectLater(
+        client.prompts().first.timeout(const Duration(milliseconds: 150)),
+        throwsA(isA<TimeoutException>()),
+      );
+    });
+  });
+
   group('the contract', () {
     test('is read from the running backend rather than a copy', () async {
       daemon.description = 'interface org.fuin.sokar.Tasks1\nmethod List() -> (tasks: []Task)';

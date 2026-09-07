@@ -64,6 +64,27 @@ class MockDaemon {
     _methods['$interfaceName.$name'] = _Handler.failing(error, parameters);
   }
 
+  /// Registers a method that streams endlessly, sending each event as it happens.
+  ///
+  /// Different from [stream] and the difference matters. [stream] holds each event back until the
+  /// next one arrives, because a *finite* stream has to know which reply is its last. `Watch` and
+  /// `Prompts` are not finite - a real daemon keeps them open for as long as the connection lives
+  /// - and against a held-back stream every change reaches the interface one change late, which
+  /// looks exactly like an interface that ignores its own events.
+  void pushes(String name, Stream<Map<String, dynamic>> Function(Map<String, dynamic>) events) {
+    _methods['$interfaceName.$name'] = _Handler.pushing(events);
+  }
+
+  /// Registers a method that accepts the call and never answers it.
+  ///
+  /// A wedged backend, which is a real state rather than a contrived one: a daemon whose event
+  /// loop is blocked accepts connections and then says nothing, so the socket looks healthy and
+  /// every call hangs. Met for real while building the frame.
+  void neverAnswers(String name) {
+    _methods['$interfaceName.$name'] =
+        _Handler.streaming((_) => StreamController<Map<String, dynamic>>().stream);
+  }
+
   /// Removes a method, so calling it answers `MethodNotFound`.
   ///
   /// This is how a backend older than the interface is simulated, and it is the only way to prove
@@ -111,6 +132,10 @@ class MockDaemon {
 
   void _serve(Socket client) {
     _clients.add(client);
+    // A client that goes away mid-write reports it here rather than from add(), and an
+    // unhandled asynchronous error fails whatever test is running. Leaving is normal: it is
+    // what cancelling a stream looks like from this end.
+    unawaited(client.done.catchError((Object _) => client));
     final buffer = BytesBuilder();
     client.listen(
       (chunk) {
@@ -180,6 +205,9 @@ class MockDaemon {
       client.add(const [0]);
     } on StateError {
       // The client left. That is how a cancelled stream looks from here, and it is normal.
+    } on SocketException {
+      // The same thing, seen a moment later: the socket is already gone rather than merely
+      // closed. Cancelling a stream is an ordinary act and must not fail the daemon.
     }
   }
 }
@@ -189,20 +217,30 @@ class _Handler {
   final Stream<Map<String, dynamic>> Function(Map<String, dynamic>)? _events;
   final String? _error;
   final Map<String, dynamic> _errorParameters;
+  final bool _immediate;
 
   _Handler.single(this._single)
       : _events = null,
         _error = null,
-        _errorParameters = const {};
+        _errorParameters = const {},
+        _immediate = false;
 
   _Handler.streaming(this._events)
       : _single = null,
         _error = null,
-        _errorParameters = const {};
+        _errorParameters = const {},
+        _immediate = false;
+
+  _Handler.pushing(this._events)
+      : _single = null,
+        _error = null,
+        _errorParameters = const {},
+        _immediate = true;
 
   _Handler.failing(this._error, this._errorParameters)
       : _single = null,
-        _events = null;
+        _events = null,
+        _immediate = false;
 
   Future<void> run(Map<String, dynamic> parameters, bool more,
       void Function(Map<String, dynamic>) send) async {
@@ -213,6 +251,16 @@ class _Handler {
       return send({'parameters': await _single(parameters)});
     }
     Map<String, dynamic>? previous;
+    if (_immediate) {
+      await for (final event in _events!(parameters)) {
+        previous = event;
+        send({'parameters': event, 'continues': true});
+      }
+      // Repeating the last state rather than sending an empty reply: an empty one would reach a
+      // client as a machine with nothing on it, which is the reading a stream must never produce.
+      if (previous != null) send({'parameters': previous});
+      return;
+    }
     await for (final event in _events!(parameters)) {
       if (previous != null) {
         send({'parameters': previous, 'continues': true});
