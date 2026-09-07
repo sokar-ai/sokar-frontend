@@ -65,6 +65,7 @@ for on demand:
 | `dart tool/mock_daemon.dart empty` | a machine nothing has ever run on |
 | `dart tool/mock_daemon.dart no-watch` | a backend too old for `Watch`, so nothing arrives by itself |
 | `dart tool/mock_daemon.dart holds-work` | work that refuses to be removed because it holds unpushed commits |
+| `dart tool/mock_daemon.dart nothing-knows` | work nothing can say anything about, which is refused too |
 | `dart tool/mock_daemon.dart newer-outcome` | an `Outcome` added after this build shipped |
 | `dart tool/mock_daemon.dart newer-interface` | a backend serving `Tasks2` beside the `Tasks1` this build understands |
 | `dart tool/mock_daemon.dart failing-start` | a launch that prints for a while and then comes back non-zero |

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
+import '../app/commands.dart';
 import '../app/fleet_model.dart';
+import 'command_menu.dart';
 import 'selection_list.dart';
 import 'tokens.dart';
 
@@ -162,6 +164,7 @@ class WorkPane extends StatelessWidget {
     required this.focusNode,
     required this.onActivate,
     required this.onFocused,
+    required this.actionsFor,
     this.leading,
     super.key,
   });
@@ -178,6 +181,9 @@ class WorkPane extends StatelessWidget {
   /// Called when the pointer puts the keyboard in this pane, so closing something opened from
   /// here comes back here rather than wherever the keyboard happened to be last.
   final VoidCallback onFocused;
+
+  /// What one piece of work offers, acted on from the same place it is listed.
+  final List<Command> Function(Task task) actionsFor;
 
   /// A way back, on a window too narrow for two panes.
   final Widget? leading;
@@ -211,8 +217,11 @@ class WorkPane extends StatelessWidget {
             emptyMessage: project == null
                 ? 'Select a project to see the work under it.'
                 : 'Nothing has run in ${project.label}.',
-            rowOf: (context, task, selected) =>
-                _WorkRow(task: task, onOpen: onActivate),
+            rowOf: (context, task, selected) => _WorkRow(
+              task: task,
+              onOpen: onActivate,
+              actions: actionsFor(task),
+            ),
           ),
         ),
       ],
@@ -221,10 +230,15 @@ class WorkPane extends StatelessWidget {
 }
 
 class _WorkRow extends StatelessWidget {
-  const _WorkRow({required this.task, required this.onOpen});
+  const _WorkRow({
+    required this.task,
+    required this.onOpen,
+    required this.actions,
+  });
 
   final Task task;
   final VoidCallback onOpen;
+  final List<Command> actions;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -241,6 +255,7 @@ class _WorkRow extends StatelessWidget {
             ),
           ),
           _OpenButton(tooltip: 'Open ${task.name}', onPressed: onOpen),
+          CommandMenu(commands: actions, tooltip: 'What ${task.name} can be told to do'),
         ],
       );
 }

@@ -21,6 +21,7 @@ const _situations = <String, String>{
   'empty': 'a machine nothing has ever run on',
   'no-watch': 'a backend too old to have Watch, so nothing arrives by itself',
   'holds-work': 'a task that refuses to be removed because it holds unpushed commits',
+  'nothing-knows': 'a task nothing can say anything about, which is refused too',
   'newer-outcome': 'an Outcome value added after this build shipped',
   'newer-interface': 'a backend serving Tasks2 beside the Tasks1 this build understands',
   'failing-start': 'a launch that prints for a while and then comes back non-zero',
@@ -57,6 +58,14 @@ Future<void> main(List<String> args) async {
     },
   );
   daemon.method('Stop', (_) => _stopped(situation));
+  daemon.method('Resume', (_) => <String, dynamic>{
+        'outcome': situation == 'newer-outcome' ? 'QUARANTINED' : 'RESUMED',
+        'started': 1,
+        // Fewer started than recorded on purpose: a partial resume is worth seeing said out loud.
+        'recorded': 2,
+        'imageDrift': 'the image was rebuilt 20 minutes ago',
+        'problems': <String>['gate helper did not come back'],
+      });
   // stream, not pushes: a launch is finite and its last reply is the result rather than a line.
   daemon.stream('Start', (_) => _launch(failing: situation == 'failing-start'));
 
@@ -172,12 +181,13 @@ Map<String, dynamic> _task(
 Map<String, dynamic> _stopped(String situation) => <String, dynamic>{
       'outcome': switch (situation) {
         'holds-work' => 'HOLDS_WORK',
+        'nothing-knows' => 'NOTHING_KNOWS',
         'newer-outcome' => 'QUARANTINED',
         _ => 'STOPPED',
       },
       'work': situation == 'holds-work' ? '2 commits on refs/heads/fix-rounding' : '',
       'rescuedRef': '',
-      'removed': situation == 'holds-work' ? false : true,
+      'removed': situation != 'holds-work' && situation != 'nothing-knows',
       'helpers': 0,
       'surviving': situation == 'holds-work' ? 2 : 0,
       'detail': '',

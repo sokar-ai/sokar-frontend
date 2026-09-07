@@ -26,21 +26,55 @@ is the only way in* a hard constraint rather than a preference.
 
 So a gap here is a backend method that has to be added, not a workaround waiting to be found.
 
+## A project is a name here and a path there
+
+**Read this before the table.** It is the single largest gap and it does not look like one,
+because every method involved exists.
+
+`Task.project` is a **name** — the string a task recorded for itself. Every method that takes a
+project takes a **path to its file**: `Start(project:)` is *"path to the project file, as the CLI
+takes it"*, and `Pending`, `Review`, `Approve` and `Reject` all say the same. **Nothing maps one
+to the other, and nothing lists the projects on the machine.**
+
+So an interface knows that a task belongs to `checkout` and has no way to name `checkout` to any
+method that would act on it. Everything below marked *needs a project path* is blocked on this one
+thing, and one method — list the projects with their paths — unblocks all of it at once. It is the
+first thing to ask for, ahead of everything in the blocked table.
+
 ## Ready — the contract covers these
 
 | | Uses |
 |---|---|
-| F08 Task Creation And Modes | `Start` |
-| F09 Task Control | `Stop`, `Resume`, and the full `Outcome` set |
-| F10 Task Inspection And Work Handover | `Pending`, `Review`, `Approve`, `Reject` |
-| F11 Live Log Viewing | `Tail` |
 | F20 Access From Elsewhere | transport only — a socket path |
 | F21 Continuity And Updates | `GetInfo`; reconnection is the client's own |
-| F23 Notifications | `Prompts` |
-| F24 Agent Inventory | `Agents` |
-| F25 Task Templates | `Start` with fixed parameters |
+| F23 Notifications | `Prompts`, including the verdict that says one expired |
+| F24 Agent Inventory | `Agents`, with its `failures` map |
 
 ## Partly ready — build the covered half, stop at the line
+
+Four of these were listed as *ready* until 2026-09-07, when they were walked against the IDL
+method by method rather than by name. Starting is one call, so F08 read as covered; the call has
+no parameter for two thirds of what the requirement asks for. **Checking that a method exists is
+not checking that it answers the requirement.**
+
+- **F08 Task Creation And Modes** — `Start` takes a name and an agent, and streams the build.
+  Everything else it asks for is missing: there is **no `mode` parameter**, so "driving it
+  interactively, a richer session, or unattended" cannot be offered; **no `prompt` parameter**, so
+  an unattended run cannot collect one, nothing retains one, and finished work cannot be continued
+  with a new one; and it *needs a project path*, so which project to start in is unanswerable.
+  What is left is: start a task, in whatever project the daemon defaults to, with a name and an
+  agent.
+- **F09 Task Control** — `Stop` and `Resume` are complete, take a container name rather than a
+  path, and the full `Outcome` set is there including the `HOLDS_WORK` refusal. **Renaming has no
+  method at all.** Recreating is `Stop` then `Start`, so it *needs a project path*.
+- **F10 Task Inspection And Work Handover** — every gate method *needs a project path*. The
+  inspection half reads off `Task`; the handover half — the part the requirement is named for —
+  cannot be reached from a task at all.
+- **F11 Live Log Viewing** — `Tail` follows a log, and the name *"is checked against the files
+  that are there rather than resolved as a path"* — but **nothing lists what those files are**. An
+  interface can follow a log it can already name and cannot show a person what work produced.
+- **F25 Task Templates** — `Start` with fixed parameters, and *needs a project path* for the same
+  reason F08 does.
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.

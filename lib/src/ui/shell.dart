@@ -6,10 +6,13 @@ import '../app/fleet_model.dart';
 import '../app/operations.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
+import 'package:sokar_frontend/client.dart';
+
 import 'command_finder.dart';
 import 'command_menu_bar.dart';
 import 'operations.dart';
 import 'panes.dart';
+import 'refusal.dart';
 import 'status_line.dart';
 import 'tokens.dart';
 import 'window_size.dart';
@@ -77,8 +80,20 @@ class _ShellState extends State<Shell> {
         operations: widget.operations,
         openFinder: _openFinder,
         checkWorkCanStart: _checkWorkCanStart,
+        askToStop: _askToStop,
         quit: () => SystemNavigator.pop(),
       );
+
+  /// Asks before stopping, then stops. The refusal, if there is one, arrives on its own.
+  Future<void> _askToStop(Task task) async {
+    final agreed = await confirmStop(
+      context,
+      task: task.name,
+      helpers: task.helpers,
+    );
+    if (!agreed) return;
+    await widget.fleet.stopWork(task.name);
+  }
 
   Future<void> _openFinder() async {
     final chosen = await showCommandFinder(context, _commands());
@@ -220,7 +235,12 @@ class _ShellState extends State<Shell> {
   }
 
   Widget _work(WindowSize size) {
-    final opened = _opened();
+    // A refusal takes the place of whatever was open. It is the most important thing on the
+    // screen until somebody has decided about it, and it is not dismissible by accident.
+    final refusal = widget.fleet.refusal;
+    final opened = refusal != null
+        ? RefusalView(refusal: refusal, fleet: widget.fleet)
+        : _opened();
     if (!size.showsTwoPanes) return _onePane(opened);
 
     final projects = SizedBox(
@@ -237,6 +257,7 @@ class _ShellState extends State<Shell> {
       focusNode: _workFocus,
       onFocused: () => widget.shell.focus(Pane.work),
       onActivate: _openWork,
+      actionsFor: _workActions,
     );
 
     // Wide enough keeps the work list beside what is open; otherwise the open thing takes the
@@ -262,6 +283,12 @@ class _ShellState extends State<Shell> {
     );
   }
 
+  List<Command> _workActions(Task task) => workCommands(
+        task: task,
+        fleet: widget.fleet,
+        askToStop: _askToStop,
+      );
+
   Widget _onePane(Widget? opened) {
     if (opened != null) return opened;
     if (widget.shell.pane == Pane.work && widget.fleet.selectedProject != null) {
@@ -270,6 +297,7 @@ class _ShellState extends State<Shell> {
         focusNode: _workFocus,
         onFocused: () => widget.shell.focus(Pane.work),
         onActivate: _openWork,
+        actionsFor: _workActions,
         leading: BackButton(onPressed: () => widget.shell.focus(Pane.projects)),
       );
     }

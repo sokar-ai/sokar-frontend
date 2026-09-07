@@ -45,6 +45,20 @@ abstract class FleetBackend {
     String? agent,
     bool dryRun = false,
   });
+
+  /// Stops a task and removes what is left of it, or refuses and says why.
+  ///
+  /// Refusing is the interesting answer: a task holding commits that never reached the gate comes
+  /// back as `HOLDS_WORK`, untouched, and the caller decides what that work is worth.
+  Future<Stopped> stopTask(
+    String task, {
+    bool? purge,
+    bool? rescue,
+    bool? force,
+  });
+
+  /// Starts a stopped task's container again, with the helpers it is recorded as having had.
+  Future<Resumed> resumeTask(String task);
 }
 
 /// A real Sokar daemon, local or forwarded.
@@ -95,6 +109,18 @@ class SokarBackend implements FleetBackend {
     }
     if (exitCode != 0) throw OperationFailed(exitCode);
   }
+
+  @override
+  Future<Stopped> stopTask(
+    String task, {
+    bool? purge,
+    bool? rescue,
+    bool? force,
+  }) =>
+      _opened().stop(task, purge: purge, rescue: rescue, force: force);
+
+  @override
+  Future<Resumed> resumeTask(String task) => _opened().resume(task);
 
   SokarClient _opened() {
     final client = _client;

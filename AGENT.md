@@ -39,6 +39,13 @@ until then it is what the mock and a forwarded socket both use.
 
 **Everything goes through the varlink contract. Nothing shells out to `sokar`.**
 
+**And a method existing is not the requirement being covered.** Four requirements sat in the
+*ready* column of [Contract-Gaps](doc/Contract-Gaps.md) because the obvious method existed;
+walking them against the IDL parameter by parameter on 2026-09-07 found `Start` has no `mode` and
+no `prompt`, `Stop` has no rename beside it, `Tail` has nothing that lists the logs, and every
+gate method wants a **project file path** that nothing on this side can produce. Check the
+parameters, not the method name.
+
 The daemon serves the domain directly over a unix socket. An interface that ran the CLI and
 parsed its output would be a second implementation of every refusal the product makes — and
 those refusals are the product: `Stop` declining to remove a task holding unpushed work is not
@@ -234,6 +241,20 @@ are already four things that open.
 lives in the session record, so closing the window onto a build does not stop the build and
 arriving late does not mean having missed the output. That is the whole class: F13 is the
 machinery, and F03, F06 and F08 are the things that will use it.
+
+**A refusal takes the place of whatever was open, and is not a dialog.** `Stop` answering
+`HOLDS_WORK` is the product working: the pane says what is held, offers *push it to the mirror*,
+*discard it* and *leave it alone* in those words, and leaving it alone is the plain button. There
+is **no force button** — `force` exists only for `NOTHING_KNOWS`, where nothing can say what is
+held, and it is labelled as removing without knowing. Rescue and purge differ by one parameter and
+one of them destroys work, which is why the guard on them reads what went down the socket rather
+than what the screen said.
+
+**An action with no method behind it stays in the menu, named and unavailable, with the reason.**
+Renaming work and recreating it from scratch are both F09 criteria with nothing behind them. An
+action that simply is not there reads as one nobody thought of; one that says *"the backend has no
+method for renaming work"* reads as what it is. `workCommands` builds the row's own menu and the
+menu bar's entries from one list, so neither can offer what the other forgot.
 
 **Projects are derived from `Task.project`, not asked for.** There is no method that lists
 projects, so a project that has never run anything is invisible in the opening view. That is

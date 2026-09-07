@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_backend.dart';
+import 'outcome_words.dart';
 
 /// Whether the interface can currently reach the backend it is pointed at.
 enum Reachability {
@@ -74,6 +75,29 @@ List<Project> projectsOf(List<Task> tasks) {
   ];
 }
 
+/// A `Stop` that came back refusing, and what it said.
+///
+/// A refusal is the product working, not an error path: it needs a real place in the interface
+/// where what is held is legible and the choice about it is made deliberately. It is never
+/// softened into a "force" that quietly discards somebody's afternoon.
+@immutable
+class Refusal {
+  /// Constructor taking which task refused and what it answered.
+  const Refusal({required this.task, required this.result});
+
+  /// The task that was left exactly as it was.
+  final String task;
+
+  /// What `Stop` answered, including what the task holds.
+  final Stopped result;
+
+  /// Whether the task holds commits that never reached the gate.
+  bool get holdsWork => result.outcome == Outcome.holdsWork;
+
+  /// Whether nothing could say what it holds.
+  bool get nothingKnows => result.outcome == Outcome.nothingKnows;
+}
+
 /// What the interface knows about one backend, and the selections made over it.
 ///
 /// Everything the shell renders comes from here, so there is one place that knows whether the
@@ -96,6 +120,7 @@ class FleetModel extends ChangeNotifier {
   List<Task> _tasks = const <Task>[];
   String? _selectedProject;
   String? _selectedTask;
+  Refusal? _refusal;
 
   /// Whether the backend is answering.
   Reachability get reachability => _reachability;
@@ -185,6 +210,67 @@ class FleetModel extends ChangeNotifier {
     _selectedProject = name;
     _selectedTask = null;
     _notify();
+  }
+
+  /// A `Stop` that refused, until it is answered or dismissed.
+  Refusal? get refusal => _refusal;
+
+  /// Stops a task and removes what is left of it.
+  ///
+  /// [purge] discards work that never reached the gate; [rescue] pushes it into the mirror
+  /// first; [force] removes it when nothing can say what it holds. None of them is a default,
+  /// and each is a separate thing to have decided.
+  Future<void> stopWork(
+    String task, {
+    bool purge = false,
+    bool rescue = false,
+    bool force = false,
+  }) async {
+    await _acting(() async {
+      final result = await backend.stopTask(
+        task,
+        purge: purge ? true : null,
+        rescue: rescue ? true : null,
+        force: force ? true : null,
+      );
+      _say(stopWords(task, result));
+      _refusal = result.removed ? null : Refusal(task: task, result: result);
+      await _readOnce();
+    });
+  }
+
+  /// Starts a stopped task's container again.
+  Future<void> resumeWork(String task) async {
+    await _acting(() async {
+      _say(resumeWords(task, await backend.resumeTask(task)));
+      await _readOnce();
+    });
+  }
+
+  /// Puts a refusal away without acting on it, leaving the task exactly as it is.
+  void letItBe() {
+    if (_refusal == null) return;
+    _refusal = null;
+    _notify();
+  }
+
+  /// Runs one action, keeping the interface honest about what happened either way.
+  Future<void> _acting(Future<void> Function() action) async {
+    _busy = true;
+    _notify();
+    try {
+      await action();
+    } on VarlinkDisconnected catch (ex) {
+      _lostContact(ex);
+    } on VarlinkException catch (ex) {
+      // A named refusal from the daemon is an answer. It gets said, not swallowed.
+      _say('Refused: ${ex.simpleName}.');
+    } on FeatureNotSupported catch (ex) {
+      _say('$ex');
+    } finally {
+      _busy = false;
+      _notify();
+    }
   }
 
   /// Selects a piece of work under the selected project.

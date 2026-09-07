@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
 import 'operations.dart';
@@ -53,6 +54,56 @@ class Command {
 /// This is the whole list, and it is deliberately shorter than the product will be: about a
 /// third of the requirements have no backend method behind them, so their actions do not exist
 /// to be named yet. See `doc/Contract-Gaps.md`.
+/// What can be done to one piece of work, wherever it is offered.
+///
+/// One builder for the row's own menu and for the menu bar, so an action cannot be offered in one
+/// place and forgotten in the other. Actions that no backend method can perform stay in the list
+/// **named and unavailable, with the reason** — an action that simply is not there reads as one
+/// nobody thought of, rather than as one the daemon cannot do yet.
+List<Command> workCommands({
+  required Task? task,
+  required FleetModel fleet,
+  required void Function(Task task) askToStop,
+}) {
+  const nothingSelected = 'no work is selected';
+  return <Command>[
+    Command(
+      id: 'work.resume',
+      label: 'Start it again',
+      group: 'Work',
+      run: () => fleet.resumeWork(task!.name),
+      unavailable: task == null
+          ? nothingSelected
+          : task.running
+              ? 'it is already running'
+              : null,
+    ),
+    Command(
+      id: 'work.stop',
+      label: 'Stop it and remove it',
+      group: 'Work',
+      run: () => askToStop(task!),
+      unavailable: task == null ? nothingSelected : null,
+    ),
+    Command(
+      id: 'work.recreate',
+      label: 'Recreate it from scratch, to pick up a newly built environment',
+      group: 'Work',
+      run: () {},
+      // Stop then Start, and Start needs the path to the project file. Nothing maps the project
+      // name a task carries to that path. See doc/Contract-Gaps.md.
+      unavailable: 'the backend cannot say where a project file is',
+    ),
+    Command(
+      id: 'work.rename',
+      label: 'Rename it',
+      group: 'Work',
+      run: () {},
+      unavailable: 'the backend has no method for renaming work',
+    ),
+  ];
+}
+
 List<Command> commandsFor({
   required FleetModel fleet,
   required ShellModel shell,
@@ -60,6 +111,7 @@ List<Command> commandsFor({
   required Operations operations,
   required VoidCallback openFinder,
   required VoidCallback checkWorkCanStart,
+  required void Function(Task task) askToStop,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
@@ -92,6 +144,7 @@ List<Command> commandsFor({
       run: shell.close,
       unavailable: shell.anythingOpen ? null : 'nothing is open over the frame',
     ),
+    ...workCommands(task: selectedTask, fleet: fleet, askToStop: askToStop),
     Command(
       id: 'work.check',
       label: 'Check that work can start here, creating nothing',

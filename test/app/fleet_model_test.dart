@@ -26,6 +26,19 @@ class _Wedged implements FleetBackend {
     bool dryRun = false,
   }) =>
       const Stream<String>.empty();
+
+  @override
+  Future<Stopped> stopTask(
+    String task, {
+    bool? purge,
+    bool? rescue,
+    bool? force,
+  }) async =>
+      throw const VarlinkDisconnected('nothing there');
+
+  @override
+  Future<Resumed> resumeTask(String task) async =>
+      throw const VarlinkDisconnected('nothing there');
 }
 
 void main() {

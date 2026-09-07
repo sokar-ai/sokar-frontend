@@ -79,6 +79,45 @@ class FakeBackend implements FleetBackend {
     return launch.stream;
   }
 
+  /// What the next [stopTask] answers. Set by the scenario, so a refusal can be produced without
+  /// contriving a task that genuinely holds commits.
+  Stopped nextStop = Stopped.from(const <String, dynamic>{
+    'outcome': 'STOPPED',
+    'work': '',
+    'rescuedRef': '',
+    'removed': true,
+    'helpers': 0,
+    'surviving': 0,
+    'detail': '',
+  });
+
+  /// What the next [resumeTask] answers.
+  Resumed nextResume = Resumed.from(const <String, dynamic>{
+    'outcome': 'RESUMED',
+    'started': 2,
+    'recorded': 2,
+    'imageDrift': '',
+    'problems': <String>[],
+  });
+
+  /// Every stop asked for, and how it was asked.
+  final List<({String task, bool? purge, bool? rescue, bool? force})> stops =
+      <({String task, bool? purge, bool? rescue, bool? force})>[];
+
+  @override
+  Future<Stopped> stopTask(
+    String task, {
+    bool? purge,
+    bool? rescue,
+    bool? force,
+  }) async {
+    stops.add((task: task, purge: purge, rescue: rescue, force: force));
+    return nextStop;
+  }
+
+  @override
+  Future<Resumed> resumeTask(String task) async => nextResume;
+
   /// Changes what is on the machine, as a backend does when something elsewhere moves.
   void publish(List<Task> tasks) {
     _tasks = tasks;
