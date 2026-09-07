@@ -871,3 +871,28 @@ Three shapes worth knowing before rendering any of them, all measured on 2026-09
   naming the copy that runs instead. *"Not in use"* on its own leaves somebody asking where to
   look.
 
+## Forwards this interface raises
+
+`ssh -L <local>:<remote> <host> -N`, one process per machine, in `lib/src/app/tunnel.dart`.
+Running `ssh` is not a breach of the rule against shelling out: that rule is about never building
+a second implementation of the *domain* by parsing the `sokar` CLI. `ssh` is transport.
+
+- **`BatchMode=yes`, always.** A passphrase and an unknown host key are terminal prompts, and this
+  has no terminal. Batch mode makes `ssh` fail instead, and its sentence is what gets shown —
+  *"Host key verification failed"* is a different problem from a machine that is not there, and
+  reporting the second sends somebody looking in the wrong place.
+- **`ExitOnForwardFailure=yes`**, or `ssh` stays up with nothing bound under it, which reads as
+  connected.
+- **`ssh` can exit before a stderr subscription has delivered anything.** Collect it as one
+  future and await it before composing the message. The first version reported *"exit code 255"*
+  with the useful sentence still in the pipe.
+- **Wait for a socket, not for a file.** Anything at that path would otherwise read as a working
+  forward, and a leftover from a run that died is exactly a file at that path.
+- **Only what was raised here is ever taken down.** A machine described by a socket somebody else
+  forwarded is not in `Tunnels`' map at all, which is what makes that criterion true rather than
+  remembered.
+
+**Frame tests do not spawn processes.** `FakeTunnels` in the World records what was asked for and
+answers; the process itself is proven in `test/app/tunnel_test.dart` against real sockets. Same
+reason `FleetBackend` is a seam: a widget test's clock does not carry real input and output.
+

@@ -178,7 +178,11 @@ class _ShellState extends State<Shell> {
         .fold<int>(0, (all, some) => all + some);
 
     final agreed = await confirmQuit(context, running: running, waiting: waiting);
-    if (agreed) await SystemNavigator.pop();
+    if (!agreed) return;
+    // Before the window goes: a forward this interface raised is taken down and its socket
+    // removed. Nothing somebody else raised is touched — none of it is in here to touch.
+    await widget.machines.letGoOfTheTunnels();
+    await SystemNavigator.pop();
   }
 
   /// Opens what the selected project's work may reach.

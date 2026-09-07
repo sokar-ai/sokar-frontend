@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'i_start_watching_another_machine.dart';
+
 import '../support/world.dart';
 
 /// Usage: I watch another machine called {'elsewhere'}
 Future<void> iWatchAnotherMachineCalled(WidgetTester tester, String name) async {
-  await tester.tap(find.byKey(const Key('machine-switcher')));
-  await World.settle(tester);
-  await tester.tap(find.widgetWithText(MenuItemButton, 'Watch another machine…'));
-  await World.settle(tester);
+  await iStartWatchingAnotherMachine(tester);
 
-  final fields = find.byType(TextField);
-  await tester.enterText(fields.first, name);
-  await tester.enterText(fields.last, '/tmp/$name.sock');
+  await tester.enterText(find.byType(TextField).first, name);
   await World.settle(tester);
-  await tester.tap(find.widgetWithText(FilledButton, 'Watch it'));
+  await tester.enterText(find.byType(TextField).last, '/tmp/$name.sock');
+  await World.settle(tester);
+  await tester.tap(find.byKey(const Key('watch-it')));
   await World.settle(tester);
 }

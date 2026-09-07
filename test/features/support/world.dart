@@ -11,6 +11,7 @@ import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/templates.dart';
+import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
@@ -556,6 +557,19 @@ class World {
   /// What is being started.
   static late StartWork starting;
 
+  /// Every forward the interface asked for, as it asked for it.
+  ///
+  /// Recorded rather than run. A widget test's clock does not carry process input and output —
+  /// the same reason [FleetBackend] exists as a seam — so what the *frame* does is proven here
+  /// and what `ssh` does is proven in `test/app/tunnel_test.dart`, against real sockets.
+  static final List<List<String>> forwardsAsked = <List<String>>[];
+
+  /// Forwards this interface still owns, by machine name.
+  static final Set<String> forwardsHeld = <String>{};
+
+  /// What the next forward does. A scenario sets it to make one fail the way `ssh` fails.
+  static String? forwardsFailWith;
+
   /// What agents the machine has.
   static late AgentInventory inventory;
 
@@ -709,6 +723,9 @@ class World {
     widening = Widening();
     starting = StartWork();
     inventory = AgentInventory();
+    forwardsAsked.clear();
+    forwardsHeld.clear();
+    forwardsFailWith = null;
     templates = Templates(settings);
     await templates.load();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
@@ -725,6 +742,7 @@ class World {
     machines = Machines(
       settings,
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
+      tunnels: FakeTunnels(),
     );
     await machines.load();
     addTearDown(() => machines.dispose());
@@ -778,6 +796,7 @@ class World {
     machines = Machines(
       settings,
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
+      tunnels: FakeTunnels(),
     );
     await machines.load();
     whereYouWere = WhereYouWere(settings, machines, shell);
@@ -869,3 +888,62 @@ class World {
   static ThemeData themeInUse(WidgetTester tester) =>
       Theme.of(tester.element(find.byType(Scaffold).first));
 }
+
+/// Forwards, recorded rather than raised.
+///
+/// The frame is judged on what it asks for, what it says, and what it lets go of. Starting a real
+/// `ssh` here would make every scenario a test of somebody's network; the process itself has its
+/// own tests against real sockets.
+class FakeTunnels extends Tunnels {
+  final Map<String, Tunnel> _mine = <String, Tunnel>{};
+
+  @override
+  Tunnel? of(Machine machine) => _mine[machine.name];
+
+  @override
+  bool manages(Machine machine) => _mine.containsKey(machine.name);
+
+  @override
+  Future<bool> raiseFor(Machine machine) async {
+    // A machine somebody else forwarded is left alone: nothing started, nothing owned.
+    if (!machine.needsATunnel) return true;
+    final tunnel = _mine.putIfAbsent(machine.name, () => Tunnel(machine));
+    World.forwardsAsked.add(tunnel.command);
+    World.forwardsHeld.add(machine.name);
+    final failing = World.forwardsFailWith;
+    if (failing != null) {
+      tunnel
+        ..state = TunnelState.down
+        ..problem = failing;
+      notifyListeners();
+      return false;
+    }
+    tunnel
+      ..state = TunnelState.up
+      ..problem = null;
+    notifyListeners();
+    return true;
+  }
+
+  @override
+  Future<void> raiseAgainIfItDropped(Machine machine) async {
+    if (_mine[machine.name]?.state != TunnelState.down) return;
+    await raiseFor(machine);
+  }
+
+  @override
+  Future<void> dropFor(Machine machine) async {
+    if (_mine.remove(machine.name) != null) World.forwardsHeld.remove(machine.name);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> dropEverything() async {
+    for (final name in _mine.keys) {
+      World.forwardsHeld.remove(name);
+    }
+    _mine.clear();
+    notifyListeners();
+  }
+}
+

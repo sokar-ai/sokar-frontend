@@ -60,7 +60,7 @@ it is judged against the rest, not because it matters least.
 | F18 | [Emergency Stop](F18-Emergency-Stop.md) | One always-visible action cuts every form of access at once and says what state it left behind. | **blocked** | |
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | ready | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | n/a | |
-| F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
+
 | F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | **partial** | |
 
 ## What was here and is finished
@@ -75,6 +75,14 @@ be read again.
   that *"a pointer is optional everywhere"* is a requirement on the pointer and not only on the
   keyboard, and that every widget test was silently sized as a narrow window until the view was
   set in logical pixels.
+- **F27 Managed Tunnels.** A machine described by where it is, with the forward raised here,
+  supervised, and taken down when the window closes — beside the older kind, a socket somebody
+  else forwarded, which is opened exactly as it always was and never touched. Its three open
+  questions were settled by one decision: `BatchMode=yes`, so `ssh` fails rather than prompting
+  for anything this window has no terminal to take, and its sentence is what gets shown. Two
+  things it measured: `ssh` can exit before a stderr subscription has delivered the one sentence
+  worth having, and waiting for the endpoint to *exist* makes any leftover file read as a working
+  tunnel.
 - **F24 Agent Inventory.** What a machine has to run agents with, in three lists — what it can
   use, what is installed and unusable, and what is installed and permanently hidden by another
   copy. It taught two things. `Agent.version` is the build an agent *pins*, from its own manifest,

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../app/fleet_model.dart';
 import '../app/machines.dart';
+import '../app/tunnel.dart';
 import 'tokens.dart';
 
 /// Which machine everything below is about.
@@ -55,7 +56,11 @@ class MachineSwitcher extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                _Reach(fleet: machines.of(current)),
+                _Reach(
+                  name: current.name,
+                  fleet: machines.of(current),
+                  tunnel: machines.tunnels.of(current),
+                ),
                 if (extended) ...<Widget>[
                   const SizedBox(width: Space.small),
                   ConstrainedBox(
@@ -76,11 +81,19 @@ class MachineSwitcher extends StatelessWidget {
         menuChildren: <Widget>[
           for (final machine in machines.all)
             MenuItemButton(
-              leadingIcon: _Reach(fleet: machines.of(machine)),
+              leadingIcon: _Reach(
+                name: machine.name,
+                fleet: machines.of(machine),
+                tunnel: machines.tunnels.of(machine),
+              ),
               trailingIcon:
                   machine == current ? const Icon(Icons.check, size: Sizes.mark) : null,
               onPressed: () => machines.select(machine),
-              child: Text(machine.name),
+              // Which of the two kinds it is, said rather than left to be inferred: it decides
+              // what happens when it stops answering, and what happens when the window closes.
+              child: Text(machine.needsATunnel
+                  ? '${machine.name}  ·  forward raised here'
+                  : machine.name),
             ),
           const Divider(height: 1),
           MenuItemButton(
@@ -104,9 +117,16 @@ class MachineSwitcher extends StatelessWidget {
 
 /// Whether one machine is answering, in the space of an icon.
 class _Reach extends StatelessWidget {
-  const _Reach({required this.fleet});
+  const _Reach({required this.name, required this.fleet, this.tunnel});
+
+  /// The machine, by the name on screen beside it — not the backend's own label, which is what
+  /// the transport calls it and need not be what a person does.
+  final String name;
 
   final FleetModel fleet;
+
+  /// The forward this interface raised for it, or null when somebody else did.
+  final Tunnel? tunnel;
 
   @override
   Widget build(BuildContext context) {
@@ -118,8 +138,11 @@ class _Reach extends StatelessWidget {
       Reachability.incompatible =>
         (Icons.warning_amber_outlined, scheme.error, 'Speaks nothing this build knows'),
     };
+    // The transport's own sentence wins over ours. "Host key verification failed" is a different
+    // problem from a machine that is simply not there, and only one of them can be acted on.
+    final said = tunnel?.words;
     return Tooltip(
-      message: '${fleet.backend.label}: $words',
+      message: said == null ? '$name: $words' : '$name: $said',
       child: Icon(icon, size: Sizes.mark, color: color),
     );
   }
@@ -127,9 +150,10 @@ class _Reach extends StatelessWidget {
 
 /// Asks for another machine to watch.
 ///
-/// A name and a socket path, because that is the whole of what a machine is here. Raising the
-/// forward is somebody else's job today —
-/// [F27](../../../requirements/F27-Managed-Tunnels.md) is the interface doing it.
+/// **Two kinds, and the difference is who raises the forward.** A socket somebody else forwarded
+/// is opened exactly as it always was — that path has no credential handling in it at all and
+/// must keep working untouched. A machine described by where it *is* has its forward raised here,
+/// supervised, and taken down when the window closes.
 Future<Machine?> askForAMachine(BuildContext context) =>
     showDialog<Machine>(
       context: context,
@@ -146,13 +170,24 @@ class _AskForAMachine extends StatefulWidget {
 class _AskForAMachineState extends State<_AskForAMachine> {
   final _name = TextEditingController();
   final _socket = TextEditingController();
+  final _host = TextEditingController();
+  final _remote = TextEditingController(text: '/run/user/1000/sokar/sokard.sock');
+
+  /// Whether this interface raises the forward. **Nothing is preselected**: the two are different
+  /// commitments — one of them starts a process and owns it — and a default would make that
+  /// choice for somebody.
+  bool? _raiseIt;
 
   @override
   void initState() {
     super.initState();
-    // The recipe names the socket being asked for, so it follows what is typed rather than
-    // showing an example that has to be edited twice — once here and once in the shell.
-    _socket.addListener(() => setState(() {}));
+    // Every field, not only the socket. The recipe follows what is typed rather than showing an
+    // example that has to be edited twice — and *"Watch it"* is enabled by what has been filled
+    // in, which without a listener is decided once and never again. It was: the button stayed
+    // dead however much was typed.
+    for (final field in <TextEditingController>[_name, _socket, _host, _remote]) {
+      field.addListener(() => setState(() {}));
+    }
   }
 
   /// The line that forwards the socket, with the local end filled in.
@@ -167,44 +202,102 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   Widget build(BuildContext context) => AlertDialog(
         title: const Text('Watch another machine'),
         content: SizedBox(
-          width: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              TextField(
-                controller: _name,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'What to call it',
-                  hintText: 'the build machine',
-                  border: OutlineInputBorder(),
+          width: 560,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                TextField(
+                  controller: _name,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'What to call it',
+                    hintText: 'the build machine',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: Space.normal),
-              TextField(
-                controller: _socket,
-                decoration: const InputDecoration(
-                  labelText: 'Forwarded socket',
-                  hintText: '/tmp/sokard-remote.sock',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: Space.wide),
+                Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
+                RadioGroup<bool>(
+                  groupValue: _raiseIt,
+                  onChanged: (chosen) => setState(() => _raiseIt = chosen),
+                  child: const Column(
+                    children: <Widget>[
+                      RadioListTile<bool>(
+                        key: Key('machine-already-forwarded'),
+                        value: false,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Its socket is already forwarded'),
+                        subtitle: Text(
+                          'Nothing is raised and nothing is managed. This is the way in with no '
+                          'credential handling anywhere near it.',
+                        ),
+                      ),
+                      RadioListTile<bool>(
+                        key: Key('machine-raise-it'),
+                        value: true,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Raise the forward for me'),
+                        subtitle: Text(
+                          'An ssh forward, started here and taken down when this window closes. '
+                          'It never asks for a passphrase: use an agent, and accept the host key '
+                          'once in a shell.',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: Space.normal),
-              Text(
-                'Forward it first, and this opens it:',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: Space.tight),
-              _Recipe(command: _recipe),
-              const SizedBox(height: Space.normal),
-              Text(
-                'A remote Sokar is its own socket, forwarded — same calls, same replies, same '
-                'code. Raising the tunnel is not this interface’s job yet.',
-                key: const Key('how-to-forward'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+                const SizedBox(height: Space.normal),
+                if (_raiseIt == true) ...<Widget>[
+                  TextField(
+                    controller: _host,
+                    key: const Key('machine-host'),
+                    decoration: const InputDecoration(
+                      labelText: 'Where it is',
+                      hintText: 'user@build.example.test',
+                      helperText: 'Given to ssh as it stands, so anything in your ssh config '
+                          'works — including a Host alias.',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: Space.normal),
+                  TextField(
+                    controller: _remote,
+                    key: const Key('machine-remote-socket'),
+                    decoration: const InputDecoration(
+                      labelText: 'Its socket, on that machine',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ] else if (_raiseIt == false) ...<Widget>[
+                  TextField(
+                    controller: _socket,
+                    decoration: const InputDecoration(
+                      labelText: 'Forwarded socket',
+                      hintText: '/tmp/sokard-remote.sock',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: Space.normal),
+                  Text(
+                    'Forward it first, and this opens it:',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: Space.tight),
+                  _Recipe(command: _recipe),
+                  const SizedBox(height: Space.normal),
+                  Text(
+                    'A remote Sokar is its own socket, forwarded — same calls, same replies, same '
+                    'code.',
+                    key: const Key('how-to-forward'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         actions: <Widget>[
@@ -213,22 +306,43 @@ class _AskForAMachineState extends State<_AskForAMachine> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              final name = _name.text.trim();
-              final socket = _socket.text.trim();
-              if (name.isEmpty || socket.isEmpty) return;
-              Navigator.of(context)
-                  .pop(Machine(name: name, socketPath: socket));
-            },
+            key: const Key('watch-it'),
+            onPressed: _ready ? _watchIt : null,
             child: const Text('Watch it'),
           ),
         ],
       );
 
+  bool get _ready {
+    if (_name.text.trim().isEmpty || _raiseIt == null) return false;
+    return _raiseIt!
+        ? _host.text.trim().isNotEmpty && _remote.text.trim().isNotEmpty
+        : _socket.text.trim().isNotEmpty;
+  }
+
+  void _watchIt() {
+    final name = _name.text.trim();
+    Navigator.of(context).pop(
+      _raiseIt!
+          // The local end is ours to choose, and it goes where the runtime directory already
+          // makes it owner-only. Asking somebody for a path they do not care about would be one
+          // more thing to get almost right.
+          ? Machine(
+              name: name,
+              socketPath: Machine.endpointFor(name),
+              host: _host.text.trim(),
+              remoteSocket: _remote.text.trim(),
+            )
+          : Machine(name: name, socketPath: _socket.text.trim()),
+    );
+  }
+
   @override
   void dispose() {
     _name.dispose();
     _socket.dispose();
+    _host.dispose();
+    _remote.dispose();
     super.dispose();
   }
 }

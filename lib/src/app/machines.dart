@@ -6,18 +6,28 @@ import 'package:sokar_frontend/client.dart';
 
 import 'fleet_backend.dart';
 import 'fleet_model.dart';
+import 'tunnel.dart';
 import 'settings.dart';
 
 /// One machine this interface can reach.
 ///
-/// A name and a socket path, and nothing else — because that is the whole of the difference
-/// between a local Sokar and one on another machine. The forward is somebody else's to raise;
-/// [F27](../../../requirements/F27-Managed-Tunnels.md) is the interface raising it, and must
-/// never become the only way in.
+/// A name and a socket path — and, when the interface raises the way in itself, where that
+/// machine is. **Both kinds must keep working.** A socket somebody else forwarded is the path
+/// with no credential handling in it at all, so a machine described by a path is opened exactly
+/// as it always was: nothing raised, nothing supervised, nothing taken down.
 @immutable
 class Machine {
   /// Constructor taking what to call it and where its socket is.
-  const Machine({required this.name, required this.socketPath});
+  ///
+  /// [host] and [remoteSocket] are given only for a machine this interface reaches itself. With
+  /// no [host] it is a socket somebody else forwarded, which is the first half of
+  /// [F20](../../../requirements/F20-Access-From-Elsewhere.md) and stays untouched.
+  const Machine({
+    required this.name,
+    required this.socketPath,
+    this.host = '',
+    this.remoteSocket = '',
+  });
 
   /// The machine to open when nothing has been stored yet.
   ///
@@ -37,17 +47,51 @@ class Machine {
   factory Machine.fromStored(Map<String, Object?> stored) => Machine(
         name: stored['name'] as String? ?? '',
         socketPath: stored['socket'] as String? ?? '',
+        host: stored['host'] as String? ?? '',
+        remoteSocket: stored['remoteSocket'] as String? ?? '',
       );
 
   /// What to call it. Shown wherever an action could be ambiguous about where it lands.
   final String name;
 
-  /// The unix socket to open.
+  /// The unix socket to open. For a managed machine, the local end this interface creates.
   final String socketPath;
 
+  /// Where the machine is, as `ssh` would be given it. Empty when somebody else forwards it.
+  final String host;
+
+  /// The socket on that machine. Empty when somebody else forwards it.
+  final String remoteSocket;
+
+  /// Whether this interface raises the way in to it.
+  ///
+  /// The one question a person needs answered about a machine in the list, because it decides
+  /// what happens when it stops answering — and what happens when the window closes.
+  bool get needsATunnel => host.isNotEmpty && remoteSocket.isNotEmpty;
+
   /// How it is stored between runs.
-  Map<String, Object?> get stored =>
-      <String, Object?>{'name': name, 'socket': socketPath};
+  ///
+  /// The host is stored; **nothing about a key ever is.** What makes the forward possible lives
+  /// in the person's own SSH configuration, which is where it was before this interface existed.
+  Map<String, Object?> get stored => <String, Object?>{
+        'name': name,
+        'socket': socketPath,
+        if (host.isNotEmpty) 'host': host,
+        if (remoteSocket.isNotEmpty) 'remoteSocket': remoteSocket,
+      };
+
+  /// Where the local end of a managed forward goes.
+  ///
+  /// Under the runtime directory, which is the one place already owner-only — the criterion that
+  /// the endpoint is readable by nobody else is answered by where it is put, not by what is done
+  /// to it afterwards.
+  static String endpointFor(String name, {Map<String, String>? environment}) {
+    final env = environment ?? Platform.environment;
+    final runtime = env['XDG_RUNTIME_DIR'] ??
+        '/run/user/${Process.runSync('id', const <String>['-u']).stdout.toString().trim()}';
+    final safe = name.replaceAll(RegExp('[^A-Za-z0-9_-]'), '-');
+    return '$runtime/sokar-tunnel-$safe.sock';
+  }
 
   /// Whether the socket is readable by anybody but its owner.
   ///
@@ -65,10 +109,14 @@ class Machine {
 
   @override
   bool operator ==(Object other) =>
-      other is Machine && other.name == name && other.socketPath == socketPath;
+      other is Machine &&
+      other.name == name &&
+      other.socketPath == socketPath &&
+      other.host == host &&
+      other.remoteSocket == remoteSocket;
 
   @override
-  int get hashCode => Object.hash(name, socketPath);
+  int get hashCode => Object.hash(name, socketPath, host, remoteSocket);
 }
 
 /// Every machine this interface is watching, and which one it is acting on.
@@ -83,13 +131,18 @@ class Machines extends ChangeNotifier {
   /// One machine exists from the moment this does, before anything is read back from disk. The
   /// frame is drawn before [load] can finish, and a frame with no machine behind it has nothing
   /// to draw — which it did, as a crash on the first frame.
-  Machines(this._settings, {FleetBackend Function(Machine)? reach})
-      : _reach = reach ?? _overSocket {
+  Machines(this._settings, {FleetBackend Function(Machine)? reach, Tunnels? tunnels})
+      : _reach = reach ?? _overSocket,
+        tunnels = tunnels ?? Tunnels() {
     _adopt(<Machine>[Machine.local()]);
   }
 
   final Settings _settings;
   final FleetBackend Function(Machine) _reach;
+
+  /// The forwards this interface raised. **Only the ones it raised** — a socket somebody else
+  /// forwarded is opened as it always was, and is not in here to be taken down.
+  final Tunnels tunnels;
   final Map<String, FleetModel> _watching = <String, FleetModel>{};
   final List<Machine> _machines = <Machine>[];
   String? _selected;
@@ -154,7 +207,7 @@ class Machines extends ChangeNotifier {
     _notify();
   }
 
-  /// Forgets a machine, closing what was watching it.
+  /// Forgets a machine, closing what was watching it and taking down any forward raised for it.
   ///
   /// Forgetting the one being acted on moves to another rather than leaving nothing selected: a
   /// frame with no machine behind it has nothing to say and no way to say why.
@@ -162,6 +215,7 @@ class Machines extends ChangeNotifier {
     if (_machines.length == 1) return;
     _machines.remove(machine);
     _watching.remove(machine.name)?.dispose();
+    unawaited(tunnels.dropFor(machine));
     if (_selected == machine.name) _selected = _machines.first.name;
     await _remember();
     _notify();
@@ -174,11 +228,58 @@ class Machines extends ChangeNotifier {
     _notify();
   }
 
+  final Set<String> _raisingAgain = <String>{};
+
   void _open(Machine machine) {
-    final fleet = FleetModel(_reach(machine))..addListener(_notify);
+    final fleet = FleetModel(_reach(machine));
+    // Not simply `_notify`: a managed machine that stops answering is a forward that dropped, and
+    // nobody should have to ask for it to come back.
+    fleet.addListener(() {
+      _notify();
+      if (fleet.reachability == Reachability.unreachable) {
+        unawaited(raiseAgainIfNeeded(machine));
+      }
+    });
     _watching[machine.name] = fleet;
-    unawaited(fleet.connect());
+    unawaited(_openAndConnect(machine, fleet));
   }
+
+  /// Raises the way in, if this interface owns it, and then connects.
+  ///
+  /// A machine somebody else forwarded goes straight to connecting: [Tunnels.raiseFor] answers
+  /// true for it without starting anything.
+  Future<void> _openAndConnect(Machine machine, FleetModel fleet) async {
+    await tunnels.raiseFor(machine);
+    await fleet.connect();
+    _notify();
+  }
+
+  /// Raises a dropped forward again and reconnects over it.
+  ///
+  /// Without being asked: a forward that goes away is not a decision anybody made. Only for one
+  /// this interface raised, and only for a machine that is not answering — a working connection
+  /// is never disturbed to check on the thing underneath it.
+  Future<void> raiseAgainIfNeeded(Machine machine) async {
+    if (!tunnels.manages(machine)) return;
+    final fleet = _watching[machine.name];
+    if (fleet == null || fleet.reachability == Reachability.connected) return;
+    // Reconnecting moves the fleet, which notifies, which lands back here. One at a time per
+    // machine, or a forward that cannot be raised becomes a loop that never stops trying.
+    if (!_raisingAgain.add(machine.name)) return;
+    try {
+      await tunnels.raiseAgainIfItDropped(machine);
+      if (tunnels.of(machine)?.state == TunnelState.up) await fleet.connect();
+    } finally {
+      _raisingAgain.remove(machine.name);
+    }
+    _notify();
+  }
+
+  /// Takes down every forward this interface raised.
+  ///
+  /// Closing the window leaves nothing running and no socket behind — and touches nothing
+  /// somebody else raised, because nothing of theirs is in [tunnels].
+  Future<void> letGoOfTheTunnels() => tunnels.dropEverything();
 
   Future<void> _remember() => _settings.rememberMachines(_machines);
 

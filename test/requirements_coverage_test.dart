@@ -27,12 +27,12 @@ void main() {
   /// **scenarios stay**: they are the guards that keep the finished thing working, and deleting a
   /// requirement must never quietly delete its tests. So the id outlives the file, which also
   /// keeps the traceability report reading the same way it always did.
-  const retired = <String>{'F01', 'F11', 'F13', 'F20', 'F22', 'F23', 'F24'};
+  const retired = <String>{'F01', 'F11', 'F13', 'F20', 'F22', 'F23', 'F24', 'F27'};
 
   const pending = <String>{
     'F02', 'F03', 'F04', 'F06', 'F07',
     'F12', 'F14', 'F15', 'F16', 'F18', 'F19',
-    'F26', 'F27',
+    'F26',
   };
 
   final requirements = Directory('requirements')
