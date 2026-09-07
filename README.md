@@ -75,14 +75,29 @@ socket forwarded from another machine. It is a stopgap until
 
 ### On a build server
 
+One run, two reports — the XML for the build server's own test tab, the HTML to publish as an
+artifact somebody can open:
+
 ```
-dart pub global activate junitreport
-export PATH="$PATH:$HOME/.pub-cache/bin"      # where activate puts tojunit
-flutter test --machine | tojunit > build/test-results.xml
+flutter test --machine > build/test-results.json
+dart tool/test_report.dart                    # build/test-report.html
+tojunit < build/test-results.json > build/test-results.xml
 ```
 
+`tojunit` comes from `junitreport` (`dart pub global activate junitreport`), which puts it in
+`$HOME/.pub-cache/bin` — add that to `PATH`. The HTML report needs nothing but `dart`.
+
 Every feature names one requirement on its `Feature` line, and that becomes the JUnit group — so
-the test report is a per-requirement traceability matrix with no extra tooling.
+**both reports are a per-requirement traceability matrix**. The HTML one goes further and reads
+`requirements/` as well, so it lists the requirements *no scenario names yet*: a matrix that only
+shows what was tested cannot answer the question somebody opens it to ask.
+
+`dart tool/test_report.dart` exits non-zero when anything failed, so it can gate a build on its
+own. It is one self-contained file with no external stylesheet, script or font — an artifact is
+downloaded and opened from disk, where anything it had to fetch would be missing.
+
+Passing is not the same as covered: a requirement with one shallow scenario shows as green as one
+with twelve, and the report says so on its own face.
 
 ## What this is not
 

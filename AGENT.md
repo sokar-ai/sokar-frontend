@@ -146,6 +146,11 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
 - **Never commit with a failing suite.** Run `flutter test` as its own step, read the result,
   then commit. Chaining test-and-commit in one command is how red commits get into a history.
 
+`dart tool/test_report.dart` turns a run into `build/test-report.html` — the same traceability
+matrix, plus the requirements nothing covers yet, in one file with no external anything. It reads
+the `--machine` JSON rather than the JUnit XML: the XML is made from that JSON, so reading the
+source is one fewer thing that can disagree, and it keeps the failure text the XML flattens away.
+
 Build server output, verified end to end:
 
 ```
