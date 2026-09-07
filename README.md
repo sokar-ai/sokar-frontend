@@ -27,6 +27,61 @@ To see what a running backend offers, with a daemon up:
 dart tool/contract.dart
 ```
 
+## Build and test
+
+Needs the Flutter SDK and the Linux desktop toolchain — `clang`, `cmake`, `ninja`, `pkg-config`,
+`libgtk-3-dev`. `flutter doctor -v` says whether they are all there. **No JDK, ever**, and no
+daemon, no podman and no container runtime: the whole suite runs against a mock.
+
+```
+flutter pub get
+dart run build_runner build     # regenerates the tests from test/features/*.feature
+dart analyze                    # must stay at "No issues found!"
+flutter test
+flutter build linux --release   # bundle in build/linux/x64/release/bundle
+```
+
+`dart analyze`, never `flutter analyze` — the reason is in [AGENT.md](AGENT.md). Run
+`build_runner` after adding or editing a `.feature` file; the generated `_test.dart` beside it is
+committed, and CI fails on a diff.
+
+### Seeing it run, with no backend at all
+
+The interface needs a daemon to show anything, and the mock is one — a real unix socket speaking
+real varlink, which the client cannot tell from `sokard`. In two terminals:
+
+```
+dart tool/mock_daemon.dart                              # leave it running
+SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
+```
+
+Pressing RETURN in the first terminal adds a task and pushes the change, so live updates can be
+watched arriving. Other situations to open it against, none of which a real daemon can be asked
+for on demand:
+
+| | |
+|---|---|
+| `dart tool/mock_daemon.dart empty` | a machine nothing has ever run on |
+| `dart tool/mock_daemon.dart no-watch` | a backend too old for `Watch`, so nothing arrives by itself |
+| `dart tool/mock_daemon.dart holds-work` | work that refuses to be removed because it holds unpushed commits |
+| `dart tool/mock_daemon.dart newer-outcome` | an `Outcome` added after this build shipped |
+| `dart tool/mock_daemon.dart newer-interface` | a backend serving `Tasks2` beside the `Tasks1` this build understands |
+
+`SOKAR_SOCKET` is how the interface is pointed at anything but the local daemon — the mock, or a
+socket forwarded from another machine. It is a stopgap until
+[F20](requirements/F20-Access-From-Elsewhere.md) gives a person a way to choose.
+
+### On a build server
+
+```
+dart pub global activate junitreport
+export PATH="$PATH:$HOME/.pub-cache/bin"      # where activate puts tojunit
+flutter test --machine | tojunit > build/test-results.xml
+```
+
+Every feature names one requirement on its `Feature` line, and that becomes the JUnit group — so
+the test report is a per-requirement traceability matrix with no extra tooling.
+
 ## What this is not
 
 It is not a wrapper around the CLI. The daemon serves the domain directly, and an interface that

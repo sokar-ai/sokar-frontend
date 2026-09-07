@@ -4,7 +4,7 @@
 // Usage: dart tool/mock_daemon.dart [situation]
 //
 //   dart tool/mock_daemon.dart
-//   SOKAR_SOCKET=<the path it prints> flutter run -d linux
+//   SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
 //
 // RETURN publishes a change to every open Watch. Events are driven by whoever is testing and
 // never by a clock, which is the same rule the automated tests follow and for the same reason.
@@ -65,9 +65,15 @@ Future<void> main(List<String> args) async {
       ];
   }
 
+  // The daemon picks a fresh temporary path every run, which makes the one instruction anybody
+  // needs impossible to copy. A link at a stable name fixes that; a unix socket connects through
+  // one unchanged.
+  _forgetStableSocket();
+  Link(_stableSocket).createSync(daemon.socketPath);
+
   print('mock sokard — ${_situations[situation]}');
   print('');
-  print('  SOKAR_SOCKET=${daemon.socketPath} flutter run -d linux');
+  print('  SOKAR_SOCKET=$_stableSocket flutter run -d linux');
   print('');
   print('  RETURN adds a task and pushes the change, ctrl-d stops');
 
@@ -84,7 +90,16 @@ Future<void> main(List<String> args) async {
 
   await changes.close();
   await daemon.stop();
+  _forgetStableSocket();
 }
+
+void _forgetStableSocket() {
+  final link = Link(_stableSocket);
+  if (link.existsSync()) link.deleteSync();
+}
+
+/// A name that does not move between runs, so the command to open the interface does not either.
+const _stableSocket = '/tmp/sokar-mock.sock';
 
 List<Map<String, dynamic>> _aMachineWithWorkOnIt() => <Map<String, dynamic>>[
       _task('sokar-checkout-shell', 'checkout'),
