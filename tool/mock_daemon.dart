@@ -57,15 +57,40 @@ Future<void> main(List<String> args) async {
       yield* changes.stream;
     },
   );
-  daemon.method('Stop', (_) => _stopped(situation));
-  daemon.method('Resume', (_) => <String, dynamic>{
-        'outcome': situation == 'newer-outcome' ? 'QUARANTINED' : 'RESUMED',
-        'started': 1,
-        // Fewer started than recorded on purpose: a partial resume is worth seeing said out loud.
-        'recorded': 2,
-        'imageDrift': 'the image was rebuilt 20 minutes ago',
-        'problems': <String>['gate helper did not come back'],
-      });
+  // Acting on the list, not only answering about it. A mock that says a task was removed and then
+  // keeps listing it makes a working interface look like one where nothing happens — which is
+  // exactly how this was found.
+  daemon.method('Stop', (parameters) {
+    final answer = _stopped(situation);
+    if (answer['removed'] == true) {
+      tasks =
+          tasks.where((task) => task['name'] != parameters['task']).toList();
+      changes.add(<String, dynamic>{'tasks': tasks});
+    }
+    return answer;
+  });
+  daemon.method('Resume', (parameters) {
+    final name = parameters['task'];
+    tasks = tasks
+        .map((task) => task['name'] != name
+            ? task
+            : <String, dynamic>{
+                ...task,
+                'running': true,
+                'state': 'Up 1 second',
+                'helpers': 1,
+              })
+        .toList();
+    changes.add(<String, dynamic>{'tasks': tasks});
+    return <String, dynamic>{
+      'outcome': situation == 'newer-outcome' ? 'QUARANTINED' : 'RESUMED',
+      'started': 1,
+      // Fewer started than recorded on purpose: a partial resume is worth seeing said out loud.
+      'recorded': 2,
+      'imageDrift': 'the image was rebuilt 20 minutes ago',
+      'problems': <String>['gate helper did not come back'],
+    };
+  });
   // stream, not pushes: a launch is finite and its last reply is the result rather than a line.
   daemon.stream('Start', (_) => _launch(failing: situation == 'failing-start'));
 
