@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/commands.dart';
+import 'tokens.dart';
 
 /// Opens the command finder and answers with what was chosen, or null.
 ///
@@ -71,7 +72,7 @@ class _CommandFinderState extends State<_CommandFinder> {
 
     return Dialog(
       alignment: Alignment.topCenter,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 72),
+      insetPadding: const EdgeInsets.symmetric(horizontal: Space.loose, vertical: 72),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560, maxHeight: 460),
         child: Focus(
@@ -81,7 +82,7 @@ class _CommandFinderState extends State<_CommandFinder> {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(Space.normal),
                 child: TextField(
                   controller: _query,
                   autofocus: true,

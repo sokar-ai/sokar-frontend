@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/operations.dart';
 import 'panes.dart';
 import 'selection_list.dart';
+import 'tokens.dart';
 
 /// What this session has run, in the order it ran.
 ///
@@ -14,7 +15,6 @@ class OperationsList extends StatelessWidget {
     required this.operations,
     required this.focusNode,
     required this.onOpen,
-    required this.onClose,
     super.key,
   });
 
@@ -27,9 +27,6 @@ class OperationsList extends StatelessWidget {
   /// Opens one operation's output.
   final void Function(String id) onOpen;
 
-  /// Closes the view and goes back to the frame.
-  final VoidCallback onClose;
-
   @override
   Widget build(BuildContext context) {
     final all = operations.all;
@@ -37,18 +34,10 @@ class OperationsList extends StatelessWidget {
       children: <Widget>[
         PaneHeader(
           title: 'This session',
-          trailing: Row(
-            children: <Widget>[
-              if (operations.running > 0)
-                Text('${operations.running} running',
-                    style: Theme.of(context).textTheme.labelMedium),
-              IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: 'Close (Esc)',
-                onPressed: onClose,
-              ),
-            ],
-          ),
+          trailing: operations.running == 0
+              ? null
+              : Text('${operations.running} running',
+                  style: Theme.of(context).textTheme.labelMedium),
         ),
         Expanded(
           child: SelectionList<Operation>(
@@ -76,7 +65,7 @@ class _OperationRow extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         children: <Widget>[
           OperationMark(operation: operation),
-          const SizedBox(width: 8),
+          const SizedBox(width: Space.small),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +78,7 @@ class _OperationRow extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, size: 18),
+          const Icon(Icons.chevron_right, size: Sizes.rowIcon),
         ],
       );
 
@@ -161,7 +150,10 @@ class _OperationOutputViewState extends State<OperationOutputView> {
                   child: ListView.builder(
                     controller: _scroll,
                     primary: false,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.normal,
+                      vertical: Space.small,
+                    ),
                     itemCount: operation.output.length,
                     itemBuilder: (context, index) => SelectableText(
                       operation.output[index],
@@ -205,11 +197,14 @@ class _Summary extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: operation.failed ? scheme.errorContainer : scheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+                      horizontal: Space.normal,
+                      vertical: Space.small,
+                    ),
       child: Row(
         children: <Widget>[
           OperationMark(operation: operation),
-          const SizedBox(width: 8),
+          const SizedBox(width: Space.small),
           Expanded(child: Text(operation.summary)),
         ],
       ),

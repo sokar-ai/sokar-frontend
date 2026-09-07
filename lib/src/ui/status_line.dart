@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/fleet_model.dart';
 import '../app/operations.dart';
+import 'tokens.dart';
 
 /// One line across the bottom saying what just happened, and to which machine.
 ///
@@ -44,11 +45,14 @@ class StatusLine extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: theme.dividerColor)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.normal,
+            vertical: Space.tight,
+          ),
           child: Row(
             children: <Widget>[
               _Reachability(reachability: fleet.reachability),
-              const SizedBox(width: 8),
+              const SizedBox(width: Space.small),
               Expanded(
                 child: Text(
                   fleet.status,
@@ -63,12 +67,12 @@ class StatusLine extends StatelessWidget {
               ),
               if (fleet.reachability == Reachability.connected && !fleet.liveUpdates)
                 Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.only(left: Space.small),
                   child: Text('not live', style: theme.textTheme.bodySmall),
                 ),
               if (info != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.only(left: Space.small),
                   // The daemon's build version, for a bug report. Never for gating a feature.
                   child: Text(
                     '${fleet.backend.label} · ${info.version}',
@@ -99,7 +103,7 @@ class _Reachability extends StatelessWidget {
     };
     return Tooltip(
       message: words,
-      child: Icon(icon, size: 16, color: colour),
+      child: Icon(icon, size: Sizes.mark, color: colour),
     );
   }
 }

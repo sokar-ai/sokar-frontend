@@ -39,6 +39,11 @@ Feature: F01 Application Shell
     And the command finder names {'Open the selected work'}
     And the command {'Open the selected work'} is offered as unavailable
 
+  Scenario: every action is reachable with a pointer alone
+    When I open the menu {'View'}
+    And I choose the menu entry {'Appearance: dark'}
+    Then the appearance is {'dark'}
+
   Scenario: the status line says in words what the last action did
     When I choose the command {'Refresh from the backend'}
     Then the status line mentions {'Refreshed'}

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'tokens.dart';
+
 /// A keyboard-first list, which is the only kind of list in this interface.
 ///
 /// A pointer selects a row and so do the arrow keys; nothing here is reachable one way only.
@@ -114,7 +116,7 @@ class _SelectionListState<T> extends State<SelectionList<T>> {
         focusNode: widget.focusNode,
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(Space.loose),
             child: Text(
               widget.emptyMessage,
               textAlign: TextAlign.center,
@@ -149,7 +151,10 @@ class _SelectionListState<T> extends State<SelectionList<T>> {
               color: isSelected
                   ? Theme.of(context).colorScheme.primaryContainer
                   : Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Space.normal,
+                vertical: Space.small,
+              ),
               child: widget.rowOf(context, item, isSelected),
             ),
           );

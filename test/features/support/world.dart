@@ -145,7 +145,12 @@ class World {
   }
 
   /// Builds the interface against that backend and connects it.
+  ///
+  /// At a desktop size, because that is what this is: the default 800x600 test surface is a
+  /// narrow window, and every scenario would have been judging the fallback layout by accident.
   static Future<void> startApp(WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     store = MemorySettingsStore();
     settings = Settings(store);
     shell = ShellModel();
@@ -187,7 +192,10 @@ class World {
   /// animation with no end means pumpAndSettle never returns. Two frames, the second long enough
   /// to carry a dialog transition, is all any of this needs.
   static Future<void> settle(WidgetTester tester) async {
+    // Three frames, not two: a theme change animates, and the frame that ends the animation is
+    // not the frame that draws its result.
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pump(const Duration(milliseconds: 350));
   }
 

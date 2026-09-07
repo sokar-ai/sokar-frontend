@@ -1,5 +1,23 @@
 import 'package:flutter/foundation.dart';
 
+/// A place in the product, reached from the rail.
+///
+/// Sections are *where you are*; the menu bar is *what you can do*; the command finder is how you
+/// find one quickly. Three surfaces over one list of actions, each answering a different question
+/// — which is why none of them is redundant.
+enum Section {
+  /// The projects on the machine and the work under them. The daily loop.
+  work('Work'),
+
+  /// Everything this session has run.
+  operations('This session');
+
+  const Section(this.label);
+
+  /// What the rail calls it.
+  final String label;
+}
+
 /// Which part of the frame the person is working in.
 enum Pane {
   /// The projects on the machine.
@@ -33,12 +51,6 @@ class WorkOpened extends Opened {
   const WorkOpened();
 }
 
-/// Everything this session has run.
-class OperationsOpened extends Opened {
-  /// Constructor.
-  const OperationsOpened();
-}
-
 /// What one operation printed.
 class OperationOpened extends Opened {
   /// Constructor taking which one.
@@ -48,14 +60,18 @@ class OperationOpened extends Opened {
   final String id;
 }
 
-/// The frame's own state: what is open and where the keyboard is.
+/// The frame's own state: where you are, what is open and where the keyboard is.
 ///
 /// Separate from the backend's state on purpose. Losing contact with a daemon must not move
 /// anybody's cursor, and opening something must not ask the daemon anything.
 class ShellModel extends ChangeNotifier {
+  Section _section = Section.work;
   Pane _pane = Pane.projects;
   Pane _cameFrom = Pane.projects;
   Opened _opened = const NothingOpened();
+
+  /// Where in the product you are.
+  Section get section => _section;
 
   /// Where the keyboard is.
   Pane get pane => _pane;
@@ -69,6 +85,19 @@ class ShellModel extends ChangeNotifier {
   /// Whether the open thing is a piece of work.
   bool get detailOpen => _opened is WorkOpened;
 
+  /// Goes to a section.
+  ///
+  /// Closes whatever was open over the frame: what is open belongs to where it was opened from,
+  /// and carrying it to another section would leave somebody looking at a task detail over a
+  /// screen that has nothing to do with it.
+  void goTo(Section section) {
+    if (_section == section && !anythingOpen) return;
+    _section = section;
+    _opened = const NothingOpened();
+    _pane = section == Section.work ? _cameFrom : Pane.opened;
+    notifyListeners();
+  }
+
   /// Moves the keyboard to a pane.
   void focus(Pane pane) {
     if (_pane == pane) return;
@@ -78,9 +107,6 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens the selected work over whatever is showing.
   void openDetail() => _open(const WorkOpened());
-
-  /// Opens the session's record of what it has run.
-  void openOperations() => _open(const OperationsOpened());
 
   /// Opens what one operation printed.
   void openOperation(String id) => _open(OperationOpened(id));
@@ -92,14 +118,15 @@ class ShellModel extends ChangeNotifier {
   void close() {
     if (!anythingOpen) return;
     _opened = const NothingOpened();
-    _pane = _cameFrom;
+    _pane = _section == Section.work ? _cameFrom : Pane.opened;
     notifyListeners();
   }
 
   void _open(Opened what) {
-    if (_opened.runtimeType == what.runtimeType && _pane == Pane.opened) {
-      if (what is! OperationOpened) return;
+    if (_opened is OperationOpened && what is OperationOpened) {
       if ((_opened as OperationOpened).id == what.id) return;
+    } else if (_opened.runtimeType == what.runtimeType && _pane == Pane.opened) {
+      return;
     }
     if (!anythingOpen) _cameFrom = _pane;
     _opened = what;

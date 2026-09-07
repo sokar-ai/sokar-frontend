@@ -206,6 +206,25 @@ draws it. Three things there are decisions, not accidents:
 - **Losing contact keeps the last task list.** Clearing it would draw a machine with nothing
   running on it, which is the one reading a dropped tunnel must never produce.
 
+**Three surfaces, one list of actions.** The rail says *where you are* (sections), the menu bar
+says *what you can do*, the command finder is *how you find one fast*. All three read
+`commands.dart`, so an action added once turns up in all of them and a shortcut cannot come to
+mean something other than the entry naming it. None of the three is redundant: they answer
+different questions.
+
+**A pointer must be sufficient, not merely optional.** F01 says "every action is reachable from
+the keyboard alone; a pointer is optional everywhere, never required" — and the first build of the
+shell inverted it. Appearance, reconnect and quit were reachable *only* through the finder, so the
+pointer was the impossible half. The menu bar is the fix, and the scenario *every action is
+reachable with a pointer alone* is the guard that should have caught it.
+
+**Nothing outside `lib/src/ui/tokens.dart` spells out a spacing, a width or a radius**, and
+nothing outside `window_size.dart` compares a width. Layout asks named questions —
+`showsTwoPanes`, `showsOpenedBeside`, `showsMenuBar` — against Material 3's own size classes
+(600/840/1200). Numbers picked to make one screen fit are wrong the moment a second pane exists,
+and there is no way to tell afterwards which of a dozen scattered comparisons meant the same
+thing.
+
 **What opens over the frame is a closed set, not a flag per screen.** `ShellModel.opened` is a
 sealed `Opened` — nothing, work, the session record, one operation's output. Three booleans would
 have been three states that contradict each other the first time two were true at once, and there
@@ -228,6 +247,11 @@ Two interface traps already met:
   affordance; do not put double-tap on a row to open something.
 - **A widget built eagerly outside the branch that shows it still runs its null checks.** A
   detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
+- **Widget tests run at 1280x800**, set in `World.startApp`. The default surface is 800x600, which
+  under the Material 3 size classes is a *narrow* window — every scenario was judging the
+  single-pane fallback by accident, and none of them said so.
+- **`World.settle` pumps three frames, not two.** A theme change animates, and the frame that ends
+  the animation is not the frame that draws its result.
 - **`pumpAndSettle` never returns while a spinner is on screen.** A running operation shows a
   `CircularProgressIndicator`, which is an animation with no end. Steps use `World.settle` — one
   frame, then one long enough to carry a dialog transition — and any new step must too.

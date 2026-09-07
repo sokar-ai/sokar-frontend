@@ -3,6 +3,7 @@ import 'package:sokar_frontend/client.dart';
 
 import '../app/fleet_model.dart';
 import 'selection_list.dart';
+import 'tokens.dart';
 
 /// The heading over a pane, so a pane is identifiable when it is the only one on screen.
 class PaneHeader extends StatelessWidget {
@@ -20,7 +21,12 @@ class PaneHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: EdgeInsets.fromLTRB(leading == null ? 12 : 4, 8, 12, 8),
+        padding: EdgeInsets.fromLTRB(
+          leading == null ? Space.normal : Space.tight,
+          Space.small,
+          Space.normal,
+          Space.small,
+        ),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(color: Theme.of(context).dividerColor),
@@ -128,7 +134,7 @@ class _ProjectRow extends StatelessWidget {
     return Row(
       children: <Widget>[
         _RunningDot(running: project.running > 0),
-        const SizedBox(width: 8),
+        const SizedBox(width: Space.small),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +230,7 @@ class _WorkRow extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         children: <Widget>[
           _RunningDot(running: task.running),
-          const SizedBox(width: 8),
+          const SizedBox(width: Space.small),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +257,7 @@ class _OpenButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        icon: const Icon(Icons.chevron_right, size: 18),
+        icon: const Icon(Icons.chevron_right, size: Sizes.rowIcon),
         tooltip: tooltip,
         visualDensity: VisualDensity.compact,
         onPressed: onPressed,
@@ -287,7 +293,7 @@ class WorkDetail extends StatelessWidget {
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(Space.wide),
             children: <Widget>[
               _Field(name: 'Project', value: task.project.isEmpty ? '—' : task.project),
               _Field(
@@ -298,11 +304,11 @@ class WorkDetail extends StatelessWidget {
               _Field(name: 'Up', value: task.running ? 'yes' : 'no'),
               _Field(name: 'Helpers alive', value: '${task.helpers}'),
               if (ungated) ...<Widget>[
-                const SizedBox(height: 16),
+                const SizedBox(height: Space.wide),
                 Card(
                   color: Theme.of(context).colorScheme.errorContainer,
                   child: const Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: EdgeInsets.all(Space.normal),
                     child: Text(
                       'This container is up with no helpers alive: its gate or its clearance '
                       'watcher is gone.',
@@ -326,7 +332,7 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: Space.tight),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -347,8 +353,8 @@ class _RunningDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 8,
-        height: 8,
+        width: Sizes.dot,
+        height: Sizes.dot,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: running

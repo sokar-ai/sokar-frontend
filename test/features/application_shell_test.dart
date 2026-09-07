@@ -21,8 +21,10 @@ import './step/the_work_is_still_selected.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_finder_names.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
-import './step/i_choose_the_command.dart';
+import './step/i_open_the_menu.dart';
+import './step/i_choose_the_menu_entry.dart';
 import './step/the_appearance_is.dart';
+import './step/i_choose_the_command.dart';
 import './step/the_app_is_restarted.dart';
 import './step/the_window_is_pixels_wide.dart';
 import './step/the_work_pane_is_not_shown.dart';
@@ -80,6 +82,13 @@ void main() {
       await theCommandFinderNames(tester, 'Refresh from the backend');
       await theCommandFinderNames(tester, 'Open the selected work');
       await theCommandIsOfferedAsUnavailable(tester, 'Open the selected work');
+    });
+    testWidgets('''every action is reachable with a pointer alone''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iOpenTheMenu(tester, 'View');
+      await iChooseTheMenuEntry(tester, 'Appearance: dark');
+      await theAppearanceIs(tester, 'dark');
     });
     testWidgets('''the status line says in words what the last action did''',
         (tester) async {

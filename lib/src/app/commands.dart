@@ -67,27 +67,14 @@ List<Command> commandsFor({
   final latest = operations.latest;
 
   return <Command>[
+    // Grouped for the menu bar, which reads the same list: a group is a menu, and the order here
+    // is the order both it and the finder offer.
     Command(
-      id: 'finder.open',
-      label: 'Find a command',
-      group: 'Interface',
-      shortcut: const SingleActivator(LogicalKeyboardKey.keyK, control: true),
-      run: openFinder,
-    ),
-    Command(
-      id: 'focus.projects',
-      label: 'Go to projects',
-      group: 'Interface',
-      shortcut: const SingleActivator(LogicalKeyboardKey.digit1, control: true),
-      run: () => shell.focus(Pane.projects),
-    ),
-    Command(
-      id: 'focus.work',
-      label: 'Go to work',
-      group: 'Interface',
-      shortcut: const SingleActivator(LogicalKeyboardKey.digit2, control: true),
-      run: () => shell.focus(Pane.work),
-      unavailable: selectedProject == null ? 'no project selected' : null,
+      id: 'app.quit',
+      label: 'Quit',
+      group: 'Sokar',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, control: true),
+      run: quit,
     ),
     Command(
       id: 'detail.open',
@@ -106,11 +93,20 @@ List<Command> commandsFor({
       unavailable: shell.anythingOpen ? null : 'nothing is open over the frame',
     ),
     Command(
+      id: 'work.check',
+      label: 'Check that work can start here, creating nothing',
+      group: 'Work',
+      run: checkWorkCanStart,
+      unavailable: fleet.reachability == Reachability.connected
+          ? null
+          : 'not connected to a backend',
+    ),
+    Command(
       id: 'operations.show',
       label: 'Show what this session has run',
       group: 'Operations',
       shortcut: const SingleActivator(LogicalKeyboardKey.keyO, control: true),
-      run: shell.openOperations,
+      run: () => shell.goTo(Section.operations),
     ),
     Command(
       id: 'operations.latest',
@@ -118,15 +114,6 @@ List<Command> commandsFor({
       group: 'Operations',
       run: () => shell.openOperation(latest!.id),
       unavailable: latest == null ? 'nothing has been run from here yet' : null,
-    ),
-    Command(
-      id: 'work.check',
-      label: 'Check that work can start here, creating nothing',
-      group: 'Operations',
-      run: checkWorkCanStart,
-      unavailable: fleet.reachability == Reachability.connected
-          ? null
-          : 'not connected to a backend',
     ),
     Command(
       id: 'fleet.refresh',
@@ -142,29 +129,58 @@ List<Command> commandsFor({
       run: fleet.connect,
     ),
     Command(
+      id: 'finder.open',
+      label: 'Find a command',
+      group: 'View',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyK, control: true),
+      run: openFinder,
+    ),
+    Command(
+      id: 'section.work',
+      label: 'Go to work',
+      group: 'View',
+      shortcut: const SingleActivator(LogicalKeyboardKey.digit1, control: true),
+      run: () => shell.goTo(Section.work),
+    ),
+    Command(
+      id: 'section.operations',
+      label: 'Go to this session',
+      group: 'View',
+      shortcut: const SingleActivator(LogicalKeyboardKey.digit2, control: true),
+      run: () => shell.goTo(Section.operations),
+    ),
+    Command(
+      id: 'focus.projects',
+      label: 'Go to the project list',
+      group: 'View',
+      run: () => shell.focus(Pane.projects),
+      unavailable:
+          shell.section == Section.work ? null : 'the project list is not showing',
+    ),
+    Command(
+      id: 'focus.work',
+      label: 'Go to the work list',
+      group: 'View',
+      run: () => shell.focus(Pane.work),
+      unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
       id: 'appearance.light',
       label: 'Appearance: light',
-      group: 'Interface',
+      group: 'View',
       run: () => settings.setAppearance(ThemeMode.light),
     ),
     Command(
       id: 'appearance.dark',
       label: 'Appearance: dark',
-      group: 'Interface',
+      group: 'View',
       run: () => settings.setAppearance(ThemeMode.dark),
     ),
     Command(
       id: 'appearance.system',
       label: 'Appearance: follow the desktop',
-      group: 'Interface',
+      group: 'View',
       run: () => settings.setAppearance(ThemeMode.system),
-    ),
-    Command(
-      id: 'app.quit',
-      label: 'Quit',
-      group: 'Interface',
-      shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, control: true),
-      run: quit,
     ),
   ];
 }

@@ -7,15 +7,19 @@ import '../app/operations.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
 import 'command_finder.dart';
+import 'command_menu_bar.dart';
 import 'operations.dart';
 import 'panes.dart';
 import 'status_line.dart';
+import 'tokens.dart';
+import 'window_size.dart';
 
-/// The one window: projects, the work under the selected project, and whatever is open over both.
+/// The one window: a rail saying where you are, a menu saying what you can do, and the section
+/// you are in between them.
 ///
-/// Everything else in the product opens over this frame rather than navigating away from it. If
-/// moving between the overview and a detail were expensive people would stop looking, and the
-/// state of the machine would stop being known.
+/// Everything else opens over this frame rather than navigating away from it. If moving between
+/// the overview and a detail were expensive people would stop looking, and the state of the
+/// machine would stop being known.
 class Shell extends StatefulWidget {
   /// Constructor taking everything the frame renders and acts on.
   const Shell({
@@ -29,7 +33,7 @@ class Shell extends StatefulWidget {
   /// What is on the machine.
   final FleetModel fleet;
 
-  /// What is open and where the keyboard is.
+  /// Where you are, what is open and where the keyboard is.
   final ShellModel shell;
 
   /// How the interface looks.
@@ -46,15 +50,6 @@ class _ShellState extends State<Shell> {
   final _projectsFocus = FocusNode(debugLabel: 'projects');
   final _workFocus = FocusNode(debugLabel: 'work');
   final _openedFocus = FocusNode(debugLabel: 'opened');
-
-  /// Below this the two panes stop fitting side by side and the frame shows one at a time.
-  ///
-  /// A dense arrangement that merely shrinks becomes unreachable before it becomes unreadable,
-  /// so it falls back to a simpler one instead.
-  static const _twoPanes = 640.0;
-
-  /// Above this there is room for what is open beside the work rather than over it.
-  static const _threePanes = 1000.0;
 
   @override
   void initState() {
@@ -116,6 +111,7 @@ class _ShellState extends State<Shell> {
       for (final command in commands)
         if (command.shortcut != null) command.shortcut!: _RunCommand(command.id),
     };
+    final size = WindowSize.fromContext(context);
 
     return Shortcuts(
       shortcuts: shortcuts,
@@ -136,11 +132,24 @@ class _ShellState extends State<Shell> {
           body: SafeArea(
             child: Column(
               children: <Widget>[
-                Expanded(child: LayoutBuilder(builder: _layout)),
+                if (size.showsMenuBar)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: CommandMenuBar(commands: commands),
+                  ),
+                Expanded(
+                  child: Row(
+                    children: <Widget>[
+                      _rail(size),
+                      const VerticalDivider(width: 1),
+                      Expanded(child: LayoutBuilder(builder: _section)),
+                    ],
+                  ),
+                ),
                 StatusLine(
                   fleet: widget.fleet,
                   operations: widget.operations,
-                  onShowOperations: widget.shell.openOperations,
+                  onShowOperations: () => widget.shell.goTo(Section.operations),
                 ),
               ],
             ),
@@ -150,11 +159,47 @@ class _ShellState extends State<Shell> {
     );
   }
 
-  /// What is open over the frame, or null when nothing is.
+  Widget _rail(WindowSize size) => NavigationRail(
+        extended: size.railShowsLabels,
+        labelType:
+            size.railShowsLabels ? null : NavigationRailLabelType.selected,
+        selectedIndex: Section.values.indexOf(widget.shell.section),
+        onDestinationSelected: (chosen) =>
+            widget.shell.goTo(Section.values[chosen]),
+        destinations: const <NavigationRailDestination>[
+          NavigationRailDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: Text('Work'),
+          ),
+          NavigationRailDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: Text('This session'),
+          ),
+        ],
+      );
+
+  Widget _section(BuildContext context, BoxConstraints constraints) =>
+      switch (widget.shell.section) {
+        Section.work => _work(WindowSize.of(constraints.maxWidth)),
+        Section.operations => _thisSession(),
+      };
+
+  Widget _thisSession() {
+    final opened = _opened();
+    if (opened != null) return opened;
+    return OperationsList(
+      operations: widget.operations,
+      focusNode: _openedFocus,
+      onOpen: widget.shell.openOperation,
+    );
+  }
+
+  /// What is open over the work, or null when nothing is.
   ///
   /// Resolved rather than read straight off the model, because what a view points at can go away
-  /// underneath it: work that stopped existing, an operation this session never had. Falling back
-  /// beats rendering nothing at all.
+  /// underneath it: work that stopped existing, an operation this session never had.
   Widget? _opened() {
     switch (widget.shell.opened) {
       case NothingOpened():
@@ -163,33 +208,23 @@ class _ShellState extends State<Shell> {
         final task = widget.fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
-      case OperationsOpened():
-        return _operationsList();
       case OperationOpened(:final id):
         final operation = widget.operations.byId(id);
-        if (operation == null) return _operationsList();
+        if (operation == null) return null;
         return OperationOutputView(
           operation: operation,
-          onBack: widget.shell.openOperations,
+          onBack: () => widget.shell.goTo(Section.operations),
           onClose: widget.shell.close,
         );
     }
   }
 
-  Widget _operationsList() => OperationsList(
-        operations: widget.operations,
-        focusNode: _openedFocus,
-        onOpen: widget.shell.openOperation,
-        onClose: widget.shell.close,
-      );
-
-  Widget _layout(BuildContext context, BoxConstraints constraints) {
+  Widget _work(WindowSize size) {
     final opened = _opened();
-
-    if (constraints.maxWidth < _twoPanes) return _onePane(opened);
+    if (!size.showsTwoPanes) return _onePane(opened);
 
     final projects = SizedBox(
-      width: 260,
+      width: Sizes.projectsPane,
       child: ProjectsPane(
         fleet: widget.fleet,
         focusNode: _projectsFocus,
@@ -206,14 +241,14 @@ class _ShellState extends State<Shell> {
 
     // Wide enough keeps the work list beside what is open; otherwise the open thing takes the
     // space the work list had, which is still opening over the frame rather than navigating away.
-    if (opened != null && constraints.maxWidth >= _threePanes) {
+    if (opened != null && size.showsOpenedBeside) {
       return Row(
         children: <Widget>[
           projects,
           const VerticalDivider(width: 1),
           Expanded(child: work),
           const VerticalDivider(width: 1),
-          SizedBox(width: 420, child: opened),
+          SizedBox(width: Sizes.openedPane, child: opened),
         ],
       );
     }
@@ -256,10 +291,10 @@ class _ShellState extends State<Shell> {
   }
 }
 
-/// Runs the command with this id, whatever key or menu asked for it.
+/// Runs the command with this id, whatever key, menu or finder asked for it.
 ///
-/// One path from a keystroke to an action, shared with the finder, so a shortcut cannot come to
-/// mean something other than the entry that names it.
+/// One path from a keystroke to an action, shared with the menu bar and the finder, so a shortcut
+/// cannot come to mean something other than the entry that names it.
 class _RunCommand extends Intent {
   const _RunCommand(this.id);
 
