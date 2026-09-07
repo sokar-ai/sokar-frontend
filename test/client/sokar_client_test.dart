@@ -292,6 +292,28 @@ void main() {
     });
   });
 
+  group('leaving a stream', () {
+    test('cancelling returns rather than waiting for a daemon that will not close', () async {
+      // Socket.close() completes when the *peer* closes, and a daemon holding a stream open never
+      // does. Awaiting it hung for ever, which reads as an interface that froze on the way out.
+      final changes = StreamController<Map<String, dynamic>>();
+      daemon.pushes('Watch', (_) => changes.stream);
+      final client = await connect();
+      final seen = Completer<void>();
+      final watching = client.watchTasks().listen((_) {
+        if (!seen.isCompleted) seen.complete();
+      });
+      changes.add(<String, dynamic>{'tasks': <Map<String, dynamic>>[task('a')]});
+      await seen.future;
+
+      await expectLater(
+        watching.cancel().timeout(const Duration(seconds: 5)),
+        completes,
+      );
+      await changes.close();
+    });
+  });
+
   group('a backend that accepts a call and never answers it', () {
     test('gives up rather than waiting forever', () async {
       // The state that cost an afternoon: the socket is healthy, the connection is accepted, and

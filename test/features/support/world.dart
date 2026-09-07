@@ -104,6 +104,11 @@ class FakeBackend implements FleetBackend {
   final List<({String task, bool? purge, bool? rescue, bool? force})> stops =
       <({String task, bool? purge, bool? rescue, bool? force})>[];
 
+  /// Acts on the machine, rather than only answering about it.
+  ///
+  /// A stand-in that says a task was removed and goes on listing it makes a working interface
+  /// look like one where nothing happens. That was found by hand, against the other stand-in,
+  /// with every test green — so both of them act now, and a scenario holds this one to it.
   @override
   Future<Stopped> stopTask(
     String task, {
@@ -112,6 +117,10 @@ class FakeBackend implements FleetBackend {
     bool? force,
   }) async {
     stops.add((task: task, purge: purge, rescue: rescue, force: force));
+    if (nextStop.removed) {
+      _tasks = _tasks.where((each) => each.name != task).toList();
+      _changes.add(_tasks);
+    }
     return nextStop;
   }
 

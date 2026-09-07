@@ -41,6 +41,13 @@ flutter test
 flutter build linux --release   # bundle in build/linux/x64/release/bundle
 ```
 
+With a real `sokard` running, one more suite checks that this client still agrees with it — the
+only test that can, and skipped when there is nothing to talk to:
+
+```
+SOKAR_SOCKET=$XDG_RUNTIME_DIR/sokar/sokard.sock flutter test test/client/live_daemon_test.dart
+```
+
 `dart analyze`, never `flutter analyze` — the reason is in [AGENT.md](AGENT.md). Run
 `build_runner` after adding or editing a `.feature` file; the generated `_test.dart` beside it is
 committed, and CI fails on a diff.

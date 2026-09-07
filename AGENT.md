@@ -141,6 +141,24 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
   the socket-error path instead, and the graceful-close path had no test at all. Two tests exist
   now because the mutation was actually run.
 - **Test observable behaviour**, not internals — what is on screen, what went down the socket.
+- **Three levels, and each proves something the others cannot.** They are not redundant and
+  nothing above the first one can catch a mistake below it:
+  1. **`test/features/`** — the frame, in widget tests, against `FakeBackend`. A widget test runs
+     on a fake clock and real socket input never completes under it, so this level cannot use a
+     socket at all.
+  2. **`test/client/`** — the client and the stand-in, over a **real unix socket** against
+     `MockDaemon`. `mock_machine_test.dart` holds `MockMachine` — what
+     `tool/mock_daemon.dart` serves, and what a person opens the interface against — to the
+     behaviour the frame is built on.
+  3. **`test/client/live_daemon_test.dart`** — the client against a **real `sokard`**, skipped
+     unless `SOKAR_SOCKET` points at one. The only test that can say the hand-written client
+     agrees with the daemon rather than with our reading of the IDL. Pointed at the mock it fails,
+     which is how it is known not to be vacuous.
+- **A stand-in must act on what it is told, not answer canned.** `Stop` answered *removed* and
+  went on listing the task, so a working interface looked like one where nothing happens — found
+  by hand, in a minute, with the whole suite green. Both stand-ins act now, and a scenario asserts
+  the row goes rather than only that the outcome was reported. **Assert the effect, not the
+  report.**
 - **A test that needs a real daemon is not a unit test.** Unit and widget tests must run with no
   backend, no podman and no container runtime present. That is what the mock is for.
 - **The mock daemon does not work inside `testWidgets`.** Measured 2026-09-07: a widget test runs
@@ -187,6 +205,16 @@ how they get forgotten:
 A stream ends *only* on a final reply. Ending any other way — a destroyed socket or a polite
 close — is an error, because a stream that completes quietly is indistinguishable from one with
 nothing to say, and that renders as a machine with no tasks on it.
+
+Two ways a connection hangs, both met for real and both fixed:
+
+- **`Socket.close()` completes only when the *peer* closes.** A daemon holding a stream open never
+  will, so awaiting it waits for ever. `VarlinkConnection.close()` destroys instead — cancelling a
+  stream is an ordinary act, not an error.
+- **`await for` cannot be interrupted while it waits.** A generator paused on one notices it has
+  been cancelled only when the next event arrives, so leaving a `Watch` or a `Tail` hung until the
+  daemon happened to say something — on a quiet machine, for ever. `callMore` uses an explicit
+  subscription with `onCancel` for exactly this reason. **Do not put `await for` back.**
 
 **A single call has a deadline; a stream does not.** `VarlinkConnection.answerWithin` is 30 s, and
 `GetInfo` gets 5 s because "is there a daemon on this socket" has to answer fast. A backend that

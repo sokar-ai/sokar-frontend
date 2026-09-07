@@ -82,14 +82,42 @@ class VarlinkConnection {
   /// goes away - the latter as an error, never as a quiet completion. A stream that ends silently
   /// is indistinguishable from one with nothing to say, and that is how a truncated answer gets
   /// read as an empty machine.
+  ///
+  /// Built on an explicit subscription rather than `await for`, because **`await for` cannot be
+  /// interrupted while it waits**. A generator paused on one only notices it has been cancelled
+  /// when the next event arrives - so leaving a `Watch` or a `Tail` hung until the daemon
+  /// happened to say something, which on a quiet machine is for ever.
   Stream<Map<String, dynamic>> callMore(String method,
-      [Map<String, dynamic> parameters = const {}]) async* {
-    _send(method, parameters, more: true);
-    await for (final reply in _replies.stream) {
-      yield _parameters(reply);
-      if (reply['continues'] != true) return;
-    }
-    throw const VarlinkDisconnected('the stream ended without a final reply');
+      [Map<String, dynamic> parameters = const {}]) {
+    final replies = StreamController<Map<String, dynamic>>();
+    StreamSubscription<Map<String, dynamic>>? reading;
+
+    replies.onListen = () {
+      _send(method, parameters, more: true);
+      reading = _replies.stream.listen(
+        (reply) {
+          final Map<String, dynamic> answer;
+          try {
+            answer = _parameters(reply);
+          } on VarlinkException catch (refusal) {
+            replies.addError(refusal);
+            unawaited(replies.close());
+            return;
+          }
+          replies.add(answer);
+          if (reply['continues'] != true) unawaited(replies.close());
+        },
+        onError: replies.addError,
+        onDone: () {
+          replies.addError(
+              const VarlinkDisconnected('the stream ended without a final reply'));
+          unawaited(replies.close());
+        },
+      );
+    };
+    replies.onCancel = () async => reading?.cancel();
+
+    return replies.stream;
   }
 
   void _send(String method, Map<String, dynamic> parameters, {required bool more}) {
@@ -111,8 +139,10 @@ class VarlinkConnection {
   }
 
   /// Closes the connection.
-  Future<void> close() async {
-    await _socket.close();
-    _socket.destroy();
-  }
+  ///
+  /// Destroys it rather than waiting for the far end. `Socket.close()` completes only once the
+  /// peer has closed too, and a daemon holding a stream open has no reason to — so awaiting it
+  /// hangs for ever. Cancelling a stream is an ordinary act, not an error: leaving a log view or
+  /// closing a window does it, and neither may block.
+  Future<void> close() async => _socket.destroy();
 }

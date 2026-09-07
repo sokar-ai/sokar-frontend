@@ -17,6 +17,7 @@ import './step/the_work_is_listed.dart';
 import './step/the_stop_asked_to_rescue_what_was_held.dart';
 import './step/the_stop_asked_to_discard_what_was_held.dart';
 import './step/nothing_more_was_asked_of_the_backend.dart';
+import './step/the_work_is_no_longer_listed.dart';
 import './step/i_open_the_actions_for.dart';
 import './step/the_action_is_offered_as_unavailable.dart';
 
@@ -68,11 +69,12 @@ void main() {
       await theWorkIsListed(tester, 'sokar-checkout-shell');
       await theStatusLineMentions(tester, 'nothing was touched');
     });
-    testWidgets('''work with nothing held is stopped, and says so''',
+    testWidgets('''work with nothing held is stopped, and stops being listed''',
         (tester) async {
       await bddSetUp(tester);
       await iStopTheSelectedWork(tester);
       await theStatusLineMentions(tester, 'was stopped and removed');
+      await theWorkIsNoLongerListed(tester, 'sokar-checkout-shell');
     });
     testWidgets(
         '''an action the state does not allow is offered as unavailable, not hidden''',

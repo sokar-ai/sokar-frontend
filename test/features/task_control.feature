@@ -36,9 +36,10 @@ Feature: F09 Task Control
     And the work {'sokar-checkout-shell'} is listed
     And the status line mentions {'nothing was touched'}
 
-  Scenario: work with nothing held is stopped, and says so
+  Scenario: work with nothing held is stopped, and stops being listed
     When I stop the selected work
     Then the status line mentions {'was stopped and removed'}
+    And the work {'sokar-checkout-shell'} is no longer listed
 
   Scenario: an action the state does not allow is offered as unavailable, not hidden
     When I open the actions for {'sokar-checkout-shell'}
