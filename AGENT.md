@@ -896,3 +896,22 @@ a second implementation of the *domain* by parsing the `sokar` CLI. `ssh` is tra
 answers; the process itself is proven in `test/app/tunnel_test.dart` against real sockets. Same
 reason `FleetBackend` is a seam: a widget test's clock does not carry real input and output.
 
+## Break it and watch the *right* thing fail
+
+Mutation testing is the rule here already: after writing a guard, break what it guards and watch it
+fail. That is not enough on its own, and the Sokar side produced the sharpest case of why on
+2026-09-07.
+
+Their check for which copy of a shadowed agent runs read the *message* the system printed. They
+mutated the rule to pick the wrong copy — **and the check still passed**, because the message was
+built from the losing side and stayed word-for-word identical while the register held the other
+one. It was asserting what the system said about itself, and the system was saying something
+false. The corrected check reads which binary actually runs, and failed instantly.
+
+**A check that reads a report is testing the reporter.** Three of the near-misses on this project
+share that shape: a grep matching the fixture's own name, a test for a state a constructor
+forbids, and — here — two `contains` assertions that matched the comment explaining a directive
+rather than the directive. When a mutation survives, the first question is not *"is the mutation
+too weak"* but *"is my check reading the thing, or reading something the thing says about
+itself"*.
+
