@@ -222,6 +222,101 @@ void main() {
     expect(after.length, greaterThan(before.length));
   });
 
+  test('a launch with no prompt ends when the container is up', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final lines = <String>[];
+    var code = -1;
+    await for (final progress in client.start(project: '/srv/checkout/project.yml')) {
+      if (progress.line != null) lines.add(progress.line!);
+      if (progress.exitCode != null) code = progress.exitCode!;
+    }
+
+    expect(code, 0);
+    expect(lines, isNotEmpty);
+    expect(lines.any((line) => line.startsWith('agent:')), isFalse,
+        reason: 'nothing was asked for, so nothing should have run');
+  });
+
+  test('a launch with a prompt runs the agent and streams what it writes', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final lines = <String>[];
+    var code = -1;
+    await for (final progress in client.start(
+      task: 'sokar-checkout-run',
+      project: '/srv/checkout/project.yml',
+      agent: 'an-agent',
+      mode: Mode.unattended,
+      prompt: 'Fix the rounding in Money.pennies',
+    )) {
+      if (progress.line != null) lines.add(progress.line!);
+      if (progress.exitCode != null) code = progress.exitCode!;
+    }
+
+    expect(code, 0);
+    // The raw log, which is the same text `Tail` serves for `task.log`.
+    expect(lines, contains('agent: Fix the rounding in Money.pennies'));
+
+    // And it is listed afterwards, keeping what it was asked to do — which is what continuing it
+    // with a new prompt reads back.
+    final run = (await client.tasks()).firstWhere((task) => task.name == 'sokar-checkout-run');
+    expect(run.mode, Mode.unattended);
+    expect(run.prompt, 'Fix the rounding in Money.pennies');
+    expect(run.running, isFalse);
+  });
+
+  test('a run killed by its own time limit comes back 124, with its log kept', () async {
+    await machineIn('out-of-time');
+    final client = await connect();
+
+    final lines = <String>[];
+    var code = -1;
+    await for (final progress in client.start(
+      project: '/srv/checkout/project.yml',
+      prompt: 'Fix the rounding',
+    )) {
+      if (progress.line != null) lines.add(progress.line!);
+      if (progress.exitCode != null) code = progress.exitCode!;
+    }
+
+    expect(code, 124);
+    expect(lines, contains('agent: running the tests'),
+        reason: 'the log is kept, and what it managed to do is the interesting part');
+  });
+
+  test('asking for a run with no agent installed comes back 69, having run nothing', () async {
+    await machineIn('no-agent');
+    final client = await connect();
+
+    var code = -1;
+    final lines = <String>[];
+    await for (final progress in client.start(
+      project: '/srv/checkout/project.yml',
+      prompt: 'Fix the rounding',
+    )) {
+      if (progress.line != null) lines.add(progress.line!);
+      if (progress.exitCode != null) code = progress.exitCode!;
+    }
+
+    expect(code, 69);
+    expect(lines.any((line) => line.startsWith('agent:')), isFalse,
+        reason: 'nothing ran, so there is nothing to read');
+  });
+
+  test('the machine says which agents it has, and which it could not read', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final (installed, failures) = await client.agents();
+
+    expect(installed.map((agent) => agent.name), contains('an-agent'));
+    // Named rather than left out: missing from a list looks exactly like never installed.
+    expect(failures.keys, contains('broken-agent'));
+  });
+
   test('widening a running task grants the names, in the order asked for', () async {
     await machineIn('work');
     final client = await connect();

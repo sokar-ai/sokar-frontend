@@ -22,6 +22,12 @@ abstract class FleetBackend {
   /// Every task on it, running or stopped.
   Future<List<Task>> tasks();
 
+  /// The agent binaries installed on it, and why any of them could not be read.
+  ///
+  /// Asked rather than assumed: what is installed is a property of the machine, and a name this
+  /// build knew would be one that was never going to exist somewhere else.
+  Future<(List<Agent>, Map<String, String>)> agentsOn();
+
   /// Every project on it.
   ///
   /// Asked for, never derived from the task list: a project that has never run anything would be
@@ -50,6 +56,11 @@ abstract class FleetBackend {
     String? project,
     String? agent,
     bool dryRun = false,
+    Mode? mode,
+    String? prompt,
+    String? model,
+    int? maxTurns,
+    int? minutes,
   });
 
   /// Stops a task and removes what is left of it, or refuses and says why.
@@ -166,6 +177,9 @@ class SokarBackend implements FleetBackend {
   Future<List<Task>> tasks() => _opened().tasks();
 
   @override
+  Future<(List<Agent>, Map<String, String>)> agentsOn() => _opened().agents();
+
+  @override
   Future<List<Project>> projects() => _opened().projects();
 
   @override
@@ -177,6 +191,11 @@ class SokarBackend implements FleetBackend {
     String? project,
     String? agent,
     bool dryRun = false,
+    Mode? mode,
+    String? prompt,
+    String? model,
+    int? maxTurns,
+    int? minutes,
   }) async* {
     // Streaming, so every line arrives as `line`; the contract's `output` list is for a caller
     // that did not ask to stream and is empty here.
@@ -186,6 +205,11 @@ class SokarBackend implements FleetBackend {
       project: project,
       agent: agent,
       dryRun: dryRun,
+      mode: mode,
+      prompt: prompt,
+      model: model,
+      maxTurns: maxTurns,
+      minutes: minutes,
     )) {
       final line = progress.line;
       if (line != null) yield line;
@@ -294,6 +318,28 @@ class OperationFailed implements Exception {
   /// What the launch returned. Never zero.
   final int exitCode;
 
+  /// Whether there is a log worth offering.
+  ///
+  /// Two of the bands are not failed runs at all. `69` means no agent is installed, so nothing
+  /// ran and there is nothing to read — offering a log view there opens an empty window on a file
+  /// that was never written.
+  bool get leftALog => exitCode != 69;
+
+  /// Whether the run was stopped by its own time limit rather than by going wrong.
+  ///
+  /// The log is kept, deliberately, and what it managed to do is usually the interesting part.
+  bool get ranOutOfTime => exitCode == 124;
+
+  /// Whether nothing ran, as opposed to something running badly.
+  bool get nothingRan => exitCode == 69;
+
   @override
-  String toString() => 'Failed, exit code $exitCode.';
+  String toString() => switch (exitCode) {
+        // Four bands, not two. Reading every non-zero code as "it failed" throws away the two
+        // that are not failures of the work at all.
+        124 => 'It ran out of the time it was given and was stopped. What it managed to do is '
+            'in the log.',
+        69 => 'No agent is installed, so nothing ran. That is a refusal, not a failed run.',
+        _ => 'The agent exited with code $exitCode.',
+      };
 }

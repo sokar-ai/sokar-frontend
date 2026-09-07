@@ -144,6 +144,22 @@ class SokarClient {
   ///
   /// The task outlives this call: canceling the stream stops the reporting, never the launch.
   /// Building an image takes minutes, so an interface must show these lines rather than nothing.
+  ///
+  /// **Giving a [prompt] makes this call run the agent**, not merely bring the container up. It
+  /// then lasts as long as the run — minutes, sometimes tens of them — which is why `Start`
+  /// streams and why nothing here puts a deadline on it. A deadline would not stop the agent
+  /// anyway: the run carries on in the container and the caller has only stopped watching, which
+  /// is a different thing to tell somebody than "canceled".
+  ///
+  /// What arrives is the **raw log**, the same text `Tail` serves for `task.log`. The formatted
+  /// view an agent can produce is made in the CLI process and is not on the wire.
+  ///
+  /// [mode] is genuinely optional and **the backend's default depends on the prompt** —
+  /// `UNATTENDED` when one is given, `SHELL` otherwise — so nothing is restated here. What must
+  /// never be sent is `SHELL` together with a prompt: it is accepted and recorded, and it says a
+  /// person is driving a run nobody is attached to.
+  ///
+  /// Without a prompt nothing changed: the container comes up and the call returns.
   Stream<StartProgress> start({
     String? task,
     String? project,
@@ -156,6 +172,11 @@ class SokarClient {
     bool? dryRun,
     String? clearance,
     bool? keep,
+    Mode? mode,
+    String? prompt,
+    String? model,
+    int? maxTurns,
+    int? minutes,
   }) {
     // Only what the caller named is sent, so the backend's own defaults stay the only defaults.
     // Restating them here would be a second place for them to drift.
@@ -171,6 +192,11 @@ class SokarClient {
       'dryRun': ?dryRun,
       'clearance': ?clearance,
       'keep': ?keep,
+      'mode': ?mode?.name,
+      'prompt': ?prompt,
+      'model': ?model,
+      'maxTurns': ?maxTurns,
+      'minutes': ?minutes,
     };
     return _callMore('Start', parameters).map(StartProgress.from);
   }

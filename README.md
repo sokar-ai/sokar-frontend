@@ -63,7 +63,7 @@ SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
 ```
 
 Pressing RETURN in the first terminal adds a task and pushes the change, so live updates can be
-watched arriving. `Ctrl+K` → *Check that work can start here* runs a long operation against the
+watched arriving. `Ctrl+N` starts work — a name, an agent, one of the three modes, and a prompt when it is unattended, which makes the mock actually run an agent and stream what it writes; `Ctrl+K` → *Check that work can start here* runs a long operation against the
 mock; `Ctrl+O` shows everything this session has run; `Ctrl+E` on a project shows what its work may reach and changes it behind a preview; `Ctrl+G`
 shows what is waiting at its gate, with two pushes to read, forward or drop. In the mock's terminal, `b` blocks a
 connection and `x` lets that question run out — the rail counts what is waiting. The mock's tasks have `agent.log` and
@@ -79,6 +79,8 @@ for on demand:
 | `dart tool/mock_daemon.dart newer-outcome` | an `Outcome` added after this build shipped |
 | `dart tool/mock_daemon.dart newer-interface` | a backend serving `Tasks2` beside the `Tasks1` this build understands |
 | `dart tool/mock_daemon.dart failing-start` | a launch that prints for a while and then comes back non-zero |
+| `dart tool/mock_daemon.dart out-of-time` | an unattended run killed by its own time limit, with its log kept |
+| `dart tool/mock_daemon.dart no-agent` | a run asked for when nothing is installed to run it |
 
 A second one, to try reaching several machines at once — the interface watches all of them and
 acts on the one named above the rail:

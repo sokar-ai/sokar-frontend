@@ -8,6 +8,7 @@ import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
+import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
@@ -56,6 +57,39 @@ class FakeBackend implements FleetBackend {
 
   /// How many launches have been asked for, and with what.
   final List<bool> launched = <bool>[];
+
+  /// Every launch, as it was asked for. What mode and prompt went down the socket is the whole
+  /// of F08 — a screen that offered one and sent another would be wrong invisibly.
+  final List<({String? task, String? project, String? agent, Mode? mode, String? prompt})>
+      starts =
+      <({String? task, String? project, String? agent, Mode? mode, String? prompt})>[];
+
+  /// What `Agents` answers, and what could not be read.
+  List<Agent> theAgentsItHas = <Agent>[
+    Agent.from(const <String, dynamic>{
+      'name': 'an-agent',
+      'label': 'An Agent',
+      'binary': '/usr/bin/an-agent',
+      'version': '2.4.0',
+      'from': '/usr/share/sokar/agents/an-agent.yml',
+      'allowedDomains': <String>['api.anthropic.com'],
+    }),
+    Agent.from(const <String, dynamic>{
+      'name': 'other-agent',
+      'label': 'Another Agent',
+      'binary': '/usr/bin/other-agent',
+      'version': '',
+      'from': '/etc/sokar/agents/other-agent.yml',
+      'allowedDomains': <String>['api.example.test'],
+    }),
+  ];
+
+  /// Agents that could not be read, and why.
+  Map<String, String> theAgentsItCannotRead = const <String, String>{};
+
+  @override
+  Future<(List<Agent>, Map<String, String>)> agentsOn() async =>
+      (theAgentsItHas, theAgentsItCannotRead);
 
   @override
   String get label => 'mock';
@@ -119,8 +153,14 @@ class FakeBackend implements FleetBackend {
     String? project,
     String? agent,
     bool dryRun = false,
+    Mode? mode,
+    String? prompt,
+    String? model,
+    int? maxTurns,
+    int? minutes,
   }) {
     launched.add(dryRun);
+    starts.add((task: task, project: project, agent: agent, mode: mode, prompt: prompt));
     launch = StreamController<String>();
     return launch.stream;
   }
@@ -486,6 +526,9 @@ class World {
   /// What is being let through to work that is already running.
   static late Widening widening;
 
+  /// What is being started.
+  static late StartWork starting;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -500,8 +543,17 @@ class World {
 
   /// One machine with two projects on it, one of them with work stopped.
   static List<Task> get work => <Task>[
-        _task('sokar-checkout-shell', 'checkout'),
-        _task('sokar-checkout-migrate', 'checkout', running: false, helpers: 0),
+        // Running, unattended, and carrying its prompt: continuing it is refused because it is
+        // still going, which is a different refusal from "it was never an unattended run".
+        _task('sokar-checkout-shell', 'checkout',
+            mode: 'UNATTENDED', prompt: 'Bring the schema up to date'),
+        // A finished unattended run that kept what it was asked to do, which is what continuing
+        // it with a new prompt reads back.
+        _task('sokar-checkout-migrate', 'checkout',
+            running: false,
+            helpers: 0,
+            mode: 'UNATTENDED',
+            prompt: 'Fix the rounding in Money.pennies and add a test for it'),
         _task('sokar-billing-shell', 'billing', securityClass: 'offline', helpers: 1),
         // Started with enforcement off: nothing will ever be asked about what it reaches.
         _task('sokar-billing-audit', 'billing', helpers: 0, clearance: 'off'),
@@ -516,6 +568,9 @@ class World {
     int helpers = 2,
     String securityClass = 'guarded',
     String clearance = 'prompt',
+    String mode = '',
+    String prompt = '',
+    String agent = 'an-agent',
   }) =>
       Task.from(<String, dynamic>{
         'name': name,
@@ -525,6 +580,9 @@ class World {
         'running': running,
         'helpers': helpers,
         'clearance': clearance,
+        'mode': mode,
+        'prompt': prompt,
+        'agent': agent,
       });
 
   /// One blocked connection, as the daemon raises it.
@@ -616,6 +674,7 @@ class World {
     gate = Gate();
     egress = Egress();
     widening = Widening();
+    starting = StartWork();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
@@ -660,6 +719,7 @@ class World {
       notifications: notifications,
       egress: egress,
       widening: widening,
+      starting: starting,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -707,6 +767,7 @@ class World {
       notifications: notifications,
       egress: egress,
       widening: widening,
+      starting: starting,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -724,6 +785,7 @@ class World {
       notifications: notifications,
       egress: egress,
       widening: widening,
+      starting: starting,
       newerVersion: newerVersion,
     ));
     await settle(tester);

@@ -7,6 +7,7 @@ import 'notifications.dart';
 import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
+import 'start_work.dart';
 import 'widening.dart';
 
 /// One action in the product, by name.
@@ -127,6 +128,8 @@ List<Command> commandsFor({
   required VoidCallback openTheGate,
   required VoidCallback openEgress,
   required VoidCallback widenTheWork,
+  required VoidCallback startWork,
+  required VoidCallback continueTheWork,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
@@ -193,6 +196,23 @@ List<Command> commandsFor({
                   // offering it and saying why.
                   ? 'an offline project declares no egress at all'
                   : null,
+    ),
+    Command(
+      id: 'work.start',
+      label: 'Start work in this project',
+      group: 'Work',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyN, control: true),
+      run: startWork,
+      unavailable: StartWork.whyNot(selectedProject?.project),
+    ),
+    Command(
+      id: 'work.continue',
+      label: 'Continue this work with a new prompt',
+      group: 'Work',
+      run: continueTheWork,
+      // Three separate reasons, each said rather than collapsed into "not now": still running,
+      // not an unattended run, or nothing recorded what it was asked to do.
+      unavailable: StartWork.whyNotContinue(selectedTask),
     ),
     Command(
       id: 'work.widen',

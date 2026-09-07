@@ -67,11 +67,25 @@ method by method rather than by name. Starting is one call, so F08 read as cover
 no parameter for two thirds of what the requirement asks for. **Checking that a method exists is
 not checking that it answers the requirement.**
 
-- **F08 Task Creation And Modes** — which project to start in is answerable now, from
-  `Project.file`. What is still missing is what the requirement is named for: there is **no `mode`
-  parameter**, so "driving it interactively, a richer session, or unattended" cannot be offered,
-  and **no `prompt` parameter**, so an unattended run cannot collect one, nothing retains one, and
-  finished work cannot be continued with a new one. Worth asking for.
+- **F08 Task Creation And Modes** — **five of six criteria are built.** `Start` gained `mode`,
+  `prompt`, `model`, `maxTurns` and `minutes` on 2026-09-07, and a prompt makes the call *run* the
+  agent rather than only bring the container up. What is left is one criterion with nothing behind
+  it: *"a missing credential is reported before anything is built or started"* — `Credentials`
+  reports the store's state, and nothing says which credential a given project and agent need, so
+  the interface cannot tell somebody one is missing before starting. Worth asking for.
+  - `mode` was missing from the note's own IDL block, which read as though it did not exist. It
+    does: `Mode (SHELL, AGENT, UNATTENDED)`, optional, defaulting to `UNATTENDED` with a prompt
+    and `SHELL` without. **Ask when a summary and a block disagree** — the answer took an hour and
+    would have cost a rebuild.
+  - `SHELL` with a prompt is *accepted and recorded*, and it would say a person is driving a run
+    nobody is attached to. Not offered: the prompt box belongs to `UNATTENDED` alone.
+  - `Task.mode` was sending lower case against an IDL that declared the `Mode` type. Fixed on the
+    Sokar side to `SHELL`/`AGENT`/`UNATTENDED`. This build was already comparing against the
+    contract's spelling, so nothing here changed — **coding against the IDL rather than against
+    what came down the socket is what made that free.**
+  - `Task.mode` stays a **string**, not the type: it has a fourth state, `""`, for a task started
+    before the field existed. Render the absence; never default it to `SHELL`.
+
 - **F09 Task Control** — **built**, except that **renaming has no method at all**. Recreating is
   `Stop` then `Start`, which `Project.file` now makes possible; it is unbuilt rather than blocked.
 - ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection

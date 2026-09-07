@@ -689,3 +689,32 @@ race, and nothing in the interface should treat it as one.
 unavailable with the reason. There is **no narrowing and no granting of sets**: neither is decided
 on the backend, and a control for either would be a screen with no method behind it.
 
+## A prompt makes `Start` run the agent
+
+`Start` without a prompt brings the container up and returns. **With a prompt it runs the agent**,
+so the call lasts as long as the run — minutes, sometimes tens of them. Four things follow:
+
+- **It streams, and nothing may put a deadline on it.** `callMore` has none, deliberately, and
+  that must stay true. A timeout would not stop the agent anyway: the run carries on in the
+  container and the interface has merely stopped watching, which is a different thing to tell
+  somebody than "canceled".
+- **Read `exitCode` in four bands, not two.** `0` finished; `124` hit its own time limit and was
+  killed, **and the log is kept** — show what it managed to do; `69` no agent is installed, so
+  nothing ran and there is no log to offer; anything else is the agent's own code.
+  `OperationFailed` carries all four, with `leftALog` and `ranOutOfTime` for the two that are not
+  ordinary failures.
+- **What streams is the raw log**, the same text `Tail` serves for `task.log`. The formatted view
+  an agent can produce is made in the CLI process and is not on the wire. Asking for one needs a
+  method that does not exist.
+- **`mode` is never assumed.** `Start` defaults it — `UNATTENDED` with a prompt, `SHELL` without —
+  and the screen does not rely on that, because the mode says whether anybody is going to be
+  there. `SHELL` *with* a prompt is accepted and recorded, which would describe a run nobody is
+  attached to as one somebody is driving: the prompt box belongs to `UNATTENDED` alone.
+
+**Ask when a summary and its own IDL block disagree.** The note announcing this left `mode` out of
+the block while its closing sentence assumed it. Three readings were possible and they led to
+different screens; asking cost an hour, and building the wrong one would have cost a rebuild. The
+same question turned up a real bug — `Task.mode` was going out in lower case against an IDL that
+declared the `Mode` type — which cost this build nothing, because it compares against the
+contract's spelling and not against what happened to arrive.
+

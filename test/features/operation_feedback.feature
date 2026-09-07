@@ -45,7 +45,25 @@ Feature: F13 Operation Feedback And History
     And the operation fails
     And I close what is open
     And I show what this session has run
-    Then the record shows {'exit code 1'}
+    Then the record shows {'exited with code 1'}
     And the record marks it as failed
     When I open the last operation
     Then the operation shows {'could not read project.yml'}
+
+  Scenario: a run stopped by its own time limit is not read as a run that went wrong
+    When I choose the command {'Check that work can start here, creating nothing'}
+    And the operation prints {'agent: editing lib/money.dart'}
+    And the operation runs out of time
+    And I close what is open
+    And I show what this session has run
+    Then the record shows {'ran out of the time it was given'}
+    When I open the last operation
+    Then the operation shows {'agent: editing lib/money.dart'}
+
+  Scenario: a run with no agent installed says nothing ran, rather than that it failed
+    When I choose the command {'Check that work can start here, creating nothing'}
+    And no agent is installed
+    And I close what is open
+    And I show what this session has run
+    Then the record shows {'No agent is installed, so nothing ran'}
+

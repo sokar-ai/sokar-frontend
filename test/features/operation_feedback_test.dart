@@ -20,6 +20,8 @@ import './step/the_operation_finishes.dart';
 import './step/the_record_shows.dart';
 import './step/the_operation_fails.dart';
 import './step/the_record_marks_it_as_failed.dart';
+import './step/the_operation_runs_out_of_time.dart';
+import './step/no_agent_is_installed.dart';
 
 void main() {
   group('''F13 Operation Feedback And History''', () {
@@ -85,10 +87,35 @@ void main() {
       await theOperationFails(tester);
       await iCloseWhatIsOpen(tester);
       await iShowWhatThisSessionHasRun(tester);
-      await theRecordShows(tester, 'exit code 1');
+      await theRecordShows(tester, 'exited with code 1');
       await theRecordMarksItAsFailed(tester);
       await iOpenTheLastOperation(tester);
       await theOperationShows(tester, 'could not read project.yml');
+    });
+    testWidgets(
+        '''a run stopped by its own time limit is not read as a run that went wrong''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Check that work can start here, creating nothing');
+      await theOperationPrints(tester, 'agent: editing lib/money.dart');
+      await theOperationRunsOutOfTime(tester);
+      await iCloseWhatIsOpen(tester);
+      await iShowWhatThisSessionHasRun(tester);
+      await theRecordShows(tester, 'ran out of the time it was given');
+      await iOpenTheLastOperation(tester);
+      await theOperationShows(tester, 'agent: editing lib/money.dart');
+    });
+    testWidgets(
+        '''a run with no agent installed says nothing ran, rather than that it failed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Check that work can start here, creating nothing');
+      await noAgentIsInstalled(tester);
+      await iCloseWhatIsOpen(tester);
+      await iShowWhatThisSessionHasRun(tester);
+      await theRecordShows(tester, 'No agent is installed, so nothing ran');
     });
   });
 }

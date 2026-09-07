@@ -27,6 +27,11 @@ class _Wedged implements FleetBackend {
     String? project,
     String? agent,
     bool dryRun = false,
+    Mode? mode,
+    String? prompt,
+    String? model,
+    int? maxTurns,
+    int? minutes,
   }) =>
       const Stream<String>.empty();
 
@@ -104,6 +109,10 @@ class _Wedged implements FleetBackend {
   }) async =>
       throw UnimplementedError();
 
+  @override
+  Future<(List<Agent>, Map<String, String>)> agentsOn() async =>
+      (const <Agent>[], const <String, String>{});
+
 }
 
 /// A machine that lists one project nothing has ever run on, and one task belonging to a project
@@ -142,6 +151,11 @@ class _Machine implements FleetBackend {
     String? project,
     String? agent,
     bool dryRun = false,
+    Mode? mode,
+    String? prompt,
+    String? model,
+    int? maxTurns,
+    int? minutes,
   }) =>
       const Stream<String>.empty();
 
@@ -212,6 +226,10 @@ class _Machine implements FleetBackend {
     bool? dryRun,
   }) async =>
       throw UnimplementedError();
+
+  @override
+  Future<(List<Agent>, Map<String, String>)> agentsOn() async =>
+      (const <Agent>[], const <String, String>{});
 
 }
 

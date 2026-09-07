@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/egress.dart';
+import '../app/start_work.dart';
 import '../app/widening.dart';
 import '../app/gate.dart';
 import '../app/logs.dart';
@@ -19,6 +20,7 @@ import 'command_finder.dart';
 import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
+import 'start_work_view.dart';
 import 'widening_view.dart';
 import 'gate_view.dart';
 import 'leaving.dart';
@@ -49,6 +51,7 @@ class Shell extends StatefulWidget {
     required this.notifications,
     required this.egress,
     required this.widening,
+    required this.starting,
     required this.newerVersion,
     super.key,
   });
@@ -79,6 +82,9 @@ class Shell extends StatefulWidget {
 
   /// Letting work that is already running reach something new.
   final Widening widening;
+
+  /// Starting work, and continuing a finished run.
+  final StartWork starting;
 
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
@@ -128,6 +134,8 @@ class _ShellState extends State<Shell> {
         openTheGate: _openTheGate,
         openEgress: _openEgress,
         widenTheWork: _widenTheWork,
+        startWork: _startWork,
+        continueTheWork: _continueTheWork,
         quit: _quit,
       );
 
@@ -164,6 +172,48 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openEgress();
     await widget.egress.lookAt(_fleet.backend, project);
+  }
+
+  /// Starts work in the selected project.
+  Future<void> _startWork() async {
+    final project = _fleet.selectedProject?.project;
+    if (project == null) return;
+    await widget.starting.open(_fleet.backend, project);
+    if (!mounted) return;
+    await _offerToStart();
+  }
+
+  /// Continues a finished unattended run, with what it was asked to do last time in the box.
+  Future<void> _continueTheWork() async {
+    final task = _fleet.selectedTask;
+    final project = _fleet.selectedProject?.project;
+    if (task == null || project == null) return;
+    await widget.starting.continueFrom(_fleet.backend, project, task);
+    if (!mounted) return;
+    await _offerToStart();
+  }
+
+  Future<void> _offerToStart() async {
+    final started = await openStartWork(
+      context,
+      starting: widget.starting,
+      onStart: _beginTheRun,
+    );
+    widget.starting.close();
+    if (!started) return;
+    // Nothing else to do: starting already opened the operation, and `goTo` would close it again.
+  }
+
+  /// Runs it, and hands the stream to the session rather than to this view.
+  ///
+  /// An unattended run lasts as long as the agent does — minutes, sometimes tens of them — and
+  /// nothing about closing a dialog should stop watching it.
+  void _beginTheRun() {
+    final operation = widget.operations.run(
+      title: widget.starting.title,
+      output: widget.starting.begin(_fleet.backend),
+    );
+    widget.shell.openOperation(operation.id);
   }
 
   /// Lets the selected work reach something it could not reach before.

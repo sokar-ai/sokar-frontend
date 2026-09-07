@@ -26,8 +26,31 @@ class MockMachine {
     daemon.version = '0.1.0+mock';
     daemon.method('List', (_) => <String, dynamic>{'tasks': tasks});
     daemon.method('Agents', (_) => <String, dynamic>{
-          'agents': <Map<String, dynamic>>[],
-          'failures': <String, dynamic>{},
+          'agents': situation == 'no-agent'
+              ? <Map<String, dynamic>>[]
+              : <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'name': 'an-agent',
+                    'label': 'An Agent',
+                    'binary': '/usr/bin/an-agent',
+                    'version': '2.4.0',
+                    'from': '/usr/share/sokar/agents/an-agent.yml',
+                    'allowedDomains': <String>['api.anthropic.com'],
+                  },
+                  <String, dynamic>{
+                    'name': 'other-agent',
+                    'label': 'Another Agent',
+                    'binary': '/usr/bin/other-agent',
+                    'version': '',
+                    'from': '/etc/sokar/agents/other-agent.yml',
+                    'allowedDomains': <String>['api.example.test'],
+                  },
+                ],
+          // One that could not be read. Shown rather than dropped: missing from a list looks
+          // exactly like never installed, and only one of those is worth fixing.
+          'failures': <String, dynamic>{
+            'broken-agent': 'its manifest could not be parsed',
+          },
         });
     // pushes, not stream: Watch never ends, and a held-back stream would deliver every change one
     // change late.
@@ -35,7 +58,7 @@ class MockMachine {
       yield <String, dynamic>{'tasks': tasks};
       yield* _changes.stream;
     });
-    daemon.stream('Start', (_) => _launch());
+    daemon.stream('Start', _launch);
     daemon.method('Stop', _stop);
     // pushes, not stream: a log being followed does not end, and a held-back stream would
     // deliver every line one line late.
@@ -89,6 +112,8 @@ class MockMachine {
     'newer-outcome': 'an Outcome value added after this build shipped',
     'newer-interface': 'a backend serving Tasks2 beside the Tasks1 this build understands',
     'failing-start': 'a launch that prints for a while and then comes back non-zero',
+    'out-of-time': 'an unattended run killed by its own time limit, with its log kept',
+    'no-agent': 'a run asked for when no agent is installed, which is a refusal not a failure',
   };
 
   /// The daemon answering for this machine.
@@ -556,7 +581,12 @@ class MockMachine {
     };
   }
 
-  Stream<Map<String, dynamic>> _launch() async* {
+  /// Brings a container up, and — when a prompt is given — runs the agent in it.
+  ///
+  /// The two are different lengths of call, which is the whole point of the change that added
+  /// `prompt`: without one this ends when the container is up, with one it lasts as long as the
+  /// run and the agent's own output arrives as it is produced.
+  Stream<Map<String, dynamic>> _launch(Map<String, dynamic> parameters) async* {
     const steps = <String>[
       'Resolving project.yml',
       'Reading the agent manifest',
@@ -568,15 +598,66 @@ class MockMachine {
       'Starting the gate',
     ];
     final failing = situation == 'failing-start';
+    final prompt = parameters['prompt'] as String? ?? '';
+    // The backend's own rule, not this one's: a prompt means UNATTENDED unless something else was
+    // asked for, and nothing without a prompt is unattended.
+    final mode = parameters['mode'] as String? ??
+        (prompt.isEmpty ? 'SHELL' : 'UNATTENDED');
+
     for (final step in steps) {
       if (pace > Duration.zero) await Future<void>.delayed(pace);
       yield <String, dynamic>{'line': step};
     }
     if (failing) yield <String, dynamic>{'line': 'could not reach the registry'};
-    yield <String, dynamic>{
-      'container': 'sokar-checkout-shell',
-      'exitCode': failing ? 1 : 0,
-    };
+    if (failing || prompt.isEmpty) {
+      yield <String, dynamic>{
+        'container': 'sokar-checkout-shell',
+        'exitCode': failing ? 1 : 0,
+      };
+      return;
+    }
+
+    // No agent installed is a refusal, not a failed run: nothing ran and there is no log.
+    if (situation == 'no-agent') {
+      yield <String, dynamic>{'container': '', 'exitCode': 69};
+      return;
+    }
+
+    // Raw log, the same text `Tail` serves for `task.log`. The agent's own formatting is made in
+    // the CLI process and never reaches a socket.
+    for (final line in <String>[
+      'agent: $prompt',
+      'agent: reading lib/money.dart',
+      'agent: editing lib/money.dart',
+      'agent: running the tests',
+    ]) {
+      if (pace > Duration.zero) await Future<void>.delayed(pace);
+      yield <String, dynamic>{'line': line};
+    }
+
+    final container = parameters['task'] as String? ?? 'sokar-checkout-run';
+    if (situation == 'out-of-time') {
+      // Killed by its own limit. The log is kept, which is why the lines above still stand.
+      yield <String, dynamic>{'container': container, 'exitCode': 124};
+      return;
+    }
+
+    // The run is listed afterwards, carrying what it was asked to do — which is what continuing
+    // it with a new prompt reads back.
+    tasks = <Map<String, dynamic>>[
+      ...tasks,
+      _task(container, (parameters['project'] as String? ?? '').contains('billing')
+              ? 'billing'
+              : 'checkout',
+          running: false,
+          helpers: 0,
+          activity: 'DEAD',
+          mode: mode,
+          agent: parameters['agent'] as String? ?? 'an-agent',
+          prompt: prompt),
+    ];
+    _changes.add(<String, dynamic>{'tasks': tasks});
+    yield <String, dynamic>{'container': container, 'exitCode': 0};
   }
 
   static const _changeDiff = '''
@@ -665,6 +746,7 @@ deleted file mode 100644
     String agent = 'an-agent',
     int minutesAgo = 4,
     String clearance = 'prompt',
+    String? prompt,
   }) =>
       <String, dynamic>{
         'name': name,
@@ -675,9 +757,10 @@ deleted file mode 100644
         'helpers': helpers,
         'agent': agent,
         'mode': mode,
-        'prompt': mode == 'UNATTENDED'
-            ? 'Fix the rounding in Money.pennies and add a test for it'
-            : '',
+        'prompt': prompt ??
+            (mode == 'UNATTENDED'
+                ? 'Fix the rounding in Money.pennies and add a test for it'
+                : ''),
         'branch': 'refs/sokar/incoming/$name',
         'since': DateTime.now()
             .toUtc()

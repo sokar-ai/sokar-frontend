@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
 import 'egress.dart';
+import 'start_work.dart';
 import 'widening.dart';
 import 'gate.dart';
 import 'logs.dart';
@@ -25,6 +26,7 @@ class SokarApp extends StatelessWidget {
     required this.notifications,
     required this.egress,
     required this.widening,
+    required this.starting,
     required this.newerVersion,
     super.key,
   });
@@ -56,6 +58,9 @@ class SokarApp extends StatelessWidget {
   /// Letting work that is already running reach something new.
   final Widening widening;
 
+  /// Starting work, and continuing a finished run.
+  final StartWork starting;
+
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
@@ -82,6 +87,7 @@ class SokarApp extends StatelessWidget {
               notifications,
               egress,
               widening,
+              starting,
               newerVersion,
             ]),
             builder: (context, _) => Shell(
@@ -94,6 +100,7 @@ class SokarApp extends StatelessWidget {
               notifications: notifications,
               egress: egress,
               widening: widening,
+              starting: starting,
               newerVersion: newerVersion,
             ),
           ),
