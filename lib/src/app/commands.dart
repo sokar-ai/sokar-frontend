@@ -64,6 +64,7 @@ List<Command> workCommands({
   required Task? task,
   required FleetModel fleet,
   required void Function(Task task) askToStop,
+  required void Function(Task task) askWhichLog,
 }) {
   const nothingSelected = 'no work is selected';
   return <Command>[
@@ -83,6 +84,13 @@ List<Command> workCommands({
       label: 'Stop it and remove it',
       group: 'Work',
       run: () => askToStop(task!),
+      unavailable: task == null ? nothingSelected : null,
+    ),
+    Command(
+      id: 'work.log',
+      label: 'Read one of its logs',
+      group: 'Work',
+      run: () => askWhichLog(task!),
       unavailable: task == null ? nothingSelected : null,
     ),
     Command(
@@ -112,6 +120,7 @@ List<Command> commandsFor({
   required VoidCallback openFinder,
   required VoidCallback checkWorkCanStart,
   required void Function(Task task) askToStop,
+  required void Function(Task task) askWhichLog,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
@@ -144,7 +153,12 @@ List<Command> commandsFor({
       run: shell.close,
       unavailable: shell.anythingOpen ? null : 'nothing is open over the frame',
     ),
-    ...workCommands(task: selectedTask, fleet: fleet, askToStop: askToStop),
+    ...workCommands(
+      task: selectedTask,
+      fleet: fleet,
+      askToStop: askToStop,
+      askWhichLog: askWhichLog,
+    ),
     Command(
       id: 'work.check',
       label: 'Check that work can start here, creating nothing',

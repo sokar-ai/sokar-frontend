@@ -59,6 +59,14 @@ abstract class FleetBackend {
 
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
+
+  /// Follows one of a task's logs as it is written, a batch of lines per reply.
+  ///
+  /// The name is a file in the task's state directory, not a path, and it is checked against the
+  /// files that are there — so naming one a task does not have errors with `NoSuchLog`. **There
+  /// is no method that lists them**, which is why naming one is the person's job and not a
+  /// choice this can offer. See `doc/Contract-Gaps.md`.
+  Stream<List<String>> tailLog(String task, String log);
 }
 
 /// A real Sokar daemon, local or forwarded.
@@ -121,6 +129,10 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Stream<List<String>> tailLog(String task, String log) =>
+      _opened().tailLog(task, log);
 
   SokarClient _opened() {
     final client = _client;

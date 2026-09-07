@@ -6,6 +6,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'src/app/fleet_backend.dart';
 import 'src/app/fleet_model.dart';
+import 'src/app/logs.dart';
 import 'src/app/operations.dart';
 import 'src/app/settings.dart';
 import 'src/app/shell_model.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
     shell: ShellModel(),
     settings: settings,
     operations: Operations(),
+    logs: Logs(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather

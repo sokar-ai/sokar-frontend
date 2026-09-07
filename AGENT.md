@@ -270,6 +270,18 @@ lives in the session record, so closing the window onto a build does not stop th
 arriving late does not mean having missed the output. That is the whole class: F13 is the
 machinery, and F03, F06 and F08 are the things that will use it.
 
+**ANSI colour is honoured, never printed and never stripped.** A log with the escapes left in is
+unreadable; one with them stripped loses what the colour was carrying. `ansi.dart` maps each
+colour to something from the theme with the same *meaning* — red to `error`, green to `primary` —
+because a terminal's black is invisible on a dark background and its bright yellow is invisible on
+a light one. Backgrounds are ignored on purpose: a log that paints its own cannot stay legible on
+both, and the person chose the appearance.
+
+**Following a log is a switch, not a scroll position.** Suspending stops the *view* moving and
+never the reading, so the lines keep accumulating and resuming shows what arrived rather than a
+gap. A view that stopped following because somebody scrolled up would be the same as having no
+switch at all.
+
 **A removal says how much it destroyed.** `Stop` returns `discarded` — how many paths the
 container had that its image did not, which is what the agent installed *inside* it and which has
 nowhere to arrive, unlike the workspace the gate holds. Nothing else records that any of it

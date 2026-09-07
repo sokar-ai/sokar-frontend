@@ -12,6 +12,21 @@ import 'dart:typed_data';
 /// its methods and only ever sends values it knows, so those rules are otherwise unenforceable.
 ///
 /// It also means the suite needs no podman, no containers and no runtime - so it runs anywhere.
+/// Thrown from a handler to refuse the call, the way the daemon refuses one.
+///
+/// A method that refuses depending on *what it was asked* is a real thing — `NoSuchLog` is
+/// exactly that — and a stand-in that could only refuse a whole method could not produce it.
+class MockRefusal implements Exception {
+  /// Constructor taking the fully-qualified error name and whatever goes with it.
+  const MockRefusal(this.error, [this.parameters = const <String, dynamic>{}]);
+
+  /// Fully-qualified error name.
+  final String error;
+
+  /// Whatever the error carries.
+  final Map<String, dynamic> parameters;
+}
+
 class MockDaemon {
   /// Interfaces this pretends to serve, in the order `GetInfo` reports them.
   ///
@@ -243,6 +258,15 @@ class _Handler {
         _immediate = false;
 
   Future<void> run(Map<String, dynamic> parameters, bool more,
+      void Function(Map<String, dynamic>) send) async {
+    try {
+      await _answer(parameters, more, send);
+    } on MockRefusal catch (refusal) {
+      send({'error': refusal.error, 'parameters': refusal.parameters});
+    }
+  }
+
+  Future<void> _answer(Map<String, dynamic> parameters, bool more,
       void Function(Map<String, dynamic>) send) async {
     if (_error != null) {
       return send({'error': _error, 'parameters': _errorParameters});

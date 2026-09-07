@@ -37,6 +37,9 @@ class MockMachine {
     });
     daemon.stream('Start', (_) => _launch());
     daemon.method('Stop', _stop);
+    // pushes, not stream: a log being followed does not end, and a held-back stream would
+    // deliver every line one line late.
+    daemon.pushes('Tail', _tail);
     daemon.method('Resume', _resume);
 
     switch (situation) {
@@ -86,6 +89,44 @@ class MockMachine {
 
   /// Stops answering.
   Future<void> close() => _changes.close();
+
+  /// The logs this machine has.
+  ///
+  /// A real daemon checks a name against the files that are there and refuses one that is not.
+  /// Nothing lists them — which is why the interface has to ask, and why this has to be able to
+  /// refuse a name rather than only a method.
+  static const logs = <String>{'agent.log', 'gate.log'};
+
+  Stream<Map<String, dynamic>> _tail(Map<String, dynamic> parameters) async* {
+    final log = parameters['log'];
+    if (!logs.contains(log)) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.NoSuchLog', <String, dynamic>{
+        'task': parameters['task'],
+        'log': log,
+      });
+    }
+    const red = '\u001B[31m';
+    const green = '\u001B[32m';
+    const plain = '\u001B[0m';
+    final lines = log == 'gate.log'
+        ? <String>[
+            'gate: mirror at refs/sokar/incoming',
+            'gate: waiting for a decision',
+            '${green}gate: 2 commits accepted$plain',
+          ]
+        : <String>[
+            'agent: reading the prompt',
+            'agent: running the tests',
+            '${red}agent: 1 test failed$plain',
+            'agent: waiting',
+          ];
+    for (final line in lines) {
+      if (pace > Duration.zero) await Future<void>.delayed(pace);
+      yield <String, dynamic>{
+        'lines': <String>[line],
+      };
+    }
+  }
 
   Map<String, dynamic> _stop(Map<String, dynamic> parameters) {
     final answer = <String, dynamic>{

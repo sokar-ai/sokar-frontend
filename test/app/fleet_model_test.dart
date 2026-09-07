@@ -39,6 +39,10 @@ class _Wedged implements FleetBackend {
   @override
   Future<Resumed> resumeTask(String task) async =>
       throw const VarlinkDisconnected('nothing there');
+
+  @override
+  Stream<List<String>> tailLog(String task, String log) =>
+      const Stream<List<String>>.empty();
 }
 
 void main() {

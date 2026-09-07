@@ -70,9 +70,12 @@ not checking that it answers the requirement.**
 - **F10 Task Inspection And Work Handover** — every gate method *needs a project path*. The
   inspection half reads off `Task`; the handover half — the part the requirement is named for —
   cannot be reached from a task at all.
-- **F11 Live Log Viewing** — `Tail` follows a log, and the name *"is checked against the files
-  that are there rather than resolved as a path"* — but **nothing lists what those files are**. An
-  interface can follow a log it can already name and cannot show a person what work produced.
+- **F11 Live Log Viewing** — **built, except for one thing.** Reading, following, suspending to
+  read back without losing what arrives, staying readable after the work ends, and colour that is
+  legible on either appearance are all done. What is missing is the same missing thing: **nothing
+  lists a task's logs.** `Tail` checks a name against the files that are there and refuses one
+  that is not, so the interface asks for a name, offers the ones already known to work, and says
+  plainly why it has to ask. A `Logs(task)` method would finish it, and it is a small ask.
 - **F25 Task Templates** — `Start` with fixed parameters, and *needs a project path* for the same
   reason F08 does.
 

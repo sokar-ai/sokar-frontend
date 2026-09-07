@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
+import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/operations.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
 import 'package:sokar_frontend/src/app/shell_model.dart';
@@ -128,6 +129,23 @@ class FakeBackend implements FleetBackend {
   @override
   Future<Resumed> resumeTask(String task) async => nextResume;
 
+  /// What the next [tailLog] prints into, so the scenario decides when a line arrives.
+  late StreamController<List<String>> tailing;
+
+  /// Logs this machine has. A name not in here is refused the way a real daemon refuses one.
+  Set<String> theLogsItHas = <String>{'agent.log'};
+
+  @override
+  Stream<List<String>> tailLog(String task, String log) {
+    tailing = StreamController<List<String>>();
+    if (!theLogsItHas.contains(log)) {
+      tailing.addError(
+          const VarlinkException('org.fuin.sokar.Tasks1.NoSuchLog', <String, dynamic>{}));
+      tailing.close();
+    }
+    return tailing.stream;
+  }
+
   /// Changes what is on the machine, as a backend does when something elsewhere moves.
   void publish(List<Task> tasks) {
     _tasks = tasks;
@@ -161,6 +179,9 @@ class World {
 
   /// What this session has run.
   static late Operations operations;
+
+  /// What this session is reading.
+  static late Logs logs;
 
   /// One machine with two projects on it, one of them with work stopped.
   static List<Task> get work => <Task>[
@@ -204,15 +225,18 @@ class World {
     settings = Settings(store);
     shell = ShellModel();
     operations = Operations();
+    logs = Logs();
     fleet = FleetModel(backend);
     addTearDown(fleet.dispose);
     addTearDown(operations.dispose);
+    addTearDown(logs.dispose);
 
     await tester.pumpWidget(SokarApp(
       fleet: fleet,
       shell: shell,
       settings: settings,
       operations: operations,
+      logs: logs,
     ));
     await fleet.connect();
     await tester.pumpAndSettle();
@@ -231,6 +255,7 @@ class World {
       shell: shell,
       settings: settings,
       operations: operations,
+      logs: logs,
     ));
     await tester.pumpAndSettle();
   }

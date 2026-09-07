@@ -108,6 +108,20 @@ void main() {
     await watching.cancel();
   });
 
+  test('a log is followed, and a name it does not have is refused', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final read = await client.tailLog('sokar-checkout-shell', 'agent.log').take(2).toList();
+    expect(read.expand((lines) => lines), isNotEmpty);
+
+    await expectLater(
+      client.tailLog('sokar-checkout-shell', 'nowhere.log').first,
+      throwsA(isA<VarlinkException>()
+          .having((refusal) => refusal.simpleName, 'simpleName', 'NoSuchLog')),
+    );
+  });
+
   test('a launch streams its lines and then its result', () async {
     await machineIn('failing-start');
     final client = await connect();

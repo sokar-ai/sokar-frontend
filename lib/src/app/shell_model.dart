@@ -60,6 +60,18 @@ class OperationOpened extends Opened {
   final String id;
 }
 
+/// One of a task's logs.
+class LogOpened extends Opened {
+  /// Constructor taking which log of which task.
+  const LogOpened(this.task, this.log);
+
+  /// The container.
+  final String task;
+
+  /// The file within its state directory.
+  final String log;
+}
+
 /// The frame's own state: where you are, what is open and where the keyboard is.
 ///
 /// Separate from the backend's state on purpose. Losing contact with a daemon must not move
@@ -111,6 +123,9 @@ class ShellModel extends ChangeNotifier {
   /// Opens what one operation printed.
   void openOperation(String id) => _open(OperationOpened(id));
 
+  /// Opens one of a task's logs.
+  void openLog(String task, String log) => _open(LogOpened(task, log));
+
   /// Closes whatever is open and hands the keyboard back to where it came from.
   ///
   /// The selection is deliberately untouched: coming back to a list with nothing selected is how
@@ -125,6 +140,9 @@ class ShellModel extends ChangeNotifier {
   void _open(Opened what) {
     if (_opened is OperationOpened && what is OperationOpened) {
       if ((_opened as OperationOpened).id == what.id) return;
+    } else if (_opened is LogOpened && what is LogOpened) {
+      final open = _opened as LogOpened;
+      if (open.task == what.task && open.log == what.log) return;
     } else if (_opened.runtimeType == what.runtimeType && _pane == Pane.opened) {
       return;
     }

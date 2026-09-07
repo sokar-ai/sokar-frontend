@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
+import '../app/logs.dart';
 import '../app/operations.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
@@ -10,6 +11,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'command_finder.dart';
 import 'command_menu_bar.dart';
+import 'log_view.dart';
 import 'operations.dart';
 import 'panes.dart';
 import 'refusal.dart';
@@ -30,6 +32,7 @@ class Shell extends StatefulWidget {
     required this.shell,
     required this.settings,
     required this.operations,
+    required this.logs,
     super.key,
   });
 
@@ -44,6 +47,9 @@ class Shell extends StatefulWidget {
 
   /// What this session has run.
   final Operations operations;
+
+  /// What this session is reading.
+  final Logs logs;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -81,8 +87,21 @@ class _ShellState extends State<Shell> {
         openFinder: _openFinder,
         checkWorkCanStart: _checkWorkCanStart,
         askToStop: _askToStop,
+        askWhichLog: _askWhichLog,
         quit: () => SystemNavigator.pop(),
       );
+
+  /// Asks which log, then opens it. Reading starts whether or not it stays on screen.
+  Future<void> _askWhichLog(Task task) async {
+    final log = await askWhichLog(
+      context,
+      task: task.name,
+      known: widget.logs.namesFor(task.name),
+    );
+    if (log == null) return;
+    widget.logs.open(widget.fleet.backend, task.name, log);
+    widget.shell.openLog(task.name, log);
+  }
 
   /// Asks before stopping, then stops. The refusal, if there is one, arrives on its own.
   Future<void> _askToStop(Task task) async {
@@ -223,6 +242,14 @@ class _ShellState extends State<Shell> {
         final task = widget.fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
+      case LogOpened(:final task, :final log):
+        final tail = widget.logs.find(task, log);
+        if (tail == null) return null;
+        return LogView(
+          tail: tail,
+          logs: widget.logs,
+          onClose: widget.shell.close,
+        );
       case OperationOpened(:final id):
         final operation = widget.operations.byId(id);
         if (operation == null) return null;
@@ -287,6 +314,7 @@ class _ShellState extends State<Shell> {
         task: task,
         fleet: widget.fleet,
         askToStop: _askToStop,
+        askWhichLog: _askWhichLog,
       );
 
   Widget _onePane(Widget? opened) {
