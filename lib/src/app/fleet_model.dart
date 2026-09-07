@@ -379,6 +379,9 @@ class FleetModel extends ChangeNotifier {
     });
   }
 
+  /// Says something in the status line, for an action that happened elsewhere.
+  void say(String words) => _say(words);
+
   void _say(String status) {
     _status = status;
     _notify();

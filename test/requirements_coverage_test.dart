@@ -21,7 +21,7 @@ void main() {
   /// shown` — which asserted the text F01 replaced. It read as coverage and was not: nothing in
   /// it exercised stopping, restarting or deleting work. It is back here until F09 is built.
   const pending = <String>{
-    'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F10',
+    'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08',
     'F12', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F21',
     'F22', 'F23', 'F24', 'F25', 'F26', 'F27',
   };

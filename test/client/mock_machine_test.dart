@@ -150,6 +150,49 @@ void main() {
     expect(moved.pending, 1);
   });
 
+  test('what is waiting at the gate can be read, judged and forwarded', () async {
+    await machineIn('work');
+    final client = await connect();
+    const project = '/srv/checkout/project.yml';
+
+    final gate = await client.gate(project);
+    expect(gate.mode, 'gatekeeping');
+    expect(gate.pending, hasLength(2));
+
+    final (diff, log) = await client.review(project, gate.pending.first.name);
+    expect(diff, contains('diff --git'));
+    expect(log, contains('commit'));
+
+    await client.approve(project, gate.pending.first.name, 'fix-rounding');
+
+    // Forwarding takes it out of the gate: it has been decided about and is not waiting any more.
+    expect((await client.gate(project)).pending, hasLength(1));
+  });
+
+  test('forwarding with no branch is refused rather than guessed at', () async {
+    // Approve is the only call in the contract that sends anything anywhere. A branch inferred
+    // here would be a push nobody decided about.
+    await machineIn('work');
+    final client = await connect();
+
+    await expectLater(
+      client.approve('/srv/checkout/project.yml',
+          'refs/sokar/incoming/fix-rounding', ''),
+      throwsA(isA<VarlinkException>()
+          .having((refusal) => refusal.simpleName, 'simpleName', 'BranchRequired')),
+    );
+  });
+
+  test('dropping a request takes it out of the gate and sends nothing', () async {
+    await machineIn('work');
+    final client = await connect();
+    const project = '/srv/checkout/project.yml';
+
+    await client.reject(project, 'refs/sokar/incoming/drop-dead-code');
+
+    expect((await client.gate(project)).pending, hasLength(1));
+  });
+
   test('which logs a task has is asked, and an empty answer is normal', () async {
     await machineIn('work');
     final client = await connect();

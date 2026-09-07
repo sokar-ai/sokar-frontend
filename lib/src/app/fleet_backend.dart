@@ -66,6 +66,30 @@ abstract class FleetBackend {
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
 
+  /// What is waiting at a project's gate.
+  ///
+  /// [projectFile] is `Project.file`, passed through unchanged. A project that has none can be
+  /// listed and not asked about — that is a state to render, never a call to make anyway.
+  Future<GateState> gateOf(String projectFile);
+
+  /// What one waiting push contains, so it can be judged before it is forwarded.
+  ///
+  /// [against] diffs against something other than the upstream's default branch.
+  Future<({String diff, String log})> reviewOf(
+    String projectFile,
+    String name, {
+    String? against,
+  });
+
+  /// Forwards a waiting push upstream, onto a branch the caller names.
+  ///
+  /// **The only thing in this interface that sends anything anywhere**, and the branch is never
+  /// inferred: a push forwarded onto a guess is one nobody decided about.
+  Future<void> approve(String projectFile, String name, String branch);
+
+  /// Drops the request. The work stays in the mirror; only the asking is gone.
+  Future<void> reject(String projectFile, String name);
+
   /// Which logs a task has, asked rather than assumed.
   ///
   /// An empty list is a normal answer: a task whose state directory is gone has none.
@@ -141,6 +165,28 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Future<GateState> gateOf(String projectFile) => _opened().gate(projectFile);
+
+  @override
+  Future<({String diff, String log})> reviewOf(
+    String projectFile,
+    String name, {
+    String? against,
+  }) async {
+    final (diff, log) =
+        await _opened().review(projectFile, name, against: against);
+    return (diff: diff, log: log);
+  }
+
+  @override
+  Future<void> approve(String projectFile, String name, String branch) =>
+      _opened().approve(projectFile, name, branch);
+
+  @override
+  Future<void> reject(String projectFile, String name) =>
+      _opened().reject(projectFile, name);
 
   @override
   Future<List<Log>> logsOf(String task) => _opened().logsOf(task);

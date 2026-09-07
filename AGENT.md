@@ -340,6 +340,19 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
 
+**Approving is the only thing this interface does that sends anything anywhere**, and the branch
+is typed, never inferred — `Approve` requires one, and a push forwarded onto a guess is one nobody
+decided about. Dropping a request sends nothing at all: the work stays in the mirror and only the
+asking is gone, which the wording says out loud.
+
+**A review is a diff, and that is the ceiling.** `Review` answers a unified diff and a log;
+nothing reads a file at a revision, so what *surrounds* a hunk cannot be shown and a whole-file
+view is not reachable. `diff.dart` turns the diff into a file tree with hunks, which is the honest
+most that can be built — and **Copy the diff** is the way past it, because the common case is
+somebody wanting it in the tool they review in. The parser is deliberately tolerant: this is git's
+output, not a promise in the IDL, and refusing to render because a header was unfamiliar would be
+worse than showing the lines it understood.
+
 **A removal says how much it destroyed.** `Stop` returns `discarded` — how many paths the
 container had that its image did not, which is what the agent installed *inside* it and which has
 nowhere to arrive, unlike the workspace the gate holds. Nothing else records that any of it

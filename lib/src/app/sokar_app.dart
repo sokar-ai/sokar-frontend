@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
+import 'gate.dart';
 import 'logs.dart';
 import 'machines.dart';
 import 'operations.dart';
@@ -16,6 +17,7 @@ class SokarApp extends StatelessWidget {
     required this.settings,
     required this.operations,
     required this.logs,
+    required this.gate,
     super.key,
   });
 
@@ -34,6 +36,9 @@ class SokarApp extends StatelessWidget {
   /// What this session is reading.
   final Logs logs;
 
+  /// What is waiting at the gate of the project being looked at.
+  final Gate gate;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -46,13 +51,15 @@ class SokarApp extends StatelessWidget {
           darkTheme: ThemeData(colorSchemeSeed: Colors.teal, brightness: Brightness.dark),
           themeMode: settings.appearance,
           home: ListenableBuilder(
-            listenable: Listenable.merge(<Listenable>[machines, shell, operations, logs]),
+            listenable:
+                Listenable.merge(<Listenable>[machines, shell, operations, logs, gate]),
             builder: (context, _) => Shell(
               machines: machines,
               shell: shell,
               settings: settings,
               operations: operations,
               logs: logs,
+              gate: gate,
             ),
           ),
         ),

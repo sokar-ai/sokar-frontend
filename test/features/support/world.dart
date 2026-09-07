@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
+import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/operations.dart';
@@ -74,6 +75,16 @@ class FakeBackend implements FleetBackend {
       'pending': 2,
       'tasks': 2,
       'running': 1,
+    }),
+    // Listed and not actionable: no task start has recorded a file, or the recorded one moved.
+    Project.from(const <String, dynamic>{
+      'name': 'unrecorded',
+      'securityClass': 'guarded',
+      'file': '',
+      'mirror': '/srv/unrecorded/.sokar/mirror',
+      'pending': 1,
+      'tasks': 0,
+      'running': 0,
     }),
     Project.from(const <String, dynamic>{
       'name': 'billing',
@@ -163,6 +174,83 @@ class FakeBackend implements FleetBackend {
   /// Logs this machine has. What `Logs` answers, and what `Tail` accepts.
   Set<String> theLogsItHas = <String>{'agent.log'};
 
+  /// What is waiting at the gate. Set by the scenario.
+  GateState theGate = GateState.from(const <String, dynamic>{
+    'mirror': '/srv/checkout/.sokar/mirror',
+    'mode': 'gatekeeping',
+    'seededFrom': '',
+    'pending': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'name': 'refs/sokar/incoming/fix-rounding',
+        'commit': '9a3c1f2',
+        'subject': 'Round to the nearest penny, not away from zero',
+        'waiting': '4 minutes',
+        'at': '2026-09-07T14:12:00Z',
+      },
+    ],
+  });
+
+  /// What `Review` answers.
+  String theDiff = '''
+diff --git a/lib/money.dart b/lib/money.dart
+--- a/lib/money.dart
++++ b/lib/money.dart
+@@ -1,3 +1,3 @@
+ class Money {
+-  int get pennies => (value * 100).ceil();
++  int get pennies => (value * 100).round();
+ }
+''';
+
+  /// What was approved, and onto which branch.
+  final List<({String name, String branch})> approvals =
+      <({String name, String branch})>[];
+
+  /// What was rejected.
+  final List<String> rejections = <String>[];
+
+  /// Set to refuse the next gate call the way the daemon refuses one.
+  VarlinkException? refuseTheGate;
+
+  @override
+  Future<GateState> gateOf(String projectFile) async {
+    final refusal = refuseTheGate;
+    if (refusal != null) throw refusal;
+    return theGate;
+  }
+
+  @override
+  Future<({String diff, String log})> reviewOf(
+    String projectFile,
+    String name, {
+    String? against,
+  }) async =>
+      (diff: theDiff, log: 'commit 9a3c1f2\n\n    Round to the nearest penny');
+
+  @override
+  Future<void> approve(String projectFile, String name, String branch) async {
+    final refusal = refuseTheGate;
+    if (refusal != null) throw refusal;
+    approvals.add((name: name, branch: branch));
+    theGate = GateState.from(const <String, dynamic>{
+      'mirror': '/srv/checkout/.sokar/mirror',
+      'mode': 'gatekeeping',
+      'seededFrom': '',
+      'pending': <Map<String, dynamic>>[],
+    });
+  }
+
+  @override
+  Future<void> reject(String projectFile, String name) async {
+    rejections.add(name);
+    theGate = GateState.from(const <String, dynamic>{
+      'mirror': '/srv/checkout/.sokar/mirror',
+      'mode': 'gatekeeping',
+      'seededFrom': '',
+      'pending': <Map<String, dynamic>>[],
+    });
+  }
+
   @override
   Future<List<Log>> logsOf(String task) async => <Log>[
         for (final name in theLogsItHas)
@@ -227,6 +315,9 @@ class World {
   /// What this session is reading.
   static late Logs logs;
 
+  /// What is waiting at the gate.
+  static late Gate gate;
+
   /// One machine with two projects on it, one of them with work stopped.
   static List<Task> get work => <Task>[
         _task('sokar-checkout-shell', 'checkout'),
@@ -274,6 +365,7 @@ class World {
     shell = ShellModel();
     operations = Operations();
     logs = Logs();
+    gate = Gate();
     elsewhere = FakeBackend(<Task>[_task('sokar-shared-shell', 'shared')]);
     addTearDown(elsewhere.stop);
 
@@ -294,6 +386,7 @@ class World {
       settings: settings,
       operations: operations,
       logs: logs,
+      gate: gate,
     ));
     await tester.pumpAndSettle();
   }
@@ -312,6 +405,7 @@ class World {
       settings: settings,
       operations: operations,
       logs: logs,
+      gate: gate,
     ));
     await tester.pumpAndSettle();
   }

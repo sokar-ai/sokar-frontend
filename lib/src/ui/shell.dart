@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
+import '../app/gate.dart';
 import '../app/logs.dart';
 import '../app/machines.dart';
 import '../app/operations.dart';
@@ -12,6 +13,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'command_finder.dart';
 import 'command_menu_bar.dart';
+import 'gate_view.dart';
 import 'log_view.dart';
 import 'machine_switcher.dart';
 import 'operations.dart';
@@ -35,6 +37,7 @@ class Shell extends StatefulWidget {
     required this.settings,
     required this.operations,
     required this.logs,
+    required this.gate,
     super.key,
   });
 
@@ -52,6 +55,9 @@ class Shell extends StatefulWidget {
 
   /// What this session is reading.
   final Logs logs;
+
+  /// What is waiting at the gate of the project being looked at.
+  final Gate gate;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -94,8 +100,41 @@ class _ShellState extends State<Shell> {
         checkWorkCanStart: _checkWorkCanStart,
         askToStop: _askToStop,
         askWhichLog: _askWhichLog,
+        openTheGate: _openTheGate,
         quit: () => SystemNavigator.pop(),
       );
+
+  /// Opens what is waiting at the selected project's gate.
+  Future<void> _openTheGate() async {
+    final project = _fleet.selectedProject?.project;
+    if (project == null) return;
+    widget.shell.openGate();
+    await widget.gate.lookAt(_fleet.backend, project);
+  }
+
+  /// Opens one waiting push, and reads what it contains.
+  Future<void> _look(PendingPush push) async {
+    widget.shell.openReview();
+    await widget.gate.look(_fleet.backend, push);
+  }
+
+  /// Forwards the push being judged, onto a branch somebody names.
+  Future<void> _approve() async {
+    final push = widget.gate.looking;
+    if (push == null) return;
+    final branch = await askWhichBranch(context, subject: push.subject);
+    if (branch == null) return;
+    final said = await widget.gate.approve(_fleet.backend, branch);
+    if (said.isNotEmpty) _fleet.say(said);
+    if (widget.gate.problem == null) widget.shell.openGate();
+  }
+
+  /// Drops the request being judged.
+  Future<void> _reject() async {
+    final said = await widget.gate.reject(_fleet.backend);
+    if (said.isNotEmpty) _fleet.say(said);
+    if (widget.gate.problem == null) widget.shell.openGate();
+  }
 
   /// Asks for another machine to watch, and starts watching it.
   Future<void> _addAMachine() async {
@@ -264,6 +303,21 @@ class _ShellState extends State<Shell> {
         final task = _fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
+      case GateOpened():
+        return GateView(
+          gate: widget.gate,
+          focusNode: _openedFocus,
+          onOpen: _look,
+          onClose: widget.shell.close,
+        );
+      case ReviewOpened():
+        return ReviewView(
+          gate: widget.gate,
+          onBack: widget.shell.openGate,
+          onClose: widget.shell.close,
+          onApprove: _approve,
+          onReject: _reject,
+        );
       case LogOpened(:final task, :final log):
         final tail = widget.logs.find(task, log);
         if (tail == null) return null;

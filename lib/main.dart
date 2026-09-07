@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'src/app/gate.dart';
 import 'src/app/logs.dart';
 import 'src/app/machines.dart';
 import 'src/app/operations.dart';
@@ -20,6 +21,7 @@ Future<void> main() async {
     settings: settings,
     operations: Operations(),
     logs: Logs(),
+    gate: Gate(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather

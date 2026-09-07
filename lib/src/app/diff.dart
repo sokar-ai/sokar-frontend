@@ -107,7 +107,7 @@ List<ChangedFile> parseUnifiedDiff(String diff) {
     lines = <DiffLine>[];
   }
 
-  for (final line in const LineSplitter().convert(diff)) {
+  for (final line in _linesOf(diff)) {
     if (line.startsWith('diff --git ')) {
       finish();
       path = _pathFrom(line);
@@ -168,15 +168,9 @@ String? _withoutPrefix(String path) {
   return name;
 }
 
-/// Splits text into lines without minding which line ending it used.
-class LineSplitter {
-  /// Constructor.
-  const LineSplitter();
-
-  /// The lines of [text], with no trailing empty one.
-  List<String> convert(String text) {
-    final lines = text.split(RegExp(r'\r\n|\n|\r'));
-    if (lines.isNotEmpty && lines.last.isEmpty) lines.removeLast();
-    return lines;
-  }
+/// The lines of [text], whatever line ending it used, with no trailing empty one.
+List<String> _linesOf(String text) {
+  final lines = text.split(RegExp(r'\r\n|\n|\r'));
+  if (lines.isNotEmpty && lines.last.isEmpty) lines.removeLast();
+  return lines;
 }

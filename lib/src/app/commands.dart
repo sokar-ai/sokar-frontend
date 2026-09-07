@@ -121,6 +121,7 @@ List<Command> commandsFor({
   required VoidCallback checkWorkCanStart,
   required void Function(Task task) askToStop,
   required void Function(Task task) askWhichLog,
+  required VoidCallback openTheGate,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
@@ -158,6 +159,18 @@ List<Command> commandsFor({
       fleet: fleet,
       askToStop: askToStop,
       askWhichLog: askWhichLog,
+    ),
+    Command(
+      id: 'gate.open',
+      label: 'Review what is waiting at the gate',
+      group: 'Work',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyG, control: true),
+      run: openTheGate,
+      unavailable: selectedProject == null
+          ? 'no project selected'
+          : selectedProject.canBeActedOn
+              ? null
+              : 'no project file is recorded for ${selectedProject.name}',
     ),
     Command(
       id: 'work.check',

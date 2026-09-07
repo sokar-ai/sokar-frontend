@@ -47,6 +47,25 @@ class _Wedged implements FleetBackend {
   Future<List<Log>> logsOf(String task) async => const <Log>[];
 
   @override
+  Future<GateState> gateOf(String projectFile) async =>
+      GateState.from(const <String, dynamic>{});
+
+  @override
+  Future<({String diff, String log})> reviewOf(
+    String projectFile,
+    String name, {
+    String? against,
+  }) async =>
+      (diff: '', log: '');
+
+  @override
+  Future<void> approve(String projectFile, String name, String branch) async {}
+
+  @override
+  Future<void> reject(String projectFile, String name) async {}
+
+
+  @override
   Stream<List<String>> tailLog(String task, String log) =>
       const Stream<List<String>>.empty();
 }
@@ -102,9 +121,31 @@ class _Machine implements FleetBackend {
   Future<List<Log>> logsOf(String task) async => const <Log>[];
 
   @override
+  Future<GateState> gateOf(String projectFile) async =>
+      GateState.from(const <String, dynamic>{});
+
+  @override
+  Future<({String diff, String log})> reviewOf(
+    String projectFile,
+    String name, {
+    String? against,
+  }) async =>
+      (diff: '', log: '');
+
+  @override
+  Future<void> approve(String projectFile, String name, String branch) async {}
+
+  @override
+  Future<void> reject(String projectFile, String name) async {}
+
+
+  @override
   Stream<List<String>> tailLog(String task, String log) =>
       const Stream<List<String>>.empty();
 }
+
+/// A backend that answers nothing, for a test that must not reach one.
+final aBackendThatRefusesEverything = _Machine();
 
 void main() {
   test('a backend that never answers reads as not connected, and says why', () async {

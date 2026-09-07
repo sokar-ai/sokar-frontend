@@ -60,6 +60,18 @@ class OperationOpened extends Opened {
   final String id;
 }
 
+/// What is waiting at a project's gate.
+class GateOpened extends Opened {
+  /// Constructor.
+  const GateOpened();
+}
+
+/// One waiting push, being judged.
+class ReviewOpened extends Opened {
+  /// Constructor.
+  const ReviewOpened();
+}
+
 /// One of a task's logs.
 class LogOpened extends Opened {
   /// Constructor taking which log of which task.
@@ -125,6 +137,12 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens one of a task's logs.
   void openLog(String task, String log) => _open(LogOpened(task, log));
+
+  /// Opens what is waiting at the selected project's gate.
+  void openGate() => _open(const GateOpened());
+
+  /// Opens the push being judged.
+  void openReview() => _open(const ReviewOpened());
 
   /// Closes whatever is open and hands the keyboard back to where it came from.
   ///

@@ -42,6 +42,10 @@ class MockMachine {
     daemon.pushes('Tail', _tail);
     daemon.method('Logs', _logs);
     daemon.method('Projects', _projects);
+    daemon.method('Pending', _pending);
+    daemon.method('Review', _review);
+    daemon.method('Approve', _approve);
+    daemon.method('Reject', _reject);
     daemon.method('Resume', _resume);
 
     switch (situation) {
@@ -99,6 +103,64 @@ class MockMachine {
   /// refuse a name rather than only a method.
   static const logs = <String>{'agent.log', 'gate.log'};
 
+  /// What is waiting at the gate, by ref name. Approving or dropping one takes it out.
+  final Map<String, Map<String, dynamic>> _waiting = <String, Map<String, dynamic>>{
+    'refs/sokar/incoming/fix-rounding': <String, dynamic>{
+      'name': 'refs/sokar/incoming/fix-rounding',
+      'commit': '9a3c1f2',
+      'subject': 'Round to the nearest penny, not away from zero',
+      'waiting': '4 minutes',
+      'at': '2026-09-07T14:12:00Z',
+    },
+    'refs/sokar/incoming/drop-dead-code': <String, dynamic>{
+      'name': 'refs/sokar/incoming/drop-dead-code',
+      'commit': '7f21b0e',
+      'subject': 'Delete the retry loop nothing calls any more',
+      'waiting': '26 minutes',
+      'at': '2026-09-07T13:50:00Z',
+    },
+  };
+
+  /// What was forwarded, and onto which branch, so a manual run can see it happened.
+  final List<String> forwarded = <String>[];
+
+  Map<String, dynamic> _pending(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
+        'mirror': '/srv/checkout/.sokar/mirror',
+        'mode': 'gatekeeping',
+        'seededFrom': '',
+        'pending': _waiting.values.toList(),
+      };
+
+  Map<String, dynamic> _review(Map<String, dynamic> parameters) {
+    final oneFile = parameters['name'] == 'refs/sokar/incoming/drop-dead-code';
+    return <String, dynamic>{
+      'diff': oneFile ? _deletionDiff : _changeDiff,
+      'log': 'commit ${oneFile ? '7f21b0e' : '9a3c1f2'}\n'
+          'Author: an agent <agent@sokar>\n\n'
+          '    ${_waiting[parameters['name']]?['subject'] ?? ''}',
+    };
+  }
+
+  Map<String, dynamic> _approve(Map<String, dynamic> parameters) {
+    final name = '${parameters['name']}';
+    if ('${parameters['branch']}'.isEmpty) {
+      throw const MockRefusal('org.fuin.sokar.Tasks1.BranchRequired');
+    }
+    _waiting.remove(name);
+    forwarded.add('$name -> ${parameters['branch']}');
+    return <String, dynamic>{
+      'forwarded': name,
+      'branch': '${parameters['branch']}',
+    };
+  }
+
+  Map<String, dynamic> _reject(Map<String, dynamic> parameters) {
+    final name = '${parameters['name']}';
+    _waiting.remove(name);
+    return <String, dynamic>{'rejected': name};
+  }
+
   /// Every project on the machine, assembled the way the daemon assembles it.
   ///
   /// `never-run` is here on purpose: a project with no tasks, which a client deriving projects
@@ -112,7 +174,7 @@ class MockMachine {
             'securityClass': 'guarded',
             'file': '/srv/checkout/project.yml',
             'mirror': '/srv/checkout/.sokar/mirror',
-            'pending': 2,
+            'pending': _waiting.length,
             'tasks': tasks.where((task) => task['project'] == 'checkout').length,
             'running': tasks
                 .where((task) => task['project'] == 'checkout' && task['running'] == true)
@@ -269,6 +331,45 @@ class MockMachine {
       'exitCode': failing ? 1 : 0,
     };
   }
+
+  static const _changeDiff = '''
+diff --git a/lib/money.dart b/lib/money.dart
+index 1a2b3c4..5d6e7f8 100644
+--- a/lib/money.dart
++++ b/lib/money.dart
+@@ -12,7 +12,7 @@ class Money {
+   final double value;
+ 
+   int get pennies {
+-    return (value * 100).ceil();
++    return (value * 100).round();
+   }
+ }
+diff --git a/test/money_test.dart b/test/money_test.dart
+--- a/test/money_test.dart
++++ b/test/money_test.dart
+@@ -4,3 +4,7 @@ void main() {
+     expect(Money(1.005).pennies, 101);
+   });
++
++  test('rounds down below the half', () {
++    expect(Money(1.004).pennies, 100);
++  });
+ }
+''';
+
+  static const _deletionDiff = '''
+diff --git a/lib/retry.dart b/lib/retry.dart
+deleted file mode 100644
+--- a/lib/retry.dart
++++ /dev/null
+@@ -1,5 +0,0 @@
+-Future<void> retry(Future<void> Function() what) async {
+-  for (var attempt = 0; attempt < 3; attempt++) {
+-    try { await what(); return; } on Exception { /* again */ }
+-  }
+-}
+''';
 
   static List<Map<String, dynamic>> _aMachineWithWorkOnIt() =>
       <Map<String, dynamic>>[

@@ -74,9 +74,12 @@ not checking that it answers the requirement.**
   finished work cannot be continued with a new one. Worth asking for.
 - **F09 Task Control** — **built**, except that **renaming has no method at all**. Recreating is
   `Stop` then `Start`, which `Project.file` now makes possible; it is unbuilt rather than blocked.
-- **F10 Task Inspection And Work Handover** — **unblocked and unbuilt.** `Project.file` is what
-  `Pending`, `Review`, `Approve` and `Reject` want, and `Project.pending` already says how many
-  are waiting. Nothing is missing from the contract here any more.
+- **F10 Task Inspection And Work Handover** — **the handover half is built**: what is waiting at
+  a project's gate, each push file by file, copy the diff, forward it onto a named branch or drop
+  the request. The *inspection* half is what is left, and it is short of fields rather than
+  methods: `Task` carries no **agent**, no **mode**, no **branch it works on** and no timestamp,
+  so "its agent, its mode, and how long it has been in its state" cannot be shown. Those are
+  reply fields on `Task`, which is the cheap kind of change — the same ask as F22.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one
