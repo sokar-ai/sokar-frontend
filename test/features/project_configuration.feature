@@ -51,7 +51,7 @@ Feature: F05 Project Configuration
     Given the next change will report a cost
     When I open what this project may reach
     And I add the set {'Container registries'}
-    Then it warns {'the gate now rests on the container holding no credential'}
+    Then the cost warning says {'the gate now rests on the container holding no credential'}
 
   Scenario: a project that declares no egress at all is not offered the editor
     When I select the project {'billing'}

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 import 'src/app/egress.dart';
@@ -6,6 +7,9 @@ import 'src/app/gate.dart';
 import 'src/app/logs.dart';
 import 'src/app/notifications.dart';
 import 'src/app/machines.dart';
+import 'src/app/newer_version.dart';
+import 'src/app/one_instance.dart';
+import 'src/app/where_you_were.dart';
 import 'src/app/operations.dart';
 import 'src/app/settings.dart';
 import 'src/app/shell_model.dart';
@@ -19,6 +23,16 @@ Future<void> main() async {
 
   final shell = ShellModel();
   final machines = Machines(settings);
+
+  // Two interfaces watching the same machines raise every question twice and answer it from
+  // whichever window somebody happened to see. A second launch asks the first to come forward.
+  final only = await OneInstance.take(comeForward: () {});
+  if (!only.inCharge) {
+    exit(0);
+  }
+
+  final newerVersion = NewerVersion()..watch();
+  final whereYouWere = WhereYouWere(settings, machines, shell);
   final operations = Operations();
   final notifications = Notifications(DesktopNotifier(), settings)
     ..watchOperations(operations, open: (_) {});
@@ -32,12 +46,14 @@ Future<void> main() async {
     gate: Gate(),
     notifications: notifications,
     egress: Egress(),
+    newerVersion: newerVersion,
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather
   // than staying blank until a socket answers or does not. Every machine at once, because a
   // clearance prompt has a deadline and one nobody is connected to expires unseen.
-  unawaited(machines.load().then((_) {
+  unawaited(machines.load().then((_) async {
+    await whereYouWere.restore();
     // Clearance is per machine: a question knows its task, and only that machine's fleet can say
     // which project the task belongs to.
     for (final machine in machines.all) {

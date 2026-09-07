@@ -139,6 +139,11 @@ not checking that it answers the requirement.**
 | F18 Emergency Stop | cut every form of access at once. `sokar panic` exists **as a CLI command only** — stops every running task and its helpers, removes nothing. There is no daemon method, and shelling out for it is forbidden hardest here. Confirmed 2026-09-07 that a method would be small to add: it is the same `TaskControl.stop` the CLI already uses. Ask for it |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
 
+- **F21 Continuity And Updates** — **built**, except the half of one criterion that belongs to
+  F12: *"where the environment allows work **and sessions** to outlive the window, they do"*. Work
+  does and is reconnected to; a session cannot outlive anything that cannot be attached to in the
+  first place.
+
 ### What is still worth asking for
 
 - **Running an unattended task over the socket.** `Start` takes `mode` and `prompt` since

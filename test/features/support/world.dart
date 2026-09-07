@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,8 @@ import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
+import 'package:sokar_frontend/src/app/newer_version.dart';
+import 'package:sokar_frontend/src/app/where_you_were.dart';
 import 'package:sokar_frontend/src/app/notifications.dart';
 import 'package:sokar_frontend/src/app/operations.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
@@ -448,6 +451,12 @@ class World {
   /// What the project being looked at may reach.
   static late Egress egress;
 
+  /// Whether a newer build has been installed underneath.
+  static late NewerVersion newerVersion;
+
+  /// Where somebody was, so a restart can put them back.
+  static late WhereYouWere whereYouWere;
+
   /// What would have been said to somebody not looking at the window.
   static late RecordingNotifier notifier;
 
@@ -571,6 +580,7 @@ class World {
     logs = Logs();
     gate = Gate();
     egress = Egress();
+    newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
       ..watchOperations(operations, open: (operation) => shell.openOperation(operation.id));
@@ -586,7 +596,10 @@ class World {
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
     );
     await machines.load();
-    addTearDown(machines.dispose);
+    addTearDown(() => machines.dispose());
+    // After the machines exist: it is about where somebody is, and nobody is anywhere yet.
+    whereYouWere = WhereYouWere(settings, machines, shell);
+    addTearDown(whereYouWere.dispose);
     addTearDown(operations.dispose);
     addTearDown(logs.dispose);
 
@@ -610,6 +623,7 @@ class World {
       gate: gate,
       notifications: notifications,
       egress: egress,
+      newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
   }
@@ -620,6 +634,19 @@ class World {
     await reopened.load();
     settings = reopened;
     shell = ShellModel();
+
+    // A real restart builds everything again, so a test that kept the models would be asserting
+    // that nothing was lost rather than that anything was restored. Everything that survives
+    // survives because it was written down.
+    whereYouWere.dispose();
+    machines.dispose();
+    machines = Machines(
+      settings,
+      reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
+    );
+    await machines.load();
+    whereYouWere = WhereYouWere(settings, machines, shell);
+    await whereYouWere.restore();
 
     await tester.pumpWidget(const SizedBox.shrink());
     // Clearance is per machine, so the hook goes on the one being acted on — a question knows its
@@ -642,8 +669,25 @@ class World {
       gate: gate,
       notifications: notifications,
       egress: egress,
+      newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
+  }
+
+  /// Builds the interface again with whatever the scenario has just replaced.
+  static Future<void> rebuild(WidgetTester tester) async {
+    await tester.pumpWidget(SokarApp(
+      machines: machines,
+      shell: shell,
+      settings: settings,
+      operations: operations,
+      logs: logs,
+      gate: gate,
+      notifications: notifications,
+      egress: egress,
+      newerVersion: newerVersion,
+    ));
+    await settle(tester);
   }
 
   /// Redraws until things have stopped moving.

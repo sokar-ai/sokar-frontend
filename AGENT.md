@@ -121,6 +121,9 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
 - **The requirement id goes in the `Feature` line, never in a scenario name.** It becomes the
   JUnit group, which makes the CI test report a traceability matrix for free. Reworded criteria
   then do not churn ids.
+- **Step wording is an API, and two features sharing words must mean the same thing by them.**
+  `it warns {...}` was written for one feature's cost banner and reused by another for something
+  else entirely, which then looked for the wrong widget. Name a step for what it asserts.
 - **Step wording is an API.** `Given the app is running` resolves to
   `test/features/step/the_app_is_running.dart` — beside the feature — for every feature that uses
   it. Phrase a step the way you want to reuse it and vary the data rather than the sentence; a
@@ -339,6 +342,21 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 `Egress.hosts` is the whole composition a task run uses, the agent's own grants and its provider's
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
+
+**One interface is in charge, and a second launch joins rather than competes.** Two of these watch
+every configured machine, so every clearance question would be raised twice and answered from
+whichever window somebody happened to see. A unix socket rather than a lock file, because the
+second launch has something to say — *come forward* — and a lock file cannot be talked to. A
+socket left by a run that died is taken over, not surrendered to: otherwise one crash means the
+interface can never be opened again without somebody knowing to delete a file they have never
+heard of.
+
+**A restored selection is set without checking that it exists.** Restoring races the machine still
+answering — `Projects` arrives before `List` does — so a check at that moment keeps whatever
+happened to have loaded and silently drops the rest. `FleetModel` drops a selection that turns out
+not to exist once it knows, which is the only moment it can be decided honestly. **A test that
+"restarts" by keeping the models proves nothing**; `World.restartApp` builds them again, and that
+is what caught this.
 
 **Nothing changes a project's egress without having shown what it would do.** `dryRun` answers
 exactly the hosts a real call would open and close, having written nothing, and the preview is

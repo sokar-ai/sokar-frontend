@@ -8,6 +8,7 @@ import '../app/gate.dart';
 import '../app/logs.dart';
 import '../app/notifications.dart';
 import '../app/machines.dart';
+import '../app/newer_version.dart';
 import '../app/operations.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
@@ -18,6 +19,7 @@ import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'gate_view.dart';
+import 'leaving.dart';
 import 'log_view.dart';
 import 'machine_switcher.dart';
 import 'operations.dart';
@@ -44,6 +46,7 @@ class Shell extends StatefulWidget {
     required this.gate,
     required this.notifications,
     required this.egress,
+    required this.newerVersion,
     super.key,
   });
 
@@ -70,6 +73,9 @@ class Shell extends StatefulWidget {
 
   /// What the project being looked at may reach.
   final Egress egress;
+
+  /// Whether a newer build has been installed underneath this one.
+  final NewerVersion newerVersion;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -115,7 +121,7 @@ class _ShellState extends State<Shell> {
         askWhichLog: _askWhichLog,
         openTheGate: _openTheGate,
         openEgress: _openEgress,
-        quit: () => SystemNavigator.pop(),
+        quit: _quit,
       );
 
   /// Opens what is waiting at the selected project's gate.
@@ -124,6 +130,25 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openGate();
     await widget.gate.lookAt(_fleet.backend, project);
+  }
+
+  /// Asks before leaving, naming what carries on without the window.
+  ///
+  /// Closing the interface never stops running work — so the confirmation says what will keep
+  /// going, because somebody who thinks quitting stops it will not quit, and somebody who thinks
+  /// it does not will be surprised the other way.
+  Future<void> _quit() async {
+    final running = <String>[
+      for (final machine in widget.machines.all)
+        for (final task in widget.machines.of(machine).tasks)
+          if (task.running) '${task.name} on ${machine.name}',
+    ];
+    final waiting = widget.machines.all
+        .map((machine) => widget.machines.of(machine).clearance.count)
+        .fold<int>(0, (all, some) => all + some);
+
+    final agreed = await confirmQuit(context, running: running, waiting: waiting);
+    if (agreed) await SystemNavigator.pop();
   }
 
   /// Opens what the selected project's work may reach.
@@ -245,6 +270,8 @@ class _ShellState extends State<Shell> {
                     alignment: Alignment.centerLeft,
                     child: CommandMenuBar(commands: commands),
                   ),
+                if (widget.newerVersion.arrived)
+                  NewerVersionBanner(onRestart: () => SystemNavigator.pop()),
                 Expanded(
                   child: Row(
                     children: <Widget>[

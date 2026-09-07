@@ -5,6 +5,7 @@ import 'egress.dart';
 import 'gate.dart';
 import 'logs.dart';
 import 'machines.dart';
+import 'newer_version.dart';
 import 'notifications.dart';
 import 'operations.dart';
 import 'settings.dart';
@@ -22,6 +23,7 @@ class SokarApp extends StatelessWidget {
     required this.gate,
     required this.notifications,
     required this.egress,
+    required this.newerVersion,
     super.key,
   });
 
@@ -49,6 +51,9 @@ class SokarApp extends StatelessWidget {
   /// What the project being looked at may reach.
   final Egress egress;
 
+  /// Whether a newer build has been installed underneath this one.
+  final NewerVersion newerVersion;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -63,7 +68,16 @@ class SokarApp extends StatelessWidget {
           home: ListenableBuilder(
             listenable:
                 Listenable.merge(
-                <Listenable>[machines, shell, operations, logs, gate, notifications, egress]),
+                <Listenable>[
+              machines,
+              shell,
+              operations,
+              logs,
+              gate,
+              notifications,
+              egress,
+              newerVersion,
+            ]),
             builder: (context, _) => Shell(
               machines: machines,
               shell: shell,
@@ -73,6 +87,7 @@ class SokarApp extends StatelessWidget {
               gate: gate,
               notifications: notifications,
               egress: egress,
+              newerVersion: newerVersion,
             ),
           ),
         ),

@@ -312,6 +312,9 @@ class FleetModel extends ChangeNotifier {
   }
 
   /// Selects a piece of work under the selected project.
+  ///
+  /// A name that is not there yet is allowed: a selection restored from the last run arrives
+  /// before the machine has answered, and [_adopt] drops one that turns out not to exist.
   void selectTask(String? name) {
     if (_selectedTask == name) return;
     _selectedTask = name;

@@ -22,7 +22,7 @@ import './step/it_says.dart';
 import './step/i_leave_it_as_it_is.dart';
 import './step/the_next_change_will_be_refused_because_the_set_is_not_installed.dart';
 import './step/the_next_change_will_report_a_cost.dart';
-import './step/it_warns.dart';
+import './step/the_cost_warning_says.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
 
@@ -96,7 +96,7 @@ void main() {
       await theNextChangeWillReportACost(tester);
       await iOpenWhatThisProjectMayReach(tester);
       await iAddTheSet(tester, 'Container registries');
-      await itWarns(
+      await theCostWarningSays(
           tester, 'the gate now rests on the container holding no credential');
     });
     testWidgets(

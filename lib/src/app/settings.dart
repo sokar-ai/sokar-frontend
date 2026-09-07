@@ -87,6 +87,13 @@ class Settings extends ChangeNotifier {
   Future<void> load() async {
     final stored = await _store.read();
     _appearance = _appearanceNamed(stored['appearance']);
+    final place = stored['place'];
+    if (place is Map) {
+      _place = <String, String>{
+        for (final entry in place.entries)
+          if (entry.value is String) '${entry.key}': entry.value as String,
+      };
+    }
     final muted = stored['muted'];
     if (muted is List) _muted = muted.whereType<String>().toList();
     final machines = stored['machines'];
@@ -117,6 +124,28 @@ class Settings extends ChangeNotifier {
     ];
   }
 
+  /// Where somebody was when the interface last closed.
+  ///
+  /// A restart, asked for or not, comes back to the same place. Losing it is small every time and
+  /// tiring every time, which is the kind of thing nobody reports.
+  Future<Map<String, String>> whereYouWere() async {
+    final stored = (await _store.read())['place'];
+    if (stored is! Map) return const <String, String>{};
+    return <String, String>{
+      for (final entry in stored.entries)
+        if (entry.value is String) '${entry.key}': entry.value as String,
+    };
+  }
+
+  /// Remembers where somebody is, for the next run.
+  Future<void> rememberWhereYouWere(Map<String, String> place) async {
+    if (_place.toString() == place.toString()) return;
+    _place = place;
+    await _write();
+  }
+
+  Map<String, String> _place = const <String, String>{};
+
   /// Projects nobody wants to be told about.
   Future<Set<String>> mutedProjects() async {
     final stored = (await _store.read())['muted'];
@@ -145,6 +174,7 @@ class Settings extends ChangeNotifier {
         'appearance': _appearance.name,
         'machines': _machines,
         'muted': _muted,
+        'place': _place,
       });
 
   static ThemeMode _appearanceNamed(Object? name) => ThemeMode.values.firstWhere(
