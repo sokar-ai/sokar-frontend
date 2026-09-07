@@ -648,3 +648,13 @@ A second launch exits before Flutter's debugger attaches, so `flutter run` repor
 *"Error connecting to the service protocol"* for it. That is the tooling, not the interface: the
 running window did come forward. Anything that exits early from `main` will read the same way, so
 say what happened on stderr first — a launch that simply vanishes reads as one that crashed.
+
+## The mock daemon does not stop when its stdin closes
+
+It reads keys, and a closed stdin is not a key. So `( sleep 20 | dart tool/mock_daemon.dart ) &`
+leaves the mock running after the pipe ends, and the shell that started it waits on it forever.
+Seven such shells accumulated over one session, each holding an idle Dart VM.
+
+Give it a deadline of its own — `timeout 20 dart tool/mock_daemon.dart` — rather than expecting a
+closing pipe to end it, and kill it by pid when a script is finished with it.
+
