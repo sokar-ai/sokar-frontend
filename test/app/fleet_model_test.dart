@@ -95,6 +95,15 @@ class _Wedged implements FleetBackend {
   @override
   Stream<List<String>> tailLog(String task, String log) =>
       const Stream<List<String>>.empty();
+  @override
+  Future<Widened> widenTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) async =>
+      throw UnimplementedError();
+
 }
 
 /// A machine that lists one project nothing has ever run on, and one task belonging to a project
@@ -195,6 +204,15 @@ class _Machine implements FleetBackend {
   @override
   Stream<List<String>> tailLog(String task, String log) =>
       const Stream<List<String>>.empty();
+  @override
+  Future<Widened> widenTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) async =>
+      throw UnimplementedError();
+
 }
 
 /// A backend that answers nothing, for a test that must not reach one.

@@ -95,6 +95,17 @@ abstract class FleetBackend {
     bool? dryRun,
   });
 
+  /// Lets a **running** task reach names it could not reach before.
+  ///
+  /// The counterpart to [changeEgress], which reaches the next task and not this one. [scope] is
+  /// required and has no default: this run, or this run and the project file.
+  Future<Widened> widenTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  });
+
   /// What is waiting at a project's gate.
   ///
   /// [projectFile] is `Project.file`, passed through unchanged. A project that has none can be
@@ -226,6 +237,15 @@ class SokarBackend implements FleetBackend {
         removeDomains: removeDomains,
         dryRun: dryRun,
       );
+
+  @override
+  Future<Widened> widenTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) =>
+      _opened().widenTask(task, domains, scope: scope, dryRun: dryRun);
 
   @override
   Future<GateState> gateOf(String projectFile) => _opened().gate(projectFile);

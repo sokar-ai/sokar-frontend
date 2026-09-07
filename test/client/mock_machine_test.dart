@@ -32,7 +32,7 @@ void main() {
   test('a task that is stopped stops being listed', () async {
     await machineIn('work');
     final client = await connect();
-    expect(await client.tasks(), hasLength(5));
+    expect(await client.tasks(), hasLength(6));
 
     final stopped = await client.stop('sokar-checkout-migrate');
 
@@ -103,8 +103,8 @@ void main() {
     await client.stop('sokar-checkout-migrate');
     await second.future;
 
-    expect(seen.first, 5);
-    expect(seen.last, 4);
+    expect(seen.first, 6);
+    expect(seen.last, 5);
     await watching.cancel();
   });
 
@@ -220,6 +220,120 @@ void main() {
     expect(done.outcome, EgressOutcome.changed);
     final (after, _) = await client.egress(project);
     expect(after.length, greaterThan(before.length));
+  });
+
+  test('widening a running task grants the names, in the order asked for', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final done = await client.widenTask(
+      'sokar-checkout-shell',
+      <String>['files.example.test', 'docs.example.test'],
+      scope: Scope.runAndProject,
+    );
+
+    expect(done.outcome, WidenOutcome.widened);
+    // Names, not addresses, and not sorted: a grant covers what is under a name.
+    expect(done.opens, <String>['files.example.test', 'docs.example.test']);
+    expect(done.persisted, isTrue, reason: 'RUN_AND_PROJECT was asked for');
+  });
+
+  test('a preview grants nothing, so the same call afterwards still opens them', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final previewed = await client.widenTask(
+      'sokar-checkout-shell',
+      <String>['files.example.test'],
+      scope: Scope.run,
+      dryRun: true,
+    );
+    expect(previewed.outcome, WidenOutcome.previewed);
+    expect(previewed.opens, <String>['files.example.test']);
+
+    // If the preview had written, this would come back NO_CHANGE.
+    final done = await client.widenTask(
+      'sokar-checkout-shell',
+      <String>['files.example.test'],
+      scope: Scope.run,
+    );
+    expect(done.outcome, WidenOutcome.widened);
+    expect(done.persisted, isFalse, reason: 'RUN does not reach the project file');
+  });
+
+  test('asking twice for the same name is no change, not a second grant', () async {
+    await machineIn('work');
+    final client = await connect();
+    const asking = <String>['files.example.test'];
+
+    await client.widenTask('sokar-checkout-shell', asking, scope: Scope.run);
+    final again =
+        await client.widenTask('sokar-checkout-shell', asking, scope: Scope.run);
+
+    expect(again.outcome, WidenOutcome.noChange);
+    expect(again.opens, isEmpty);
+  });
+
+  test('a task that is not running is refused as an outcome, not an exception', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final refused = await client.widenTask(
+      'sokar-checkout-migrate',
+      <String>['files.example.test'],
+      scope: Scope.run,
+    );
+
+    expect(refused.outcome, WidenOutcome.notRunning);
+    expect(refused.opens, isEmpty);
+  });
+
+  test('an offline project is refused by its class, the way the editor refuses it', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final refused = await client.widenTask(
+      'sokar-billing-shell',
+      <String>['files.example.test'],
+      scope: Scope.run,
+    );
+
+    expect(refused.outcome, WidenOutcome.refusedByClass);
+  });
+
+  test('a project with no file widens the run and says the file was not written', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final partly = await client.widenTask(
+      'sokar-moved-work',
+      <String>['files.example.test'],
+      scope: Scope.runAndProject,
+    );
+
+    // The run *was* widened. Reading this as a failure would tell somebody the task still cannot
+    // reach the host when it can.
+    expect(partly.outcome, WidenOutcome.noProjectFile);
+    expect(partly.opens, <String>['files.example.test']);
+    expect(partly.persisted, isFalse);
+  });
+
+  test('a call with no scope is refused rather than given a default', () async {
+    // Sent raw, because the client cannot express this: `scope` is a required argument there.
+    // It is worth holding anyway — the daemon choosing for somebody is the failure this
+    // requirement is most exposed to, and a stand-in that quietly defaulted would hide it.
+    await machineIn('work');
+    final wire = await VarlinkConnection.open(daemon.socketPath);
+    addTearDown(wire.close);
+
+    await expectLater(
+      wire.call('org.fuin.sokar.Tasks1.WidenTask', <String, dynamic>{
+        'task': 'sokar-checkout-shell',
+        'domains': <String>['files.example.test'],
+      }),
+      throwsA(isA<VarlinkException>()
+          .having((ex) => ex.simpleName, 'simpleName', 'ScopeRequired')),
+    );
   });
 
   test('a set that is not installed is refused with its name, not an exception', () async {

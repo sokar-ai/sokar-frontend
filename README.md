@@ -67,7 +67,7 @@ watched arriving. `Ctrl+K` → *Check that work can start here* runs a long oper
 mock; `Ctrl+O` shows everything this session has run; `Ctrl+E` on a project shows what its work may reach and changes it behind a preview; `Ctrl+G`
 shows what is waiting at its gate, with two pushes to read, forward or drop. In the mock's terminal, `b` blocks a
 connection and `x` lets that question run out — the rail counts what is waiting. The mock's tasks have `agent.log` and
-`gate.log`, listed the way a real daemon lists them. Other situations to open it against, none of which a real daemon can be asked
+`gate.log`, listed the way a real daemon lists them. On a running task, the command finder's *Let this work reach something new* grants a host name behind a preview; `sokar-moved-work` is the one whose project file has moved, so granting it shows the partial success where the run is widened and the file is not. Other situations to open it against, none of which a real daemon can be asked
 for on demand:
 
 | | |

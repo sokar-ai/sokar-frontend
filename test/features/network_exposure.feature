@@ -60,3 +60,65 @@ Feature: F17 Network Exposure Control
     And the question runs out
     Then it says the question ran out
     And nothing is waiting any more
+
+  Scenario: what running work may reach is changed from where that work is listed
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I choose the command {'Let this work reach something new'}
+    And I ask it to reach {'files.example.test'}
+    And I choose {'Just this run'}
+    And I show what that would grant
+    Then it lists the grant {'files.example.test'}
+    And nothing has been granted yet
+
+  Scenario: how far the change goes is chosen, never defaulted
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I choose the command {'Let this work reach something new'}
+    And I ask it to reach {'files.example.test'}
+    Then showing what it would grant is not offered yet
+
+  Scenario: the scope that was chosen is the scope that is sent
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I choose the command {'Let this work reach something new'}
+    And I ask it to reach {'files.example.test'}
+    And I choose {'This run and the project file'}
+    And I show what that would grant
+    And I grant it
+    Then the scope sent was {'RUN_AND_PROJECT'}
+
+  Scenario: a grant says the host is reachable next time, not that what failed will now work
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I choose the command {'Let this work reach something new'}
+    And I ask it to reach {'files.example.test'}
+    And I choose {'Just this run'}
+    And I show what that would grant
+    And I grant it
+    Then it says {'Reachable from the next attempt'}
+    And it says {'This run only'}
+
+  Scenario: a run widened with no project file to write is a partial success, not a failure
+    When the project file cannot be found
+    And I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I choose the command {'Let this work reach something new'}
+    And I ask it to reach {'files.example.test'}
+    And I choose {'This run and the project file'}
+    And I show what that would grant
+    And I grant it
+    Then it says {'Granted for this run'}
+    And it says {'Reachable from the next attempt'}
+
+  Scenario: work that is not running says why it cannot be widened
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-migrate'}
+    And I open the command finder
+    Then the command {'Let this work reach something new'} is offered as unavailable
+
+  Scenario: an offline project is never offered the action
+    When I select the project {'billing'}
+    And I select the work {'sokar-billing-shell'}
+    And I open the command finder
+    Then the command {'Let this work reach something new'} is offered as unavailable

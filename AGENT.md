@@ -661,3 +661,31 @@ Seven such shells accumulated over one session, each holding an idle Dart VM.
 Give it a deadline of its own — `timeout 20 dart tool/mock_daemon.dart` — rather than expecting a
 closing pipe to end it, and kill it by pid when a script is finished with it.
 
+## Widening a running task is not the egress editor
+
+`SetEgress` edits a file the **next** task reads. `WidenTask` reaches the container in front of
+somebody. They look alike and three things separate them, all of them load-bearing:
+
+- **`scope` is required and the daemon will not pick one.** Omitting it answers `ScopeRequired`.
+  "This run needs it" and "this project needs it" are different intentions, so the screen offers
+  them as two choices with **nothing preselected** — a default here would make somebody's decision
+  for them. `Scope.run` does not survive a `Resume`: a resumed container rebuilds its ruleset and
+  its resolver from what is on disk, and a run-only grant is not on disk.
+- **`NO_PROJECT_FILE` is a partial success, not a failure.** The run *was* widened; only the file
+  was not written, because nothing knows where the file is. Rendering it as an error tells
+  somebody the task still cannot reach the host when it can — wrong in the expensive direction.
+  `WidenOutcome.reached` says so and `failedOutright` deliberately excludes it.
+- **Say "reachable from the next attempt", never "the request that failed will now go through".**
+  The refused connection was dropped at the packet level and is gone; whether the agent retries is
+  the agent's business. Same truth as `Decide`, and the sentence most likely to be got wrong.
+
+Underneath, the resolver is told without restarting — the granted names go in a file dnsmasq
+re-reads on `SIGHUP` — and the firewall is **not** told. The clearance watcher recognizes the name
+on the first connection and allows it without asking. So a widening may be followed by one dropped
+connection in the prompt stream with no question attached. That is the mechanism working, not a
+race, and nothing in the interface should treat it as one.
+
+`REFUSED_BY_CLASS` and `NOT_RUNNING` are both predictable from `Task`, so the action is offered as
+unavailable with the reason. There is **no narrowing and no granting of sets**: neither is decided
+on the backend, and a control for either would be a screen with no method behind it.
+

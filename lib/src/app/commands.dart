@@ -7,6 +7,7 @@ import 'notifications.dart';
 import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
+import 'widening.dart';
 
 /// One action in the product, by name.
 ///
@@ -125,6 +126,7 @@ List<Command> commandsFor({
   required void Function(Task task) askWhichLog,
   required VoidCallback openTheGate,
   required VoidCallback openEgress,
+  required VoidCallback widenTheWork,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
@@ -191,6 +193,16 @@ List<Command> commandsFor({
                   // offering it and saying why.
                   ? 'an offline project declares no egress at all'
                   : null,
+    ),
+    Command(
+      id: 'work.widen',
+      label: 'Let this work reach something new',
+      group: 'Work',
+      run: widenTheWork,
+      // Both refusals the daemon would give are knowable here — NOT_RUNNING and
+      // REFUSED_BY_CLASS — so they are said rather than discovered. An action offered and then
+      // refused teaches people to distrust the ones that are offered.
+      unavailable: Widening.whyNot(selectedTask),
     ),
     Command(
       id: 'gate.open',

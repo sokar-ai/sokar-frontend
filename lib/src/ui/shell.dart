@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/egress.dart';
+import '../app/widening.dart';
 import '../app/gate.dart';
 import '../app/logs.dart';
 import '../app/notifications.dart';
@@ -18,6 +19,7 @@ import 'command_finder.dart';
 import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
+import 'widening_view.dart';
 import 'gate_view.dart';
 import 'leaving.dart';
 import 'log_view.dart';
@@ -46,6 +48,7 @@ class Shell extends StatefulWidget {
     required this.gate,
     required this.notifications,
     required this.egress,
+    required this.widening,
     required this.newerVersion,
     super.key,
   });
@@ -73,6 +76,9 @@ class Shell extends StatefulWidget {
 
   /// What the project being looked at may reach.
   final Egress egress;
+
+  /// Letting work that is already running reach something new.
+  final Widening widening;
 
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
@@ -121,6 +127,7 @@ class _ShellState extends State<Shell> {
         askWhichLog: _askWhichLog,
         openTheGate: _openTheGate,
         openEgress: _openEgress,
+        widenTheWork: _widenTheWork,
         quit: _quit,
       );
 
@@ -157,6 +164,23 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openEgress();
     await widget.egress.lookAt(_fleet.backend, project);
+  }
+
+  /// Lets the selected work reach something it could not reach before.
+  ///
+  /// A dialog over where the work is listed, because F17 asks for it *from* there: a person
+  /// answering a refusal is looking at the task, not at a project file.
+  Future<void> _widenTheWork() async {
+    final task = _fleet.selectedTask;
+    if (task == null) return;
+    widget.widening.open(task);
+    await openWidening(
+      context,
+      widening: widget.widening,
+      onConsider: () => widget.widening.consider(_fleet.backend),
+      onApply: () => widget.widening.apply(_fleet.backend),
+    );
+    widget.widening.close();
   }
 
   /// Opens one waiting push, and reads what it contains.

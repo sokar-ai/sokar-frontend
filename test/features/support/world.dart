@@ -8,6 +8,7 @@ import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
+import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
@@ -312,6 +313,37 @@ diff --git a/lib/money.dart b/lib/money.dart
         });
   }
 
+  /// What the next [widenTask] answers, preview or not. A scenario sets it, including every
+  /// refusal, so `NOT_RUNNING` and `NO_PROJECT_FILE` can be produced without contriving a
+  /// container.
+  Widened? nextWidening;
+
+  /// Every widening asked for, and how it was asked.
+  final List<({String task, List<String> domains, Scope scope, bool preview})> widenings =
+      <({String task, List<String> domains, Scope scope, bool preview})>[];
+
+  @override
+  Future<Widened> widenTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) async {
+    widenings.add((
+      task: task,
+      domains: domains,
+      scope: scope,
+      preview: dryRun == true,
+    ));
+    return nextWidening ??
+        Widened.from(<String, dynamic>{
+          'outcome': dryRun == true ? 'PREVIEWED' : 'WIDENED',
+          'opens': domains,
+          'persisted': dryRun != true && scope == Scope.runAndProject,
+          'detail': '',
+        });
+  }
+
   @override
   Future<GateState> gateOf(String projectFile) async {
     final refusal = refuseTheGate;
@@ -451,6 +483,9 @@ class World {
   /// What the project being looked at may reach.
   static late Egress egress;
 
+  /// What is being let through to work that is already running.
+  static late Widening widening;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -580,6 +615,7 @@ class World {
     logs = Logs();
     gate = Gate();
     egress = Egress();
+    widening = Widening();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
@@ -623,6 +659,7 @@ class World {
       gate: gate,
       notifications: notifications,
       egress: egress,
+      widening: widening,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -669,6 +706,7 @@ class World {
       gate: gate,
       notifications: notifications,
       egress: egress,
+      widening: widening,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -685,6 +723,7 @@ class World {
       gate: gate,
       notifications: notifications,
       egress: egress,
+      widening: widening,
       newerVersion: newerVersion,
     ));
     await settle(tester);

@@ -545,6 +545,141 @@ class EgressChange {
       );
 }
 
+/// How far a widening goes.
+///
+/// **Sent, never received**, which is why this is a Dart enum where [WidenOutcome] is not: the
+/// tolerance rule is about values arriving from a backend newer than this build, and nothing
+/// arrives here. There is no default and the daemon will not pick one — `ScopeRequired` is the
+/// answer to omitting it — because "this run needs it" and "this project needs it" are different
+/// intentions and a silent default would make one of them for somebody.
+enum Scope {
+  /// This run only. **It does not outlive the run**: a resumed task rebuilds its ruleset and its
+  /// resolver from what is on disk, and a run-only grant is not on disk.
+  run('RUN'),
+
+  /// This run and the project file, so the next task starts with it too.
+  runAndProject('RUN_AND_PROJECT');
+
+  const Scope(this.wire);
+
+  /// The value as the contract spells it.
+  final String wire;
+}
+
+/// What widening a running task did, or would do.
+///
+/// Not a Dart enum, by the rule that already covers [Outcome] and [EgressOutcome]: a value added
+/// later must render rather than throw.
+class WidenOutcome {
+  /// Constructor taking the name as the contract spells it.
+  const WidenOutcome(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// The running task can reach it now.
+  static const widened = WidenOutcome('WIDENED');
+
+  /// What it would grant. Nothing was changed, because `dryRun` was set.
+  static const previewed = WidenOutcome('PREVIEWED');
+
+  /// It could already reach all of that.
+  static const noChange = WidenOutcome('NO_CHANGE');
+
+  /// There is no running container to widen.
+  static const notRunning = WidenOutcome('NOT_RUNNING');
+
+  /// An offline project's tasks reach nothing, and this is not a way around that.
+  static const refusedByClass = WidenOutcome('REFUSED_BY_CLASS');
+
+  /// **The run was widened and the file was not**, because nothing knows where the file is.
+  static const noProjectFile = WidenOutcome('NO_PROJECT_FILE');
+
+  /// It did not work, and [Widened.detail] says what happened.
+  static const failed = WidenOutcome('FAILED');
+
+  /// The values this build knows.
+  static const known = <WidenOutcome>[
+    widened,
+    previewed,
+    noChange,
+    notRunning,
+    refusedByClass,
+    noProjectFile,
+    failed,
+  ];
+
+  /// Whether this build knows what it means.
+  bool get recognized => known.any((value) => value.name == name);
+
+  /// Whether the running task can reach the names now.
+  ///
+  /// `NO_PROJECT_FILE` counts. It is a **partial success**: the run was widened and only the file
+  /// was not written. Reading it as a failure tells somebody the task still cannot reach the host
+  /// when it can, which is the wrong direction to be wrong in.
+  bool get reached => name == 'WIDENED' || name == 'NO_PROJECT_FILE';
+
+  /// Whether anything is left to put right.
+  ///
+  /// `NO_PROJECT_FILE` is not one: nothing broke, and there is nothing to retry.
+  bool get failedOutright =>
+      name == 'NOT_RUNNING' || name == 'REFUSED_BY_CLASS' || name == 'FAILED';
+
+  /// Words for a person, unrecognized values included.
+  String get label {
+    final words = name.toLowerCase().split('_').where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return name;
+    words[0] = words.first[0].toUpperCase() + words.first.substring(1);
+    return words.join(' ');
+  }
+
+  @override
+  bool operator ==(Object other) => other is WidenOutcome && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// What widening a running task granted, and how far it went.
+class Widened {
+  /// What happened.
+  final WidenOutcome outcome;
+
+  /// The names it grants, in the order they were asked for. **Never sorted**, and names rather
+  /// than addresses: a grant covers what is under it.
+  final List<String> opens;
+
+  /// Whether the project file was written too, so the next task starts with it.
+  ///
+  /// Read this rather than the scope that was asked for: asking for `RUN_AND_PROJECT` and getting
+  /// `false` is exactly what `NO_PROJECT_FILE` means.
+  final bool persisted;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Widened({
+    required this.outcome,
+    required this.opens,
+    required this.persisted,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Widened.from(Map<String, dynamic> map) => Widened(
+        outcome: WidenOutcome(_string(map, 'outcome')),
+        opens: (map['opens'] is List)
+            ? (map['opens']! as List).whereType<String>().toList()
+            : const <String>[],
+        persisted: map['persisted'] == true,
+        detail: _string(map, 'detail'),
+      );
+}
+
 /// One of a task's log files.
 class Log {
   /// File name. **Pass it to `Tail` unchanged** — it is a name, never a path.

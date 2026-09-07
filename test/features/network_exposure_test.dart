@@ -24,6 +24,19 @@ import './step/it_says.dart';
 import './step/the_question_runs_out.dart';
 import './step/it_says_the_question_ran_out.dart';
 import './step/nothing_is_waiting_any_more.dart';
+import './step/i_select_the_work.dart';
+import './step/i_choose_the_command.dart';
+import './step/i_ask_it_to_reach.dart';
+import './step/i_choose.dart';
+import './step/i_show_what_that_would_grant.dart';
+import './step/it_lists_the_grant.dart';
+import './step/nothing_has_been_granted_yet.dart';
+import './step/showing_what_it_would_grant_is_not_offered_yet.dart';
+import './step/i_grant_it.dart';
+import './step/the_scope_sent_was.dart';
+import './step/the_project_file_cannot_be_found.dart';
+import './step/i_open_the_command_finder.dart';
+import './step/the_command_is_offered_as_unavailable.dart';
 
 void main() {
   group('''F17 Network Exposure Control''', () {
@@ -110,6 +123,87 @@ void main() {
       await theQuestionRunsOut(tester);
       await itSaysTheQuestionRanOut(tester);
       await nothingIsWaitingAnyMore(tester);
+    });
+    testWidgets(
+        '''what running work may reach is changed from where that work is listed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChooseTheCommand(tester, 'Let this work reach something new');
+      await iAskItToReach(tester, 'files.example.test');
+      await iChoose(tester, 'Just this run');
+      await iShowWhatThatWouldGrant(tester);
+      await itListsTheGrant(tester, 'files.example.test');
+      await nothingHasBeenGrantedYet(tester);
+    });
+    testWidgets('''how far the change goes is chosen, never defaulted''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChooseTheCommand(tester, 'Let this work reach something new');
+      await iAskItToReach(tester, 'files.example.test');
+      await showingWhatItWouldGrantIsNotOfferedYet(tester);
+    });
+    testWidgets('''the scope that was chosen is the scope that is sent''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChooseTheCommand(tester, 'Let this work reach something new');
+      await iAskItToReach(tester, 'files.example.test');
+      await iChoose(tester, 'This run and the project file');
+      await iShowWhatThatWouldGrant(tester);
+      await iGrantIt(tester);
+      await theScopeSentWas(tester, 'RUN_AND_PROJECT');
+    });
+    testWidgets(
+        '''a grant says the host is reachable next time, not that what failed will now work''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChooseTheCommand(tester, 'Let this work reach something new');
+      await iAskItToReach(tester, 'files.example.test');
+      await iChoose(tester, 'Just this run');
+      await iShowWhatThatWouldGrant(tester);
+      await iGrantIt(tester);
+      await itSays(tester, 'Reachable from the next attempt');
+      await itSays(tester, 'This run only');
+    });
+    testWidgets(
+        '''a run widened with no project file to write is a partial success, not a failure''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectFileCannotBeFound(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChooseTheCommand(tester, 'Let this work reach something new');
+      await iAskItToReach(tester, 'files.example.test');
+      await iChoose(tester, 'This run and the project file');
+      await iShowWhatThatWouldGrant(tester);
+      await iGrantIt(tester);
+      await itSays(tester, 'Granted for this run');
+      await itSays(tester, 'Reachable from the next attempt');
+    });
+    testWidgets('''work that is not running says why it cannot be widened''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-migrate');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsOfferedAsUnavailable(
+          tester, 'Let this work reach something new');
+    });
+    testWidgets('''an offline project is never offered the action''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'billing');
+      await iSelectTheWork(tester, 'sokar-billing-shell');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsOfferedAsUnavailable(
+          tester, 'Let this work reach something new');
     });
   });
 }

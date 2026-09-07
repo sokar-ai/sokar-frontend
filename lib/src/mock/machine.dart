@@ -45,6 +45,7 @@ class MockMachine {
     daemon.method('Sets', _sets);
     daemon.method('Egress', _egress);
     daemon.method('SetEgress', _setEgress);
+    daemon.method('WidenTask', _widenTask);
     daemon.method('Pending', _pending);
     daemon.method('Review', _review);
     daemon.method('Approve', _approve);
@@ -321,6 +322,84 @@ class MockMachine {
     };
   }
 
+  /// What each running task has been let reach beyond what its project declares.
+  ///
+  /// Kept, because the point of this stand-in is to act: a second call asking for the same name
+  /// must answer `NO_CHANGE`, and a widened task must go on being widened.
+  final Map<String, Set<String>> _granted = <String, Set<String>>{};
+
+  /// Lets a running task reach names it could not reach before.
+  ///
+  /// Everything here is a state a real daemon produces and none of it is canned: whether the
+  /// container is up, what class its project runs under, whether that project has a file to write
+  /// to, and what it could already reach.
+  Map<String, dynamic> _widenTask(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final asked = (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
+    final scope = parameters['scope'] as String? ?? '';
+    final preview = parameters['dryRun'] == true;
+
+    // No default, and the daemon will not invent one: this run and this project are different
+    // intentions and choosing between them is not the daemon's to do.
+    if (scope.isEmpty) throw const MockRefusal('org.fuin.sokar.Tasks1.ScopeRequired');
+
+    final task = tasks.firstWhere(
+      (each) => each['name'] == name,
+      orElse: () => const <String, dynamic>{},
+    );
+    if (task.isEmpty || task['running'] != true) {
+      return _widened('NOT_RUNNING', detail: 'there is no running container called $name');
+    }
+    if (task['securityClass'] == 'offline') {
+      return _widened('REFUSED_BY_CLASS',
+          detail: "an offline project's tasks reach nothing");
+    }
+
+    // In the order asked for, and only what it does not have already.
+    final already = _granted[name] ?? const <String>{};
+    final opens = <String>[for (final host in asked) if (!already.contains(host)) host];
+    if (opens.isEmpty) {
+      return _widened('NO_CHANGE', detail: 'it can reach all of that already');
+    }
+    if (preview) return _widened('PREVIEWED', opens: opens);
+
+    _granted.putIfAbsent(name, () => <String>{}).addAll(opens);
+
+    // The run was widened either way. Whether the file was written is the other half, and a
+    // project whose file has moved is the case where the two answers differ.
+    final file = _fileOf(task['project'] as String? ?? '');
+    if (scope == 'RUN_AND_PROJECT' && file.isEmpty) {
+      return _widened('NO_PROJECT_FILE',
+          opens: opens,
+          detail: 'the run can reach it; no project file is recorded, so nothing was written');
+    }
+    return _widened('WIDENED',
+        opens: opens, persisted: scope == 'RUN_AND_PROJECT');
+  }
+
+  static Map<String, dynamic> _widened(
+    String outcome, {
+    List<String> opens = const <String>[],
+    bool persisted = false,
+    String detail = '',
+  }) =>
+      <String, dynamic>{
+        'outcome': outcome,
+        'opens': opens,
+        'persisted': persisted,
+        'detail': detail,
+      };
+
+  String _fileOf(String project) {
+    final projects = (_projects(const <String, dynamic>{})['projects']!
+        as List<Map<String, dynamic>>);
+    return projects.firstWhere(
+          (each) => each['name'] == project,
+          orElse: () => const <String, dynamic>{'file': ''},
+        )['file'] as String? ??
+        '';
+  }
+
   static List<String> _domainsOf(String name) => <String>[
         ...(_installed.firstWhere((set) => set['name'] == name,
                 orElse: () => const <String, dynamic>{'domains': <String>[]})['domains']
@@ -372,8 +451,10 @@ class MockMachine {
             'file': '',
             'mirror': '/srv/moved/.sokar/mirror',
             'pending': 1,
-            'tasks': 0,
-            'running': 0,
+            'tasks': tasks.where((task) => task['project'] == 'moved-away').length,
+            'running': tasks
+                .where((task) => task['project'] == 'moved-away' && task['running'] == true)
+                .length,
           },
         ],
       };
@@ -566,6 +647,10 @@ deleted file mode 100644
         // in place, workspace and logs intact, because the run worth looking at is the one that
         // went wrong. So a list has more exited tasks on it than it used to.
         _task('sokar-checkout-tests', 'checkout', running: false, helpers: 0),
+        // Running, in a project whose file nothing can find any more. Widening its run works and
+        // writing to its project does not, which is the one outcome most likely to be read as a
+        // failure when it is not.
+        _task('sokar-moved-work', 'moved-away'),
       ];
 
   static Map<String, dynamic> _task(

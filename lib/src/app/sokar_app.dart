@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
 import 'egress.dart';
+import 'widening.dart';
 import 'gate.dart';
 import 'logs.dart';
 import 'machines.dart';
@@ -23,6 +24,7 @@ class SokarApp extends StatelessWidget {
     required this.gate,
     required this.notifications,
     required this.egress,
+    required this.widening,
     required this.newerVersion,
     super.key,
   });
@@ -51,6 +53,9 @@ class SokarApp extends StatelessWidget {
   /// What the project being looked at may reach.
   final Egress egress;
 
+  /// Letting work that is already running reach something new.
+  final Widening widening;
+
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
@@ -76,6 +81,7 @@ class SokarApp extends StatelessWidget {
               gate,
               notifications,
               egress,
+              widening,
               newerVersion,
             ]),
             builder: (context, _) => Shell(
@@ -87,6 +93,7 @@ class SokarApp extends StatelessWidget {
               gate: gate,
               notifications: notifications,
               egress: egress,
+              widening: widening,
               newerVersion: newerVersion,
             ),
           ),

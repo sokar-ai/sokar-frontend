@@ -95,23 +95,26 @@ not checking that it answers the requirement.**
   method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling
   out is forbidden, and it is forbidden hardest here. A lock control needs a `Lock` method added
   on the Sokar side; confirmed 2026-09-07 that it will be, if asked for.
-- **F17 Network Exposure Control** — **the live half is built**: blocked connections from every
-  task in one view, allowed or denied from there, and an expired question kept and marked. Three
-  of its six criteria are left, and all three need something that does not exist:
-  - *"The exposure level of running work can be changed **without restarting it**"* — asked for as
-    [B12](https://github.com/fuinorg/sokar/blob/main/requirements/base/B12-Changing-What-Running-Work-May-Reach.md)
-    and **decided but not built**. The shape is settled — one method taking the scope as a
-    *required* value, this run or this run and the project file, because two calls for "both" can
-    half-fail — and **none of it is on the wire yet**. Do not code against it; a note will come
-    when it lands. An `offline` project is refused with the same `REFUSED_BY_CLASS` the editor
-    already answers with, so the action can be hidden outright for such a task rather than offered
-    and refused.
-  - *"The available levels are named by what they permit, and the current level is always visible
-    on the work"* — visible **yes**, `Task.securityClass` carries it; changeable **no**, nothing
-    sets a project's class.
-  - *"Turning enforcement off entirely is possible, distinct, and visibly marked wherever that
-    work appears"* — **the marking half is built**: `Task.clearance` arrived on 2026-09-07 and
-    `off` is marked on the work. Turning it off *while a task runs* is part of the method below.
+- **F17 Network Exposure Control** — **five of its six criteria are built.** Blocked connections
+  from every task in one view, allowed or denied from there, an expired question kept and marked,
+  and — since `WidenTask` landed on 2026-09-07 — what a running task may reach changed from where
+  that work is listed, without restarting it. What is left is one half of one criterion:
+  - *"Turning enforcement off entirely is **possible**"* — the **marking** half is built:
+    `Task.clearance` carries it and `off` is shown on the work. Turning it off is not. `Start`
+    takes `clearance`, so it can be chosen when work is created — which is
+    [F08](../requirements/F08-Task-Creation-And-Modes.md), still waiting on `mode` and `prompt` —
+    and **nothing turns it off on a task that is already running**. `WidenTask` does not do it:
+    widening grants names, and enforcement staying on is the point of it.
+  - Everything `WidenTask` will not do, and deliberately: **no narrowing** (taking a grant back
+    from a running container is the first thing of its kind in the product and is undecided), and
+    **no sets** (a set is a name for several hosts; granting one is the same call repeated).
+    Neither has a control, and neither should grow one before the backend decides.
+  - `REFUSED_BY_CLASS` and `NOT_RUNNING` are both predictable from `Task`, so the action is
+    offered as unavailable with the reason rather than offered and refused.
+  - `NO_PROJECT_FILE` is **a partial success**: the run was widened and the file was not. It is
+    shown as one. Reading it as a failure tells somebody the task still cannot reach a host it
+    can, which is the wrong direction to be wrong in.
+
 - **F05 Project Configuration** — **the destinations third is built**: what a project's work may
   reach and where each host came from, what is asked for and refused, the sets installed here, and
   changing them behind a preview. Three of its six criteria have nothing behind them, and one has

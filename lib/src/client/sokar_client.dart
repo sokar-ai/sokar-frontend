@@ -261,6 +261,33 @@ class SokarClient {
         'dryRun': ?dryRun,
       }));
 
+  /// Lets a **running** task reach names it could not reach before.
+  ///
+  /// Unlike [setEgress], which edits a file the *next* task reads, this reaches the container in
+  /// front of somebody: the resolver is told without being restarted, and the grant is recorded
+  /// where the clearance watcher reads it.
+  ///
+  /// [scope] is required and there is no default — the daemon answers `ScopeRequired` to a call
+  /// without one. [Scope.run] does not survive a `Resume`.
+  ///
+  /// Names only. Sets are not granted this way, and **nothing narrows a running task**: taking a
+  /// grant back from a container that has it is not decided, so there is no method for it.
+  ///
+  /// With `dryRun` it answers `PREVIEWED` with exactly the names a real call would grant, having
+  /// changed nothing. Worth doing every time: this edit lands on work that is running.
+  Future<Widened> widenTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) async =>
+      Widened.from(await _call('WidenTask', {
+        'task': task,
+        'domains': domains,
+        'scope': scope.wire,
+        'dryRun': ?dryRun,
+      }));
+
   /// Which logs a task has.
   ///
   /// Asked rather than assumed: which files exist depends on what the task started — one with no
