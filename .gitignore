@@ -11,3 +11,6 @@
 # Flutter/Dart build output. Per-platform generated files get their own
 # .gitignore from `flutter create`.
 build/
+
+# Packages are built, never committed.
+build/packages/

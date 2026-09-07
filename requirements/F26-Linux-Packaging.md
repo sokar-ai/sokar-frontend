@@ -1,6 +1,7 @@
 # F26 — Linux Packaging
 
-**Status:** open
+**Status:** open — built for `amd64`. `arm64` is out of scope by decision, not by difficulty, and
+publishing into the shared repository is the backend's release process rather than this one.
 
 The interface installs the way the rest of Sokar installs: `apt install sokar-frontend`,
 `dnf install sokar-frontend`. No archive to unpack, no SDK on the machine, no instructions
@@ -60,14 +61,30 @@ the oldest GTK the package can run against.
 Updating is [F21](F21-Continuity-And-Updates.md)'s subject; this is only how the new version
 arrives.
 
-## To be checked
+## Settled, 2026-09-07
 
-- **Whether arm64 is in scope, and what builds it.** Flutter has no cross-compile for Linux
-  desktop, so an arm64 package needs an arm64 builder. This matters more than it looks: Sokar
-  runs on a Pi, and a person with one will expect the interface to install there too.
-- **Whether the vendored `libflutter_linux_gtk.so` ever becomes a problem.** It is fine in
-  Sokar's own repository and would be refused by the official Fedora and Debian archives. Only
-  worth solving if getting there is ever a goal.
-- **What the package should do about the desktop file on a headless machine.** Installing a
-  `.desktop` entry on a server nobody logs into graphically is harmless but pointless, and
-  whether that argues for a split package is not obvious enough to decide in advance.
+- **arm64 is out of scope for now.** Decided rather than deferred: Flutter has no cross-compile
+  for Linux desktop, so it needs an arm64 builder, and there is not one. `nfpm.yaml.in` declares
+  `amd64` and nothing else, held by a test — a package claiming an architecture nothing builds
+  would install on a Pi and not run.
+- **The `.desktop` file ships everywhere, headless included.** An entry on a server nobody logs
+  into graphically is inert, not wrong, and a split package costs more than one inert file saves.
+- **The vendored `libflutter_linux_gtk.so` is not a problem.** It would be refused by the official
+  Debian and Fedora archives, and those are not a goal; Sokar's own repository is.
+
+## What was measured while building it
+
+- **A plain `src`/`dst` pair flattens the bundle.** `libapp.so` and `icudtl.dat` land beside the
+  launcher instead of under `lib/` and `data/`. The package installs and the application opens no
+  window — which is the failure this requirement names, produced by the packaging rather than by a
+  missing library. `type: tree` is what avoids it, and a test holds it there.
+- **`dpkg-shlibdeps` needs a staged package tree**, not the build directory: `libflutter_linux_gtk.so`
+  carries an RPATH of `$ORIGIN`, which it can only resolve against a tree with a `DEBIAN/`
+  directory in it. Run against the build directory it warns and analyses less than it should.
+- **The derived dependencies carry version floors** — `libgtk-3-0t64 (>= 3.21.4)`,
+  `libglib2.0-0t64 (>= 2.80.0)`, and thirteen more — which is what makes *"the build machine sets
+  the floor"* a real constraint rather than a note.
+- **rpm requires come out of the ELF as sonames**, because nfpm does not run rpm's scanner. Same
+  source, same guarantee.
+- **The packaged application was run from an extracted tree** and stayed up: the launcher resolves
+  its own path through the `/usr/bin` symlink and finds `data/` beside it.

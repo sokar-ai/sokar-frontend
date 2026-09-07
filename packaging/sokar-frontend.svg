@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- A gate, which is what the product is about: work waits on one side until somebody decides. -->
+  <rect x="4" y="4" width="56" height="56" rx="12" fill="#00695c"/>
+  <path d="M20 44V26a12 12 0 0 1 24 0v18" fill="none" stroke="#e0f2f1" stroke-width="4"
+        stroke-linecap="round"/>
+  <line x1="14" y1="44" x2="50" y2="44" stroke="#e0f2f1" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="33" r="4" fill="#e0f2f1"/>
+</svg>

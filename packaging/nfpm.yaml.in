@@ -1,0 +1,53 @@
+# What a person installs. Rendered by tool/package.sh, which appends the dependency lists it
+# derives from the binary — they are deliberately not written here, because a written list goes
+# stale the first time Flutter changes what it links.
+name: sokar-frontend
+arch: amd64
+platform: linux
+version: "@VERSION@"
+section: devel
+priority: optional
+maintainer: "fuin.org <info@fuin.org>"
+description: |
+  Interface for Sokar, which runs AI coding agents in locked-down containers.
+  Watches what work is doing, reviews what it produced before anything leaves the
+  machine, and answers what it is refused while it runs.
+vendor: fuin.org
+homepage: https://github.com/fuinorg/sokar-frontend
+license: Apache-2.0
+
+# Not `depends`. An interface pointed at a remote daemon over an SSH-forwarded socket is useful
+# with no local backend at all, so pulling the daemon in would be wrong for a real way people use
+# this — and would put a backend on a laptop that only ever talks to a server.
+recommends:
+  - sokar
+
+contents:
+  # The bundle installs as a directory. `flutter build linux --release` produces one, and the
+  # launcher finds `data/` relative to its own resolved path, which is why the entry in /usr/bin
+  # can be a symlink.
+  #
+  # `type: tree`, and it matters: a plain src/dst pair **flattens** the bundle, putting `libapp.so`
+  # and `icudtl.dat` beside the launcher instead of under `lib/` and `data/`. The package still
+  # installs. The application then opens no window, which is the exact failure this requirement
+  # names.
+  - src: build/linux/x64/release/bundle
+    dst: /usr/lib/sokar-frontend
+    type: tree
+
+  - src: /usr/lib/sokar-frontend/sokar_frontend
+    dst: /usr/bin/sokar-frontend
+    type: symlink
+
+  # Shipped on every machine, including ones nobody logs into graphically. A .desktop entry on a
+  # headless server is inert rather than wrong, and splitting the package to avoid one inert file
+  # costs more than it saves.
+  - src: packaging/sokar-frontend.desktop
+    dst: /usr/share/applications/sokar-frontend.desktop
+
+  - src: packaging/sokar-frontend.svg
+    dst: /usr/share/icons/hicolor/scalable/apps/sokar-frontend.svg
+
+# Nothing is listed as a config file, so nothing is left behind on removal. What a person chose
+# lives in their own ~/.config/sokar/frontend.json, which no package may touch: an upgrade must
+# keep it and a removal must not go looking for it.

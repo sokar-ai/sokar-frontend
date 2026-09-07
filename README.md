@@ -110,6 +110,24 @@ Error connecting to the service protocol: failed to connect to http://127.0.0.1:
 Nothing went wrong. `flutter run` attaches a debugger to a process that has already gone; the
 window it asked for did come forward. Launching the built binary twice shows the line instead.
 
+### Building the packages
+
+```
+tool/package.sh                 # writes build/packages/*.deb and *.rpm
+```
+
+Needs [nfpm](https://github.com/goreleaser/nfpm/releases) on `PATH` — one static binary, no
+install — plus `dpkg-dev` for `dpkg-shlibdeps` and `binutils` for `objdump`. `rpm` is worth having
+to read the result back (`rpm -qp --requires`), and is not needed to write it.
+
+Dependencies are derived from the binary rather than written down: `dpkg-shlibdeps` for the Debian
+side, with version floors, and sonames out of the ELF for rpm. **The build machine sets the floor**
+— the bundle links the system GTK3 stack, so the GTK here is the oldest GTK the package can run
+against. Build on the oldest distribution you intend to support.
+
+`amd64` only, by decision. Flutter has no cross-compile for Linux desktop, so arm64 would need an
+arm64 builder.
+
 ### On a build server
 
 One run, two reports — the XML for the build server's own test tab, the HTML to publish as an

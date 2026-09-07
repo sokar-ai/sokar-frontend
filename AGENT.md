@@ -822,3 +822,35 @@ scenarios passed. The state cannot occur.
 check the contract, not the moment to change the fixture.** Shadowing is real, is resolved before
 anything is listed, and which copy lost is a reply field that does not exist yet.
 
+## Packaging
+
+`tool/package.sh` builds a `.deb` and an `.rpm` with [nfpm](https://nfpm.goreleaser.com/), which is
+one static binary reading one YAML. Not Maven: the backend stamps its packages with
+`rpm-maven-plugin` and jdeb, and using it here would put a JDK back into a build that deliberately
+has none. What has to match the rest of Sokar is the package somebody installs, not the tool that
+wrote it.
+
+Four things measured on 2026-09-07 that are easy to get wrong and quiet when wrong:
+
+- **`type: tree`, or the bundle is flattened.** A plain `src`/`dst` pair puts `libapp.so` and
+  `icudtl.dat` beside the launcher instead of under `lib/` and `data/`. The package installs
+  cleanly and the application then opens no window.
+- **`dpkg-shlibdeps` needs a staged package tree.** `libflutter_linux_gtk.so` has an RPATH of
+  `$ORIGIN`, which it can only resolve against a tree with a `DEBIAN/` directory. Pointed at the
+  build directory it warns and analyses less than it should.
+- **Dependencies are derived, never written.** `dpkg-shlibdeps` for the Debian side, with version
+  floors; sonames straight out of the ELF for rpm, because nfpm does not run rpm's scanner. Both
+  derivations refuse to produce an empty list rather than shipping a package that installs
+  anywhere and runs nowhere.
+- **`recommends: sokar`, never `depends`.** An interface pointed at a remote daemon over a
+  forwarded socket is useful with no local backend, and a hard dependency would put one on a
+  laptop that never needed it.
+
+`amd64` only. Flutter has no cross-compile for Linux desktop, so arm64 needs an arm64 builder;
+claiming the architecture without one would produce a package that installs on a Pi and cannot run.
+
+`test/packaging_test.dart` holds all of this without building anything. **Assert against the
+template with comments stripped** — every rule is also explained in that file, so a plain
+`contains` matches the sentence describing a directive as readily as the directive. The first
+version passed with the bundle flattened.
+
