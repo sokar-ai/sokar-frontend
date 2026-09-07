@@ -4,6 +4,7 @@ import '../ui/shell.dart';
 import 'egress.dart';
 import 'agent_inventory.dart';
 import 'start_work.dart';
+import 'templates.dart';
 import 'widening.dart';
 import 'gate.dart';
 import 'logs.dart';
@@ -29,6 +30,7 @@ class SokarApp extends StatelessWidget {
     required this.widening,
     required this.starting,
     required this.inventory,
+    required this.templates,
     required this.newerVersion,
     super.key,
   });
@@ -66,6 +68,9 @@ class SokarApp extends StatelessWidget {
   /// What agents are installed on the machine being watched.
   final AgentInventory inventory;
 
+  /// The recurring jobs somebody named.
+  final Templates templates;
+
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
@@ -94,6 +99,7 @@ class SokarApp extends StatelessWidget {
               widening,
               starting,
               inventory,
+              templates,
               newerVersion,
             ]),
             builder: (context, _) => Shell(
@@ -108,6 +114,7 @@ class SokarApp extends StatelessWidget {
               widening: widening,
               starting: starting,
               inventory: inventory,
+              templates: templates,
               newerVersion: newerVersion,
             ),
           ),

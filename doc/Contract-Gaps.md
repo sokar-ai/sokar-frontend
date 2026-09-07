@@ -132,7 +132,13 @@ names and the requirements are written from what a person sees.
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one
   that was never going to exist and would never show one a later release adds.
-- **F25 Task Templates** — `Start` with fixed parameters. Nothing missing from the contract.
+- **F25 Task Templates** — **three of four criteria are built**, and the fourth is a gap this
+  file previously missed by reading the requirement as *"start with fixed parameters"*. It also
+  says *shared with the project*, and **nothing in the contract writes to a project file except
+  `SetEgress`** — so a template is kept beside the interface's own settings and follows the person
+  rather than the project. Asked for. The criterion with teeth needs nothing: a template carries
+  no `clearance` and no `noGate`, and the security class is unreachable because `Start` cannot
+  set it.
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.

@@ -63,7 +63,7 @@ SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
 ```
 
 Pressing RETURN in the first terminal adds a task and pushes the change, so live updates can be
-watched arriving. `Ctrl+N` starts work — a name, an agent, one of the three modes, and a prompt when it is unattended, which makes the mock actually run an agent and stream what it writes; `Ctrl+K` → *Check that work can start here* runs a long operation against the
+watched arriving. A job worth repeating is kept from that same dialog and comes back as its own command (*Run nightly-tests in checkout*), with its prompt editable before it runs. `Ctrl+N` starts work — a name, an agent, one of the three modes, and a prompt when it is unattended, which makes the mock actually run an agent and stream what it writes; `Ctrl+K` → *Check that work can start here* runs a long operation against the
 mock; `Ctrl+O` shows everything this session has run; `Ctrl+E` on a project shows what its work may reach and changes it behind a preview; `Ctrl+G`
 shows what is waiting at its gate, with two pushes to read, forward or drop. In the mock's terminal, `b` blocks a
 connection and `x` lets that question run out — the rail counts what is waiting. The mock's tasks have `agent.log` and

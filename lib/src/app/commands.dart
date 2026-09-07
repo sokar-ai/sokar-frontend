@@ -8,6 +8,7 @@ import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
 import 'start_work.dart';
+import 'templates.dart';
 import 'widening.dart';
 
 /// One action in the product, by name.
@@ -121,6 +122,7 @@ List<Command> commandsFor({
   required Settings settings,
   required Operations operations,
   required Notifications notifications,
+  required Templates templates,
   required VoidCallback openFinder,
   required VoidCallback checkWorkCanStart,
   required void Function(Task task) askToStop,
@@ -130,6 +132,7 @@ List<Command> commandsFor({
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
+  required void Function(Template job) startFromTemplate,
   required VoidCallback continueTheWork,
   required VoidCallback quit,
 }) {
@@ -206,6 +209,21 @@ List<Command> commandsFor({
       run: startWork,
       unavailable: StartWork.whyNot(selectedProject?.project),
     ),
+    // One command per recurring job, so a template turns up in the finder, the menu bar and
+    // wherever else the command list is read — without any of them knowing what a template is.
+    // Starting one is then a single action in the same sense every other action is.
+    for (final job in selectedProject == null
+        ? const <Template>[]
+        : templates.forProject(selectedProject.name))
+      Command(
+        id: 'template.start/${job.project}/${job.name}',
+        label: 'Run ${job.name} in ${job.project}',
+        group: 'Work',
+        run: () => startFromTemplate(job),
+        unavailable: !job.startable
+            ? 'this job is missing something it needs to run'
+            : StartWork.whyNot(selectedProject?.project),
+      ),
     Command(
       id: 'agents.show',
       label: 'Show the agents installed here',

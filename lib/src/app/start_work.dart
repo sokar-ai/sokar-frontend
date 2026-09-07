@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_backend.dart';
+import 'templates.dart';
 
 /// Starting work: which project, which agent, which way of being involved, and what to ask for.
 ///
@@ -38,6 +39,12 @@ class StartWork extends ChangeNotifier {
 
   /// The task being continued, or null when this is new work.
   Task? continuing;
+
+  /// The template this was opened from, or null when it was not.
+  Template? from;
+
+  /// What to call this job if it is kept as a template.
+  String templateName = '';
 
   /// Whether the agent list is being read.
   bool busy = false;
@@ -87,10 +94,35 @@ class StartWork extends ChangeNotifier {
     return null;
   }
 
+  /// Opens it on a project, prefilled from a recurring job somebody named.
+  ///
+  /// The prompt is put in the box rather than sent as it stands: a template carries the shape of
+  /// a job, and the one thing that changes between two runs of the same job is what it is asked
+  /// to do this time.
+  Future<void> openFrom(
+    FleetBackend backend,
+    Project project,
+    Template template,
+  ) async {
+    this.project = project;
+    continuing = null;
+    from = template;
+    templateName = template.name;
+    agent = template.agent;
+    mode = template.mode;
+    prompt = template.prompt;
+    name = '';
+    problem = null;
+    notifyListeners();
+    await _reading(backend);
+  }
+
   /// Opens it on a project, and reads what agents the machine has.
   Future<void> open(FleetBackend backend, Project project) async {
     this.project = project;
     continuing = null;
+    from = null;
+    templateName = '';
     agent = null;
     mode = null;
     prompt = '';
@@ -107,6 +139,8 @@ class StartWork extends ChangeNotifier {
   Future<void> continueFrom(FleetBackend backend, Project project, Task task) async {
     this.project = project;
     continuing = task;
+    from = null;
+    templateName = '';
     agent = task.agent.isEmpty ? null : task.agent;
     mode = Mode.unattended;
     prompt = task.prompt;
@@ -133,6 +167,30 @@ class StartWork extends ChangeNotifier {
   void chooseMode(Mode chosen) {
     mode = chosen;
     notifyListeners();
+  }
+
+  /// Takes what was typed as the template's name.
+  void callTheTemplate(String typed) {
+    templateName = typed.trim();
+    notifyListeners();
+  }
+
+  /// What would be kept as a template, or null when there is not enough to keep.
+  ///
+  /// Built from what is on screen rather than from what a template was opened with, so keeping a
+  /// job after editing it keeps what was edited.
+  Template? get asTemplate {
+    final where = project;
+    final which = agent;
+    final how = mode;
+    if (where == null || which == null || how == null || templateName.isEmpty) return null;
+    return Template(
+      name: templateName,
+      project: where.name,
+      agent: which,
+      mode: how,
+      prompt: takesAPrompt ? prompt.trim() : '',
+    );
   }
 
   /// Takes what was typed as the name.

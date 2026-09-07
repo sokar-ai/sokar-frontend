@@ -784,3 +784,21 @@ The pattern is structural, not careless: the gap map is written from method name
 requirements are written from what a person sees. **Walk a requirement criterion by criterion
 against the reply type before writing anything down as ready.**
 
+## A template carries a job, never a permission
+
+`Start` takes `clearance` and `noGate`. Either of them on a saved template would let a job set up
+last month be running today with the gate off — and nobody re-reads a template before running it,
+which is the whole point of having one.
+
+So `Template` has five fields: name, project, agent, mode, prompt. Reading one **names its fields
+rather than copying the stored map**, so a hand-written `noGate` in the settings file — which is
+plain JSON somebody can edit — never reaches `Start`. A mode this build does not recognize makes a
+job unstartable rather than starting something nobody here can describe.
+
+The project's own security class is out of reach for a different reason and a better one: `Start`
+has no parameter that sets it. That half of the requirement is answered by the contract.
+
+**Templates follow the person, not the project.** F25 asks for them shared with the project, and
+nothing in the contract writes to a project file except `SetEgress`, so they live in this
+interface's settings. That is a shortfall recorded in the requirement, not a design.
+

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import '../app/start_work.dart';
+import '../app/templates.dart';
 import 'tokens.dart';
 
 /// Starts work: a project, an agent, a way of being involved, and what to ask for.
@@ -14,23 +15,33 @@ Future<bool> openStartWork(
   BuildContext context, {
   required StartWork starting,
   required VoidCallback onStart,
+  required VoidCallback onKeep,
 }) async =>
     await showDialog<bool>(
       context: context,
-      builder: (context) => StartWorkDialog(starting: starting, onStart: onStart),
+      builder: (context) =>
+          StartWorkDialog(starting: starting, onStart: onStart, onKeep: onKeep),
     ) ??
     false;
 
 /// The dialog itself, separated so it can be built directly in a test.
 class StartWorkDialog extends StatefulWidget {
   /// Constructor taking the model and what to do with it.
-  const StartWorkDialog({required this.starting, required this.onStart, super.key});
+  const StartWorkDialog({
+    required this.starting,
+    required this.onStart,
+    required this.onKeep,
+    super.key,
+  });
 
   /// What is being started.
   final StartWork starting;
 
   /// Starts it.
   final VoidCallback onStart;
+
+  /// Keeps what is on screen as a recurring job under the name that was typed.
+  final VoidCallback onKeep;
 
   @override
   State<StartWorkDialog> createState() => _StartWorkDialogState();
@@ -54,9 +65,12 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
           final continuing = starting.continuing;
 
           return AlertDialog(
-            title: Text(continuing == null
-                ? 'Start work in ${starting.project?.name ?? ''}'
-                : 'Continue ${continuing.name}'),
+            title: Text(switch ((continuing, starting.from)) {
+              (final Task task, _) => 'Continue ${task.name}',
+              (_, final Template job) =>
+                'Run ${job.name} in ${starting.project?.name ?? ''}',
+              _ => 'Start work in ${starting.project?.name ?? ''}',
+            }),
             content: SizedBox(
               width: 560,
               child: SingleChildScrollView(
@@ -161,6 +175,8 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                       ),
                       onChanged: starting.ask,
                     ),
+                    const SizedBox(height: Space.wide),
+                    _KeepAsTemplate(starting: starting, onKeep: widget.onKeep),
                   ],
                 ),
               ),
@@ -227,5 +243,69 @@ class _WhichMode extends StatelessWidget {
             ),
           ],
         ),
+      );
+}
+
+/// Keeping what is on screen as a recurring job.
+///
+/// Deliberately at the bottom and deliberately small: a template is worth naming after the choices
+/// have been made, not before. Nothing here can carry a setting the dialog above does not show,
+/// which is what keeps a template from quietly widening what work may reach.
+class _KeepAsTemplate extends StatefulWidget {
+  const _KeepAsTemplate({required this.starting, required this.onKeep});
+
+  final StartWork starting;
+  final VoidCallback onKeep;
+
+  @override
+  State<_KeepAsTemplate> createState() => _KeepAsTemplateState();
+}
+
+class _KeepAsTemplateState extends State<_KeepAsTemplate> {
+  late final TextEditingController _name =
+      TextEditingController(text: widget.starting.templateName);
+  bool _kept = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            child: TextField(
+              key: const Key('template-name'),
+              controller: _name,
+              decoration: const InputDecoration(
+                labelText: 'Keep this as a recurring job',
+                hintText: 'nightly-tests',
+                border: OutlineInputBorder(),
+                helperText: 'It carries the agent, the mode and the prompt. Nothing else.',
+              ),
+              onChanged: (typed) {
+                widget.starting.callTheTemplate(typed);
+                if (_kept) setState(() => _kept = false);
+              },
+            ),
+          ),
+          const SizedBox(width: Space.small),
+          Padding(
+            padding: const EdgeInsets.only(top: Space.small),
+            child: OutlinedButton(
+              key: const Key('template-keep'),
+              onPressed: widget.starting.asTemplate == null
+                  ? null
+                  : () {
+                      widget.onKeep();
+                      setState(() => _kept = true);
+                    },
+              child: Text(_kept ? 'Kept' : 'Keep'),
+            ),
+          ),
+        ],
       );
 }

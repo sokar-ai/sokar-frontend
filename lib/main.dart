@@ -12,6 +12,7 @@ import 'src/app/one_instance.dart';
 import 'src/app/where_you_were.dart';
 import 'src/app/agent_inventory.dart';
 import 'src/app/start_work.dart';
+import 'src/app/templates.dart';
 import 'src/app/widening.dart';
 import 'src/app/window.dart';
 import 'src/app/operations.dart';
@@ -26,6 +27,10 @@ Future<void> main() async {
   await settings.load();
 
   final shell = ShellModel();
+  // Read rather than awaited: a recurring job that arrives a frame late costs nothing, and the
+  // window opening does not wait on a file.
+  final templates = Templates(settings);
+  unawaited(templates.load());
   final machines = Machines(settings);
 
   // Two interfaces watching the same machines raise every question twice and answer it from
@@ -56,6 +61,7 @@ Future<void> main() async {
     widening: Widening(),
     starting: StartWork(),
     inventory: AgentInventory(),
+    templates: templates,
     newerVersion: newerVersion,
   ));
 

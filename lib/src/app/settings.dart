@@ -96,6 +96,13 @@ class Settings extends ChangeNotifier {
     }
     final muted = stored['muted'];
     if (muted is List) _muted = muted.whereType<String>().toList();
+    final templates = stored['templates'];
+    if (templates is List) {
+      _templates = <Map<String, Object?>>[
+        for (final each in templates)
+          if (each is Map<String, Object?>) each,
+      ];
+    }
     final machines = stored['machines'];
     if (machines is List) {
       _machines = <Map<String, Object?>>[
@@ -170,11 +177,35 @@ class Settings extends ChangeNotifier {
 
   List<Map<String, Object?>> _machines = const <Map<String, Object?>>[];
 
+  /// The recurring jobs somebody named, as stored.
+  ///
+  /// **Kept here rather than with the project, which is not where they belong.** The requirement
+  /// asks for templates shared with the project, and nothing in the contract writes to a project
+  /// file except `SetEgress`. Until there is somewhere to put them, they live beside this
+  /// interface's other choices — which means they follow the person and not the project.
+  Future<List<Map<String, Object?>>> templates() async {
+    final stored = (await _store.read())['templates'];
+    if (stored is! List) return const <Map<String, Object?>>[];
+    return <Map<String, Object?>>[
+      for (final each in stored)
+        if (each is Map<String, Object?>) each,
+    ];
+  }
+
+  /// Remembers the recurring jobs.
+  Future<void> rememberTemplates(List<Map<String, Object?>> templates) async {
+    _templates = templates;
+    await _write();
+  }
+
+  List<Map<String, Object?>> _templates = const <Map<String, Object?>>[];
+
   Future<void> _write() => _store.write(<String, Object?>{
         'appearance': _appearance.name,
         'machines': _machines,
         'muted': _muted,
         'place': _place,
+        'templates': _templates,
       });
 
   static ThemeMode _appearanceNamed(Object? name) => ThemeMode.values.firstWhere(

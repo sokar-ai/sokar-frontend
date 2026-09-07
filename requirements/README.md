@@ -62,7 +62,7 @@ it is judged against the rest, not because it matters least.
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | yes| n/a | |
 | F27 | [Managed Tunnels](F27-Managed-Tunnels.md) | A host is described by where it is, and the interface raises the forward itself — without becoming the only way to reach a machine. | ready | **open question** |
 | F24 | [Agent Inventory](F24-Agent-Inventory.md) | What is installed, what it may reach and which build it pins are all visible, and nothing names a specific agent. | ready | |
-| F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | ready | |
+| F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | **partial** | |
 
 ## What was here and is finished
 

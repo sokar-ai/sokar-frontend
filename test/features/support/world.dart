@@ -10,6 +10,7 @@ import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
+import 'package:sokar_frontend/src/app/templates.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
@@ -543,6 +544,9 @@ class World {
   /// What agents the machine has.
   static late AgentInventory inventory;
 
+  /// The recurring jobs somebody named.
+  static late Templates templates;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -690,6 +694,8 @@ class World {
     widening = Widening();
     starting = StartWork();
     inventory = AgentInventory();
+    templates = Templates(settings);
+    await templates.load();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
@@ -736,6 +742,7 @@ class World {
       widening: widening,
       starting: starting,
       inventory: inventory,
+      templates: templates,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -785,6 +792,7 @@ class World {
       widening: widening,
       starting: starting,
       inventory: inventory,
+      templates: templates,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -804,6 +812,7 @@ class World {
       widening: widening,
       starting: starting,
       inventory: inventory,
+      templates: templates,
       newerVersion: newerVersion,
     ));
     await settle(tester);

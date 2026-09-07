@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +7,7 @@ import '../app/fleet_model.dart';
 import '../app/egress.dart';
 import '../app/agent_inventory.dart';
 import '../app/start_work.dart';
+import '../app/templates.dart';
 import '../app/widening.dart';
 import '../app/gate.dart';
 import '../app/logs.dart';
@@ -55,6 +57,7 @@ class Shell extends StatefulWidget {
     required this.widening,
     required this.starting,
     required this.inventory,
+    required this.templates,
     required this.newerVersion,
     super.key,
   });
@@ -91,6 +94,9 @@ class Shell extends StatefulWidget {
 
   /// What agents are installed on the machine being watched.
   final AgentInventory inventory;
+
+  /// The recurring jobs somebody named.
+  final Templates templates;
 
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
@@ -133,6 +139,7 @@ class _ShellState extends State<Shell> {
         settings: widget.settings,
         operations: widget.operations,
         notifications: widget.notifications,
+        templates: widget.templates,
         openFinder: _openFinder,
         checkWorkCanStart: _checkWorkCanStart,
         askToStop: _askToStop,
@@ -142,6 +149,7 @@ class _ShellState extends State<Shell> {
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
+        startFromTemplate: _startFromTemplate,
         continueTheWork: _continueTheWork,
         quit: _quit,
       );
@@ -190,6 +198,15 @@ class _ShellState extends State<Shell> {
     await widget.inventory.load(_fleet.backend);
   }
 
+  /// Starts work from a recurring job somebody named.
+  Future<void> _startFromTemplate(Template job) async {
+    final project = _fleet.selectedProject?.project;
+    if (project == null) return;
+    await widget.starting.openFrom(_fleet.backend, project, job);
+    if (!mounted) return;
+    await _offerToStart();
+  }
+
   /// Starts work in the selected project.
   Future<void> _startWork() async {
     final project = _fleet.selectedProject?.project;
@@ -214,10 +231,18 @@ class _ShellState extends State<Shell> {
       context,
       starting: widget.starting,
       onStart: _beginTheRun,
+      onKeep: _keepAsTemplate,
     );
     widget.starting.close();
     if (!started) return;
     // Nothing else to do: starting already opened the operation, and `goTo` would close it again.
+  }
+
+  /// Keeps what is on screen as a recurring job.
+  void _keepAsTemplate() {
+    final job = widget.starting.asTemplate;
+    if (job == null) return;
+    unawaited(widget.templates.keep(job));
   }
 
   /// Runs it, and hands the stream to the session rather than to this view.
