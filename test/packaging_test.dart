@@ -95,4 +95,51 @@ void main() {
     expect(script, contains('refusing to ship a deb with no dependencies'));
     expect(script, contains('refusing to ship an rpm with no dependencies'));
   });
+
+  group('the build that publishes them', () {
+    final workflow = File('.github/workflows/build.yml').readAsStringSync();
+
+    test('a deb is uploaded with the properties that make it indexable', () {
+      // Without them Artifactory stores the file and never indexes it: apt sees nothing and no
+      // error appears anywhere. This is the single line whose absence is invisible.
+      expect(workflow, contains('deb.distribution=snapshots'));
+      expect(workflow, contains('deb.component=main'));
+      expect(workflow, contains('deb.architecture=amd64'));
+    });
+
+    test('nothing is uploaded with its source directory attached', () {
+      // Without --flat the directory travels and the package lands somewhere apt does not read.
+      expect('--flat=true'.allMatches(workflow).length, greaterThanOrEqualTo(2));
+    });
+
+    test('it publishes to the snapshots distribution, which consumers name', () {
+      // A consumer puts that word in their sources.list, so snapshots and a future stable can
+      // never mix. Changing it changes what everybody has already configured.
+      expect(workflow, contains('sokar-dist-deb/pool/main/s/sokar-frontend/'));
+      expect(workflow, contains('sokar-dist-rpm/snapshots/'));
+    });
+
+    test('the secret names are the ones that exist, not invented ones', () {
+      expect(workflow, contains(r'secrets.JF_ACCESS_TOKEN'));
+      expect(workflow, contains(r'vars.JF_URL'));
+    });
+
+    test('every job builds on the oldest distribution this is meant to install on', () {
+      // The bundle links the system GTK3 stack, so the build machine sets the floor. A job that
+      // slipped to a newer runner would produce a package that installs nowhere older, and
+      // nothing about the run would say so.
+      expect(workflow.contains('runs-on: ubuntu-latest'), isFalse);
+      expect('runs-on: ubuntu-22.04'.allMatches(workflow).length, 3);
+    });
+
+    test('the packages are proven to install before they are published', () {
+      expect(workflow, contains('needs: [build, installs]'));
+      expect(workflow, contains('debian:12'));
+      expect(workflow, contains('fedora:40'));
+    });
+
+    test('the generated tests are proven current rather than trusted', () {
+      expect(workflow, contains('git diff --exit-code test/features'));
+    });
+  });
 }

@@ -110,6 +110,42 @@ Error connecting to the service protocol: failed to connect to http://127.0.0.1:
 Nothing went wrong. `flutter run` attaches a debugger to a process that has already gone; the
 window it asked for did come forward. Launching the built binary twice shows the line instead.
 
+### Installing it
+
+Not published yet — the workflow exists and nothing has run. When it has, from the same repository
+the `sokar` package comes from:
+
+```
+# Debian and Ubuntu
+curl -fsSL https://fuinorg.jfrog.io/artifactory/api/security/keypair/sokar-packages/public \
+  | sudo tee /usr/share/keyrings/sokar.asc > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/sokar.asc] \
+  https://fuinorg.jfrog.io/artifactory/sokar-dist-deb snapshots main" \
+  | sudo tee /etc/apt/sources.list.d/sokar.list
+sudo apt update && sudo apt install sokar-frontend
+```
+
+```
+# Fedora — gpgcheck=0 on purpose: Artifactory signs the repository index, not the packages
+# themselves, so there is no per-package signature to check. It is a stated arrangement, not an
+# omission.
+sudo tee /etc/yum.repos.d/sokar.repo > /dev/null <<'REPO'
+[sokar]
+name=Sokar
+baseurl=https://fuinorg.jfrog.io/artifactory/sokar-dist-rpm/snapshots
+enabled=1
+gpgcheck=0
+REPO
+sudo dnf install sokar-frontend
+```
+
+**`snapshots` is the distribution word**, and it is in the line a person configures. Every build of
+`main` replaces those packages. A stable release will be a different word in the same repository,
+so the two can never be installed by accident from one another.
+
+`sokar` is **recommended, not required**: an interface pointed at a remote daemon over a forwarded
+socket is useful with no local backend at all.
+
 ### Building the packages
 
 ```

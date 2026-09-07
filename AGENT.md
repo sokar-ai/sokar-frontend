@@ -915,3 +915,30 @@ rather than the directive. When a mutation survives, the first question is not *
 too weak"* but *"is my check reading the thing, or reading something the thing says about
 itself"*.
 
+## The build that publishes
+
+`.github/workflows/build.yml`, on push to `main` and on `workflow_dispatch`. Three jobs: test and
+package, prove the packages install in clean Debian and Fedora containers, then publish. The shape
+is the backend's, deliberately.
+
+Four things in it exist because something failed silently, on their side or ours:
+
+- **`--target-props="deb.distribution=snapshots;deb.component=main;deb.architecture=amd64"`.**
+  Without them Artifactory **stores the file and never indexes it**: `apt` sees nothing and no
+  error appears anywhere. Setting properties needs **Annotate** permission as well as Deploy, and
+  **without Annotate the upload still succeeds and the properties are dropped** — which is what
+  `artifactory-probe.yml` is for. Run it before trusting a first publish.
+- **`--flat=true`**, or the source directory travels and the package lands where nothing reads it.
+- **`ubuntu-22.04` on every job.** The bundle links the system GTK3 stack, so the build machine
+  sets the floor; built on 24.04 the package refuses to install on 22.04, and the failure arrives
+  at somebody else's `apt`. Raising it is a decision about who can no longer install.
+- **One list of what was built**, written by the build and checked by the publish. The backend had
+  two lists drift, and the symptom was a publish failing after the tests had already passed.
+
+`secrets.JF_ACCESS_TOKEN` and `vars.JF_URL` — those exact names, not invented ones. Artifactory
+signs the repository **index**, not the packages, which is why the Fedora repo file sets
+`gpgcheck=0` and says so.
+
+Publishing goes to the **`snapshots`** distribution. That word is in the line a person configures,
+so a stable release will be a different word in the same repository rather than a new repository.
+

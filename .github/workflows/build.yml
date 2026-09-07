@@ -1,0 +1,183 @@
+name: Build
+
+# The same shape as the backend's release, deliberately: one workflow, two jobs, publishing to a
+# `snapshots` distribution. A consumer puts that word in their sources.list, so snapshots and a
+# future stable release can never mix.
+#
+# `workflow_dispatch` ignores the path filter, so a run can always be forced.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and package
+    # The oldest distribution this interface is meant to install on, and not a preference: the
+    # Flutter bundle links the system GTK3 stack, so **the build machine sets the floor**. Built on
+    # 24.04 the package refuses to install on 22.04, and the failure arrives at somebody else's
+    # `apt`. Raising this is a decision about who can no longer install, not a maintenance chore —
+    # and the same runner is used for the other two jobs so nothing is built against a newer GTK
+    # by accident.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+
+      # GTK and the toolchain the Linux desktop build needs. The runner has neither by default.
+      - name: Install what a Linux desktop build needs
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libstdc++-12-dev dpkg-dev binutils rpm
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyse
+        run: dart analyze --fatal-infos
+
+      # Generated tests are committed, so CI proves they are current rather than trusting that
+      # somebody ran the generator. A diff here means a .feature was edited and not regenerated.
+      - name: Prove the generated tests are current
+        run: |
+          dart run build_runner build
+          git diff --exit-code test/features || {
+            echo "::error::a .feature changed without build_runner being run" >&2
+            exit 1
+          }
+
+      # One run, two reports. Every feature names one requirement on its Feature line, so both are
+      # a per-requirement traceability matrix.
+      - name: Test
+        run: |
+          mkdir -p build
+          set +e
+          flutter test --machine > build/test-results.json
+          set -e
+          dart pub global activate junitreport >/dev/null
+          "$HOME/.pub-cache/bin/tojunit" < build/test-results.json > build/test-results.xml
+          dart tool/test_report.dart
+
+      - name: Package
+        run: |
+          curl -sSL -o nfpm.tar.gz \
+            https://github.com/goreleaser/nfpm/releases/download/v2.43.0/nfpm_2.43.0_Linux_x86_64.tar.gz
+          tar xzf nfpm.tar.gz nfpm
+          NFPM="$PWD/nfpm" tool/package.sh
+
+      # What was built, named once. The backend learned this the hard way: two lists of files drift,
+      # and the symptom is a publish failing after the tests have already passed.
+      - name: Say what was built
+        run: |
+          ls -1 build/packages/*.deb build/packages/*.rpm > build/packages/fetched.txt
+          cat build/packages/fetched.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            build/packages/*.deb
+            build/packages/*.rpm
+            build/packages/fetched.txt
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            build/test-results.xml
+            build/test-report.html
+
+  installs:
+    name: Prove the packages install
+    needs: build
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [debian:12, fedora:40]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+
+      # A package that does not install is worth catching here rather than in somebody's apt. The
+      # container is clean, so a dependency that was only ever satisfied by the build machine
+      # fails loudly.
+      - name: Install it in a clean ${{ matrix.image }}
+        run: |
+          docker run --rm -v "$PWD/packages:/packages" ${{ matrix.image }} sh -c '
+            set -e
+            if command -v apt-get >/dev/null; then
+              apt-get update
+              apt-get install -y /packages/*.deb
+              test -x /usr/bin/sokar-frontend
+              test -f /usr/lib/sokar-frontend/lib/libapp.so
+              test -f /usr/lib/sokar-frontend/data/icudtl.dat
+            else
+              dnf install -y /packages/*.rpm
+              test -x /usr/bin/sokar-frontend
+              test -f /usr/lib/sokar-frontend/lib/libapp.so
+              test -f /usr/lib/sokar-frontend/data/icudtl.dat
+            fi
+            test -f /usr/share/applications/sokar-frontend.desktop
+          '
+
+  publish:
+    name: Publish to Artifactory
+    needs: [build, installs]
+    runs-on: ubuntu-22.04
+    # A pull request from a fork has no access to the token, and a run that publishes nothing is
+    # better than one that fails at the last step.
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+
+      # The manifest is checked rather than trusted: the file list lives in one place, and this is
+      # where it is proven to still describe what arrived.
+      - name: Check everything the build said it made is here
+        run: |
+          while read -r built; do
+            file="packages/$(basename "$built")"
+            test -f "$file" || { echo "::error::$file is missing" >&2; exit 1; }
+          done < packages/fetched.txt
+
+      - uses: jfrog/setup-jfrog-cli@v5
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        with:
+          # Otherwise it writes build-info to a repository this token cannot write, and warns on
+          # every run.
+          disable-auto-build-publish: true
+
+      # `--target-props` is not optional. Without them Artifactory **stores the file and never
+      # indexes it**: apt sees nothing and no error appears anywhere. Setting properties needs
+      # Annotate permission as well as Deploy — and without Annotate the upload still succeeds and
+      # the properties are silently dropped, which is why `artifactory-probe.yml` exists.
+      #
+      # `--flat=true`, or the source directory travels and the package lands under
+      # `pool/main/s/sokar-frontend/packages/...`.
+      - name: Upload the deb
+        run: |
+          jf rt upload "packages/*.deb" "sokar-dist-deb/pool/main/s/sokar-frontend/" \
+            --flat=true \
+            --target-props="deb.distribution=snapshots;deb.component=main;deb.architecture=amd64"
+
+      - name: Upload the rpm
+        run: |
+          jf rt upload "packages/*.rpm" "sokar-dist-rpm/snapshots/" --flat=true

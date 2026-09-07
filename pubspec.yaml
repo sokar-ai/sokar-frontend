@@ -20,6 +20,9 @@ version: 0.1.0
 
 environment:
   sdk: ^3.13.0
+  # Pinned so the build machine and a laptop agree. `flutter-version-file` in CI reads it from
+  # here, which is what keeps this from being a version written down in two places.
+  flutter: 3.47.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
