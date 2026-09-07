@@ -221,8 +221,15 @@ class Prompt {
   /// When it was blocked, ISO-8601.
   final String at;
 
-  /// Where in the ruleset it was stopped.
+  /// Where in the ruleset it was stopped. Empty on an event carrying a [verdict] — nothing
+  /// decided it a second time.
   final String prefix;
+
+  /// Absent while the question is open; `allow`, `deny` or `timeout` once it is settled.
+  ///
+  /// A plain string on purpose. The contract declares it as one rather than as an enumeration,
+  /// and a closed Dart enum is exactly how the tolerance rule gets broken.
+  final String? verdict;
 
   /// Constructor taking every field.
   const Prompt({
@@ -233,6 +240,7 @@ class Prompt {
     required this.port,
     required this.at,
     required this.prefix,
+    this.verdict,
   });
 
   /// Reads one from a reply.
@@ -244,10 +252,31 @@ class Prompt {
         port: _int(map, 'port'),
         at: _string(map, 'at'),
         prefix: _string(map, 'prefix'),
+        // Genuinely absent rather than empty, which is the difference between an open question
+        // and one that was settled by something this build has never heard of.
+        verdict: map['verdict'] is String ? map['verdict'] as String : null,
       );
 
   /// Destination as it should be shown: with the port, unless there is none.
   String get shown => port == 0 ? destination : '$destination:$port';
+
+  /// Whether this event is an answer rather than a question.
+  bool get settled => verdict != null;
+
+  /// Whether it ran out rather than being answered.
+  ///
+  /// The only way to learn that: nothing asks about an expired prompt again, so a question that
+  /// simply stops arriving is otherwise indistinguishable from one still waiting for its
+  /// operator. `Decide` still works on one, and still takes effect.
+  bool get expired => verdict == 'timeout';
+
+  /// What identifies one prompt across the question and the answer to it.
+  ///
+  /// `task` and `key`, and nothing else. The answer arrives as the same destination a second
+  /// time, so anything that keyed on a field which differs between the two — [at] carries the
+  /// block time on one and the decision time on the other, [prefix] is empty on the answer —
+  /// would show every blocked destination twice.
+  String get identity => '$task/$key';
 }
 
 /// What a stop did, or refused to do.

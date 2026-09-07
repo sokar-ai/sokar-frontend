@@ -201,6 +201,66 @@ void main() {
     });
   });
 
+  group('a prompt and its answer', () {
+    Map<String, dynamic> prompt({String? verdict, String prefix = 'egress/deny'}) => {
+          'task': 'sokar-demo-shell-1',
+          'key': 'tcp/example.com/443',
+          'destination': 'example.com',
+          'protocol': 'tcp',
+          'port': 443,
+          'at': '2026-09-07T09:12:00Z',
+          'prefix': verdict == null ? prefix : '',
+          'verdict': ?verdict,
+        };
+
+    test('an open question carries no verdict', () async {
+      daemon.pushes('Prompts', (_) => Stream<Map<String, dynamic>>.value(prompt()));
+      final client = await connect();
+
+      final asked = await client.prompts().first;
+
+      expect(asked.settled, isFalse);
+      expect(asked.expired, isFalse);
+      expect(asked.verdict, isNull);
+    });
+
+    test('the answer matches the question by task and key alone', () async {
+      // The answer arrives as the same destination a second time. Anything keyed on a field that
+      // differs between the two would show every blocked destination twice.
+      final asked = Prompt.from(prompt());
+      final answered = Prompt.from(prompt(verdict: 'allow'));
+
+      expect(answered.identity, asked.identity);
+      expect(answered.settled, isTrue);
+      expect(answered.prefix, isEmpty);
+    });
+
+    test('a prompt that ran out says so, rather than simply never arriving again', () async {
+      final expired = Prompt.from(prompt(verdict: 'timeout'));
+
+      expect(expired.expired, isTrue);
+      expect(expired.settled, isTrue);
+    });
+
+    test('a verdict this build has never heard of is carried, not thrown on', () async {
+      // verdict is a plain string in the contract, so it may gain values the way Outcome does.
+      final odd = Prompt.from(prompt(verdict: 'deferred'));
+
+      expect(odd.verdict, 'deferred');
+      expect(odd.settled, isTrue);
+      expect(odd.expired, isFalse);
+    });
+
+    test('an undeclared field on the event is ignored', () async {
+      // These events carry more than the IDL declares - shown, project, source among them. They
+      // are not contract and must not be read.
+      final extra = Prompt.from({...prompt(), 'project': 'checkout', 'source': 'proxy'});
+
+      expect(extra.destination, 'example.com');
+      expect(extra.shown, 'example.com:443');
+    });
+  });
+
   group('an endless stream', () {
     test('delivers each event as it happens, not one event late', () async {
       // Watch and Prompts are never finite. A backend that held each event until the next one

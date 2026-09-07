@@ -47,8 +47,11 @@ So a gap here is a backend method that has to be added, not a workaround waiting
 - **F13 Operation Feedback And History** — `Start` streams, so the live half works. *"Every
   operation started in a session can be reopened with its output"* needs output that outlives the
   connection, and nothing persists it.
-- **F15 Secret Store Control** — `Credentials` reports the store's state, including the locked
-  versus empty distinction. Nothing can *change* it.
+- **F15 Secret Store Control** — `Credentials` reports the store's state, and `readable` already
+  separates "locked" from "empty". Nothing can *change* it: the contract has no vault-mutating
+  method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling
+  out is forbidden, and it is forbidden hardest here. A lock control needs a `Lock` method added
+  on the Sokar side; confirmed 2026-09-07 that it will be, if asked for.
 - **F17 Network Exposure Control** — `Prompts` and `Decide` do the live half completely.
   *"Changeable while it runs"* has no method.
 

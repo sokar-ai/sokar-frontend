@@ -65,6 +65,16 @@ serves from itself. Read [Backend API](doc/Backend-API.md) before writing a call
 - **`Prompts` has a deadline.** A task is *blocked* while a clearance prompt goes unanswered,
   and the watcher gives up on its own timeout. It is the one place where interface latency costs
   something real, which is why it is a stream and not a poll.
+- **`Prompts` carries answers as well as questions.** The same destination arrives a second time
+  with `verdict` set — `allow`, `deny` or `timeout`. **Match it to the open question by `task` and
+  `key` alone** (`Prompt.identity`) and update that row; anything rendering every reply as a new
+  item shows each blocked destination twice. Three traps behind it: `at` is the block time on a
+  question and the decision time on an answer, `prefix` is empty on an answer, and a client sees
+  the echo of its own `Decide` — do not apply it twice. `verdict: "timeout"` is the only way to
+  learn a prompt expired, because nothing asks about it again; show it as expired and **keep it
+  answerable**, since `Decide` still works and still takes effect.
+- **These events carry undeclared fields** — `shown`, `project`, `source` among them. They are not
+  contract and may change without notice. If one would be useful, ask for it to be declared.
 
 ## Staying compatible with older backends
 

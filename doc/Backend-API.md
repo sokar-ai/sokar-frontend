@@ -112,3 +112,6 @@ Two things worth knowing before designing around them:
 - **`Prompts` has a deadline.** A task is *blocked* while a clearance prompt is unanswered and
   the watcher gives up after its own timeout. This is the one place where interface latency costs
   something real, which is why it is a stream and not a poll.
+- **`Prompts` streams the answer too.** A settled prompt arrives again with `verdict` set, and
+  `"timeout"` is the only way a client learns one expired. Match it to the question by `task` and
+  `key`; the other fields deliberately differ between the two events.
