@@ -32,7 +32,7 @@ void main() {
   const pending = <String>{
     'F02', 'F03', 'F04', 'F06', 'F07',
     'F12', 'F14', 'F15', 'F16', 'F18', 'F19',
-    'F24', 'F25', 'F26', 'F27',
+    'F25', 'F26', 'F27',
   };
 
   final requirements = Directory('requirements')

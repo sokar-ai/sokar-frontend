@@ -129,6 +129,7 @@ List<Command> commandsFor({
   required VoidCallback openEgress,
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
+  required VoidCallback showAgents,
   required VoidCallback continueTheWork,
   required VoidCallback quit,
 }) {
@@ -204,6 +205,15 @@ List<Command> commandsFor({
       shortcut: const SingleActivator(LogicalKeyboardKey.keyN, control: true),
       run: startWork,
       unavailable: StartWork.whyNot(selectedProject?.project),
+    ),
+    Command(
+      id: 'agents.show',
+      label: 'Show the agents installed here',
+      group: 'Machine',
+      run: showAgents,
+      unavailable: fleet.reachability == Reachability.connected
+          ? null
+          : 'not connected to a backend',
     ),
     Command(
       id: 'work.continue',

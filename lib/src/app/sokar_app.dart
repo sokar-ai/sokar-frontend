@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
 import 'egress.dart';
+import 'agent_inventory.dart';
 import 'start_work.dart';
 import 'widening.dart';
 import 'gate.dart';
@@ -27,6 +28,7 @@ class SokarApp extends StatelessWidget {
     required this.egress,
     required this.widening,
     required this.starting,
+    required this.inventory,
     required this.newerVersion,
     super.key,
   });
@@ -61,6 +63,9 @@ class SokarApp extends StatelessWidget {
   /// Starting work, and continuing a finished run.
   final StartWork starting;
 
+  /// What agents are installed on the machine being watched.
+  final AgentInventory inventory;
+
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
@@ -88,6 +93,7 @@ class SokarApp extends StatelessWidget {
               egress,
               widening,
               starting,
+              inventory,
               newerVersion,
             ]),
             builder: (context, _) => Shell(
@@ -101,6 +107,7 @@ class SokarApp extends StatelessWidget {
               egress: egress,
               widening: widening,
               starting: starting,
+              inventory: inventory,
               newerVersion: newerVersion,
             ),
           ),

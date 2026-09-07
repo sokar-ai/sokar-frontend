@@ -8,6 +8,7 @@ import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
+import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
@@ -81,6 +82,16 @@ class FakeBackend implements FleetBackend {
       'version': '',
       'from': '/etc/sokar/agents/other-agent.yml',
       'allowedDomains': <String>['api.example.test'],
+    }),
+    // A second copy under a name that is already taken. The contract says where each was found
+    // and not which one runs, which is a state the inventory has to render honestly.
+    Agent.from(const <String, dynamic>{
+      'name': 'an-agent',
+      'label': 'An Agent',
+      'binary': '/usr/local/bin/an-agent',
+      'version': '1.9.0',
+      'from': '/home/somebody/.config/sokar/agents/an-agent.yml',
+      'allowedDomains': <String>['api.anthropic.com'],
     }),
   ];
 
@@ -529,6 +540,9 @@ class World {
   /// What is being started.
   static late StartWork starting;
 
+  /// What agents the machine has.
+  static late AgentInventory inventory;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -675,6 +689,7 @@ class World {
     egress = Egress();
     widening = Widening();
     starting = StartWork();
+    inventory = AgentInventory();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
@@ -720,6 +735,7 @@ class World {
       egress: egress,
       widening: widening,
       starting: starting,
+      inventory: inventory,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -768,6 +784,7 @@ class World {
       egress: egress,
       widening: widening,
       starting: starting,
+      inventory: inventory,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -786,6 +803,7 @@ class World {
       egress: egress,
       widening: widening,
       starting: starting,
+      inventory: inventory,
       newerVersion: newerVersion,
     ));
     await settle(tester);

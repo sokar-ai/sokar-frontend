@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/egress.dart';
+import '../app/agent_inventory.dart';
 import '../app/start_work.dart';
 import '../app/widening.dart';
 import '../app/gate.dart';
@@ -20,6 +21,7 @@ import 'command_finder.dart';
 import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
+import 'agents_view.dart';
 import 'start_work_view.dart';
 import 'widening_view.dart';
 import 'gate_view.dart';
@@ -52,6 +54,7 @@ class Shell extends StatefulWidget {
     required this.egress,
     required this.widening,
     required this.starting,
+    required this.inventory,
     required this.newerVersion,
     super.key,
   });
@@ -85,6 +88,9 @@ class Shell extends StatefulWidget {
 
   /// Starting work, and continuing a finished run.
   final StartWork starting;
+
+  /// What agents are installed on the machine being watched.
+  final AgentInventory inventory;
 
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
@@ -135,6 +141,7 @@ class _ShellState extends State<Shell> {
         openEgress: _openEgress,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
+        showAgents: _showAgents,
         continueTheWork: _continueTheWork,
         quit: _quit,
       );
@@ -172,6 +179,15 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openEgress();
     await widget.egress.lookAt(_fleet.backend, project);
+  }
+
+  /// Shows what agents this machine has.
+  ///
+  /// Asked every time it is opened rather than held: an agent installed while the window was open
+  /// would otherwise be missing from the one list somebody opened to find out.
+  Future<void> _showAgents() async {
+    widget.shell.openAgents();
+    await widget.inventory.load(_fleet.backend);
   }
 
   /// Starts work in the selected project.
@@ -448,6 +464,11 @@ class _ShellState extends State<Shell> {
         final task = _fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
+      case AgentsOpened():
+        return AgentsView(
+          inventory: widget.inventory,
+          onClose: widget.shell.close,
+        );
       case EgressOpened():
         return EgressView(
           egress: widget.egress,

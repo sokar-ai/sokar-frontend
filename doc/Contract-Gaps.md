@@ -52,7 +52,6 @@ missing, ask.**
 | F20 Access From Elsewhere | transport only — a socket path |
 | F21 Continuity And Updates | `GetInfo`; reconnection is the client's own |
 | F23 Notifications | `Prompts`, including the verdict that says one expired |
-| F24 Agent Inventory | `Agents`, with its `failures` map |
 
 ## Partly ready — build the covered half, stop at the line
 
@@ -73,6 +72,27 @@ Four of these were listed as *ready* until 2026-09-07, when they were walked aga
 method by method rather than by name. Starting is one call, so F08 read as covered; the call has
 no parameter for two thirds of what the requirement asks for. **Checking that a method exists is
 not checking that it answers the requirement.**
+
+**It happened again the same day, with F24.** It was in the *Ready* table on the strength of
+`Agents` existing. Walked criterion by criterion against the `Agent` type, two of its four have
+nothing behind them. Twice is a pattern, not an accident: the table above is written from method
+names and the requirements are written from what a person sees.
+
+- **F24 Agent Inventory** — **two of four criteria are built.** Every agent listed with its
+  version and where it was found; an agent reporting no version says so rather than showing a
+  blank; the hosts it needs shown with it; the ones that could not describe themselves listed
+  rather than left out, because absent is the state nobody goes looking for. What is missing:
+  - *"The pinned tool version and its digest are shown."* `Agent.version` is what the binary
+    reports about itself, which is not the build it will **fetch**, and there is no digest at all.
+    Two reply fields would answer it. Asked.
+  - *"An agent shadowed by another copy is reported as not in use."* `Agents` can answer two
+    entries with one `name` from different places, and **nothing says which one runs**. The
+    interface lists both, marks the name as having more than one, and says it cannot tell — the
+    honest end of what the answer supports. A boolean on `Agent` would finish it. Asked.
+  - *"…including those deliberately refused."* `allowedDomains` is what an agent needs; there is
+    no refused list on `Agent`. Read as belonging to the project egress view, where *"asked for
+    and deliberately not given"* is already built. Confirmation asked for before the criterion is
+    reworded.
 
 - **F08 Task Creation And Modes** — **five of six criteria are built.** `Start` gained `mode`,
   `prompt`, `model`, `maxTurns` and `minutes` on 2026-09-07, and a prompt makes the call *run* the

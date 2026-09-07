@@ -75,6 +75,12 @@ class EgressOpened extends Opened {
   const EgressOpened();
 }
 
+/// What agents are installed on this machine.
+class AgentsOpened extends Opened {
+  /// Constructor.
+  const AgentsOpened();
+}
+
 /// One waiting push, being judged.
 class ReviewOpened extends Opened {
   /// Constructor.
@@ -155,6 +161,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens what the selected project's work may reach.
   void openEgress() => _open(const EgressOpened());
+
+  /// Opens what agents are installed here.
+  void openAgents() => _open(const AgentsOpened());
 
   /// Closes whatever is open and hands the keyboard back to where it came from.
   ///

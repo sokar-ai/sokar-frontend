@@ -785,3 +785,17 @@ start a container you will have to clear up"**, naming the workspace and the hel
 *"this may fail"*: a hedge is not something somebody can decide with, and this was going to be one
 until it was measured.
 
+## Check the fields, not the method name — twice now
+
+A requirement is covered when every acceptance criterion has something behind it, not when the
+obvious method exists. This has now been got wrong twice on the same map:
+
+- **F08**, because `Start` exists and starting is one call. The call had no parameter for two
+  thirds of what the requirement asked for.
+- **F24**, because `Agents` exists and answers a list. Two of its four criteria — the pinned build
+  and its digest, and which copy of a shadowed name is in use — have no field behind them.
+
+The pattern is structural, not careless: the gap map is written from method names and the
+requirements are written from what a person sees. **Walk a requirement criterion by criterion
+against the reply type before writing anything down as ready.**
+

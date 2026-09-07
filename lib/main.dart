@@ -10,6 +10,7 @@ import 'src/app/machines.dart';
 import 'src/app/newer_version.dart';
 import 'src/app/one_instance.dart';
 import 'src/app/where_you_were.dart';
+import 'src/app/agent_inventory.dart';
 import 'src/app/start_work.dart';
 import 'src/app/widening.dart';
 import 'src/app/window.dart';
@@ -54,6 +55,7 @@ Future<void> main() async {
     egress: Egress(),
     widening: Widening(),
     starting: StartWork(),
+    inventory: AgentInventory(),
     newerVersion: newerVersion,
   ));
 

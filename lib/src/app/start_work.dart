@@ -172,7 +172,15 @@ class StartWork extends ChangeNotifier {
     notifyListeners();
     try {
       final (installed, couldNotBeRead) = await backend.agentsOn();
-      agents = installed;
+      // One entry per name. Two copies installed under one name would be two choices saying the
+      // same thing, and a chooser cannot tell them apart any better than the answer does — the
+      // contract says where each was found and not which one runs. Seeing both is what the agent
+      // inventory is for.
+      final seen = <String>{};
+      agents = <Agent>[
+        for (final agent in installed)
+          if (seen.add(agent.name)) agent,
+      ];
       failures = couldNotBeRead;
       // Carried over from a finished run, and the agent may since have been removed. Saying so
       // beats a start that is refused by a name nobody can see is missing.

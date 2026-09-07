@@ -45,6 +45,16 @@ class MockMachine {
                     'from': '/etc/sokar/agents/other-agent.yml',
                     'allowedDomains': <String>['api.example.test'],
                   },
+                  // A second copy under a name already taken. Where each was found is answered;
+                  // which one runs is not, and the interface has to render that honestly.
+                  <String, dynamic>{
+                    'name': 'an-agent',
+                    'label': 'An Agent',
+                    'binary': '/usr/local/bin/an-agent',
+                    'version': '1.9.0',
+                    'from': '/home/somebody/.config/sokar/agents/an-agent.yml',
+                    'allowedDomains': <String>['api.anthropic.com'],
+                  },
                 ],
           // One that could not be read. Shown rather than dropped: missing from a list looks
           // exactly like never installed, and only one of those is worth fixing.
