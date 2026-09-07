@@ -6,6 +6,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'src/app/fleet_backend.dart';
 import 'src/app/fleet_model.dart';
+import 'src/app/operations.dart';
 import 'src/app/settings.dart';
 import 'src/app/shell_model.dart';
 import 'src/app/sokar_app.dart';
@@ -17,7 +18,12 @@ Future<void> main() async {
   await settings.load();
 
   final fleet = FleetModel(SokarBackend(backendFromEnvironment()));
-  runApp(SokarApp(fleet: fleet, shell: ShellModel(), settings: settings));
+  runApp(SokarApp(
+    fleet: fleet,
+    shell: ShellModel(),
+    settings: settings,
+    operations: Operations(),
+  ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather
   // than staying blank until a socket answers or does not.

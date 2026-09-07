@@ -102,6 +102,7 @@ class _CommandFinderState extends State<_CommandFinder> {
                 child: matches.isEmpty
                     ? const Center(child: Text('No command by that name.'))
                     : ListView.builder(
+                        key: const Key('command-list'),
                         itemCount: matches.length,
                         itemBuilder: (context, index) =>
                             _CommandRow(

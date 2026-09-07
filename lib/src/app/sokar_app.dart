@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../ui/shell.dart';
 import 'fleet_model.dart';
+import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
 
@@ -12,6 +13,7 @@ class SokarApp extends StatelessWidget {
     required this.fleet,
     required this.shell,
     required this.settings,
+    required this.operations,
     super.key,
   });
 
@@ -23,6 +25,9 @@ class SokarApp extends StatelessWidget {
 
   /// How the interface looks.
   final Settings settings;
+
+  /// What this session has run.
+  final Operations operations;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -36,9 +41,13 @@ class SokarApp extends StatelessWidget {
           darkTheme: ThemeData(colorSchemeSeed: Colors.teal, brightness: Brightness.dark),
           themeMode: settings.appearance,
           home: ListenableBuilder(
-            listenable: Listenable.merge(<Listenable>[fleet, shell]),
-            builder: (context, _) =>
-                Shell(fleet: fleet, shell: shell, settings: settings),
+            listenable: Listenable.merge(<Listenable>[fleet, shell, operations]),
+            builder: (context, _) => Shell(
+              fleet: fleet,
+              shell: shell,
+              settings: settings,
+              operations: operations,
+            ),
           ),
         ),
       );

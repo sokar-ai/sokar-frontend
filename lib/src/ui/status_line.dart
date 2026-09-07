@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/fleet_model.dart';
+import '../app/operations.dart';
 
 /// One line across the bottom saying what just happened, and to which machine.
 ///
@@ -8,11 +9,22 @@ import '../app/fleet_model.dart';
 /// answers "is it busy" and forgets "did the last thing work", which is the question somebody
 /// coming back to the window actually has.
 class StatusLine extends StatelessWidget {
-  /// Constructor taking the fleet whose state it reports.
-  const StatusLine({required this.fleet, super.key});
+  /// Constructor taking what it reports on and the way into the record.
+  const StatusLine({
+    required this.fleet,
+    required this.operations,
+    required this.onShowOperations,
+    super.key,
+  });
 
   /// What is being talked to.
   final FleetModel fleet;
+
+  /// What this session has run.
+  final Operations operations;
+
+  /// Opens the record.
+  final VoidCallback onShowOperations;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +36,9 @@ class StatusLine extends StatelessWidget {
       children: <Widget>[
         SizedBox(
           height: 2,
-          child: fleet.busy ? const LinearProgressIndicator(minHeight: 2) : null,
+          child: fleet.busy || operations.running > 0
+              ? const LinearProgressIndicator(minHeight: 2)
+              : null,
         ),
         Container(
           decoration: BoxDecoration(
@@ -42,6 +56,10 @@ class StatusLine extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
                 ),
+              ),
+              _Operations(
+                operations: operations,
+                onShow: onShowOperations,
               ),
               if (fleet.reachability == Reachability.connected && !fleet.liveUpdates)
                 Padding(
@@ -82,6 +100,37 @@ class _Reachability extends StatelessWidget {
     return Tooltip(
       message: words,
       child: Icon(icon, size: 16, color: colour),
+    );
+  }
+}
+
+/// How much this session has run, and the way into it.
+///
+/// A count rather than the newest line: output belongs in the operation's own view, and a status
+/// line that scrolled a build would bury the outcome of the last action under it.
+class _Operations extends StatelessWidget {
+  const _Operations({required this.operations, required this.onShow});
+
+  final Operations operations;
+  final VoidCallback onShow;
+
+  @override
+  Widget build(BuildContext context) {
+    final all = operations.all;
+    if (all.isEmpty) return const SizedBox.shrink();
+    final running = operations.running;
+    final failed = all.where((operation) => operation.failed).length;
+    return TextButton(
+      key: const Key('operations-indicator'),
+      onPressed: onShow,
+      child: Text(
+        running > 0
+            ? '$running running'
+            : failed > 0
+                ? '${all.length} run, $failed failed'
+                : '${all.length} run',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
     );
   }
 }

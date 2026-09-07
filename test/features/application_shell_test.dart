@@ -15,7 +15,7 @@ import './step/i_open_the_selection.dart';
 import './step/the_detail_for_is_shown.dart';
 import './step/i_press_the_down_arrow.dart';
 import './step/the_project_is_selected.dart';
-import './step/i_close_the_detail.dart';
+import './step/i_close_what_is_open.dart';
 import './step/the_work_pane_is_shown.dart';
 import './step/the_work_is_still_selected.dart';
 import './step/i_open_the_command_finder.dart';
@@ -67,7 +67,7 @@ void main() {
       await iSelectTheProject(tester, 'checkout');
       await iSelectTheWork(tester, 'sokar-checkout-shell');
       await iOpenTheSelection(tester);
-      await iCloseTheDetail(tester);
+      await iCloseWhatIsOpen(tester);
       await theWorkPaneIsShown(tester);
       await theWorkIsStillSelected(tester, 'sokar-checkout-shell');
       await theProjectIsSelected(tester, 'checkout');

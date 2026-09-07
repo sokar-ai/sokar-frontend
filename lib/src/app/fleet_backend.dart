@@ -27,6 +27,24 @@ abstract class FleetBackend {
   /// Errors with [FeatureNotSupported] against a backend too old to have `Watch`, which is a
   /// reason to stop expecting changes rather than a reason to stop.
   Stream<List<Task>> watch();
+
+  /// Starts a task, streaming what it prints, one line per event.
+  ///
+  /// Long: building an image takes minutes, and an interface showing nothing for that long is
+  /// indistinguishable from one that has hung. The stream ending is success; it errors when the
+  /// launch returned a non-zero code, because what an exit code means is known here and not by
+  /// whatever records the result.
+  ///
+  /// With `dryRun` it does everything up to starting the container and then reports, creating
+  /// nothing. That is all the frame uses today — choosing a name, an agent and a mode is
+  /// [F08](../../../requirements/F08-Task-Creation-And-Modes.md), and it fills in the rest of
+  /// these parameters rather than replacing them.
+  Stream<String> startTask({
+    String? task,
+    String? project,
+    String? agent,
+    bool dryRun = false,
+  });
 }
 
 /// A real Sokar daemon, local or forwarded.
@@ -55,9 +73,47 @@ class SokarBackend implements FleetBackend {
   @override
   Stream<List<Task>> watch() => _opened().watchTasks();
 
+  @override
+  Stream<String> startTask({
+    String? task,
+    String? project,
+    String? agent,
+    bool dryRun = false,
+  }) async* {
+    // Streaming, so every line arrives as `line`; the contract's `output` list is for a caller
+    // that did not ask to stream and is empty here.
+    var exitCode = 0;
+    await for (final progress in _opened().start(
+      task: task,
+      project: project,
+      agent: agent,
+      dryRun: dryRun,
+    )) {
+      final line = progress.line;
+      if (line != null) yield line;
+      if (progress.exitCode != null) exitCode = progress.exitCode!;
+    }
+    if (exitCode != 0) throw OperationFailed(exitCode);
+  }
+
   SokarClient _opened() {
     final client = _client;
     if (client == null) throw StateError('open() has not answered yet');
     return client;
   }
+}
+
+/// A launch that ran and came back with something other than zero.
+///
+/// Not a fault in the client and not a lost backend: the operation ran, and it failed. It gets
+/// said in the same place a success would have been said.
+class OperationFailed implements Exception {
+  /// Constructor taking what the launch returned.
+  const OperationFailed(this.exitCode);
+
+  /// What the launch returned. Never zero.
+  final int exitCode;
+
+  @override
+  String toString() => 'Failed, exit code $exitCode.';
 }

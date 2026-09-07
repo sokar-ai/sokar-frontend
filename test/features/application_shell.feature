@@ -28,7 +28,7 @@ Feature: F01 Application Shell
     When I select the project {'checkout'}
     And I select the work {'sokar-checkout-shell'}
     And I open the selection
-    And I close the detail
+    And I close what is open
     Then the work pane is shown
     And the work {'sokar-checkout-shell'} is still selected
     And the project {'checkout'} is selected

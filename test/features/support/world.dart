@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
+import 'package:sokar_frontend/src/app/operations.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
 import 'package:sokar_frontend/src/app/shell_model.dart';
 import 'package:sokar_frontend/src/app/sokar_app.dart';
@@ -37,6 +38,15 @@ class FakeBackend implements FleetBackend {
   /// Set to refuse [watch], the way a backend older than `Watch` does.
   bool withoutWatch = false;
 
+  /// What the most recent [startTask] is printing into.
+  ///
+  /// The scenario drives it: a line at a time, ended when the scenario says so. Nothing here is
+  /// on a clock, or a test of a long operation becomes a test of how fast the machine is.
+  late StreamController<String> launch;
+
+  /// How many launches have been asked for, and with what.
+  final List<bool> launched = <bool>[];
+
   @override
   String get label => 'mock';
 
@@ -55,6 +65,18 @@ class FakeBackend implements FleetBackend {
     if (withoutWatch) throw const FeatureNotSupported('Watch');
     yield _tasks;
     yield* _changes.stream;
+  }
+
+  @override
+  Stream<String> startTask({
+    String? task,
+    String? project,
+    String? agent,
+    bool dryRun = false,
+  }) {
+    launched.add(dryRun);
+    launch = StreamController<String>();
+    return launch.stream;
   }
 
   /// Changes what is on the machine, as a backend does when something elsewhere moves.
@@ -87,6 +109,9 @@ class World {
 
   /// What is open and where the keyboard is.
   static late ShellModel shell;
+
+  /// What this session has run.
+  static late Operations operations;
 
   /// One machine with two projects on it, one of them with work stopped.
   static List<Task> get work => <Task>[
@@ -124,10 +149,17 @@ class World {
     store = MemorySettingsStore();
     settings = Settings(store);
     shell = ShellModel();
+    operations = Operations();
     fleet = FleetModel(backend);
     addTearDown(fleet.dispose);
+    addTearDown(operations.dispose);
 
-    await tester.pumpWidget(SokarApp(fleet: fleet, shell: shell, settings: settings));
+    await tester.pumpWidget(SokarApp(
+      fleet: fleet,
+      shell: shell,
+      settings: settings,
+      operations: operations,
+    ));
     await fleet.connect();
     await tester.pumpAndSettle();
   }
@@ -140,8 +172,23 @@ class World {
     shell = ShellModel();
 
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pumpWidget(SokarApp(fleet: fleet, shell: shell, settings: settings));
+    await tester.pumpWidget(SokarApp(
+      fleet: fleet,
+      shell: shell,
+      settings: settings,
+      operations: operations,
+    ));
     await tester.pumpAndSettle();
+  }
+
+  /// Redraws until things have stopped moving.
+  ///
+  /// Not [WidgetTester.pumpAndSettle]: an operation that is still running shows a spinner, and an
+  /// animation with no end means pumpAndSettle never returns. Two frames, the second long enough
+  /// to carry a dialog transition, is all any of this needs.
+  static Future<void> settle(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
   }
 
   /// The theme the interface is actually drawn with.

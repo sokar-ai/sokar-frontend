@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/world.dart';
 
-/// Usage: I open the selection
-Future<void> iOpenTheSelection(WidgetTester tester) async {
-  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+/// Usage: I close what is open
+Future<void> iCloseWhatIsOpen(WidgetTester tester) async {
+  await tester.sendKeyEvent(LogicalKeyboardKey.escape);
   await World.settle(tester);
 }

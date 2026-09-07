@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'fleet_model.dart';
+import 'operations.dart';
 import 'settings.dart';
 import 'shell_model.dart';
 
@@ -56,11 +57,14 @@ List<Command> commandsFor({
   required FleetModel fleet,
   required ShellModel shell,
   required Settings settings,
+  required Operations operations,
   required VoidCallback openFinder,
+  required VoidCallback checkWorkCanStart,
   required VoidCallback quit,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
+  final latest = operations.latest;
 
   return <Command>[
     Command(
@@ -95,11 +99,34 @@ List<Command> commandsFor({
     ),
     Command(
       id: 'detail.close',
-      label: 'Close the detail',
+      label: 'Close what is open over the frame',
       group: 'Work',
       shortcut: const SingleActivator(LogicalKeyboardKey.escape),
-      run: shell.closeDetail,
-      unavailable: shell.detailOpen ? null : 'nothing is open over the frame',
+      run: shell.close,
+      unavailable: shell.anythingOpen ? null : 'nothing is open over the frame',
+    ),
+    Command(
+      id: 'operations.show',
+      label: 'Show what this session has run',
+      group: 'Operations',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyO, control: true),
+      run: shell.openOperations,
+    ),
+    Command(
+      id: 'operations.latest',
+      label: 'Watch the last operation',
+      group: 'Operations',
+      run: () => shell.openOperation(latest!.id),
+      unavailable: latest == null ? 'nothing has been run from here yet' : null,
+    ),
+    Command(
+      id: 'work.check',
+      label: 'Check that work can start here, creating nothing',
+      group: 'Operations',
+      run: checkWorkCanStart,
+      unavailable: fleet.reachability == Reachability.connected
+          ? null
+          : 'not connected to a backend',
     ),
     Command(
       id: 'fleet.refresh',

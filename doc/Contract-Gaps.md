@@ -44,9 +44,12 @@ So a gap here is a backend method that has to be added, not a workaround waiting
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.
-- **F13 Operation Feedback And History** — `Start` streams, so the live half works. *"Every
-  operation started in a session can be reopened with its output"* needs output that outlives the
-  connection, and nothing persists it.
+- ~~**F13 Operation Feedback And History**~~ — **built.** The gap was read too widely: *"every
+  operation started in a session"* is scoped to the window that started it, and the interface can
+  hold what it was streamed for as long as that window is open, which is what `Operations` does.
+  What genuinely has no method is reopening the output of an operation started *before* this
+  window, or by something else — no requirement asks for that today. Nothing here needs the
+  backend to persist anything.
 - **F15 Secret Store Control** — `Credentials` reports the store's state, and `readable` already
   separates "locked" from "empty". Nothing can *change* it: the contract has no vault-mutating
   method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling

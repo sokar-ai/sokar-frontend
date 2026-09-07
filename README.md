@@ -56,7 +56,8 @@ SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
 ```
 
 Pressing RETURN in the first terminal adds a task and pushes the change, so live updates can be
-watched arriving. Other situations to open it against, none of which a real daemon can be asked
+watched arriving. `Ctrl+K` → *Check that work can start here* runs a long operation against the
+mock; `Ctrl+O` shows everything this session has run. Other situations to open it against, none of which a real daemon can be asked
 for on demand:
 
 | | |
@@ -66,6 +67,7 @@ for on demand:
 | `dart tool/mock_daemon.dart holds-work` | work that refuses to be removed because it holds unpushed commits |
 | `dart tool/mock_daemon.dart newer-outcome` | an `Outcome` added after this build shipped |
 | `dart tool/mock_daemon.dart newer-interface` | a backend serving `Tasks2` beside the `Tasks1` this build understands |
+| `dart tool/mock_daemon.dart failing-start` | a launch that prints for a while and then comes back non-zero |
 
 `SOKAR_SOCKET` is how the interface is pointed at anything but the local daemon — the mock, or a
 socket forwarded from another machine. It is a stopgap until

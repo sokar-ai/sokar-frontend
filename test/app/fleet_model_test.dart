@@ -17,6 +17,15 @@ class _Wedged implements FleetBackend {
 
   @override
   Stream<List<Task>> watch() => const Stream<List<Task>>.empty();
+
+  @override
+  Stream<String> startTask({
+    String? task,
+    String? project,
+    String? agent,
+    bool dryRun = false,
+  }) =>
+      const Stream<String>.empty();
 }
 
 void main() {

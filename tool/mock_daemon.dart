@@ -23,6 +23,7 @@ const _situations = <String, String>{
   'holds-work': 'a task that refuses to be removed because it holds unpushed commits',
   'newer-outcome': 'an Outcome value added after this build shipped',
   'newer-interface': 'a backend serving Tasks2 beside the Tasks1 this build understands',
+  'failing-start': 'a launch that prints for a while and then comes back non-zero',
 };
 
 Future<void> main(List<String> args) async {
@@ -56,6 +57,8 @@ Future<void> main(List<String> args) async {
     },
   );
   daemon.method('Stop', (_) => _stopped(situation));
+  // stream, not pushes: a launch is finite and its last reply is the result rather than a line.
+  daemon.stream('Start', (_) => _launch(failing: situation == 'failing-start'));
 
   switch (situation) {
     case 'no-watch':
@@ -110,6 +113,36 @@ void _forgetStableSocket() {
 
 /// A name that does not move between runs, so the command to open the interface does not either.
 const _stableSocket = '/tmp/sokar-mock.sock';
+
+/// A launch, paced so it can be watched.
+///
+/// A delay here on purpose, and the one place in this repository where one is right: this is a
+/// person watching a build, not a test. A test drives its own events, or it measures how fast the
+/// machine is instead of what the interface does.
+Stream<Map<String, dynamic>> _launch({required bool failing}) async* {
+  const steps = <String>[
+    'Resolving project.yml',
+    'Reading the agent manifest',
+    'Building the image (this is the slow bit)',
+    '  layer 1/3',
+    '  layer 2/3',
+    '  layer 3/3',
+    'Preparing the workspace',
+    'Starting the gate',
+  ];
+  for (final step in steps) {
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    yield <String, dynamic>{'line': step};
+  }
+  if (failing) {
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    yield <String, dynamic>{'line': 'could not reach the registry'};
+  }
+  yield <String, dynamic>{
+    'container': 'sokar-checkout-shell',
+    'exitCode': failing ? 1 : 0,
+  };
+}
 
 List<Map<String, dynamic>> _aMachineWithWorkOnIt() => <Map<String, dynamic>>[
       _task('sokar-checkout-shell', 'checkout'),

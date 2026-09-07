@@ -201,6 +201,16 @@ draws it. Three things there are decisions, not accidents:
 - **Losing contact keeps the last task list.** Clearing it would draw a machine with nothing
   running on it, which is the one reading a dropped tunnel must never produce.
 
+**What opens over the frame is a closed set, not a flag per screen.** `ShellModel.opened` is a
+sealed `Opened` — nothing, work, the session record, one operation's output. Three booleans would
+have been three states that contradict each other the first time two were true at once, and there
+are already four things that open.
+
+**A long operation is owned by `Operations`, never by the view showing it.** The subscription
+lives in the session record, so closing the window onto a build does not stop the build and
+arriving late does not mean having missed the output. That is the whole class: F13 is the
+machinery, and F03, F06 and F08 are the things that will use it.
+
 **Projects are derived from `Task.project`, not asked for.** There is no method that lists
 projects, so a project that has never run anything is invisible in the opening view. That is
 [F02](requirements/F02-Project-Overview.md), it is a real gap, and the empty state says so rather
@@ -213,6 +223,9 @@ Two interface traps already met:
   affordance; do not put double-tap on a row to open something.
 - **A widget built eagerly outside the branch that shows it still runs its null checks.** A
   detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
+- **`pumpAndSettle` never returns while a spinner is on screen.** A running operation shows a
+  `CircularProgressIndicator`, which is an animation with no end. Steps use `World.settle` — one
+  frame, then one long enough to carry a dialog transition — and any new step must too.
 
 **`stdin.readLineSync()` blocks the whole isolate.** `tool/mock_daemon.dart` waits for RETURN and
 also serves a socket; reading stdin synchronously made it accept connections and then answer

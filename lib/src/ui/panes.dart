@@ -48,6 +48,7 @@ class ProjectsPane extends StatelessWidget {
     required this.fleet,
     required this.focusNode,
     required this.onActivate,
+    required this.onFocused,
     this.leading,
     super.key,
   });
@@ -60,6 +61,10 @@ class ProjectsPane extends StatelessWidget {
 
   /// Called when a project is opened, rather than merely selected.
   final VoidCallback onActivate;
+
+  /// Called when the pointer puts the keyboard in this pane, so closing something opened from
+  /// here comes back here rather than wherever the keyboard happened to be last.
+  final VoidCallback onFocused;
 
   /// A way back, on a window too narrow for two panes.
   final Widget? leading;
@@ -84,7 +89,10 @@ class ProjectsPane extends StatelessWidget {
             items: projects,
             idOf: (project) => project.name,
             selected: fleet.selectedProject?.name,
-            onSelect: fleet.selectProject,
+            onSelect: (name) {
+              onFocused();
+              fleet.selectProject(name);
+            },
             onActivate: (_) => onActivate(),
             focusNode: focusNode,
             emptyMessage: _emptyMessage(fleet),
@@ -147,6 +155,7 @@ class WorkPane extends StatelessWidget {
     required this.fleet,
     required this.focusNode,
     required this.onActivate,
+    required this.onFocused,
     this.leading,
     super.key,
   });
@@ -159,6 +168,10 @@ class WorkPane extends StatelessWidget {
 
   /// Called when a piece of work is opened.
   final VoidCallback onActivate;
+
+  /// Called when the pointer puts the keyboard in this pane, so closing something opened from
+  /// here comes back here rather than wherever the keyboard happened to be last.
+  final VoidCallback onFocused;
 
   /// A way back, on a window too narrow for two panes.
   final Widget? leading;
@@ -183,7 +196,10 @@ class WorkPane extends StatelessWidget {
             items: work,
             idOf: (task) => task.name,
             selected: fleet.selectedTask?.name,
-            onSelect: fleet.selectTask,
+            onSelect: (name) {
+              onFocused();
+              fleet.selectTask(name);
+            },
             onActivate: (_) => onActivate(),
             focusNode: focusNode,
             emptyMessage: project == null
