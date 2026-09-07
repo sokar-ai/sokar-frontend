@@ -37,6 +37,17 @@ class Clearance extends ChangeNotifier {
   /// Whether an answer for this one has been sent and not yet echoed back.
   bool answering(Prompt prompt) => _answering.contains(prompt.identity);
 
+  /// Whether the same destination has already been let through for the same task.
+  ///
+  /// A decision is remembered per **address**, not per name, and it survives a resume — so one
+  /// fixed address is asked about once for the whole run, while a CDN or anything round-robin
+  /// asks again for every new address it resolves to. Saying so beats leaving somebody to
+  /// conclude their last answer was ignored.
+  bool askedBefore(Prompt prompt) => _settled.any((each) =>
+      each.task == prompt.task &&
+      each.destination == prompt.destination &&
+      each.verdict == 'allow');
+
   /// Starts watching. Safe to call again; it replaces what was watching before.
   void watch(FleetBackend backend) {
     _listening?.cancel();

@@ -16,6 +16,11 @@ import './step/both_are_shown_together.dart';
 import './step/i_let_it_through.dart';
 import './step/the_answer_sent_was.dart';
 import './step/i_keep_it_blocked.dart';
+import './step/i_select_the_project.dart';
+import './step/the_work_is_marked_as_unenforced.dart';
+import './step/the_work_is_not_marked_as_unenforced.dart';
+import './step/the_answer_comes_back.dart';
+import './step/it_says.dart';
 import './step/the_question_runs_out.dart';
 import './step/it_says_the_question_ran_out.dart';
 import './step/nothing_is_waiting_any_more.dart';
@@ -67,6 +72,34 @@ void main() {
       await iGoToWhatIsBlocked(tester);
       await iKeepItBlocked(tester);
       await theAnswerSentWas(tester, 'deny');
+    });
+    testWidgets('''work nothing is enforcing is marked wherever it appears''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'billing');
+      await theWorkIsMarkedAsUnenforced(tester, 'sokar-billing-audit');
+      await theWorkIsNotMarkedAsUnenforced(tester, 'sokar-billing-shell');
+    });
+    testWidgets(
+        '''letting one through says the host is reachable, not that the attempt succeeded''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReaching(tester, 'api.example.test:443');
+      await iGoToWhatIsBlocked(tester);
+      await iLetItThrough(tester);
+      await theAnswerComesBack(tester);
+      await itSays(tester, 'the attempt that was refused is gone');
+    });
+    testWidgets(
+        '''a destination asked about again says why that is not a mistake''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReaching(tester, 'cdn.example.test:443');
+      await iGoToWhatIsBlocked(tester);
+      await iLetItThrough(tester);
+      await theAnswerComesBack(tester);
+      await workIsBlockedReaching(tester, 'cdn.example.test:443');
+      await itSays(tester, 'remembered per address');
     });
     testWidgets(
         '''a question that ran out says so rather than quietly disappearing''',

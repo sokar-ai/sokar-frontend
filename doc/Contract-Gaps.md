@@ -98,16 +98,20 @@ not checking that it answers the requirement.**
 - **F17 Network Exposure Control** — **the live half is built**: blocked connections from every
   task in one view, allowed or denied from there, and an expired question kept and marked. Three
   of its six criteria are left, and all three need something that does not exist:
-  - *"The exposure level of running work can be changed **without restarting it**"* — **no
-    method**. `SetEgress` writes the project file and a container's ruleset is built when it
-    starts, so it changes the *next* task. Worth asking for, and not obviously impossible: the
-    daemon already reaches into a running container with `nsenter` to apply a clearance decision.
+  - *"The exposure level of running work can be changed **without restarting it**"* — asked for as
+    [B12](https://github.com/fuinorg/sokar/blob/main/requirements/base/B12-Changing-What-Running-Work-May-Reach.md)
+    and **decided but not built**. The shape is settled — one method taking the scope as a
+    *required* value, this run or this run and the project file, because two calls for "both" can
+    half-fail — and **none of it is on the wire yet**. Do not code against it; a note will come
+    when it lands. An `offline` project is refused with the same `REFUSED_BY_CLASS` the editor
+    already answers with, so the action can be hidden outright for such a task rather than offered
+    and refused.
   - *"The available levels are named by what they permit, and the current level is always visible
     on the work"* — visible **yes**, `Task.securityClass` carries it; changeable **no**, nothing
     sets a project's class.
   - *"Turning enforcement off entirely is possible, distinct, and visibly marked wherever that
-    work appears"* — `Start(clearance:)` chooses it at start, and **`Task` does not carry it**, so
-    it cannot be marked on the work. A reply field would fix the marking half.
+    work appears"* — **the marking half is built**: `Task.clearance` arrived on 2026-09-07 and
+    `off` is marked on the work. Turning it off *while a task runs* is part of the method below.
 - **F05 Project Configuration** — egress is on the wire (`Egress`, `SetEgress`). Agents, hardware
   and deleting a project are not.
 

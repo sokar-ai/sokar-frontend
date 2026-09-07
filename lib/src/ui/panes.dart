@@ -315,6 +315,22 @@ class _WorkRow extends StatelessWidget {
             ],
           ),
         ),
+        // Nothing asks and nothing is refused for this one. Somebody chose that; showing it like
+        // any other run would hide the choice, which is the whole reason the field exists.
+        if (task.unenforced)
+          Tooltip(
+            message: 'Nothing is enforcing what this work may reach. '
+                'No connection will be refused and nothing will be asked.',
+            child: Chip(
+              key: const Key('unenforced'),
+              avatar: Icon(Icons.gpp_bad_outlined,
+                  size: Sizes.rowIcon,
+                  color: Theme.of(context).colorScheme.onErrorContainer),
+              label: const Text('unenforced'),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
+            ),
+          ),
         _OpenButton(tooltip: 'Open ${task.name}', onPressed: onOpen),
         CommandMenu(commands: actions, tooltip: 'What ${task.name} can be told to do'),
       ],
@@ -381,6 +397,16 @@ class WorkDetail extends StatelessWidget {
               _Field(name: 'Mode', value: task.mode.label),
               _Field(name: 'Branch', value: task.branch.isEmpty ? '—' : task.branch),
               _Field(name: 'Doing', value: task.activity.label),
+              _Field(
+                name: 'Egress',
+                value: switch (task.clearance) {
+                  'off' => 'nothing is enforcing it',
+                  'prompt' => 'asks before letting anything new through',
+                  'allow' => 'lets anything new through',
+                  'deny' => 'refuses anything new without asking',
+                  _ => 'not recorded',
+                },
+              ),
               if (task.activity == Activity.waiting && task.waitingFor.isNotEmpty)
                 _Field(name: 'Waiting on', value: task.waitingFor),
               _Field(name: 'For', value: howLong(task) ?? 'not recorded'),

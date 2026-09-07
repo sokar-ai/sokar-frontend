@@ -92,8 +92,8 @@ class FakeBackend implements FleetBackend {
       'file': '/srv/billing/project.yml',
       'mirror': '',
       'pending': 0,
-      'tasks': 1,
-      'running': 1,
+      'tasks': 2,
+      'running': 2,
     }),
   ];
 
@@ -350,6 +350,8 @@ class World {
         _task('sokar-checkout-shell', 'checkout'),
         _task('sokar-checkout-migrate', 'checkout', running: false, helpers: 0),
         _task('sokar-billing-shell', 'billing', securityClass: 'offline', helpers: 1),
+        // Started with enforcement off: nothing will ever be asked about what it reaches.
+        _task('sokar-billing-audit', 'billing', helpers: 0, clearance: 'off'),
       ];
 
   // Built from a wire-shaped map on purpose, so a fixture cannot describe a task the contract
@@ -360,6 +362,7 @@ class World {
     bool running = true,
     int helpers = 2,
     String securityClass = 'guarded',
+    String clearance = 'prompt',
   }) =>
       Task.from(<String, dynamic>{
         'name': name,
@@ -368,6 +371,7 @@ class World {
         'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
         'running': running,
         'helpers': helpers,
+        'clearance': clearance,
       });
 
   /// One blocked connection, as the daemon raises it.

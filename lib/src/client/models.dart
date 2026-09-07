@@ -199,6 +199,19 @@ class Task {
   /// What the work is doing, beside [state].
   final Activity activity;
 
+  /// What is enforcing this task's egress: `prompt`, `allow`, `deny` or `off`.
+  ///
+  /// Empty when nothing recorded it, which is every task started before the field existed —
+  /// render the absence rather than guessing `prompt`.
+  ///
+  /// **`off` is the one to mark wherever the task appears.** Nothing asks and nothing is refused:
+  /// the firewall is loaded and no decision is ever put to anybody. Somebody chose that
+  /// deliberately, and showing such a run like any other hides the choice.
+  final String clearance;
+
+  /// Whether nothing will ever be asked about what this task reaches.
+  bool get unenforced => clearance == 'off';
+
   /// What it is waiting to be told, when [activity] is `WAITING`. A destination, such as
   /// `api.example.test:443`.
   final String waitingFor;
@@ -221,6 +234,7 @@ class Task {
     this.since = '',
     this.activity = const Activity(''),
     this.waitingFor = '',
+    this.clearance = '',
   });
 
   /// Reads one from a reply.
@@ -240,6 +254,7 @@ class Task {
         since: _string(map, 'since'),
         activity: Activity(_string(map, 'activity')),
         waitingFor: _string(map, 'waitingFor'),
+        clearance: _string(map, 'clearance'),
       );
 }
 

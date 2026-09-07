@@ -34,6 +34,26 @@ Feature: F17 Network Exposure Control
     And I keep it blocked
     Then the answer sent was {'deny'}
 
+  Scenario: work nothing is enforcing is marked wherever it appears
+    When I select the project {'billing'}
+    Then the work {'sokar-billing-audit'} is marked as unenforced
+    And the work {'sokar-billing-shell'} is not marked as unenforced
+
+  Scenario: letting one through says the host is reachable, not that the attempt succeeded
+    When work is blocked reaching {'api.example.test:443'}
+    And I go to what is blocked
+    And I let it through
+    And the answer comes back
+    Then it says {'the attempt that was refused is gone'}
+
+  Scenario: a destination asked about again says why that is not a mistake
+    When work is blocked reaching {'cdn.example.test:443'}
+    And I go to what is blocked
+    And I let it through
+    And the answer comes back
+    And work is blocked reaching {'cdn.example.test:443'}
+    Then it says {'remembered per address'}
+
   Scenario: a question that ran out says so rather than quietly disappearing
     When work is blocked reaching {'api.example.test:443'}
     And I go to what is blocked

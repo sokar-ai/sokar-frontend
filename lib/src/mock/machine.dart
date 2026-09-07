@@ -460,8 +460,13 @@ deleted file mode 100644
         // A container up with no helpers has lost its gate or its clearance watcher, which the
         // detail calls out. Worth having on screen while the frame is being looked at.
         // A terminal is attached to this one, so nothing on this side can see what it is doing.
+        // Started with enforcement off: nothing will ever be asked about what it reaches, which
+        // is a choice somebody made and the interface has to show.
         _task('sokar-billing-audit', 'billing',
-            helpers: 0, activity: 'UNKNOWN', mode: 'AGENT'),
+            helpers: 0,
+            activity: 'UNKNOWN',
+            mode: 'AGENT',
+            clearance: 'off'),
         // A failed run is no longer swept away: a non-zero exit stops the container and leaves it
         // in place, workspace and logs intact, because the run worth looking at is the one that
         // went wrong. So a list has more exited tasks on it than it used to.
@@ -479,6 +484,7 @@ deleted file mode 100644
     String mode = 'UNATTENDED',
     String agent = 'an-agent',
     int minutesAgo = 4,
+    String clearance = 'prompt',
   }) =>
       <String, dynamic>{
         'name': name,
@@ -499,5 +505,6 @@ deleted file mode 100644
             .toIso8601String(),
         'activity': running ? activity : 'DEAD',
         'waitingFor': waitingFor,
+        'clearance': clearance,
       };
 }

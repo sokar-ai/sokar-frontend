@@ -340,6 +340,21 @@ carry five rules that are easy to get wrong and expensive to get wrong:
 host included. `refused` is what an agent asks for and is deliberately not given — the distinction
 a dropped packet cannot make between "we said no" and "nobody added it".
 
+**A task running with `clearance: "off"` is marked wherever it appears.** Nothing asks and
+nothing is refused — the firewall is loaded and no decision is ever put to anybody. Somebody chose
+that deliberately, and a run shown like any other hides the choice. `""` means a task older than
+the field: render the absence, never guess `prompt`.
+
+**Allowing says "this host is now reachable", never "the request that just failed will now
+succeed".** Measured on the Sokar side: the packet that was dropped is gone, adding an element
+affects the next attempt, and whether the work retries is the work's business. A widening by name
+costs one dropped packet even when it is granted.
+
+**A clearance decision is remembered per address, not per name, and survives a resume.** One fixed
+address is asked about once for the whole run; a CDN or anything round-robin asks again for each
+address it resolves to. The interface says so when it happens, because otherwise somebody
+reasonably concludes their last answer was ignored.
+
 **A clearance question is the one place where interface latency costs something real.** The task
 is stopped while it waits and the watcher gives up on its own timeout, so `Prompts` is a stream,
 never a poll — and it is watched **per machine, for as long as that machine is watched**, because

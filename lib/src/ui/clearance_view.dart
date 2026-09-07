@@ -62,6 +62,7 @@ class ClearanceView extends StatelessWidget {
                       _Asking(
                         prompt: prompt,
                         answering: clearance.answering(prompt),
+                        askedBefore: clearance.askedBefore(prompt),
                         onDecide: onDecide,
                       ),
                     if (settled.isNotEmpty)
@@ -84,11 +85,13 @@ class _Asking extends StatelessWidget {
   const _Asking({
     required this.prompt,
     required this.answering,
+    required this.askedBefore,
     required this.onDecide,
   });
 
   final Prompt prompt;
   final bool answering;
+  final bool askedBefore;
   final void Function(Prompt prompt, {required bool allow}) onDecide;
 
   @override
@@ -113,6 +116,15 @@ class _Asking extends StatelessWidget {
             '${prompt.prefix.isEmpty ? '' : ' · stopped by ${prompt.prefix}'}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (askedBefore) ...<Widget>[
+            const SizedBox(height: Space.tight),
+            Text(
+              'This was let through before. A decision is remembered per address, so a host '
+              'that answers on several addresses asks again for each one.',
+              key: const Key('asked-before'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: Space.normal),
           if (answering)
             Text('Telling it…', style: Theme.of(context).textTheme.bodySmall)
@@ -146,10 +158,16 @@ class _Settled extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     // An expired one is the case this whole field exists for: nothing asks about it again, so a
     // question that simply stopped arriving would be indistinguishable from one still waiting.
+    // "This host is now reachable" and never "the request that just failed will now succeed":
+    // the packet that was dropped is gone, and whether the work retries is the work's business.
     final (IconData icon, Color colour, String what) = prompt.expired
         ? (Icons.timer_off_outlined, scheme.error, 'ran out — it stays blocked')
         : prompt.verdict == 'allow'
-            ? (Icons.check_circle_outline, scheme.primary, 'let through')
+            ? (
+                Icons.check_circle_outline,
+                scheme.primary,
+                'now reachable — the attempt that was refused is gone'
+              )
             : (Icons.block, scheme.outline, 'kept blocked');
 
     return ListTile(
