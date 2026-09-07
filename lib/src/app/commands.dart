@@ -238,12 +238,19 @@ List<Command> commandsFor({
     ),
     Command(
       id: 'work.check',
-      label: 'Check that work can start here, creating nothing',
+      // Named for what it does, which is less than it used to claim. `Start(dryRun:)` reports
+      // what the project file opens and returns — before the runtime check, before the hooks
+      // check, and before anything touches the vault. It is not a rehearsal of starting.
+      label: 'Show what this project would open, creating nothing',
       group: 'Work',
       run: checkWorkCanStart,
-      unavailable: fleet.reachability == Reachability.connected
-          ? null
-          : 'not connected to a backend',
+      unavailable: fleet.reachability != Reachability.connected
+          ? 'not connected to a backend'
+          : selectedProject == null
+              ? 'no project selected'
+              : selectedProject.canBeActedOn
+                  ? null
+                  : 'no project file is recorded for ${selectedProject.name}',
     ),
     Command(
       id: 'operations.show',

@@ -5,6 +5,7 @@ Feature: F23 Notifications
   Background:
     Given a backend with work on it
     And the app is running
+    And I select the project {'checkout'}
 
   Scenario: a waiting decision reaches somebody who is not looking at the window
     When work is blocked reaching {'api.example.test:443'}
@@ -17,15 +18,15 @@ Feature: F23 Notifications
     Then somebody was told exactly {'1'} time
 
   Scenario: finishing is told apart from failing
-    When I choose the command {'Check that work can start here, creating nothing'}
+    When I choose the command {'Show what this project would open, creating nothing'}
     And the operation finishes
     Then somebody is told {'That is done'}
-    When I choose the command {'Check that work can start here, creating nothing'}
+    When I choose the command {'Show what this project would open, creating nothing'}
     And the operation fails
     Then somebody is told {'That did not work'}
 
   Scenario: acting on it opens the work it came from
-    When I choose the command {'Check that work can start here, creating nothing'}
+    When I choose the command {'Show what this project would open, creating nothing'}
     And the operation finishes
     And I close what is open
     And somebody acts on what they were told

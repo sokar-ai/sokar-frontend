@@ -89,6 +89,17 @@ class EgressView extends StatelessWidget {
                 for (final host in egress.refused) _Refused(host: host),
               ],
               _Heading(words: 'Sets installed on this machine'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    Space.normal, 0, Space.normal, Space.small),
+                child: Text(
+                  'Chosen one at a time, and deliberately: there is no "all sets, including '
+                  'ones installed later". A set shipped in a later release would widen this '
+                  'project without anybody editing it.',
+                  key: const Key('why-no-open-ended-sets'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
               if (egress.sets.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(Space.normal),

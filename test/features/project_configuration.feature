@@ -57,3 +57,9 @@ Feature: F05 Project Configuration
     When I select the project {'billing'}
     And I open the command finder
     Then the command {'Change what this project may reach'} is offered as unavailable
+
+  Scenario: choosing sets one at a time is explained, not merely how it works
+    When I select the project {'checkout'}
+    And I open what this project may reach
+    Then it says {'ones installed later'}
+

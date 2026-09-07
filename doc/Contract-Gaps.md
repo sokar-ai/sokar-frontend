@@ -59,8 +59,12 @@ missing, ask.**
 - **F02 Project Overview** — `Projects()` answers the name, the security class, how much work it
   has, how many pushes wait for review, and whether it can be acted on at all. Two of its criteria
   still have nothing behind them: **whether a project's environment is prepared and usable**, and
-  **whether its copy of the upstream has fallen behind, and by how much**. Both would be fields on
-  `Project`, which is the cheap kind of change. Ask.
+  **whether its copy of the upstream has fallen behind, and by how much**. The first is being
+  added as a field. The second is **not** the cheap change this file called it: the mirror is
+  local and the upstream is on the network, so answering it live would make `Projects` perform a
+  fetch — and `Projects` is asked again after anything that changes it. Asked for instead as a
+  number *with the age of the measurement beside it*, fetched on the daemon's own schedule. A
+  number with no age would have to be drawn as though it were current.
 
 Four of these were listed as *ready* until 2026-09-07, when they were walked against the IDL
 method by method rather than by name. Starting is one call, so F08 read as covered; the call has
@@ -72,7 +76,13 @@ not checking that it answers the requirement.**
   agent rather than only bring the container up. What is left is one criterion with nothing behind
   it: *"a missing credential is reported before anything is built or started"* — `Credentials`
   reports the store's state, and nothing says which credential a given project and agent need, so
-  the interface cannot tell somebody one is missing before starting. Worth asking for.
+  the interface cannot tell somebody one is missing before starting.
+  **Asked, answered, and being built as a method.** Which credential a run needs turns on four
+  things — the agent's declaration, the installed providers, the run's `provider` override, and
+  what the vault already holds, since an older vault answers under the agent's name rather than
+  the provider's. A client holds one of the four, so a field on `Agent` would report a missing
+  credential for exactly the vaults that have one. The rule stays on the daemon and comes back as
+  a named outcome.
   - `mode` was missing from the note's own IDL block, which read as though it did not exist. It
     does: `Mode (SHELL, AGENT, UNATTENDED)`, optional, defaulting to `UNATTENDED` with a prompt
     and `SHELL` without. **Ask when a summary and a block disagree** — the answer took an hour and
@@ -86,8 +96,13 @@ not checking that it answers the requirement.**
   - `Task.mode` stays a **string**, not the type: it has a fourth state, `""`, for a task started
     before the field existed. Render the absence; never default it to `SHELL`.
 
-- **F09 Task Control** — **built**, except that **renaming has no method at all**. Recreating is
-  `Stop` then `Start`, which `Project.file` now makes possible; it is unbuilt rather than blocked.
+- **F09 Task Control** — **built**, except for two things, and the first turned out not to be
+  what the requirement wanted. **Renaming has no method**, and a task's name is its identity in
+  four places — the container, the gate ref, the workspace, the log files — so a rename would move
+  a ref with unreviewed pushes behind it. What the criterion actually wants is a **label**: a
+  changeable display name beside a fixed identity, which is a reply field and cheap. Asked for on
+  2026-09-07. Recreating is `Stop` then `Start`, which `Project.file` makes possible; that half is
+  unbuilt rather than blocked.
 - ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection
   half needed, the same day it was asked for.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
@@ -104,8 +119,12 @@ not checking that it answers the requirement.**
   What genuinely has no method is reopening the output of an operation started *before* this
   window, or by something else — no requirement asks for that today. Nothing here needs the
   backend to persist anything.
-- **F15 Secret Store Control** — `Credentials` reports the store's state, and `readable` already
-  separates "locked" from "empty". Nothing can *change* it: the contract has no vault-mutating
+- **F15 Secret Store Control** — `Credentials` reports the store's state. **`readable` does not
+  do what its comment claims**: measured on 2026-09-07, an unlocked but empty vault answers
+  `readable: false`, exactly as a locked one does, because the field is inferred from an empty
+  credential map and the map is empty for three different reasons. A fix is coming; until it
+  lands, nothing may hang an "unlock" prompt on it. `Lock` was agreed the same day and is being
+  built. Nothing can *change* it: the contract has no vault-mutating
   method at all. Sokar's CLI has `sokar vault lock`, which is **not** a way round this — shelling
   out is forbidden, and it is forbidden hardest here. A lock control needs a `Lock` method added
   on the Sokar side; confirmed 2026-09-07 that it will be, if asked for.
@@ -138,9 +157,11 @@ not checking that it answers the requirement.**
     nothing lists the hardware either.
   - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method**.
   - *"…with the same 'all, including future additions' versus explicit-list distinction"* —
-    `SetEgress` takes named sets to add and remove, and there is **no way to say "all sets,
-    including ones installed later"**. The distinction the requirement turns on cannot be
-    expressed, so the interface does not pretend to offer it. Worth asking for if it matters.
+    **not a gap, and this file said otherwise for a while.** `SetEgress` takes an explicit list on
+    purpose: an open-ended selection would let a set shipped in a later release widen a project
+    nobody edited, when the operator approved *"everything that exists"* and what exists changed
+    underneath them. The explicit list **is** the guarantee. The interface does not offer the
+    open-ended form and now says why rather than only that it is unavailable.
 
 ## Blocked — no method at all
 

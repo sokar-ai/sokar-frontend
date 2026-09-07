@@ -108,5 +108,13 @@ void main() {
       await theCommandIsOfferedAsUnavailable(
           tester, 'Change what this project may reach');
     });
+    testWidgets(
+        '''choosing sets one at a time is explained, not merely how it works''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iOpenWhatThisProjectMayReach(tester);
+      await itSays(tester, 'ones installed later');
+    });
   });
 }

@@ -6,9 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
+import './step/i_select_the_project.dart';
 import './step/i_choose_the_command.dart';
 import './step/i_close_what_is_open.dart';
-import './step/i_select_the_project.dart';
 import './step/the_work_is_listed.dart';
 import './step/the_operation_is_still_running.dart';
 import './step/the_operation_prints.dart';
@@ -28,13 +28,14 @@ void main() {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
+      await iSelectTheProject(tester, 'checkout');
     }
 
     testWidgets('''the frame stays usable while a long operation runs''',
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await iCloseWhatIsOpen(tester);
       await iSelectTheProject(tester, 'checkout');
       await theWorkIsListed(tester, 'sokar-checkout-shell');
@@ -44,7 +45,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await theOperationPrints(tester, 'Building the image');
       await theOperationShows(tester, 'Building the image');
       await iCloseWhatIsOpen(tester);
@@ -55,7 +56,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await theOperationPrints(tester, 'step one');
       await iCloseWhatIsOpen(tester);
       await theOperationPrints(tester, 'step two');
@@ -70,11 +71,11 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await theOperationFinishes(tester);
       await iCloseWhatIsOpen(tester);
       await iShowWhatThisSessionHasRun(tester);
-      await theRecordShows(tester, 'Check that work can start');
+      await theRecordShows(tester, 'would open');
       await theRecordShows(tester, 'Finished.');
     });
     testWidgets(
@@ -82,7 +83,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await theOperationPrints(tester, 'could not read project.yml');
       await theOperationFails(tester);
       await iCloseWhatIsOpen(tester);
@@ -97,7 +98,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await theOperationPrints(tester, 'agent: editing lib/money.dart');
       await theOperationRunsOutOfTime(tester);
       await iCloseWhatIsOpen(tester);
@@ -111,7 +112,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
-          tester, 'Check that work can start here, creating nothing');
+          tester, 'Show what this project would open, creating nothing');
       await noAgentIsInstalled(tester);
       await iCloseWhatIsOpen(tester);
       await iShowWhatThisSessionHasRun(tester);

@@ -304,9 +304,11 @@ class _ShellState extends State<Shell> {
   /// [F08](../../../requirements/F08-Task-Creation-And-Modes.md), which fills in the choosing
   /// this deliberately does not do.
   void _checkWorkCanStart() {
+    final project = _fleet.selectedProject?.project;
+    if (project == null) return;
     final operation = widget.operations.run(
-      title: 'Check that work can start',
-      output: _fleet.backend.startTask(dryRun: true),
+      title: 'Show what ${project.name} would open',
+      output: _fleet.backend.startTask(project: project.file, dryRun: true),
     );
     widget.shell.openOperation(operation.id);
   }

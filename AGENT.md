@@ -718,3 +718,50 @@ same question turned up a real bug — `Task.mode` was going out in lower case a
 declared the `Mode` type — which cost this build nothing, because it compares against the
 contract's spelling and not against what happened to arrive.
 
+## What the daemon's own measurements corrected, 2026-09-07
+
+Four things this build assumed, or was told, that turned out not to hold. All four came back from
+the Sokar side after being measured against running code rather than recalled.
+
+- **`VaultState.readable` cannot be trusted yet.** Its comment says it separates a locked vault
+  from an empty one. It does not: an unlocked, empty vault answers `readable: false`, the same as
+  a locked one, because the field is inferred from the credential map being empty and the map is
+  empty for three different reasons. **Do not hang an "unlock the vault" prompt on it** — it would
+  fire at somebody whose vault is unlocked and simply empty, and "unlock it" is the one
+  instruction that cannot help them. A fix is coming on the Sokar side; nothing here consumes the
+  field today.
+- **`Start(dryRun:)` is not a rehearsal.** It reports what the project file opens and returns —
+  before the runtime check, before the hooks check, and before anything touches the vault. The
+  action behind it used to say *"Check that work can start here"*, which claimed something it
+  never did; it now says *"Show what this project would open"* and passes the project file, which
+  it previously did not.
+- **`Start`'s IDL comments about defaults were false.** They said `agent` and `provider` both
+  default to *"the project's own"*. A project can name neither: `Project` has no such field and
+  `project.yml` has no such key. The real defaults are the only agent installed — or a refusal
+  naming all of them — and the agent's own declared provider. Cost this build nothing, because
+  nothing here restated a backend default; **restating one is how it would have.**
+- **Which credential a run needs is a function of four things**, not of the agent: the agent's
+  declaration, the installed providers, the run's `provider` override, and *what the vault already
+  holds* — an older vault answers under the agent's name rather than the provider's. So a client
+  cannot assemble the answer from parts it has, and F08's sixth criterion waits for a method that
+  answers the whole question.
+
+## An explicit list of egress sets is a guarantee, not a missing feature
+
+`SetEgress` takes named sets. There is no way to say "all sets, including ones installed later",
+and that is deliberate on the Sokar side: an open-ended selection means a set shipped in a later
+release silently widens a project nobody edited. The operator approved *"everything that exists"*,
+and what exists changed underneath them.
+
+So where the interface cannot offer it, it says **why** — not merely that it is unavailable. This
+was recorded as a contract gap for a while and it was never one.
+
+## The notes exchanged with Sokar carry a timestamp
+
+`updates-from-sokar.md` and `.question-from-frontend.md` are written, read and deleted in place, so
+two rounds look alike and neither has a version. **Put the date and time at the top of anything
+written to either**, so a reply can say which round it answers.
+
+Copy the incoming note to the scratchpad before deleting it. One was destroyed by deleting it
+while the other side was mid-edit, and it was untracked, so there was nothing to recover from.
+
