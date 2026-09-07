@@ -108,7 +108,11 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
   set exactly, so covering a requirement fails the build until it is removed from the list — and
   removing one early fails too. Shrink it; never grow it without saying why.
 - **Every guard must be proven to fail.** A test that has never failed is a test nobody has
-  checked. When adding a rule, violate it once deliberately and watch it break.
+  checked. When adding a rule, violate it once deliberately and watch it break. This is not
+  ceremony: it has already paid for itself here. Removing the "a stream that ends without a final
+  reply is an error" guard did **not** fail the suite — the test covering it was passing through
+  the socket-error path instead, and the graceful-close path had no test at all. Two tests exist
+  now because the mutation was actually run.
 - **Test observable behaviour**, not internals — what is on screen, what went down the socket.
 - **A test that needs a real daemon is not a unit test.** Unit and widget tests must run with no
   backend, no podman and no container runtime present. That is what the mock is for.
@@ -123,6 +127,27 @@ flutter test --machine | tojunit > build/test-results.xml
 
 `tojunit` comes from `junitreport` (`dart pub global activate junitreport`). One trap already
 met: `build_runner`'s `--delete-conflicting-outputs` has been removed and is silently ignored.
+
+## The client
+
+`lib/src/wire/` is the varlink framing, `lib/src/client/` the typed calls and models,
+`lib/client.dart` the barrel. **Nothing else in this application may open a socket.**
+
+Three things are decided there rather than left to callers, because leaving them to callers is
+how they get forgotten:
+
+- **`Outcome` is not an enum.** It carries the raw name and reports whether this build knows it.
+  A Dart enum with no fallback case is exactly how the tolerance rule gets broken — it would look
+  correct until a routine backend release adds a value.
+- **A missing method becomes `FeatureNotSupported`**, never a raw error, so a caller cannot
+  mistake "this backend is older" for "this failed".
+- **Every reader tolerates a shape the backend did not promise.** An unfamiliar field is ignored;
+  a missing one reads as empty. A client that dies on an unfamiliar reply dies on a routine
+  release.
+
+A stream ends *only* on a final reply. Ending any other way — a destroyed socket or a polite
+close — is an error, because a stream that completes quietly is indistinguishable from one with
+nothing to say, and that renders as a machine with no tasks on it.
 
 ## The mock backend
 
