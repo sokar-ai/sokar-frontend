@@ -61,10 +61,10 @@ Feature: F13 Operation Feedback And History
     When I open the last operation
     Then the operation shows {'agent: editing lib/money.dart'}
 
-  Scenario: a run with no agent installed says nothing ran, rather than that it failed
+  Scenario: a run refused before it began says nothing was created, not that it failed
     When I choose the command {'Show what this project would open, creating nothing'}
-    And no agent is installed
+    And the run is refused before it begins
     And I close what is open
     And I show what this session has run
-    Then the record shows {'No agent is installed, so nothing ran'}
+    Then the record shows {'Nothing ran, and nothing was created'}
 

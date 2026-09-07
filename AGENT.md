@@ -699,10 +699,15 @@ so the call lasts as long as the run — minutes, sometimes tens of them. Four t
   container and the interface has merely stopped watching, which is a different thing to tell
   somebody than "canceled".
 - **Read `exitCode` in four bands, not two.** `0` finished; `124` hit its own time limit and was
-  killed, **and the log is kept** — show what it managed to do; `69` no agent is installed, so
-  nothing ran and there is no log to offer; anything else is the agent's own code.
-  `OperationFailed` carries all four, with `leftALog` and `ranOutOfTime` for the two that are not
-  ordinary failures.
+  killed, **and the log is kept** — show what it managed to do; `69` the run was **refused before
+  anything was created** — no container, no workspace, nothing to clear up, and no log to offer;
+  anything else is the agent's own code. `OperationFailed` carries all four, with `leftALog` and
+  `ranOutOfTime` for the two that are not ordinary failures.
+- **`69` does not mean one thing, so never name its reason.** It started as *no agent installed*
+  and now also carries *an unattended run whose credential could not be read*. The daemon prints
+  which; a client that spelled one of them out would be wrong precisely when somebody believed it.
+  This is the band standing in for an outcome vocabulary `Start` does not have — shape 3 is where
+  that arrives.
 - **What streams is the raw log**, the same text `Tail` serves for `task.log`. The formatted view
   an agent can produce is made in the CLI process and is not on the wire. Asking for one needs a
   method that does not exist.

@@ -320,9 +320,9 @@ class OperationFailed implements Exception {
 
   /// Whether there is a log worth offering.
   ///
-  /// Two of the bands are not failed runs at all. `69` means no agent is installed, so nothing
-  /// ran and there is nothing to read — offering a log view there opens an empty window on a file
-  /// that was never written.
+  /// Two of the bands are not failed runs at all. `69` means the run was **refused before
+  /// anything was created**, so there is nothing to read — offering a log view there opens an
+  /// empty window on a file that was never written.
   bool get leftALog => exitCode != 69;
 
   /// Whether the run was stopped by its own time limit rather than by going wrong.
@@ -331,6 +331,11 @@ class OperationFailed implements Exception {
   bool get ranOutOfTime => exitCode == 124;
 
   /// Whether nothing ran, as opposed to something running badly.
+  ///
+  /// Nothing was created either: no container, no workspace, nothing to clear up. More than one
+  /// thing answers `69` — no agent installed, and an unattended run whose credential could not be
+  /// read — so **the reason is in the output and is never guessed at here.** `Start` has no
+  /// outcome vocabulary, which is the gap this band is standing in for.
   bool get nothingRan => exitCode == 69;
 
   @override
@@ -339,7 +344,10 @@ class OperationFailed implements Exception {
         // that are not failures of the work at all.
         124 => 'It ran out of the time it was given and was stopped. What it managed to do is '
             'in the log.',
-        69 => 'No agent is installed, so nothing ran. That is a refusal, not a failed run.',
+        // Not "no agent is installed": more than one refusal answers 69, and the daemon prints
+        // which. Naming one of them here would be wrong exactly when it was believed.
+        69 => 'Nothing ran, and nothing was created. It was refused before it began; '
+            'what was refused is in the output above.',
         _ => 'The agent exited with code $exitCode.',
       };
 }

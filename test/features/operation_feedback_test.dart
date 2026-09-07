@@ -21,7 +21,7 @@ import './step/the_record_shows.dart';
 import './step/the_operation_fails.dart';
 import './step/the_record_marks_it_as_failed.dart';
 import './step/the_operation_runs_out_of_time.dart';
-import './step/no_agent_is_installed.dart';
+import './step/the_run_is_refused_before_it_begins.dart';
 
 void main() {
   group('''F13 Operation Feedback And History''', () {
@@ -108,15 +108,15 @@ void main() {
       await theOperationShows(tester, 'agent: editing lib/money.dart');
     });
     testWidgets(
-        '''a run with no agent installed says nothing ran, rather than that it failed''',
+        '''a run refused before it began says nothing was created, not that it failed''',
         (tester) async {
       await bddSetUp(tester);
       await iChooseTheCommand(
           tester, 'Show what this project would open, creating nothing');
-      await noAgentIsInstalled(tester);
+      await theRunIsRefusedBeforeItBegins(tester);
       await iCloseWhatIsOpen(tester);
       await iShowWhatThisSessionHasRun(tester);
-      await theRecordShows(tester, 'No agent is installed, so nothing ran');
+      await theRecordShows(tester, 'Nothing ran, and nothing was created');
     });
   });
 }
