@@ -14,6 +14,7 @@ import 'gate.dart';
 import 'host_readiness.dart';
 import 'logs.dart';
 import 'machines.dart';
+import 'narrowing.dart';
 import 'newer_version.dart';
 import 'notifications.dart';
 import 'operations.dart';
@@ -48,6 +49,7 @@ class SokarApp extends StatelessWidget {
     required this.authentication,
     required this.creating,
     required this.backups,
+    required this.narrowing,
     super.key,
   });
 
@@ -114,6 +116,9 @@ class SokarApp extends StatelessWidget {
   /// What has been backed up of the project being looked at.
   final Backups backups;
 
+  /// Taking a name back from work that is already running.
+  final Narrowing narrowing;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -149,6 +154,7 @@ class SokarApp extends StatelessWidget {
               authentication,
               creating,
               backups,
+              narrowing,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -172,6 +178,7 @@ class SokarApp extends StatelessWidget {
               authentication: authentication,
               creating: creating,
               backups: backups,
+              narrowing: narrowing,
             ),
           ),
         ),

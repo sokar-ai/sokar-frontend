@@ -379,6 +379,26 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Takes names back from a running task, and optionally from its project file.
+  ///
+  /// **This stops new connections and not the ones already running.** A transfer in progress runs
+  /// to its end, because the ruleset accepts established traffic without consulting the set again.
+  ///
+  /// [scope] is required and has no default, exactly as for widening: narrowing only the run when
+  /// somebody meant the project too leaves the next task starting with the host still open.
+  Future<Narrowed> narrowTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) async =>
+      Narrowed.from(await _call('NarrowTask', {
+        'task': task,
+        'domains': domains,
+        'scope': scope.name,
+        'dryRun': ?dryRun,
+      }));
+
   /// What backups have been taken of a project's mirror.
   ///
   /// **Read from a record written when each was taken**, because a bundle is written wherever an

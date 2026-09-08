@@ -8,6 +8,7 @@ import 'src/app/host_readiness.dart';
 import 'src/app/logs.dart';
 import 'src/app/notifications.dart';
 import 'src/app/machines.dart';
+import 'src/app/narrowing.dart';
 import 'src/app/newer_version.dart';
 import 'src/app/one_instance.dart';
 import 'src/app/where_you_were.dart';
@@ -82,6 +83,7 @@ Future<void> main() async {
     authentication: Authentication(),
     creating: ProjectCreation(),
     backups: Backups(),
+    narrowing: Narrowing(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather

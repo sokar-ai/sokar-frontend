@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
+import 'narrowing.dart';
 import 'notifications.dart';
 import 'operations.dart';
 import 'session.dart';
@@ -150,6 +151,7 @@ List<Command> commandsFor({
   required VoidCallback describeAProject,
   required VoidCallback showTheBackups,
   required VoidCallback widenTheWork,
+  required VoidCallback narrowTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
   required VoidCallback showTheVault,
@@ -367,6 +369,14 @@ List<Command> commandsFor({
       // REFUSED_BY_CLASS — so they are said rather than discovered. An action offered and then
       // refused teaches people to distrust the ones that are offered.
       unavailable: Widening.whyNot(selectedTask),
+    ),
+    Command(
+      id: 'work.narrow',
+      label: 'Take something back from this work',
+      group: 'Work',
+      run: narrowTheWork,
+      // The same two refusals as widening, and knowable here for the same reason.
+      unavailable: Narrowing.whyNot(selectedTask),
     ),
     Command(
       id: 'gate.open',

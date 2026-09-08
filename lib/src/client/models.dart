@@ -890,6 +890,13 @@ class WidenOutcome {
   /// The running task can reach it now.
   static const widened = WidenOutcome('WIDENED');
 
+  /// It was taken back from the running task.
+  ///
+  /// **The same type serves both directions**, which is the contract's choice and a good one: the
+  /// refusals are identical, so a screen that handled one and not the other would be handling
+  /// half of a shared vocabulary.
+  static const narrowed = WidenOutcome('NARROWED');
+
   /// What it would grant. Nothing was changed, because `dryRun` was set.
   static const previewed = WidenOutcome('PREVIEWED');
 
@@ -911,6 +918,7 @@ class WidenOutcome {
   /// The values this build knows.
   static const known = <WidenOutcome>[
     widened,
+    narrowed,
     previewed,
     noChange,
     notRunning,
@@ -922,12 +930,13 @@ class WidenOutcome {
   /// Whether this build knows what it means.
   bool get recognized => known.any((value) => value.name == name);
 
-  /// Whether the running task can reach the names now.
+  /// Whether the change reached the running task.
   ///
-  /// `NO_PROJECT_FILE` counts. It is a **partial success**: the run was widened and only the file
+  /// `NO_PROJECT_FILE` counts. It is a **partial success**: the run was changed and only the file
   /// was not written. Reading it as a failure tells somebody the task still cannot reach the host
   /// when it can, which is the wrong direction to be wrong in.
-  bool get reached => name == 'WIDENED' || name == 'NO_PROJECT_FILE';
+  bool get reached =>
+      name == 'WIDENED' || name == 'NARROWED' || name == 'NO_PROJECT_FILE';
 
   /// Whether anything is left to put right.
   ///
@@ -985,6 +994,55 @@ class Widened {
         opens: (map['opens'] is List)
             ? (map['opens']! as List).whereType<String>().toList()
             : const <String>[],
+        persisted: map['persisted'] == true,
+        detail: _string(map, 'detail'),
+      );
+}
+
+/// What taking names back from a running task did, and how far it went.
+///
+/// **It stops new connections and not the ones already running.** The name stops resolving and its
+/// recorded addresses come out of the firewall, so nothing new can be reached — but the ruleset
+/// accepts established traffic without consulting the set again, so a transfer in progress runs to
+/// its end. Nothing may render this as *"the host is now unreachable"*: it is not, yet. Stopping a
+/// transfer is what stopping the task does.
+class Narrowed {
+  /// What happened. The same values as widening, because it is the same kind of change.
+  final WidenOutcome outcome;
+
+  /// Names taken back, in the order they were asked for.
+  final List<String> closes;
+
+  /// How many addresses came out of the firewall.
+  ///
+  /// **Zero with a non-empty [closes] is a real state**, not a failure: the name was granted and
+  /// the container never reached it, so nothing was in the set to remove.
+  ///
+  /// These are the addresses recorded when each grant was applied, **never the answer to
+  /// resolving the name again now** — a CDN answers the daemon and the container differently, and
+  /// the ones that differ are exactly the ones that would be left open.
+  final int addresses;
+
+  /// Whether the project file was changed as well.
+  final bool persisted;
+
+  /// Why it was refused or what went wrong. Empty otherwise.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Narrowed({
+    required this.outcome,
+    required this.closes,
+    required this.addresses,
+    required this.persisted,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Narrowed.from(Map<String, dynamic> map) => Narrowed(
+        outcome: WidenOutcome(_string(map, 'outcome')),
+        closes: _strings(map, 'closes'),
+        addresses: _int(map, 'addresses'),
         persisted: map['persisted'] == true,
         detail: _string(map, 'detail'),
       );

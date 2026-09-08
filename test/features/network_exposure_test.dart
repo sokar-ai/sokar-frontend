@@ -37,6 +37,12 @@ import './step/the_scope_sent_was.dart';
 import './step/the_project_file_cannot_be_found.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
+import './step/i_take_something_back_from_this_work.dart';
+import './step/i_say_the_names.dart';
+import './step/i_show_what_that_would_take_back.dart';
+import './step/nothing_has_been_taken_back_yet.dart';
+import './step/i_take_it_back.dart';
+import './step/taking_back_will_find_nothing_in_the_firewall.dart';
 
 void main() {
   group('''F17 Network Exposure Control''', () {
@@ -204,6 +210,64 @@ void main() {
       await iOpenTheCommandFinder(tester);
       await theCommandIsOfferedAsUnavailable(
           tester, 'Let this work reach something new');
+    });
+    testWidgets('''taking a name back is previewed before anything changes''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iTakeSomethingBackFromThisWork(tester);
+      await iSayTheNames(tester, 'files.example.test');
+      await iChoose(tester, 'Just this run');
+      await iShowWhatThatWouldTakeBack(tester);
+      await itSays(tester, 'files.example.test');
+      await itSays(tester, '2 addresses come out of the firewall');
+      await nothingHasBeenTakenBackYet(tester);
+    });
+    testWidgets(
+        '''it says that new connections stop, never that the host is unreachable''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iTakeSomethingBackFromThisWork(tester);
+      await itSays(tester, 'This stops new connections');
+      await itSays(tester, 'a transfer already in flight runs to its end');
+      await itSays(tester, 'stopping the task is what does that');
+    });
+    testWidgets('''taking it back says how far it went''', (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iTakeSomethingBackFromThisWork(tester);
+      await iSayTheNames(tester, 'files.example.test');
+      await iChoose(tester, 'This run and the project');
+      await iShowWhatThatWouldTakeBack(tester);
+      await iTakeItBack(tester);
+      await itSays(tester, 'Taken back: files.example.test');
+      await itSays(tester, 'The project file is changed too');
+    });
+    testWidgets(
+        '''a name that was never reached takes nothing out of the firewall''',
+        (tester) async {
+      await bddSetUp(tester);
+      await takingBackWillFindNothingInTheFirewall(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iTakeSomethingBackFromThisWork(tester);
+      await iSayTheNames(tester, 'files.example.test');
+      await iChoose(tester, 'Just this run');
+      await iShowWhatThatWouldTakeBack(tester);
+      await itSays(tester, 'it was granted and never reached');
+    });
+    testWidgets('''work that is not running is not offered it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-migrate');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsOfferedAsUnavailable(
+          tester, 'Take something back from this work');
     });
   });
 }

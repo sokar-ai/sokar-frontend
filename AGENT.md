@@ -1753,3 +1753,23 @@ Deleting takes the **path, not an index**: a list that shifted between somebody 
 acting on it would delete a different backup than the one they chose. And a record cleared for a
 bundle already gone is a **tidy-up, not a loss**, said differently — telling somebody they
 destroyed something they did not is its own kind of wrong.
+
+## Taking a name back stops new connections, not running ones
+
+`NarrowTask` is not the mirror image of widening, and the screen has to say the difference. The
+name stops resolving and its recorded addresses come out of the firewall — but **the ruleset
+accepts established traffic without consulting the set again, so a transfer in flight runs to its
+end.**
+
+Never draw it as *"the host is now unreachable"*: it is not, yet, and somebody relying on that
+sentence is relying on it at exactly the wrong moment. **Stopping a transfer is what stopping the
+task does**, and that is the honest next step to offer.
+
+Two more the contract states and the screen keeps:
+
+- **Zero addresses with a name taken back is a real state.** The name was granted and the
+  container never reached it, so nothing was in the set. Drawing it as a fault sends somebody
+  looking for one.
+- **The addresses removed are the ones recorded when the grant was applied**, never a fresh
+  resolve. A CDN answers the daemon and the container differently, and the ones that differ are
+  exactly the ones that would be left open.

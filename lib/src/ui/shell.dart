@@ -19,6 +19,7 @@ import '../app/host_readiness.dart';
 import '../app/logs.dart';
 import '../app/notifications.dart';
 import '../app/machines.dart';
+import '../app/narrowing.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
 import '../app/project_creation.dart';
@@ -47,6 +48,7 @@ import 'host_readiness_view.dart';
 import 'leaving.dart';
 import 'log_view.dart';
 import 'machine_switcher.dart';
+import 'narrowing_view.dart';
 import 'operations.dart';
 import 'panes.dart';
 import 'prepare_view.dart';
@@ -85,6 +87,7 @@ class Shell extends StatefulWidget {
     required this.authentication,
     required this.creating,
     required this.backups,
+    required this.narrowing,
     super.key,
   });
 
@@ -151,6 +154,9 @@ class Shell extends StatefulWidget {
   /// What has been backed up of the project being looked at.
   final Backups backups;
 
+  /// Taking a name back from work that is already running.
+  final Narrowing narrowing;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -204,6 +210,7 @@ class _ShellState extends State<Shell> {
         describeAProject: _describeAProject,
         showTheBackups: _showTheBackups,
         widenTheWork: _widenTheWork,
+        narrowTheWork: _narrowTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
         showTheVault: _showTheVault,
@@ -473,6 +480,26 @@ class _ShellState extends State<Shell> {
   ///
   /// A dialog over where the work is listed, because F17 asks for it *from* there: a person
   /// answering a refusal is looking at the task, not at a project file.
+  /// Takes a name back from work that is already running.
+  ///
+  /// **Previewed every time, like widening**, and for the same reason: it lands on work in front
+  /// of somebody. What it says afterwards is that new connections stop — never that the host is
+  /// unreachable, because a transfer in flight runs to its end.
+  Future<void> _narrowTheWork() async {
+    final task = _fleet.selectedTask;
+    if (task == null) return;
+    widget.narrowing.open(task);
+    await openNarrowing(
+      context,
+      narrowing: widget.narrowing,
+      onConsider: () => widget.narrowing.consider(_fleet.backend),
+      onApply: () => widget.narrowing.apply(_fleet.backend),
+    );
+    final said = widget.narrowing.words;
+    if (said.isNotEmpty) _fleet.say(said);
+    widget.narrowing.close();
+  }
+
   Future<void> _widenTheWork() async {
     final task = _fleet.selectedTask;
     if (task == null) return;

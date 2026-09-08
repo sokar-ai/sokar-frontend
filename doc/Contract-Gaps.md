@@ -201,10 +201,18 @@ names and the requirements are written from what a person sees.
     [F08](../requirements/F08-Task-Creation-And-Modes.md), still waiting on `mode` and `prompt` —
     and **nothing turns it off on a task that is already running**. `WidenTask` does not do it:
     widening grants names, and enforcement staying on is the point of it.
-  - Everything `WidenTask` will not do, and deliberately: **no narrowing** (taking a grant back
-    from a running container is the first thing of its kind in the product and is undecided), and
-    **no sets** (a set is a name for several hosts; granting one is the same call repeated).
-    Neither has a control, and neither should grow one before the backend decides.
+  - ~~**No narrowing**~~ — **`NarrowTask` landed on 2026-09-08 and is built.** It was undecided
+    when widening was built, and it is a different thing rather than the mirror image: **it stops
+    new connections and not the ones already running**. The ruleset lets established traffic
+    through without consulting the set again, so a transfer in flight runs to its end — the screen
+    says so, and says that stopping the task is what stops a transfer.
+    - **Zero addresses is a real state**, not a fault: the name was granted and the container
+      never reached it, so nothing was in the set to remove.
+    - The addresses removed are **the ones recorded when the grant was applied**, never a fresh
+      resolve — a CDN answers the daemon and the container differently, and the ones that differ
+      are exactly the ones that would be left open.
+  - **No sets**, still: a set is a name for several hosts, and granting one is the same call
+    repeated.
   - `REFUSED_BY_CLASS` and `NOT_RUNNING` are both predictable from `Task`, so the action is
     offered as unavailable with the reason rather than offered and refused.
   - `NO_PROJECT_FILE` is **a partial success**: the run was widened and the file was not. It is

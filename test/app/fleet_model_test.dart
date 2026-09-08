@@ -129,6 +129,16 @@ class _Wedged implements FleetBackend {
       const Stream<PrepareProgress>.empty();
 
   @override
+  Future<Narrowed> narrowTask(String task, List<String> domains,
+          {required Scope scope, bool? dryRun}) async =>
+      const Narrowed(
+          outcome: WidenOutcome.widened,
+          closes: <String>[],
+          addresses: 0,
+          persisted: false,
+          detail: '');
+
+  @override
   Future<List<Backup>> backups(String project) async => const <Backup>[];
 
   @override
@@ -328,6 +338,16 @@ class _Machine implements FleetBackend {
   Stream<PrepareProgress> prepare(String project,
           {String? agent, String? rebuild, bool? dryRun}) =>
       const Stream<PrepareProgress>.empty();
+
+  @override
+  Future<Narrowed> narrowTask(String task, List<String> domains,
+          {required Scope scope, bool? dryRun}) async =>
+      const Narrowed(
+          outcome: WidenOutcome.widened,
+          closes: <String>[],
+          addresses: 0,
+          persisted: false,
+          detail: '');
 
   @override
   Future<List<Backup>> backups(String project) async => const <Backup>[];

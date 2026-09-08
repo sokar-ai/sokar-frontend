@@ -25,6 +25,7 @@ import 'package:sokar_frontend/src/app/backups.dart';
 import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
+import 'package:sokar_frontend/src/app/narrowing.dart';
 import 'package:sokar_frontend/src/app/project_creation.dart';
 import 'package:sokar_frontend/src/app/newer_version.dart';
 import 'package:sokar_frontend/src/app/where_you_were.dart';
@@ -829,6 +830,38 @@ diff --git a/lib/money.dart b/lib/money.dart
         });
   }
 
+  /// What the next [narrowTask] answers, preview or not. Set by the scenario.
+  Narrowed? nextNarrowing;
+
+  /// Every narrowing asked for, and how it was asked.
+  final List<({String task, List<String> domains, Scope scope, bool preview})> narrowings =
+      <({String task, List<String> domains, Scope scope, bool preview})>[];
+
+  @override
+  Future<Narrowed> narrowTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) async {
+    narrowings.add((
+      task: task,
+      domains: domains,
+      scope: scope,
+      preview: dryRun == true,
+    ));
+    return nextNarrowing ??
+        Narrowed.from(<String, dynamic>{
+          'outcome': dryRun == true ? 'PREVIEWED' : 'NARROWED',
+          'closes': domains,
+          // Two addresses per name, which is what a resolved host usually has. A scenario that
+          // wants the zero case says so.
+          'addresses': domains.length * 2,
+          'persisted': dryRun != true && scope == Scope.runAndProject,
+          'detail': '',
+        });
+  }
+
   @override
   Future<GateState> gateOf(String projectFile) async {
     final refusal = refuseTheGate;
@@ -1020,6 +1053,9 @@ class World {
   /// What has been backed up of the project being looked at.
   static late Backups backups;
 
+  /// Taking a name back from work that is already running.
+  static late Narrowing narrowing;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -1196,6 +1232,8 @@ class World {
     addTearDown(creating.dispose);
     backups = Backups();
     addTearDown(backups.dispose);
+    narrowing = Narrowing();
+    addTearDown(narrowing.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -1259,6 +1297,7 @@ class World {
       authentication: authentication,
       creating: creating,
       backups: backups,
+      narrowing: narrowing,
     ));
     await tester.pumpAndSettle();
   }
@@ -1318,6 +1357,7 @@ class World {
       authentication: authentication,
       creating: creating,
       backups: backups,
+      narrowing: narrowing,
     ));
     await tester.pumpAndSettle();
   }
@@ -1346,6 +1386,7 @@ class World {
       authentication: authentication,
       creating: creating,
       backups: backups,
+      narrowing: narrowing,
     ));
     await settle(tester);
   }

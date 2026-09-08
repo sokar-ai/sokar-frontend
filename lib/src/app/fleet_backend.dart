@@ -96,6 +96,14 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Takes names back from a running task, and optionally from its project file.
+  Future<Narrowed> narrowTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  });
+
   /// What backups have been taken of a project's mirror. Newest first.
   Future<List<Backup>> backups(String project);
 
@@ -313,6 +321,15 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<Narrowed> narrowTask(
+    String task,
+    List<String> domains, {
+    required Scope scope,
+    bool? dryRun,
+  }) =>
+      _opened().narrowTask(task, domains, scope: scope, dryRun: dryRun);
 
   @override
   Future<List<Backup>> backups(String project) => _opened().backups(project);

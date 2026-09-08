@@ -122,3 +122,55 @@ Feature: F17 Network Exposure Control
     And I select the work {'sokar-billing-shell'}
     And I open the command finder
     Then the command {'Let this work reach something new'} is offered as unavailable
+
+  # `NarrowTask` landed on 2026-09-08. It was undecided when widening was built — taking a grant
+  # back from a container that already has it is a different thing from granting one.
+  Scenario: taking a name back is previewed before anything changes
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I take something back from this work
+    And I say the names {'files.example.test'}
+    And I choose {'Just this run'}
+    And I show what that would take back
+    Then it says {'files.example.test'}
+    And it says {'2 addresses come out of the firewall'}
+    And nothing has been taken back yet
+
+  # The sentence this screen exists to get right: the ruleset lets established traffic through
+  # without asking again, so a transfer in flight runs to its end.
+  Scenario: it says that new connections stop, never that the host is unreachable
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I take something back from this work
+    Then it says {'This stops new connections'}
+    And it says {'a transfer already in flight runs to its end'}
+    And it says {'stopping the task is what does that'}
+
+  Scenario: taking it back says how far it went
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I take something back from this work
+    And I say the names {'files.example.test'}
+    And I choose {'This run and the project'}
+    And I show what that would take back
+    And I take it back
+    Then it says {'Taken back: files.example.test'}
+    And it says {'The project file is changed too'}
+
+  # A real state and not a failure: the name was granted and the container never reached it, so
+  # nothing was in the set to remove.
+  Scenario: a name that was never reached takes nothing out of the firewall
+    Given taking back will find nothing in the firewall
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I take something back from this work
+    And I say the names {'files.example.test'}
+    And I choose {'Just this run'}
+    And I show what that would take back
+    Then it says {'it was granted and never reached'}
+
+  Scenario: work that is not running is not offered it
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-migrate'}
+    And I open the command finder
+    Then the command {'Take something back from this work'} is offered as unavailable
