@@ -96,6 +96,9 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Turns enforcement on or off on a task that is already running.
+  Future<ClearanceSet> setClearance(String task, String mode, {bool? dryRun});
+
   /// Takes names back from a running task, and optionally from its project file.
   Future<Narrowed> narrowTask(
     String task,
@@ -321,6 +324,10 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<ClearanceSet> setClearance(String task, String mode, {bool? dryRun}) =>
+      _opened().setClearance(task, mode, dryRun: dryRun);
 
   @override
   Future<Narrowed> narrowTask(

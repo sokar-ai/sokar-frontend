@@ -152,6 +152,7 @@ List<Command> commandsFor({
   required VoidCallback showTheBackups,
   required VoidCallback widenTheWork,
   required VoidCallback narrowTheWork,
+  required VoidCallback enforceOnTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
   required VoidCallback showTheVault,
@@ -369,6 +370,20 @@ List<Command> commandsFor({
       // REFUSED_BY_CLASS — so they are said rather than discovered. An action offered and then
       // refused teaches people to distrust the ones that are offered.
       unavailable: Widening.whyNot(selectedTask),
+    ),
+    Command(
+      id: 'work.enforcement',
+      label: 'Change what this work does with a blocked connection',
+      group: 'Work',
+      run: enforceOnTheWork,
+      // `NOT_RUNNING` is the daemon's refusal and is knowable here. The class is not a refusal
+      // for this one: an offline project's tasks reach nothing either way, and whether a blocked
+      // connection asks anybody is still a real choice.
+      unavailable: selectedTask == null
+          ? 'no work is selected'
+          : !selectedTask.running
+              ? 'it is not running, and there is nothing to change'
+              : null,
     ),
     Command(
       id: 'work.narrow',

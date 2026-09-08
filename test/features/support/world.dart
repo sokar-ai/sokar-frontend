@@ -830,6 +830,35 @@ diff --git a/lib/money.dart b/lib/money.dart
         });
   }
 
+  /// What the next [setClearance] answers. Set by the scenario.
+  ClearanceSet? nextClearance;
+
+  /// Every enforcement change asked for.
+  final List<({String task, String mode, bool preview})> clearances =
+      <({String task, String mode, bool preview})>[];
+
+  @override
+  Future<ClearanceSet> setClearance(String task, String mode, {bool? dryRun}) async {
+    clearances.add((task: task, mode: mode, preview: dryRun == true));
+    final was = _tasks
+        .where((each) => each.name == task)
+        .map((each) => each.clearance)
+        .firstOrNull ??
+        '';
+    if (nextClearance != null) return nextClearance!;
+    return ClearanceSet(
+      outcome: dryRun == true
+          ? 'PREVIEWED'
+          : was == mode
+              ? 'UNCHANGED'
+              : 'CHANGED',
+      was: was,
+      // Empty when nothing changed, exactly as the contract says.
+      now: dryRun == true || was == mode ? '' : mode,
+      detail: '',
+    );
+  }
+
   /// What the next [narrowTask] answers, preview or not. Set by the scenario.
   Narrowed? nextNarrowing;
 

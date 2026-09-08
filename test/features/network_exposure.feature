@@ -174,3 +174,37 @@ Feature: F17 Network Exposure Control
     And I select the work {'sokar-checkout-migrate'}
     And I open the command finder
     Then the command {'Take something back from this work'} is offered as unavailable
+
+  # `SetClearance` landed on 2026-09-08 and closed the one criterion that had no method. It was
+  # deliberately not folded into widening: those grant and withdraw names, and that the firewall
+  # stays loaded is what they mean.
+  Scenario: enforcement is turned off on work that is already running
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I change what this work does with a blocked connection
+    And I choose to {'Stop asking entirely'}
+    Then the work was set to {'off'}
+    And the status line mentions {'went from “prompt” to “off”'}
+
+  # The sentence nothing else says: the ruleset is loaded either way, so this opens nothing by
+  # itself — and it undoes nothing that already happened.
+  Scenario: it says what turning it off does not undo
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-shell'}
+    And I change what this work does with a blocked connection
+    Then it says {'a connection that was refused stays refused'}
+    And it says {'The ruleset is loaded either way'}
+
+  # Not a failure: it was already in that mode and nothing was restarted.
+  Scenario: asking for the mode it is already in is not reported as a change
+    When I select the project {'billing'}
+    And I select the work {'sokar-billing-audit'}
+    And I change what this work does with a blocked connection
+    And I choose to {'Stop asking entirely'}
+    Then the status line mentions {'was already doing that'}
+
+  Scenario: work that is not running is not offered it
+    When I select the project {'checkout'}
+    And I select the work {'sokar-checkout-migrate'}
+    And I open the command finder
+    Then the command {'Change what this work does with a blocked connection'} is offered as unavailable

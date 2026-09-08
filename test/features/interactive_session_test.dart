@@ -22,8 +22,8 @@ import './step/i_type_into_the_session.dart';
 import './step/the_session_was_sent.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
-import './step/the_command_is_unavailable_because.dart';
 import './step/the_work_is_dead.dart';
+import './step/the_command_is_unavailable_because.dart';
 import './step/the_window_is_pixels_wide.dart';
 import './step/the_session_is_on_screen.dart';
 import './step/the_work_is_listed.dart';
@@ -94,14 +94,13 @@ void main() {
       await theSessionRuns(tester, 'sokar task attach sokar-billing-shell');
     });
     testWidgets(
-        '''work an agent is driving has no session to join, and says so before it is pressed''',
+        '''work an agent is driving can be worked in by hand like any other''',
         (tester) async {
       await bddSetUp(tester);
       await iSelectTheProject(tester, 'checkout');
       await iSelectTheWork(tester, 'sokar-checkout-shell');
-      await iOpenTheCommandFinder(tester);
-      await theCommandIsUnavailableBecause(
-          tester, 'Work in it by hand', 'An agent is what runs in this');
+      await iWorkInItByHand(tester);
+      await theSessionRuns(tester, 'sokar task attach sokar-checkout-shell');
     });
     testWidgets(
         '''work that has stopped has no session, and points at starting it again''',

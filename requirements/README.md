@@ -49,7 +49,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 |---|---|---|---|---|
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | triggering a fetch, and a restore that refuses when it would discard unreviewed work. Listing and deleting are built | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
-| F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 
 
@@ -114,6 +113,26 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F17 Network Exposure Control.** What running work may reach, changed while it runs and in
+  both directions — granting a name, taking one back, and **what the work does with a blocked
+  connection at all**. Blocked connections from every task in one view, allowed or denied from
+  there, and an expired question kept and marked rather than quietly dropped.
+
+  Three sentences it exists to get right, each of them a thing the screen would otherwise imply
+  and be wrong about. **A grant is reachable from the next attempt** — never that the request
+  which just failed will now succeed. **Taking a name back stops new connections and not the ones
+  already running**, because the ruleset lets established traffic through without consulting the
+  set again; stopping a transfer is what stopping the task does. And **turning enforcement off
+  opens nothing**: the ruleset is loaded throughout, what changes is whether a blocked connection
+  produces a question, and it undoes neither a refusal that already happened nor anything waved
+  through while nothing was asking.
+
+  Its last criterion was open because the **backend had retired its own requirement with that one
+  unmet** — six of seven checked, and the seventh was the one nothing implemented. Reporting it is
+  what found it, and `SetClearance` followed the same day. Two more distinctions kept from the
+  contract: `UNCHANGED` is not a failure, and zero addresses coming out of the firewall is a real
+  state rather than a fault.
+
 - **F04 Guided Project Creation.** Every question in one place, and **every answer checked by the
   machine that will run it** — whether a name survives becoming an image tag and an nftables set
   name, whether an egress set exists there, whether a class is spelled right. None of that can be

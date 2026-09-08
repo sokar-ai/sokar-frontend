@@ -24,20 +24,13 @@ typedef OpenTerminal = SessionChannel Function(
 /// that fails after somebody presses it.
 enum WhyNot {
   /// It is not up. The way back is starting it again, which keeps the workspace it had.
-  notRunning,
-
-  /// Its main process is the agent, not a shell, so there is nothing to attach to. What somebody
-  /// wants here is the log.
-  drivenByAnAgent;
+  notRunning;
 
   /// What to say, in a sentence somebody can act on.
   String get words => switch (this) {
         WhyNot.notRunning =>
           'This is not running. Starting it again brings back the workspace, the branch and the '
               'commits it had — and a session with it.',
-        WhyNot.drivenByAnAgent =>
-          'An agent is what runs in this, not a shell, so there is no session to join. What it is '
-              'doing is in its log.',
       };
 }
 
@@ -235,19 +228,18 @@ class Sessions extends ChangeNotifier {
 
   /// Why [task] cannot be worked in by hand, or null when it can.
   ///
-  /// A task whose mode nothing recorded — every task started before the field existed — is
-  /// **offered**. Refusing on a blank would take the action away from work that has a shell in it,
-  /// on the strength of not knowing; the far end decides, and says why, if it will not.
-  static WhyNot? whyNot(Task task) {
-    if (!task.running) return WhyNot.notRunning;
-    // Compared as values rather than strings, and **only the two that are known**. A mode this
-    // build has never heard of is offered: the far end decides what it will not do, and refusing
-    // on an unrecognised name would take the action away from work a later release added.
-    if (task.mode == Mode.agent || task.mode == Mode.unattended) {
-      return WhyNot.drivenByAnAgent;
-    }
-    return null;
-  }
+  /// **Only one reason, and the mode is not it.** This end refused `AGENT` and `UNATTENDED` until
+  /// 2026-09-08, on the strength of *"the agent is the main process, so there is no session to
+  /// attach to"*. That was wrong, and the Sokar side said so: **`AGENT` and `SHELL` are the same
+  /// task** — same container, same egress, same gate, same credential — and `--attach agent` only
+  /// runs the agent's binary first and drops into the shell when it exits. Attaching starts its
+  /// own `tmux` by `podman exec`, which does not care what the container's main process is.
+  ///
+  /// So the refusal took the action away from the commonest kind of task there is, with a reason
+  /// that was not true. An `UNATTENDED` run is the one where nobody is expected to be watching —
+  /// which is a thing to know, not a thing to forbid, and the log is a suggestion rather than a
+  /// substitute.
+  static WhyNot? whyNot(Task task) => task.running ? null : WhyNot.notRunning;
 
   /// The session against [task] on [machine], opening one if there is none.
   ///

@@ -30,6 +30,7 @@ import '../app/shell_model.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'command_finder.dart';
+import 'clearance_mode_view.dart';
 import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
@@ -211,6 +212,7 @@ class _ShellState extends State<Shell> {
         showTheBackups: _showTheBackups,
         widenTheWork: _widenTheWork,
         narrowTheWork: _narrowTheWork,
+        enforceOnTheWork: _enforceOnTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
         showTheVault: _showTheVault,
@@ -480,6 +482,26 @@ class _ShellState extends State<Shell> {
   ///
   /// A dialog over where the work is listed, because F17 asks for it *from* there: a person
   /// answering a refusal is looking at the task, not at a project file.
+  /// Changes what running work does with a blocked connection.
+  ///
+  /// **It opens nothing.** The ruleset is loaded whichever mode is chosen; what changes is whether
+  /// a blocked connection produces a question — and nothing here undoes a connection that was
+  /// already refused, or one waved through while nothing was asking.
+  Future<void> _enforceOnTheWork() async {
+    final task = _fleet.selectedTask;
+    if (task == null) return;
+    final chosen = await askHowToEnforce(context, task: task.name, now: task.clearance);
+    if (chosen == null || !mounted) return;
+    final said = await _fleet.backend.setClearance(task.name, chosen.name);
+    // What is on screen has to be what is true: the work list marks `off` wherever the task
+    // appears, and that mark is read from the task.
+    //
+    // **Refreshed first, then said.** A refresh announces itself, and doing it afterwards left
+    // *"Refreshed: 4 tasks"* where the answer to what somebody just did should be.
+    await _fleet.refresh();
+    _fleet.say(whatEnforcementDid(said, task.name));
+  }
+
   /// Takes a name back from work that is already running.
   ///
   /// **Previewed every time, like widening**, and for the same reason: it lands on work in front

@@ -1773,3 +1773,42 @@ Two more the contract states and the screen keeps:
 - **The addresses removed are the ones recorded when the grant was applied**, never a fresh
   resolve. A CDN answers the daemon and the container differently, and the ones that differ are
   exactly the ones that would be left open.
+
+## `AGENT` and `SHELL` are the same task
+
+This end refused to open a session for an `AGENT` task until 2026-09-08, on the strength of *"the
+agent is the main process, so there is no session to attach to"*. **That was wrong.** Same
+container, same egress, same gate, same credential — `--attach agent` only runs the agent's binary
+first and drops into the shell when it exits, and attaching starts its own `tmux` by `podman exec`,
+which does not care what the main process is.
+
+So the refusal took the action away from the commonest kind of task there is, **with a reason that
+was not true**. Corrected when the Sokar side said so.
+
+The lesson is not about modes. **A refusal repeated confidently is the hardest kind to notice**:
+nothing failed, nothing was reported, and the sentence explaining it read like knowledge. When a
+rule takes an action away, the question to keep asking is *what would have to be true for this to
+be wrong* — and here it was one sentence from somebody who knew.
+
+## Turning enforcement off opens nothing
+
+`SetClearance` changes **whether a blocked connection produces a question**, not what a container
+can reach: the ruleset is loaded throughout. And it undoes nothing — a connection already refused
+stays refused, because the packet was dropped and nothing retries it, and anything waved through
+while nothing was asking stays through.
+
+It is deliberately **not** widening with a special value. Those grant and withdraw names, and that
+the firewall stays loaded is what they mean; folding *"stop asking about anything"* into them would
+make one method mean two unrelated things, **and the quiet one would be the dangerous one**.
+
+`UNCHANGED` is not a failure: it was already in that mode and nothing was restarted, which deserves
+a different sentence from a change that happened.
+
+## A refresh announces itself, so say the result after it
+
+Changing enforcement said what it did and then refreshed the list — and the refresh's own
+*"Refreshed: 4 tasks"* landed where the answer to what somebody just did should have been. Caught
+by a scenario reading the status line, not by looking.
+
+**Order the two by what somebody needs to see last.** Anything that announces itself belongs before
+the sentence about the thing they actually asked for.

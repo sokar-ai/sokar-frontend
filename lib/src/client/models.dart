@@ -999,6 +999,52 @@ class Widened {
       );
 }
 
+/// What changing enforcement on a running task did.
+///
+/// **This never opens a destination by itself.** The ruleset is loaded throughout; what changes is
+/// whether a blocked connection produces a question. And it undoes nothing: turning enforcement
+/// off does not recall a connection that was already refused — the packet was dropped and nothing
+/// retries it — and turning it back on does not recall anything waved through while it was off.
+class ClearanceSet {
+  /// `CHANGED`, `UNCHANGED`, `PREVIEWED`, `NO_SUCH_TASK`, `NOT_RUNNING`, `UNKNOWN_MODE`,
+  /// `NOT_RECORDED` or `FAILED`.
+  final String outcome;
+
+  /// The mode before. Empty for a task started before this was recorded.
+  final String was;
+
+  /// The mode after. Empty when nothing changed.
+  final String now;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const ClearanceSet({
+    required this.outcome,
+    required this.was,
+    required this.now,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory ClearanceSet.from(Map<String, dynamic> map) => ClearanceSet(
+        outcome: _string(map, 'outcome'),
+        was: _string(map, 'was'),
+        now: _string(map, 'now'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// Whether the task is in the mode that was asked for.
+  ///
+  /// **`UNCHANGED` counts.** It was already in that mode and nothing was restarted — a different
+  /// sentence from a change that happened, and not a failure.
+  bool get settled => outcome == 'CHANGED' || outcome == 'UNCHANGED';
+
+  /// Whether anything actually moved.
+  bool get moved => outcome == 'CHANGED';
+}
+
 /// What taking names back from a running task did, and how far it went.
 ///
 /// **It stops new connections and not the ones already running.** The name stops resolving and its

@@ -43,11 +43,16 @@ Feature: F12 Interactive Session Attach
     When I work in it by hand
     Then the session runs {'sokar task attach sokar-billing-shell'}
 
-  Scenario: work an agent is driving has no session to join, and says so before it is pressed
+  # Refused here until 2026-09-08, on the strength of "the agent is the main process, so there is
+  # no session to attach to". Wrong: `AGENT` and `SHELL` are the same task — same container, same
+  # egress, same gate — and attaching starts its own multiplexer by `podman exec`, which does not
+  # care what the main process is. The refusal took the action away from the commonest kind of
+  # task there is.
+  Scenario: work an agent is driving can be worked in by hand like any other
     Given I select the project {'checkout'}
     And I select the work {'sokar-checkout-shell'}
-    When I open the command finder
-    Then the command {'Work in it by hand'} is unavailable because {'An agent is what runs in this'}
+    When I work in it by hand
+    Then the session runs {'sokar task attach sokar-checkout-shell'}
 
   # Against work whose mode nothing recorded, deliberately: nothing else can take the action
   # away, so what is measured is the running check on its own. A scenario against a stopped

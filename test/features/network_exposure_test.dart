@@ -43,6 +43,10 @@ import './step/i_show_what_that_would_take_back.dart';
 import './step/nothing_has_been_taken_back_yet.dart';
 import './step/i_take_it_back.dart';
 import './step/taking_back_will_find_nothing_in_the_firewall.dart';
+import './step/i_change_what_this_work_does_with_a_blocked_connection.dart';
+import './step/i_choose_to.dart';
+import './step/the_work_was_set_to.dart';
+import './step/the_status_line_mentions.dart';
 
 void main() {
   group('''F17 Network Exposure Control''', () {
@@ -268,6 +272,44 @@ void main() {
       await iOpenTheCommandFinder(tester);
       await theCommandIsOfferedAsUnavailable(
           tester, 'Take something back from this work');
+    });
+    testWidgets('''enforcement is turned off on work that is already running''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChangeWhatThisWorkDoesWithABlockedConnection(tester);
+      await iChooseTo(tester, 'Stop asking entirely');
+      await theWorkWasSetTo(tester, 'off');
+      await theStatusLineMentions(tester, 'went from “prompt” to “off”');
+    });
+    testWidgets('''it says what turning it off does not undo''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iChangeWhatThisWorkDoesWithABlockedConnection(tester);
+      await itSays(tester, 'a connection that was refused stays refused');
+      await itSays(tester, 'The ruleset is loaded either way');
+    });
+    testWidgets(
+        '''asking for the mode it is already in is not reported as a change''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'billing');
+      await iSelectTheWork(tester, 'sokar-billing-audit');
+      await iChangeWhatThisWorkDoesWithABlockedConnection(tester);
+      await iChooseTo(tester, 'Stop asking entirely');
+      await theStatusLineMentions(tester, 'was already doing that');
+    });
+    testWidgets('''work that is not running is not offered it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iSelectTheWork(tester, 'sokar-checkout-migrate');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsOfferedAsUnavailable(
+          tester, 'Change what this work does with a blocked connection');
     });
   });
 }

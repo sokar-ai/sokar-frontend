@@ -379,6 +379,16 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Turns enforcement on or off on a task that is already running.
+  ///
+  /// **Deliberately not widening with a special value.** Those grant and withdraw names, and that
+  /// the firewall stays loaded is what they mean; folding *"stop asking about anything"* into them
+  /// would make one method mean two unrelated things, and the quiet one would be the dangerous
+  /// one.
+  Future<ClearanceSet> setClearance(String task, String mode, {bool? dryRun}) async =>
+      ClearanceSet.from(await _call(
+          'SetClearance', {'task': task, 'mode': mode, 'dryRun': ?dryRun}));
+
   /// Takes names back from a running task, and optionally from its project file.
   ///
   /// **This stops new connections and not the ones already running.** A transfer in progress runs
