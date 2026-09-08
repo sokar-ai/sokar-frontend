@@ -251,9 +251,47 @@ names and the requirements are written from what a person sees.
 | F04 Guided Project Creation | create a project |
 | F06 Upstream Synchronisation And Backups | sync, list snapshots, restore, delete |
 | F07 Instruction Management | read and write instructions at both levels, and show the resolved result |
-| F14 Authentication Flows | authenticate an agent or a provider. `Credentials` is read-only |
+| F14 Authentication Flows | `Providers`, `Login` and `ImportCredential`, all designed and none built. Typing a secret over the socket is settled as **never** — see below |
 | F16 Access Key Routing | create, remove and link keys |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
+
+- **F14 Authentication Flows** — **a no with a design attached, on 2026-09-08.**
+  - **No secret crosses this socket, either direction, permanently.** Not the typing half only:
+    storing one over the wire is refused outright, on the same reasoning as `Unlock`. So the
+    criterion is answered the way F15's is — by saying **where**, which is a different sentence
+    from *this cannot be done*.
+  - **The reason on screen must be the narrow one.** It is *not* transport security: the socket is
+    forwarded over ssh, and anybody who can forward it can already run commands on that node. What
+    it buys is that the plaintext never enters a GUI process — no widget state, no clipboard, no
+    crash dump — and never enters the varlink layer, where JSON reaches logs, traces and echoed
+    errors. A strong-sounding reason that is false is what QF5 nearly put on a screen.
+  - **The command is handed over, not composed here.** The key a credential is stored under is the
+    provider's name, falling back to the agent's for older vaults — a client intersecting two
+    lists would report one missing from exactly the vault that has it. Third time this shape has
+    appeared, after F08's credential rule and F10's gate join.
+  - **`Providers()` is the read half and covers most of the screen**: name, label, upstream,
+    dialects, `authenticated`, the credential's type and name, and the exact `storeCommand`. It
+    carries `readable`, and `authenticated` is **meaningless without it** — the same trap as
+    `Credentials`, where a locked vault and an empty one answered alike until it was fixed.
+  - **`Login` streams with `more`**, and its shape carries a warning: **the redirect flow is not
+    the only one.** A device-code flow needs no port and no tunnel, which is why `callbackPort` is
+    `0` rather than absent and why `userCode` exists beside it. Building as though every provider
+    redirects would leave the others unreachable.
+  - **A remote person behind a forced-command ssh cannot store a credential at all**, only import
+    one already on the node. That belongs on screen rather than being discovered.
+  - **The OAuth redirect needs a second forward, and this end has no way to add one.** The
+    listener is on the laptop and `ssh -L` carries it to the node; the port cannot be remapped,
+    because the browser goes to whatever the `redirect_uri` says. Adding it to a connection
+    already held is `ssh -S <ctl> -O forward`, which needs a **control socket** — and
+    [F27](../requirements/README.md) deliberately runs one plain `ssh -N` process per machine with
+    no `ControlMaster`. Re-read, that decision forbids **sharing** the person's own master, not
+    **having** a private one: `-M -S` on a path of our own is nobody else's to break. Nothing is
+    built either way, and a second short-lived `ssh -L` process is the other option.
+  - **Verify a forward by connecting through it, never by ssh's exit code.** Measured on their
+    side: with something already on the laptop's `127.0.0.1:<port>`, ssh exits `0`, stays alive,
+    prints `bind: Address already in use` on stderr only — and binds `[::1]` anyway, so the
+    forward half works. This end already refuses to trust a path that merely exists; the same rule
+    applies to a port.
 
 - ~~**F12 Interactive Session Attach**~~ — **built, and not on the socket at all.** Settled on
   2026-09-08 as B16, after the Sokar side proposed a shape and withdrew it a few minutes later;

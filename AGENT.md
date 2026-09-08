@@ -1369,3 +1369,39 @@ machine.
 round it: `--no-verify` (which is the point — somebody who means it can still do it), a
 `core.hooksPath` pointing elsewhere, a fresh clone, and a client that does not run the git command.
 Nothing here may present it as prevention.
+
+## A secret never crosses this socket, and the reason on screen must be the narrow one
+
+Settled for the vault and again for authentication: `Credentials` answers names, kinds and lengths
+and never a value, and **no method will ever take one**. Typing a credential happens where the
+person already is — they hold an ssh connection to that node, because that is why the socket is
+here at all — so the screen shows **the command**, not a disabled field.
+
+**What the rule does not buy, said so nobody puts it on a screen.** It is not transport security:
+the socket is forwarded over ssh, so it is the same encrypted connection either way, and anybody
+who can forward it can already run commands on that node. What it buys is narrower and worth
+more — the plaintext never enters a GUI process (no widget state, no clipboard, no crash dump),
+never enters the varlink layer (where JSON reaches logs, traces and echoed errors), and the
+invariant stays absolute instead of becoming something every future code path must remember.
+
+**The command is handed over, never composed here.** A credential's key is the provider's name,
+falling back to the agent's for older vaults, so a client lining two lists up would report one
+missing from exactly the vault that has it. **Third time this shape has appeared** — F08's
+credential rule, F10's gate join, and now this. When a client *can* compute an answer from two
+lists, that is not evidence it should.
+
+## Verify a forward by connecting through it, never by an exit code
+
+Measured on the Sokar side, and it generalises to everything this interface raises: with something
+already bound on the local side of an `ssh -L`, **ssh exits `0`, stays alive, and prints
+`bind: Address already in use` on stderr only** — then binds `[::1]` anyway, so the forward is
+*half* up. Whether anything works depends on how the client resolves `localhost`.
+
+This end already refuses to believe a path that merely exists — it requires a real
+`unixDomainSock`, and clears a stale one first — but the general rule is stronger and is the one to
+keep: **a forward is proven by something coming back through it.**
+
+Also measured there, and useful if a second forward is ever needed: `ssh -S <ctl> -O forward -L …`
+adds one to a connection already held, and `-O cancel` removes it, both without reconnecting. That
+needs a control socket, which F27 deliberately does without — but re-read, **that decision forbids
+sharing the person's own master, not having a private one.**
