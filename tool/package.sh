@@ -23,7 +23,18 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$here"
 
-version="${1:-$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//' | tr -d '[:space:]')}"
+base="${1:-$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//' | tr -d '[:space:]')}"
+
+# Every build of `main` replaces the packages in a repository called `snapshots`, so each one has
+# to supersede the last or `apt upgrade` has nothing to do and nobody ever moves off the build
+# they first installed. The run number does that; `~` keeps the whole series below the eventual
+# release.
+#
+# Matching the backend's `0.1.0~snapshot.<run>` exactly, so both sets of packages sort the same
+# way in one repository. The counters are separate on purpose — a package only ever has to
+# supersede its own predecessor.
+run="${SNAPSHOT_RUN:-0}"
+version="$base~snapshot.$run"
 out="${OUT_DIR:-build/packages}"
 bundle="build/linux/x64/release/bundle"
 nfpm="${NFPM:-nfpm}"
@@ -35,6 +46,21 @@ command -v "$nfpm" >/dev/null || {
   echo "  https://github.com/goreleaser/nfpm/releases" >&2
   exit 1
 }
+
+# Asked of dpkg on the version actually built, rather than reasoned about. The trap is lexical
+# comparison: if `10` did not beat `9` the scheme would keep working for nine builds and then
+# quietly stop.
+say "Checking the version supersedes the last one: $version"
+case "$version" in
+  *~SNAPSHOT|*-SNAPSHOT)
+    echo "a flat snapshot never supersedes the last one: $version" >&2; exit 1 ;;
+esac
+dpkg --compare-versions "$version" lt "$base" \
+  || { echo "$version should sort below the release $base" >&2; exit 1; }
+dpkg --compare-versions "$version" lt "$base~snapshot.$((run + 1))" \
+  || { echo "$version should sort below the next build" >&2; exit 1; }
+dpkg --compare-versions "$base~snapshot.9" lt "$base~snapshot.10" \
+  || { echo "digit runs are being compared lexically; build 10 would not beat build 9" >&2; exit 1; }
 
 say "Building the release bundle"
 flutter build linux --release

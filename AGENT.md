@@ -965,3 +965,29 @@ field, so a non-zero number with another reason is possible and must not be show
 timer and never on the listing path, so the number is as old as the last tick. *"3 behind, as of 20
 minutes ago"* is a fact somebody can judge; *"3 behind"* is one they have to assume is current.
 
+## A snapshot version has to supersede the last one
+
+Every build of `main` replaces the packages in a distribution called `snapshots`. With a flat
+version — `0.1.0`, or `0.1.0~SNAPSHOT` — **`apt upgrade` has nothing to do**, and nobody ever moves
+off the build they first installed. A snapshot repository whose packages never update anybody.
+
+`0.1.0~snapshot.<run>`, from `SNAPSHOT_RUN` (CI passes `github.run_number`; a local build gets 0).
+The same shape the backend publishes, so both sets sort the same way in one repository — separate
+counters, because a package only has to supersede its own predecessor.
+
+**Measured, not reasoned about**, with `dpkg --compare-versions` and `rpm.vercmp` on 2026-09-08:
+
+| | |
+|---|---|
+| `0.1.0~snapshot.9` < `0.1.0~snapshot.10` | both formats compare digit runs **numerically** |
+| `0.1.0~snapshot.999` < `0.1.0` | the whole series stays below the release |
+| `0.1.0` **>** `0.1.0~snapshot.1` | a flat release version outranks every snapshot |
+
+The last line is the trap in our own history: the first published build was a flat `0.1.0`, so
+**nothing in the new series can supersede it** and an installation of it stays where it is. That
+one artifact has to be deleted from Artifactory or it strands whoever installed it.
+
+`tool/package.sh` refuses a flat snapshot and asks `dpkg` — on the version it actually built — that
+the next build sorts above it and that 10 beats 9. Lexical comparison would have worked for nine
+builds and then stopped quietly.
+

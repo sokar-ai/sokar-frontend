@@ -142,4 +142,38 @@ void main() {
       expect(workflow, contains('git diff --exit-code test/features'));
     });
   });
+
+  group('the version supersedes the last one', () {
+    final script = File('tool/package.sh').readAsStringSync();
+    final workflow = File('.github/workflows/build.yml').readAsStringSync();
+
+    test('every build carries a run number, so a repository of snapshots updates', () {
+      // A flat version means `apt upgrade` has nothing to do and nobody moves off the build they
+      // first installed — in a repository literally called `snapshots`.
+      expect(script, contains(r'version="$base~snapshot.$run"'));
+      expect(script, contains(r'run="${SNAPSHOT_RUN:-0}"'));
+    });
+
+    test('CI passes the run number in', () {
+      expect(workflow, contains(r'SNAPSHOT_RUN="${{ github.run_number }}"'));
+    });
+
+    test('the ordering is asked of dpkg rather than reasoned about', () {
+      // The trap is lexical comparison: if 10 did not beat 9 the scheme would work for nine
+      // builds and then quietly stop. The script asks, on the version it actually built.
+      expect(script, contains('dpkg --compare-versions'));
+      expect(script, contains(r'"$base~snapshot.9" lt "$base~snapshot.10"'));
+      expect(script, contains('a flat snapshot never supersedes the last one'));
+    });
+
+    test('it matches the shape the backend publishes, so both sort together', () {
+      // Separate counters, same shape. Two sets of packages in one repository that sorted by
+      // different rules would be a problem nobody could see from either side.
+      //
+      // `~SNAPSHOT` does appear in the script — in the guard that refuses it — so what is
+      // asserted is that the version is never built that way.
+      expect(script, contains('~snapshot.'));
+      expect(script.contains(r'version="$base~SNAPSHOT"'), isFalse);
+    });
+  });
 }

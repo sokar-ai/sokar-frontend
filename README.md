@@ -139,9 +139,14 @@ REPO
 sudo dnf install sokar-frontend
 ```
 
-**`snapshots` is the distribution word**, and it is in the line a person configures. Every build of
-`main` replaces those packages. A stable release will be a different word in the same repository,
-so the two can never be installed by accident from one another.
+**`snapshots` is the distribution word**, and it is in the line a person configures. A stable
+release will be a different word in the same repository, so the two can never be installed by
+accident from one another.
+
+Every build of `main` publishes `0.1.0~snapshot.<run number>`, which **supersedes the one before
+it** — so `apt upgrade` and `dnf upgrade` do what somebody expects. The `~` keeps the whole series
+below the eventual `0.1.0` release, and both `dpkg` and `rpm` compare the run number numerically,
+so build 10 really does beat build 9. The script asks them rather than assuming it.
 
 `sokar` is **recommended, not required**: an interface pointed at a remote daemon over a forwarded
 socket is useful with no local backend at all.

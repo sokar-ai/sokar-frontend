@@ -72,7 +72,9 @@ jobs:
           curl -sSL -o nfpm.tar.gz \
             https://github.com/goreleaser/nfpm/releases/download/v2.43.0/nfpm_2.43.0_Linux_x86_64.tar.gz
           tar xzf nfpm.tar.gz nfpm
-          NFPM="$PWD/nfpm" tool/package.sh
+          # Each build supersedes the last, or a repository called `snapshots` never updates
+          # anybody. Locally this defaults to 0.
+          NFPM="$PWD/nfpm" SNAPSHOT_RUN="${{ github.run_number }}" tool/package.sh
 
       # What was built, named once. The backend learned this the hard way: two lists of files drift,
       # and the symptom is a publish failing after the tests have already passed.
