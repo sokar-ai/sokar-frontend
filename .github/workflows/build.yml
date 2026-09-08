@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+# Action majors are kept current, not pinned and forgotten: GitHub deprecated the Node 20 runtime
+# on 2025-09-19 and began forcing those actions onto Node 24, which is a warning today and a
+# failure whenever they stop forcing it. Checked against the published tags on 2026-09-08.
+
 jobs:
   build:
     name: Test and package
@@ -24,7 +28,7 @@ jobs:
     # by accident.
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -83,7 +87,7 @@ jobs:
           ls -1 build/packages/*.deb build/packages/*.rpm > build/packages/fetched.txt
           cat build/packages/fetched.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: |
@@ -92,7 +96,7 @@ jobs:
             build/packages/fetched.txt
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-reports
@@ -109,7 +113,7 @@ jobs:
       matrix:
         image: [debian:12, fedora:40]
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: packages
           path: packages
@@ -144,7 +148,7 @@ jobs:
     # better than one that fails at the last step.
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: packages
           path: packages

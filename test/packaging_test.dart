@@ -157,6 +157,19 @@ void main() {
       expect(workflow, contains('fedora:40'));
     });
 
+    test('no action is left on a runtime GitHub has deprecated', () {
+      // Node 20 was deprecated on 2025-09-19 and those actions are being forced onto Node 24: a
+      // warning today, a failure whenever the forcing stops. Pinning a major and forgetting it is
+      // how a green build becomes a red one without anybody touching it.
+      for (final stale in <String>[
+        'actions/checkout@v4',
+        'actions/upload-artifact@v4',
+        'actions/download-artifact@v4',
+      ]) {
+        expect(workflow.contains(stale), isFalse, reason: '$stale runs on Node 20');
+      }
+    });
+
     test('the generated tests are proven current rather than trusted', () {
       expect(workflow, contains('git diff --exit-code test/features'));
     });
