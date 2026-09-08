@@ -282,6 +282,47 @@ class FakeBackend implements FleetBackend {
   /// Every panic asked for, and whether it was only a preview.
   final List<bool> panics = <bool>[];
 
+  /// Every caption asked for, and what it was.
+  final List<({String task, String? label})> labels =
+      <({String task, String? label})>[];
+
+  /// What the next [labelTask] answers. A scenario sets it for a task older than the field.
+  Labelled? nextLabel;
+
+  @override
+  Future<Labelled> labelTask(String task, {String? label}) async {
+    labels.add((task: task, label: label));
+    final answer = nextLabel;
+    if (answer != null) return answer;
+    final caption = label?.trim() ?? '';
+    // The caption goes onto the task, so a screen that said it worked and went on showing the old
+    // one would be caught here rather than by hand.
+    _tasks = <Task>[
+      for (final each in _tasks)
+        if (each.name == task)
+          Task.from(<String, dynamic>{
+            'name': each.name,
+            'label': caption,
+            'project': each.project,
+            'securityClass': each.securityClass,
+            'state': each.state,
+            'running': each.running,
+            'helpers': each.helpers,
+            'clearance': each.clearance,
+            'mode': each.mode.name,
+            'prompt': each.prompt,
+            'agent': each.agent,
+          })
+        else
+          each,
+    ];
+    _changes.add(_tasks);
+    return Labelled(
+      outcome: caption.isEmpty ? 'CLEARED' : 'LABELLED',
+      label: caption,
+    );
+  }
+
   /// What `Credentials` answers. A scenario sets it to produce a shut store, which is a state no
   /// contrived list of names can express.
   VaultState theStoreIs = VaultState.from(const <String, dynamic>{

@@ -121,6 +121,7 @@ class MockMachine {
     daemon.method('Decide', _decide);
     daemon.method('Resume', _resume);
     daemon.method('Panic', _panic);
+    daemon.method('Label', _label);
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
     daemon.method('Lock', _lock);
@@ -383,6 +384,34 @@ class MockMachine {
               'host being unreachable'
           : '',
       'detail': '',
+    };
+  }
+
+  /// Sets or clears the caption a task reads by.
+  ///
+  /// It acts: the caption really lands on the task, and **nothing about the identity moves** — the
+  /// container name, and with it the gate ref and the log files, read exactly as before. A
+  /// stand-in that answered `LABELLED` and went on showing the old caption would make a working
+  /// interface look like one where nothing happens.
+  Map<String, dynamic> _label(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final caption = (parameters['label'] as String? ?? '').trim();
+    final task = tasks.firstWhere((each) => each['name'] == name,
+        orElse: () => const <String, dynamic>{});
+    if (task.isEmpty) {
+      return <String, dynamic>{'outcome': 'NOT_A_TASK', 'label': ''};
+    }
+    tasks = <Map<String, dynamic>>[
+      for (final each in tasks)
+        if (each['name'] == name)
+          <String, dynamic>{...each, 'label': caption}
+        else
+          each,
+    ];
+    _changes.add(<String, dynamic>{'tasks': tasks});
+    return <String, dynamic>{
+      'outcome': caption.isEmpty ? 'CLEARED' : 'LABELLED',
+      'label': caption,
     };
   }
 
@@ -952,6 +981,7 @@ deleted file mode 100644
   }) =>
       <String, dynamic>{
         'name': name,
+        'label': '',
         'project': project,
         'securityClass': securityClass,
         'state': running ? 'Up $minutesAgo minutes' : 'Exited (1) 12 minutes ago',

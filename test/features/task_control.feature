@@ -58,3 +58,23 @@ Feature: F09 Task Control
   Scenario: an action with no method behind it says so rather than going missing
     When I open the actions for {'sokar-checkout-shell'}
     Then the action {'Rename it'} is offered as unavailable
+
+  Scenario: work carries a caption a person can change, beside its identity
+    When I give this work something to read by {'schema migration, second attempt'}
+    Then the work reads as {'schema migration, second attempt'}
+    And its name is still shown as {'sokar-checkout-shell'}
+
+  Scenario: the caption never becomes the identity
+    When I give this work something to read by {'schema migration'}
+    And I open the selection
+    Then it says its name is {'sokar-checkout-shell'}
+
+  Scenario: an empty caption takes it away rather than storing nothing
+    Given this work already reads as {'schema migration'}
+    When I give this work something to read by {''}
+    Then the work reads as {'sokar-checkout-shell'}
+    And the caption sent was empty
+
+  Scenario: the dialog says the name will not move
+    When I ask what this work should read as
+    Then it says {'Its name stays sokar-checkout-shell'}

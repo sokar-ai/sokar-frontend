@@ -79,6 +79,9 @@ abstract class FleetBackend {
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
 
+  /// Sets or clears the caption a task reads by. **Nothing about its identity moves.**
+  Future<Labelled> labelTask(String task, {String? label});
+
   /// What the protected store holds, by name. **Never a value.**
   Future<VaultState> credentials();
 
@@ -245,6 +248,10 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Future<Labelled> labelTask(String task, {String? label}) =>
+      _opened().label(task, label: label);
 
   @override
   Future<VaultState> credentials() => _opened().credentials();

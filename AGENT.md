@@ -1134,3 +1134,38 @@ stamped and an answer that arrives after a newer question is dropped. This failu
 both are answers — so it is driven by a scenario that races a slow read against a fast one rather
 than trusted to review.
 
+## A caption is not a name
+
+`Task.name` is the identity: what `Resume`, `Stop` and `Tail` are given, and what the gate ref, the
+workspace and the log files are built from. `Task.label` is a caption somebody set, and **empty is
+the ordinary state** — every task has none until a person types one.
+
+F09 asked for work to be *renamed*. Renaming would move a gate ref with unreviewed pushes behind
+it, which is nobody's intention when they rename a row in a list of forty. `Label` is what it
+wanted:
+
+- **The caption stands in front of the name, never in place of it.** In a list it is the heading
+  and the real name moves down a line; in the detail the identity gets its own field the moment a
+  caption exists. A caption that hid the name would make this interface and `sokar` on the machine
+  disagree about what a thing is called.
+- **An empty caption clears it**, rather than storing spaces under a name.
+- The dialog says *"its name stays …"* before the box, because that is the question a person has
+  when they are about to type one.
+
+## Words this product uses
+
+From the Sokar glossary, and worth keeping straight because two of them collide with ordinary
+usage:
+
+- **Node** — a machine running `sokard`. **There is no cluster**: no membership, no discovery, no
+  daemon-to-daemon protocol, and a node does not know other nodes exist. The only thing that spans
+  them is a client holding one ssh connection each, and it decides nothing. *"Which nodes are
+  there"* is answered by configuration, never by the wire, and `GetInfo` gives a vendor and a
+  version but no identity.
+- **Host** — a destination in an egress set (`EgressHost`, `upstreamHost`). **Never a machine.**
+  `Machine.host` here holds an ssh destination, which is ssh's own noun and appears verbatim in
+  `ssh -L … user@host`; nothing on screen calls a machine a host.
+- The egress set granting npm and the Node.js runtime is **`nodejs`**, renamed from `node` on
+  2026-09-08. A project file still saying `sets: [node]` is **refused with the set name**, not
+  ignored — which is the good failure, and why the rename happened before there was a release.
+

@@ -340,12 +340,21 @@ class _WorkRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(task.name, style: Theme.of(context).textTheme.bodyLarge),
+              // The caption when there is one, the real name when there is not — and the real
+              // name stays underneath either way. It is what every other call takes and what
+              // somebody types into `sokar` on the machine; a caption that hid it would make the
+              // interface and the command line disagree about what a thing is called.
+              Text(task.label.isEmpty ? task.name : task.label,
+                  key: const Key('work-reads-as'),
+                  style: Theme.of(context).textTheme.bodyLarge),
               // The activity and how long it has been that way, then the runtime's own words.
               // "Idle for forty minutes" is arithmetic on `since`; `state` is prose and is never
               // parsed for it.
               Text(
                 <String>[
+                  // The real name, when a caption is standing in front of it. It is what every
+                  // other call takes, so it never goes away — it moves down a line.
+                  if (task.label.isNotEmpty) '${task.name} ·',
                   task.activity.label,
                   if (age != null) 'for $age',
                   if (task.state.isNotEmpty) '· ${task.state}',
@@ -426,7 +435,7 @@ class WorkDetail extends StatelessWidget {
     return Column(
       children: <Widget>[
         PaneHeader(
-          title: task.name,
+          title: task.label.isEmpty ? task.name : task.label,
           trailing: IconButton(
             icon: const Icon(Icons.close),
             tooltip: 'Close (Esc)',
@@ -437,6 +446,10 @@ class WorkDetail extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(Space.wide),
             children: <Widget>[
+              // Only when a caption is standing in front of it: the heading is the name when
+              // there is no caption, and repeating it would be noise. When there is one, the
+              // identity has to be somewhere — it is what every other call takes.
+              if (task.label.isNotEmpty) _Field(name: 'Its name', value: task.name),
               _Field(name: 'Project', value: task.project.isEmpty ? '—' : task.project),
               _Field(
                 name: 'Security class',
@@ -542,4 +555,81 @@ class ActivityMark extends StatelessWidget {
       child: Icon(icon, size: Sizes.mark, color: color),
     );
   }
+}
+
+/// Asks what a piece of work should read as.
+///
+/// **A caption, never a rename.** The container name is the identity — what every other call
+/// takes, and what the gate ref, the workspace and the log files are built from — so it is shown
+/// here rather than edited, and emptying the box takes the caption away rather than storing
+/// nothing under a name.
+Future<String?> askWhatItReadsAs(BuildContext context, {required Task task}) =>
+    showDialog<String>(
+      context: context,
+      builder: (context) => _WhatItReadsAs(task: task),
+    );
+
+class _WhatItReadsAs extends StatefulWidget {
+  const _WhatItReadsAs({required this.task});
+
+  final Task task;
+
+  @override
+  State<_WhatItReadsAs> createState() => _WhatItReadsAsState();
+}
+
+class _WhatItReadsAsState extends State<_WhatItReadsAs> {
+  late final TextEditingController _caption =
+      TextEditingController(text: widget.task.label);
+
+  @override
+  void dispose() {
+    _caption.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('What should this read as?'),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Its name stays ${widget.task.name}. That is what every other action takes, and '
+                'what you would type on the machine — a caption sits in front of it in lists, '
+                'never in place of it.',
+                key: const Key('name-does-not-move'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: Space.normal),
+              TextField(
+                key: const Key('what-it-reads-as'),
+                controller: _caption,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Reads as',
+                  hintText: 'schema migration, second attempt',
+                  helperText: 'Leave it empty to take the caption away.',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (typed) => Navigator.of(context).pop(typed.trim()),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Leave it'),
+          ),
+          FilledButton(
+            key: const Key('name-it'),
+            onPressed: () => Navigator.of(context).pop(_caption.text.trim()),
+            child: const Text('Use it'),
+          ),
+        ],
+      );
 }

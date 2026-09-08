@@ -22,6 +22,15 @@ import './step/the_work_is_no_longer_listed.dart';
 import './step/the_confirmation_says.dart';
 import './step/i_open_the_actions_for.dart';
 import './step/the_action_is_offered_as_unavailable.dart';
+import './step/i_give_this_work_something_to_read_by.dart';
+import './step/the_work_reads_as.dart';
+import './step/its_name_is_still_shown_as.dart';
+import './step/i_open_the_selection.dart';
+import './step/it_says_its_name_is.dart';
+import './step/this_work_already_reads_as.dart';
+import './step/the_caption_sent_was_empty.dart';
+import './step/i_ask_what_this_work_should_read_as.dart';
+import './step/it_says.dart';
 
 void main() {
   group('''F09 Task Control''', () {
@@ -105,6 +114,35 @@ void main() {
       await bddSetUp(tester);
       await iOpenTheActionsFor(tester, 'sokar-checkout-shell');
       await theActionIsOfferedAsUnavailable(tester, 'Rename it');
+    });
+    testWidgets(
+        '''work carries a caption a person can change, beside its identity''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iGiveThisWorkSomethingToReadBy(
+          tester, 'schema migration, second attempt');
+      await theWorkReadsAs(tester, 'schema migration, second attempt');
+      await itsNameIsStillShownAs(tester, 'sokar-checkout-shell');
+    });
+    testWidgets('''the caption never becomes the identity''', (tester) async {
+      await bddSetUp(tester);
+      await iGiveThisWorkSomethingToReadBy(tester, 'schema migration');
+      await iOpenTheSelection(tester);
+      await itSaysItsNameIs(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''an empty caption takes it away rather than storing nothing''',
+        (tester) async {
+      await bddSetUp(tester);
+      await thisWorkAlreadyReadsAs(tester, 'schema migration');
+      await iGiveThisWorkSomethingToReadBy(tester, '');
+      await theWorkReadsAs(tester, 'sokar-checkout-shell');
+      await theCaptionSentWasEmpty(tester);
+    });
+    testWidgets('''the dialog says the name will not move''', (tester) async {
+      await bddSetUp(tester);
+      await iAskWhatThisWorkShouldReadAs(tester);
+      await itSays(tester, 'Its name stays sokar-checkout-shell');
     });
   });
 }

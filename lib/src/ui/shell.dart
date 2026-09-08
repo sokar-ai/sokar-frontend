@@ -164,6 +164,7 @@ class _ShellState extends State<Shell> {
         showTheVault: _showTheVault,
         startFromTemplate: _startFromTemplate,
         stopEverything: _stopEverything,
+        nameTheWork: _nameTheWork,
         continueTheWork: _continueTheWork,
         quit: _quit,
       );
@@ -205,6 +206,20 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openEgress();
     await widget.egress.lookAt(_fleet.backend, project);
+  }
+
+  /// Gives a piece of work something to read by, or takes it away.
+  ///
+  /// **Nothing about its identity moves.** The container name is what every other call takes and
+  /// what somebody types into `sokar` on the machine; a caption stands in front of it on a row and
+  /// never in place of it.
+  Future<void> _nameTheWork(Task task) async {
+    final caption = await askWhatItReadsAs(context, task: task);
+    if (caption == null || !mounted) return;
+    final answer = await _fleet.backend.labelTask(task.name, label: caption);
+    if (!mounted) return;
+    _fleet.say(answer.words);
+    await _fleet.refresh();
   }
 
   /// Opens the emergency stop, having first asked what it would stop.

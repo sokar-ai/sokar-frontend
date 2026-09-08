@@ -8,8 +8,9 @@ import 'tokens.dart';
 
 /// Which machine everything below is about.
 ///
-/// Above the rail rather than inside it, and pinned rather than scrollable, because *which host
-/// an action will act on must never be ambiguous* — and a host that is a collapsible ancestor of
+/// Above the rail rather than inside it, and pinned rather than scrollable, because *which
+/// machine an action will act on must never be ambiguous* — and a machine that is a collapsible
+/// ancestor of
 /// a tree scrolls out of view, leaving a row that does not say which machine it is on. That is
 /// how somebody stops a task on the wrong one.
 ///

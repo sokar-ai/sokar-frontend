@@ -137,6 +137,10 @@ class _Wedged implements FleetBackend {
   Future<Locked> lock() async =>
       const Locked(keyring: true, wasCached: false, holding: 0);
 
+  @override
+  Future<Labelled> labelTask(String task, {String? label}) async =>
+      const Labelled(outcome: 'LABELLED', label: '');
+
 }
 
 /// A machine that lists one project nothing has ever run on, and one task belonging to a project
@@ -278,6 +282,10 @@ class _Machine implements FleetBackend {
   @override
   Future<Locked> lock() async =>
       const Locked(keyring: true, wasCached: false, holding: 0);
+
+  @override
+  Future<Labelled> labelTask(String task, {String? label}) async =>
+      const Labelled(outcome: 'LABELLED', label: '');
 
 }
 

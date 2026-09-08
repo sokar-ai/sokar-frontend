@@ -135,6 +135,7 @@ List<Command> commandsFor({
   required VoidCallback showTheVault,
   required void Function(Template job) startFromTemplate,
   required VoidCallback stopEverything,
+  required void Function(Task task) nameTheWork,
   required VoidCallback continueTheWork,
   required VoidCallback quit,
 }) {
@@ -266,6 +267,17 @@ List<Command> commandsFor({
       // Three separate reasons, each said rather than collapsed into "not now": still running,
       // not an unattended run, or nothing recorded what it was asked to do.
       unavailable: StartWork.whyNotContinue(selectedTask),
+    ),
+    Command(
+      id: 'work.label',
+      label: selectedTask != null && selectedTask.label.isNotEmpty
+          ? 'Change what this work reads as'
+          : 'Give this work something to read by',
+      group: 'Work',
+      run: () => nameTheWork(selectedTask!),
+      // Nothing about a task's identity moves, so the only reason this can be unavailable is
+      // that nothing is selected.
+      unavailable: selectedTask == null ? 'no work is selected' : null,
     ),
     Command(
       id: 'work.widen',

@@ -157,7 +157,18 @@ class Mode {
 /// One task on the machine, running or not.
 class Task {
   /// Container name, which every other call takes.
+  ///
+  /// **The identity.** It is what `Resume`, `Stop`, `Tail` and every other call are given, and
+  /// what the gate ref, the workspace and the log files are built from. Nothing moves it.
   final String name;
+
+  /// A caption somebody set, or empty.
+  ///
+  /// **Beside the identity, never instead of it.** Empty is the ordinary state — every task has
+  /// none until somebody types one — and a task with none shows its real name. Renaming was what
+  /// F09 asked for and not what anybody wanted: a rename would move a gate ref with unreviewed
+  /// pushes behind it.
+  final String label;
 
   /// Project it belongs to, or empty when nothing recorded one.
   final String project;
@@ -222,6 +233,7 @@ class Task {
   /// Constructor taking every field.
   const Task({
     required this.name,
+    this.label = '',
     required this.project,
     required this.securityClass,
     required this.state,
@@ -240,6 +252,7 @@ class Task {
   /// Reads one from a reply.
   factory Task.from(Map<String, dynamic> map) => Task(
         name: _string(map, 'name'),
+        label: _string(map, 'label'),
         project: _string(map, 'project'),
         securityClass: _string(map, 'securityClass'),
         state: _string(map, 'state'),
@@ -875,6 +888,43 @@ class Widened {
         persisted: map['persisted'] == true,
         detail: _string(map, 'detail'),
       );
+}
+
+/// What setting or clearing a caption did.
+class Labelled {
+  /// `LABELLED`, `CLEARED`, `NOT_A_TASK`, `NOT_RECORDED` or `FAILED`.
+  ///
+  /// A string rather than an enum, by the rule that already covers [Outcome]: a value added later
+  /// must render rather than throw.
+  final String outcome;
+
+  /// The caption as it now stands. Empty when it was cleared.
+  final String label;
+
+  /// Constructor taking both.
+  const Labelled({required this.outcome, required this.label});
+
+  /// Reads one from a reply.
+  factory Labelled.from(Map<String, dynamic> map) => Labelled(
+        outcome: _string(map, 'outcome'),
+        label: _string(map, 'label'),
+      );
+
+  /// Whether anything changed.
+  bool get worked => outcome == 'LABELLED' || outcome == 'CLEARED';
+
+  /// Words for a person.
+  String get words => switch (outcome) {
+        'LABELLED' => 'It reads as "$label" now. Its real name has not moved.',
+        'CLEARED' => 'The caption is gone. It reads as its own name again.',
+        'NOT_A_TASK' => 'There is no work by that name here.',
+        // Started by an older Sokar, which recorded nothing to write a caption into. A state, not
+        // a failure of this action.
+        'NOT_RECORDED' =>
+          'This was started by an older Sokar, which kept nowhere to write a caption.',
+        'FAILED' => 'That did not work.',
+        _ => outcome.toLowerCase().replaceAll('_', ' '),
+      };
 }
 
 /// Whether work can start, and what stands in the way.
