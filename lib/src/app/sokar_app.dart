@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../ui/shell.dart';
 import 'egress.dart';
 import 'agent_inventory.dart';
+import 'authentication.dart';
 import 'emergency_stop.dart';
 import 'start_work.dart';
 import 'templates.dart';
@@ -42,6 +43,7 @@ class SokarApp extends StatelessWidget {
     required this.sessions,
     required this.deleting,
     required this.readiness,
+    required this.authentication,
     super.key,
   });
 
@@ -99,6 +101,9 @@ class SokarApp extends StatelessWidget {
   /// Whether the machine being acted on can run anything.
   final HostReadiness readiness;
 
+  /// What the machine being acted on can authenticate against.
+  final Authentication authentication;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -131,6 +136,7 @@ class SokarApp extends StatelessWidget {
               sessions,
               deleting,
               readiness,
+              authentication,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -151,6 +157,7 @@ class SokarApp extends StatelessWidget {
               sessions: sessions,
               deleting: deleting,
               readiness: readiness,
+              authentication: authentication,
             ),
           ),
         ),

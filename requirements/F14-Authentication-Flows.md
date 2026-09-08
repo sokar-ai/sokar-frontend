@@ -1,8 +1,19 @@
 # F14 — Authentication Flows
 
-**Status:** open. **The rule about secrets moved three times in one day and is now parked.** What
-holds today: no secret is entered here, and the parked half is `StoreCredential` **alone** — the
-rest of this requirement is designable and buildable.
+**Status:** open, and **most of its screen is built** as of 2026-09-08. `Providers` and
+`ImportCredential` landed and are on the wire; `StoreCredential` is parked and `Login` is designed
+and not built.
+
+Four of six criteria are met: the providers are listed with what each one is, which are
+authenticated and which are not is stated, existing configuration on the machine is imported rather
+than retyped, and nothing displays a secret because nothing here takes one.
+
+**Two are not.** *"Where a provider supports more than one way of authenticating, the choice is
+presented with the consequence of each"* waits on `Login` — the dialects are shown, but choosing
+between them is what `Login` does. And *"authentication can be started from within a project for
+that project"* **describes a relation that may not exist**: `Providers()` takes no project, and
+nothing scopes a credential to one. That is asked rather than assumed, the way the agent roster and
+key routing were — and both of those turned out to be reworded rather than built.
 
 Getting agents and providers authenticated, from the interface, both for the machine
 as a whole and for a single project.

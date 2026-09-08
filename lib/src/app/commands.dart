@@ -145,6 +145,7 @@ List<Command> commandsFor({
   required VoidCallback openEgress,
   required VoidCallback removeWhatWasBuilt,
   required VoidCallback checkTheMachine,
+  required VoidCallback showTheProviders,
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
@@ -269,6 +270,12 @@ List<Command> commandsFor({
             ? 'this job is missing something it needs to run'
             : StartWork.whyNot(selectedProject?.project),
       ),
+    Command(
+      id: 'machine.providers',
+      label: 'Show what this machine can authenticate against',
+      group: 'Machine',
+      run: showTheProviders,
+    ),
     Command(
       id: 'machine.doctor',
       label: 'Check whether this machine can run anything',

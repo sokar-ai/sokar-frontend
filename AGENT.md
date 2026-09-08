@@ -1580,3 +1580,38 @@ turns out to have been unnecessary is how somebody learns to ignore the word.
 nothing else. Egress, limits and the upstream change what a task may *do* rather than what it is
 built *from*, and marking after an edit that could not have mattered is the same failure wearing
 the other face.
+
+## Where a credential belongs is answered, never worked out
+
+A credential's key is usually the provider's own name — but a vault written before credentials were
+keyed by provider answers under the **agent's** name, and that key stays in use so upgrading does
+not stop anybody authenticating. **A client intersecting "providers" with "stored names" reports a
+credential missing from precisely the vault that has one**, because the fallback key is invisible
+from outside.
+
+So `credentialName` is read and `storeCommand` is rendered verbatim. **Fourth time this shape has
+come up** — F08's credential rule, F10's gate join, F16's key routing, and now this. The pattern is
+always the same: a client *can* compute an answer from two lists, and that is not evidence it
+should.
+
+One detail the command carries that nothing here would have known: a subscription token rather than
+an API key needs `--type oauth`, because they go in different headers, and sending one as the other
+fails as an authentication error that looks exactly like a wrong key.
+
+## Importing moves no secret, and that is why it is offered
+
+`ImportCredential` names an agent; the daemon reads that agent's own config file **on its own
+disk**. Nothing crosses the socket but a name, so it is unaffected by whatever is decided about
+typing a secret here.
+
+Three of its outcomes are not failures and must not read as one:
+
+- **`NOTHING_TO_IMPORT` is ordinary** — the agent is installed and nobody has logged in with it on
+  that machine yet. The sentence names logging in there as the next step.
+- **`VAULT_LOCKED` is not a missing credential.** It is *"we cannot tell you until it is opened at
+  the machine"*.
+- **`length` and never the value**, which is how somebody sees it worked without the confirmation
+  becoming the place the secret appears.
+
+**Omitting the agent means "the only one installed"; an empty string matches nothing.** Two
+different things, kept apart on both sides.

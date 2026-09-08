@@ -20,6 +20,7 @@ import 'package:sokar_frontend/src/app/vault.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
+import 'package:sokar_frontend/src/app/authentication.dart';
 import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
@@ -879,6 +880,9 @@ class World {
   /// Whether the machine being acted on can run anything.
   static late HostReadiness readiness;
 
+  /// What the machine being acted on can authenticate against.
+  static late Authentication authentication;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -1049,6 +1053,8 @@ class World {
     addTearDown(deleting.dispose);
     readiness = HostReadiness();
     addTearDown(readiness.dispose);
+    authentication = Authentication();
+    addTearDown(authentication.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -1109,6 +1115,7 @@ class World {
       sessions: sessions,
       deleting: deleting,
       readiness: readiness,
+      authentication: authentication,
     ));
     await tester.pumpAndSettle();
   }
@@ -1165,6 +1172,7 @@ class World {
       sessions: sessions,
       deleting: deleting,
       readiness: readiness,
+      authentication: authentication,
     ));
     await tester.pumpAndSettle();
   }
@@ -1190,6 +1198,7 @@ class World {
       sessions: sessions,
       deleting: deleting,
       readiness: readiness,
+      authentication: authentication,
     ));
     await settle(tester);
   }

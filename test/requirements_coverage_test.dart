@@ -34,7 +34,6 @@ void main() {
 
   const pending = <String>{
     'F03', 'F04', 'F06', 'F07',
-    'F14',
     'F26',
   };
 

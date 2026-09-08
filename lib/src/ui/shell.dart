@@ -6,6 +6,7 @@ import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/egress.dart';
 import '../app/agent_inventory.dart';
+import '../app/authentication.dart';
 import '../app/emergency_stop.dart';
 import '../app/start_work.dart';
 import '../app/templates.dart';
@@ -29,6 +30,7 @@ import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
+import 'authentication_view.dart';
 import 'emergency_stop_view.dart';
 import 'project_deletion_view.dart';
 import 'session_view.dart';
@@ -74,6 +76,7 @@ class Shell extends StatefulWidget {
     required this.sessions,
     required this.deleting,
     required this.readiness,
+    required this.authentication,
     super.key,
   });
 
@@ -131,6 +134,9 @@ class Shell extends StatefulWidget {
   /// Whether the machine being acted on can run anything.
   final HostReadiness readiness;
 
+  /// What the machine being acted on can authenticate against.
+  final Authentication authentication;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -179,6 +185,7 @@ class _ShellState extends State<Shell> {
         openEgress: _openEgress,
         removeWhatWasBuilt: _removeWhatWasBuilt,
         checkTheMachine: _checkTheMachine,
+        showTheProviders: _showTheProviders,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
@@ -254,6 +261,18 @@ class _ShellState extends State<Shell> {
   Future<void> _checkTheMachine() async {
     widget.shell.openReadiness();
     await widget.readiness.look(_fleet.backend);
+  }
+
+  /// Shows what this machine can authenticate against, and where each credential belongs.
+  Future<void> _showTheProviders() async {
+    widget.authentication.letItBe();
+    widget.shell.openProviders();
+    await widget.authentication.look(_fleet.backend);
+  }
+
+  /// Imports a credential an agent already holds on the machine. **No secret crosses doing it.**
+  Future<void> _import(String? agent) async {
+    await widget.authentication.importFor(_fleet.backend, agent: agent);
   }
 
   /// Opens what the selected project's work may reach.
@@ -643,6 +662,12 @@ class _ShellState extends State<Shell> {
         return VaultView(
           vault: widget.vault,
           onLock: () => widget.vault.lock(_fleet.backend),
+          onClose: widget.shell.close,
+        );
+      case ProvidersOpened():
+        return AuthenticationView(
+          authentication: widget.authentication,
+          onImport: _import,
           onClose: widget.shell.close,
         );
       case ReadinessOpened():

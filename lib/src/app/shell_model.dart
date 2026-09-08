@@ -81,6 +81,12 @@ class VaultOpened extends Opened {
   const VaultOpened();
 }
 
+/// Which providers this machine has.
+class ProvidersOpened extends Opened {
+  /// Constructor.
+  const ProvidersOpened();
+}
+
 /// Whether this machine can run anything.
 class ReadinessOpened extends Opened {
   /// Constructor.
@@ -195,6 +201,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens whether this machine can run anything.
   void openReadiness() => _open(const ReadinessOpened());
+
+  /// Opens which providers this machine has.
+  void openProviders() => _open(const ProvidersOpened());
 
   /// Opens what the protected store holds.
   void openVault() => _open(const VaultOpened());

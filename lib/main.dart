@@ -12,6 +12,7 @@ import 'src/app/newer_version.dart';
 import 'src/app/one_instance.dart';
 import 'src/app/where_you_were.dart';
 import 'src/app/agent_inventory.dart';
+import 'src/app/authentication.dart';
 import 'src/app/emergency_stop.dart';
 import 'src/app/start_work.dart';
 import 'src/app/templates.dart';
@@ -76,6 +77,7 @@ Future<void> main() async {
     sessions: sessions,
     deleting: ProjectDeletion(),
     readiness: HostReadiness(),
+    authentication: Authentication(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather
