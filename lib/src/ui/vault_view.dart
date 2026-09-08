@@ -143,6 +143,19 @@ class VaultView extends StatelessWidget {
                     'hold it is the part that ends it.',
                 id: 'passphrase-elsewhere',
               ),
+              // **Where somebody looks for a relation that does not exist.** A credential is
+              // held under a provider's name, falling back to an agent's for older vaults, and
+              // nothing in a project file names one — so *"which keys reach this project"* has no
+              // answer rather than a missing screen. Restated correctly it is *"which agents may
+              // this project use"*, which is the roster, and a project does not have one either.
+              const _Elsewhere(
+                what: 'Which projects a key reaches',
+                why: 'Nothing routes keys to projects, and nothing will. A credential is held '
+                    'under the name of the provider that uses it, and a project file never names '
+                    'one — so there is no link here to make or unmake. What bounds a project is '
+                    'its security class, its egress and its gate.',
+                id: 'no-key-routing',
+              ),
               const _Elsewhere(
                 what: 'A recovery secret',
                 why: 'This interface never reveals a stored value: it answers names, kinds and '

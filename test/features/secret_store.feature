@@ -55,3 +55,11 @@ Feature: F15 Secret Store Control
     Given reading the store is slow
     When I ask about the store twice
     Then the newer answer is the one on screen
+
+  # Asked before anything was built, and the answer dissolved the requirement: a credential is
+  # held under a provider's name and no project file names one, so there is no relation to edit.
+  # Restated correctly it is the agent roster, which a project does not have either.
+  Scenario: where somebody looks for key routing, they are told there is none
+    When I show the protected store
+    Then it says {'Nothing routes keys to projects, and nothing will'}
+    And it says {'there is no link here to make or unmake'}

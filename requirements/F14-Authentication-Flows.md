@@ -1,27 +1,43 @@
 # F14 — Authentication Flows
 
-**Status:** open, and one criterion is settled as **never**, on 2026-09-08.
+**Status:** open. A rule about it was settled and then **changed in this interface's favour** on
+the same day — the second version is the one to build against.
 
 Getting agents and providers authenticated, from the interface, both for the machine
 as a whole and for a single project.
 
-**No secret crosses this socket, in either direction, ever.** Not the typing half only: storing one
-over the wire is refused outright, on the same reasoning as `Unlock`. So `Credentials` answering
-names, kinds and lengths and never a value is permanent, and *"where a credential must be typed"*
-is answered here the way F15 answers unlocking — by saying **where** it happens, which is a
-different sentence from *this cannot be done*.
+**A secret may be transferred and must never be stored.** The first answer was *no secret crosses
+this socket at all*, and it was withdrawn the same day by the operator — for a reason worth keeping,
+because this end would have inherited it. The argument against transferring was that plaintext
+should not pass through a GUI; the alternative it recommended puts it through a browser, a
+clipboard, a terminal emulator's paste buffer and its **scrollback**, which many terminals persist
+to disk. Measured on the Sokar side: `vault put` read a typed credential through the *echoing*
+stream while the vault passphrase had always been read without echo. **The advice pointed at the
+path that wrote the secret down.** Fixed there; recorded here so the reasoning is not re-derived
+badly.
 
-**The reason is narrow, and the narrow one is what goes on screen.** It is *not* a claim about
+**So `StoreCredential` will exist, and typing a key into this window is not forbidden.** What is
+forbidden is keeping it, and that is an obligation on *this* side that no daemon can enforce —
+written down as
+[B18](https://github.com/fuinorg/sokar/blob/main/requirements/base/B18-Storing-A-Credential-From-Elsewhere.md):
+
+> A client must not persist what it transfers: not in local storage, not in a form draft, not in a
+> crash report, not in an undo buffer. It clears the field after sending and never re-displays the
+> value.
+
+**`Credentials` stays read-only in the other direction**: names, kinds and lengths, never a value.
+Reading one back is a different act from putting one in, and only the second has a person present
+who already knows it.
+
+**What the rule does not buy, so nothing stronger goes on screen.** It is *not* a claim about
 transport: the socket is forwarded over ssh, so it is the same encrypted connection either way, and
-anybody who can forward it can already run commands on that node. What the rule buys is that the
-plaintext never enters a GUI process — no widget state, no clipboard, no crash dump — and never
-enters the varlink layer, where JSON ends up in logs, traces and echoed errors. And that the
-invariant stays absolute rather than becoming something every future code path has to remember.
+anybody who can forward it can already run commands on that node. And the strongest point in the
+whole exchange was neither side's — **a long-lived API key is carried around whatever route it
+takes, and the real mitigation is a short lifetime.** That is why a phantom token expires.
 
-**Where a person types it is not a server room.** The socket reaches this window *because* somebody
-forwarded it over ssh, so they hold an authenticated connection to that node by definition: they
-type it in the terminal half of the connection they already have. What this screen shows is
-therefore **the command**, not a disabled field.
+**Confirming a paste without becoming the place the secret appears**: `StoreCredential` answers the
+key it went under, the kind, and the **length** — enough to show that something arrived, never
+what.
 
 **And the key name is not this end's to guess.** It is the provider's name, falling back to the
 agent's name for vaults written before that changed — so a client intersecting two lists would

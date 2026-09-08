@@ -252,19 +252,30 @@ names and the requirements are written from what a person sees.
 | F06 Upstream Synchronisation And Backups | sync, list snapshots, restore, delete |
 | F07 Instruction Management | read and write instructions at both levels, and show the resolved result |
 | F14 Authentication Flows | `Providers`, `Login` and `ImportCredential`, all designed and none built. Typing a secret over the socket is settled as **never** — see below |
-| F16 Access Key Routing | create, remove and link keys |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
 
 - **F14 Authentication Flows** — **a no with a design attached, on 2026-09-08.**
-  - **No secret crosses this socket, either direction, permanently.** Not the typing half only:
-    storing one over the wire is refused outright, on the same reasoning as `Unlock`. So the
-    criterion is answered the way F15's is — by saying **where**, which is a different sentence
-    from *this cannot be done*.
-  - **The reason on screen must be the narrow one.** It is *not* transport security: the socket is
-    forwarded over ssh, and anybody who can forward it can already run commands on that node. What
-    it buys is that the plaintext never enters a GUI process — no widget state, no clipboard, no
-    crash dump — and never enters the varlink layer, where JSON reaches logs, traces and echoed
-    errors. A strong-sounding reason that is false is what QF5 nearly put on a screen.
+  - ~~**No secret crosses this socket, either direction, permanently.**~~ — **withdrawn the same
+    day, in this end's favour: a secret may be *transferred* and must never be *stored*.** The
+    reasoning that changed it is the part to keep: the argument against transferring was that
+    plaintext should not pass through a GUI, and the alternative it recommended puts it through a
+    browser, a clipboard, a terminal's paste buffer and its **scrollback**, which many terminals
+    write to disk. Measured there: `vault put` read a typed credential through the *echoing*
+    stream while the vault passphrase never did. **The advice pointed at the path that wrote the
+    secret down.**
+  - **So `StoreCredential` will exist, and the obligation moves here.** No daemon can enforce it:
+    never persist what is transferred — not local storage, not a form draft, not a crash report,
+    not an undo buffer — clear the field after sending, and never re-display the value. Written
+    down on their side as B18 so it is a requirement rather than a promise.
+  - **`Credentials` stays read-only the other way**: names, kinds and lengths, never a value.
+    Reading one back and putting one in are different acts, and only the second has somebody
+    present who already knows it. `StoreCredential` answers the key, the kind and the **length** —
+    enough to show a paste arrived, never what it was.
+  - **The reason on screen must still be the narrow one.** It is *not* transport security: the
+    socket is forwarded over ssh, and anybody who can forward it can already run commands on that
+    node. And the strongest point was neither side's — **a long-lived key is carried around
+    whatever route it takes, and the mitigation is a short lifetime**, which is why a phantom
+    token expires.
   - **The command is handed over, not composed here.** The key a credential is stored under is the
     provider's name, falling back to the agent's for older vaults — a client intersecting two
     lists would report one missing from exactly the vault that has it. Third time this shape has
@@ -279,14 +290,20 @@ names and the requirements are written from what a person sees.
     redirects would leave the others unreachable.
   - **A remote person behind a forced-command ssh cannot store a credential at all**, only import
     one already on the node. That belongs on screen rather than being discovered.
-  - **The OAuth redirect needs a second forward, and this end has no way to add one.** The
-    listener is on the laptop and `ssh -L` carries it to the node; the port cannot be remapped,
-    because the browser goes to whatever the `redirect_uri` says. Adding it to a connection
-    already held is `ssh -S <ctl> -O forward`, which needs a **control socket** — and
-    [F27](../requirements/README.md) deliberately runs one plain `ssh -N` process per machine with
-    no `ControlMaster`. Re-read, that decision forbids **sharing** the person's own master, not
-    **having** a private one: `-M -S` on a path of our own is nobody else's to break. Nothing is
-    built either way, and a second short-lived `ssh -L` process is the other option.
+  - **The OAuth redirect needs a second forward, and the shape is decided: `-M -S <a path of
+    ours>` on the plain `ssh -N` already running per machine.** The listener is on this side and
+    `ssh -L` carries it to the node; the port cannot be remapped, because the browser goes to
+    whatever the `redirect_uri` says. `-O forward` then adds the forward for the seconds a login
+    needs it and `-O cancel` removes it, both measured at `0` on a connection started that way.
+
+    **Our own reason forbids sharing a master, not having one**: sharing means the person's
+    default control path, where tearing ours down takes their sessions with it. A path under our
+    own runtime directory is invisible to their ssh. It beats a second short-lived `ssh -L`
+    because a key with a passphrase or a token needing a touch would **prompt a second time**, in
+    the middle of a flow where somebody is already moving between a browser and this window.
+
+    **Not built, and deliberately not built yet**: nothing consumes it until `Login` exists, and a
+    control socket nothing uses is one more file that can be left stale.
   - **Verify a forward by connecting through it, never by ssh's exit code.** Measured on their
     side: with something already on the laptop's `127.0.0.1:<port>`, ssh exits `0`, stays alive,
     prints `bind: Address already in use` on stderr only — and binds `[::1]` anyway, so the

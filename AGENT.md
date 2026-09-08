@@ -1164,11 +1164,23 @@ wanted:
 From the Sokar glossary, and worth keeping straight because two of them collide with ordinary
 usage:
 
-- **Node** — a machine running `sokard`. **There is no cluster**: no membership, no discovery, no
-  daemon-to-daemon protocol, and a node does not know other nodes exist. The only thing that spans
-  them is a client holding one ssh connection each, and it decides nothing. *"Which nodes are
-  there"* is answered by configuration, never by the wire, and `GetInfo` gives a vendor and a
-  version but no identity.
+- **Node** — **an OS user with a `sokard`, not a machine.** Corrected on 2026-09-08; this file
+  said *"a machine running `sokard`"* and that was wrong in a way this interface could have built
+  against. The vault, the socket, the keyring, rootless container storage and the hooks path are
+  all per user, and the firewall is narrower still — the ruleset lives inside each container's own
+  network namespace.
+
+  **So one hostname can be two nodes**: two developers with their own accounts on one machine have
+  two vaults whose credentials never meet. **A machine list keyed by hostname would merge two
+  people's work.** What identifies a node is how it is reached, which names the user as well as
+  the machine — which is why `Machine.host` holds an ssh destination and why nothing here keys
+  anything by hostname alone. (Two people *sharing* one account are one node and one vault, and
+  unlocking it for either unlocks it for both. Nothing can detect that.)
+
+  **There is no cluster**: no membership, no discovery, no daemon-to-daemon protocol, and a node
+  does not know other nodes exist. The only thing that spans them is a client holding one ssh
+  connection each, and it decides nothing. *"Which nodes are there"* is answered by configuration,
+  never by the wire, and `GetInfo` gives a vendor and a version but no identity.
 - **Host** — a destination in an egress set (`EgressHost`, `upstreamHost`). **Never a machine.**
   `Machine.host` here holds an ssh destination, which is ssh's own noun and appears verbatim in
   `ssh -L … user@host`; nothing on screen calls a machine a host.
@@ -1405,3 +1417,44 @@ Also measured there, and useful if a second forward is ever needed: `ssh -S <ctl
 adds one to a connection already held, and `-O cancel` removes it, both without reconnecting. That
 needs a control socket, which F27 deliberately does without — but re-read, **that decision forbids
 sharing the person's own master, not having a private one.**
+
+## A secret may be transferred; it must never be stored
+
+The rule was *"no secret crosses this socket"* for about twenty minutes on 2026-09-08, and then
+changed in this interface's favour. **The reasoning that changed it is the part worth keeping**,
+because it was nearly inherited as fact.
+
+The argument against transferring was that plaintext should not pass through a GUI. The alternative
+it recommended — type it at the machine — puts it through a browser, a clipboard, a terminal
+emulator's paste buffer and its **scrollback**, which many terminals write to disk. Measured on the
+Sokar side: `vault put` read a typed credential through the *echoing* stream, while the vault
+passphrase had always been read without echo. **The advice pointed at the path that wrote the
+secret down.**
+
+So `StoreCredential` will exist, and **the obligation moves here, where no daemon can enforce it**:
+
+- never persist what is transferred — not local storage, not a form draft, not a crash report, not
+  an undo buffer;
+- clear the field after sending;
+- never re-display the value. `StoreCredential` answers the key, the kind and the **length**, which
+  shows a paste arrived without becoming the place it appears.
+
+`Credentials` stays read-only the other way. **Reading one back and putting one in are different
+acts**, and only the second has somebody present who already knows it.
+
+And the strongest point in that exchange was neither side's: **a long-lived key is carried around
+whatever route it takes, and the mitigation is a short lifetime.** That is why a phantom token
+expires — the route is the smaller problem.
+
+## Ask before building a view for a relation
+
+F16 asked which keys reach which project, in both directions, editable in place. **The relation
+does not exist**: a credential is keyed by the provider's name, falling back to the agent's, and no
+project file names a key. Restated correctly it is *"which agents may this project use"* — the
+roster, already settled as never.
+
+Nothing was wasted only because it was asked first. A view had been designed for a link that could
+not be made or unmade, and it would have looked finished. **Three times now the honest answer to a
+requirement has been "that is not a thing this system has"** — the roster, hardware, and this — and
+each time the criterion was reworded and the screen made to say why, which is worth as much as a
+feature and costs a paragraph.

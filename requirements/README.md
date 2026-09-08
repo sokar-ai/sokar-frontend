@@ -54,7 +54,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | authenticate an agent or a provider. `Credentials` is read-only | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Unlocking and revealing a recovery secret will **never** be possible here, by design — the requirement says which is which | |
-| F16 | [Access Key Routing](F16-Access-Key-Routing.md) | Which keys reach which projects is answerable in both directions from one view, and editable there. | create, remove and link keys | |
 | F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
 | F19 | [Host Readiness And Remediation](F19-Host-Readiness-And-Remediation.md) | The interface establishes whether the machine can run anything and offers the fix in place. | run the readiness check and act on it | |
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | | |
@@ -122,6 +121,18 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F16 Access Key Routing.** **Reworded rather than built: the relation it described does not
+  exist.** A credential is held under the name of the *provider* that uses it — falling back to
+  the agent's name for older vaults — and nothing in a project file ever names a key. So *"which
+  keys reach this project"* has no answer, and restated correctly it is *"which agents may this
+  project use"*, which is the agent roster that F05 already settled as never. What bounds a
+  project is its security class, its egress and its gate.
+
+  It was asked before anything was built, which is the only reason nothing was wasted: a view had
+  been designed for a link that could not have been made or unmade. The screen now says so where
+  somebody would look for it, beside the store's own contents — the same shape as the roster and
+  the hardware.
+
 - **F05 Project Configuration.** What a project's work may reach, where each host came from, what
   is asked for and refused, and the sets installed here — changed behind a preview, with the
   **open-ended half deliberately absent**: `SetEgress` takes an explicit list so a set shipped in

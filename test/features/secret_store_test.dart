@@ -100,5 +100,13 @@ void main() {
       await iAskAboutTheStoreTwice(tester);
       await theNewerAnswerIsTheOneOnScreen(tester);
     });
+    testWidgets(
+        '''where somebody looks for key routing, they are told there is none''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowTheProtectedStore(tester);
+      await itSays(tester, 'Nothing routes keys to projects, and nothing will');
+      await itSays(tester, 'there is no link here to make or unmake');
+    });
   });
 }
