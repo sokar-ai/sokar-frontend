@@ -1026,3 +1026,22 @@ It now strips trailing slashes from `JF_URL`, prints the URLs it will use, and o
 the HTTP code and every `Version:` line the index does carry. **A wrong diagnosis is worse than no
 diagnosis**: it sends the next person to look at permissions.
 
+## Panic stops and never removes
+
+`Panic` stops every running task and its helpers at once. **Nothing is removed** — every
+workspace, log and commit that never reached the gate survives, and `Resume` brings a task back
+with the work it had. An interface that presented this as a cleanup would send somebody looking
+for work that is exactly where they left it, on the worst afternoon of their week.
+
+So the screen says **what survived**, not what was cleared away, and it says it before the button
+as well as after: somebody hesitating over an emergency stop needs to know it is recoverable more
+than they need to know what it costs.
+
+- **`surviving` is named, never counted.** Those helpers outlived their stop and have to be killed
+  on the machine by hand; a number is not something anybody can act on.
+- **It never acts on the first press.** `dryRun` says what would be stopped; agreeing is separate.
+  **Leaving is the default and holds the focus** — the button that acts is the plainer of the two.
+- **It lives on the status line**, which is on every screen, and keeps its button on a compact
+  window even when the label goes. An emergency stop that falls off the edge of a narrow window is
+  missing exactly when somebody reaches for it.
+
