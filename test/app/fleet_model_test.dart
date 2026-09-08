@@ -124,6 +124,19 @@ class _Wedged implements FleetBackend {
   Future<String> node() async => '';
 
   @override
+  Future<Health> doctor() async =>
+      const Health(probes: <Probe>[], ready: true);
+
+  @override
+  Future<Providers> providers() async =>
+      const Providers(providers: <Provider>[], readable: true);
+
+  @override
+  Future<Imported> importCredential({String? agent, String? configDirectory}) async =>
+      const Imported(
+          outcome: 'IMPORTED', name: '', type: '', length: 0, source: '', detail: '');
+
+  @override
   Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
       const Deletion(
           outcome: DeleteOutcome.deleted,
@@ -281,6 +294,19 @@ class _Machine implements FleetBackend {
 
   @override
   Future<String> node() async => '';
+
+  @override
+  Future<Health> doctor() async =>
+      const Health(probes: <Probe>[], ready: true);
+
+  @override
+  Future<Providers> providers() async =>
+      const Providers(providers: <Provider>[], readable: true);
+
+  @override
+  Future<Imported> importCredential({String? agent, String? configDirectory}) async =>
+      const Imported(
+          outcome: 'IMPORTED', name: '', type: '', length: 0, source: '', detail: '');
 
   @override
   Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>

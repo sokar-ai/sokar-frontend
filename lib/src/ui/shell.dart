@@ -12,6 +12,7 @@ import '../app/templates.dart';
 import '../app/vault.dart';
 import '../app/widening.dart';
 import '../app/gate.dart';
+import '../app/host_readiness.dart';
 import '../app/logs.dart';
 import '../app/notifications.dart';
 import '../app/machines.dart';
@@ -35,6 +36,7 @@ import 'vault_view.dart';
 import 'start_work_view.dart';
 import 'widening_view.dart';
 import 'gate_view.dart';
+import 'host_readiness_view.dart';
 import 'leaving.dart';
 import 'log_view.dart';
 import 'machine_switcher.dart';
@@ -71,6 +73,7 @@ class Shell extends StatefulWidget {
     required this.newerVersion,
     required this.sessions,
     required this.deleting,
+    required this.readiness,
     super.key,
   });
 
@@ -125,6 +128,9 @@ class Shell extends StatefulWidget {
   /// Removing what Sokar built for a project.
   final ProjectDeletion deleting;
 
+  /// Whether the machine being acted on can run anything.
+  final HostReadiness readiness;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -172,6 +178,7 @@ class _ShellState extends State<Shell> {
         openTheGate: _openTheGate,
         openEgress: _openEgress,
         removeWhatWasBuilt: _removeWhatWasBuilt,
+        checkTheMachine: _checkTheMachine,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
@@ -238,6 +245,15 @@ class _ShellState extends State<Shell> {
     final said = widget.deleting.words;
     if (said.isNotEmpty) _fleet.say(said);
     if (widget.deleting.removed) await _fleet.refresh();
+  }
+
+  /// Asks whether this machine can run anything, and shows what it said.
+  ///
+  /// **Asked, never polled.** It runs external programs on the machine, so it is a thing somebody
+  /// does rather than something that happens in the background.
+  Future<void> _checkTheMachine() async {
+    widget.shell.openReadiness();
+    await widget.readiness.look(_fleet.backend);
   }
 
   /// Opens what the selected project's work may reach.
@@ -627,6 +643,13 @@ class _ShellState extends State<Shell> {
         return VaultView(
           vault: widget.vault,
           onLock: () => widget.vault.lock(_fleet.backend),
+          onClose: widget.shell.close,
+        );
+      case ReadinessOpened():
+        return HostReadinessView(
+          readiness: widget.readiness,
+          machine: widget.machines.current.name,
+          onCheckAgain: () => widget.readiness.look(_fleet.backend),
           onClose: widget.shell.close,
         );
       case AgentsOpened():

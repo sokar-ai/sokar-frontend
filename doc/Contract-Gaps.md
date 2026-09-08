@@ -258,7 +258,6 @@ names and the requirements are written from what a person sees.
 | F06 Upstream Synchronisation And Backups | sync, list snapshots, restore, delete |
 | F07 Instruction Management | read and write instructions at both levels, and show the resolved result |
 | F14 Authentication Flows | `Providers`, `Login` and `ImportCredential`, all designed and none built. Typing a secret over the socket is settled as **never** — see below |
-| F19 Host Readiness And Remediation | run the readiness check and act on it |
 
 - **F14 Authentication Flows** — **a no with a design attached, on 2026-09-08.**
   - **The rule moved three times in one day and is now parked.** Refused both halves; refined to

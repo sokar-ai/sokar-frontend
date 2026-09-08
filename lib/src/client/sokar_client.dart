@@ -379,6 +379,26 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Whether this machine can actually run a task, and what it is short of.
+  ///
+  /// **It runs external programs to find out, so it takes a moment and is not something to
+  /// poll.** Still a read: nothing about it changes anything.
+  Future<Health> doctor() async =>
+      Health.from(await _call('Doctor', const <String, dynamic>{}));
+
+  /// Which providers this machine has, and where a credential for each belongs.
+  Future<Providers> providers() async =>
+      Providers.from(await _call('Providers', const <String, dynamic>{}));
+
+  /// Imports a credential an agent already holds on the machine.
+  ///
+  /// **No secret crosses this socket doing it**: the daemon reads the agent's own config file on
+  /// its own disk, and only a name comes back. [agent] omitted means *the only one installed* —
+  /// which is not the same as an empty string, and an empty string matches nothing.
+  Future<Imported> importCredential({String? agent, String? configDirectory}) async =>
+      Imported.from(await _call('ImportCredential',
+          {'agent': ?agent, 'configDirectory': ?configDirectory}));
+
   /// Which node this is.
   ///
   /// **`GetInfo` says what a daemon is and never which one.** This says which one — so two entries

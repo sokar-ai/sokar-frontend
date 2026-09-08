@@ -81,6 +81,12 @@ class VaultOpened extends Opened {
   const VaultOpened();
 }
 
+/// Whether this machine can run anything.
+class ReadinessOpened extends Opened {
+  /// Constructor.
+  const ReadinessOpened();
+}
+
 /// What agents are installed on this machine.
 class AgentsOpened extends Opened {
   /// Constructor.
@@ -186,6 +192,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens what agents are installed here.
   void openAgents() => _open(const AgentsOpened());
+
+  /// Opens whether this machine can run anything.
+  void openReadiness() => _open(const ReadinessOpened());
 
   /// Opens what the protected store holds.
   void openVault() => _open(const VaultOpened());

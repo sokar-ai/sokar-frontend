@@ -130,6 +130,9 @@ class MockMachine {
     daemon.method('Resume', _resume);
     daemon.method('Panic', _panic);
     daemon.method('DeleteProject', _deleteProject);
+    daemon.method('Doctor', _doctor);
+    daemon.method('Providers', _providers);
+    daemon.method('ImportCredential', _importCredential);
     // Which node this is. Random per mock instance, so two mocks are two nodes and one mock
     // reached twice is one — which is the thing a client has to be able to tell.
     daemon.method('Node', (_) => <String, dynamic>{'id': _nodeId});
@@ -733,6 +736,95 @@ class MockMachine {
   /// `never-run` is here on purpose: a project with no tasks, which a client deriving projects
   /// from the task list could never show. `no-file` is the other state worth having — listed, and
   /// nothing can act on it.
+  /// Whether this machine can run a task.
+  ///
+  /// **One `DEGRADED` and the rest fine**, because a report that is all green proves nothing about
+  /// the screen that has to tell three states apart — and degraded is the one that leaves a
+  /// machine running while being worth knowing about.
+  Map<String, dynamic> _doctor(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
+        'probes': <Map<String, dynamic>>[
+          _probe('podman', 'OK', '5.2.1', ''),
+          _probe('hook registration', 'OK', 'registered for this user', ''),
+          _probe('rootless network backend', 'DEGRADED',
+              'slirp4netns rather than pasta: the git gate binds every interface and is '
+                  'reachable from this machine\u0027s network',
+              'install pasta (passt) and restart the daemon'),
+          _probe('dnsmasq nftset', 'OK', 'built with nftset support', ''),
+          _probe('nft', 'OK', 'v1.0.9', ''),
+          _probe('git', 'OK', '2.45.2', ''),
+          _probe('nsenter', 'OK', 'util-linux 2.40', ''),
+          _probe('SELinux policy', 'OK', 'loaded', ''),
+          _probe('keyring', 'OK', 'libkeyutils present', ''),
+        ],
+        // DEGRADED leaves it ready: the machine runs tasks, and the report says how well.
+        'ready': true,
+      };
+
+  static Map<String, dynamic> _probe(
+          String name, String state, String detail, String action) =>
+      <String, dynamic>{
+        'name': name,
+        'state': state,
+        'detail': detail,
+        'action': action,
+      };
+
+  /// Which providers this machine has.
+  Map<String, dynamic> _providers(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
+        'providers': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'name': 'a-provider',
+            'label': 'A Provider',
+            'upstream': 'api.anthropic.com',
+            'dialects': <String>['api-key', 'oauth'],
+            'authenticated': true,
+            'credentialType': 'api-key',
+            'credentialName': 'a-provider',
+            'storeCommand': 'sokar vault put a-provider',
+          },
+          // Stored under the *agent's* name, which is the fallback a client could never work out
+          // by intersecting two lists.
+          <String, dynamic>{
+            'name': 'other-provider',
+            'label': 'Another Provider',
+            'upstream': 'api.other.test',
+            'dialects': <String>['oauth'],
+            'authenticated': false,
+            'credentialType': '',
+            'credentialName': 'an-agent',
+            'storeCommand': 'sokar vault put an-agent --type oauth',
+          },
+        ],
+        'readable': true,
+      };
+
+  /// Imports a credential an agent already holds here.
+  Map<String, dynamic> _importCredential(Map<String, dynamic> parameters) {
+    final agent = parameters['agent'] as String?;
+    // An empty name matches nothing, and omitting it means "the only one installed". Two
+    // different things, kept apart here as they are on the daemon.
+    if (agent != null && agent != 'an-agent') {
+      return <String, dynamic>{
+        'outcome': 'NO_SUCH_AGENT',
+        'name': '',
+        'type': '',
+        'length': 0,
+        'source': '',
+        'detail': 'no agent called \u0027$agent\u0027 is installed here',
+      };
+    }
+    return <String, dynamic>{
+      'outcome': 'IMPORTED',
+      'name': 'an-agent',
+      'type': 'api-key',
+      'length': 51,
+      'source': '/home/michi/.config/an-agent/credentials.json',
+      'detail': '',
+    };
+  }
+
   /// What this mock answers when asked which node it is.
   final String _nodeId =
       'mock-${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}';

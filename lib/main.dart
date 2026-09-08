@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 import 'src/app/egress.dart';
 import 'src/app/gate.dart';
+import 'src/app/host_readiness.dart';
 import 'src/app/logs.dart';
 import 'src/app/notifications.dart';
 import 'src/app/machines.dart';
@@ -74,6 +75,7 @@ Future<void> main() async {
     newerVersion: newerVersion,
     sessions: sessions,
     deleting: ProjectDeletion(),
+    readiness: HostReadiness(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather

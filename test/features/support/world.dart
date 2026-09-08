@@ -20,6 +20,7 @@ import 'package:sokar_frontend/src/app/vault.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
+import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/newer_version.dart';
@@ -384,6 +385,84 @@ class FakeBackend implements FleetBackend {
 
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
+
+  /// What the machine answers about itself. Set by the scenario.
+  ///
+  /// **Ready with nothing wrong by default**, because that is the ordinary machine — a scenario
+  /// that wants a broken one says which probe broke.
+  Health theHealthItReports = const Health(
+    probes: <Probe>[
+      Probe(name: 'podman', state: 'OK', detail: '5.2.1', action: ''),
+      Probe(name: 'nft', state: 'OK', detail: 'v1.0.9', action: ''),
+    ],
+    ready: true,
+  );
+
+  /// Every time the machine was asked whether it can run anything.
+  int healthAsked = 0;
+
+  /// Set for a daemon older than `Doctor`.
+  bool doctorIsUnsupported = false;
+
+  @override
+  Future<Health> doctor() async {
+    healthAsked++;
+    if (doctorIsUnsupported) {
+      throw const FeatureNotSupported('Doctor');
+    }
+    return theHealthItReports;
+  }
+
+  /// What providers the machine has. Set by the scenario.
+  Providers theProvidersItHas = const Providers(
+    providers: <Provider>[
+      Provider(
+        name: 'a-provider',
+        label: 'A Provider',
+        upstream: 'api.example.test',
+        dialects: <String>['api-key'],
+        authenticated: true,
+        credentialType: 'api-key',
+        credentialName: 'a-provider',
+        storeCommand: 'sokar vault put a-provider',
+      ),
+      // Not authenticated, and stored under the *agent's* name rather than its own — the fallback
+      // key a client could never have worked out.
+      Provider(
+        name: 'other-provider',
+        label: 'Another Provider',
+        upstream: 'api.other.test',
+        dialects: <String>['api-key', 'oauth'],
+        authenticated: false,
+        credentialType: '',
+        credentialName: 'an-agent',
+        storeCommand: 'sokar vault put an-agent --type oauth',
+      ),
+    ],
+    readable: true,
+  );
+
+  @override
+  Future<Providers> providers() async => theProvidersItHas;
+
+  /// What the next import answers. Set by the scenario.
+  Imported theImportAnswers = const Imported(
+    outcome: 'IMPORTED',
+    name: 'an-agent',
+    type: 'api-key',
+    length: 51,
+    source: '/home/michi/.config/an-agent/credentials.json',
+    detail: '',
+  );
+
+  /// Which agents were asked to be imported.
+  final List<String?> imports = <String?>[];
+
+  @override
+  Future<Imported> importCredential({String? agent, String? configDirectory}) async {
+    imports.add(agent);
+    return theImportAnswers;
+  }
 
   /// Which node this backend is. Set by the scenario; empty means a daemon that cannot say.
   ///
@@ -792,6 +871,9 @@ class World {
   /// Removing what Sokar built for a project.
   static late ProjectDeletion deleting;
 
+  /// Whether the machine being acted on can run anything.
+  static late HostReadiness readiness;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -960,6 +1042,8 @@ class World {
     terminals.clear();
     deleting = ProjectDeletion();
     addTearDown(deleting.dispose);
+    readiness = HostReadiness();
+    addTearDown(readiness.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -1019,6 +1103,7 @@ class World {
       newerVersion: newerVersion,
       sessions: sessions,
       deleting: deleting,
+      readiness: readiness,
     ));
     await tester.pumpAndSettle();
   }
@@ -1074,6 +1159,7 @@ class World {
       newerVersion: newerVersion,
       sessions: sessions,
       deleting: deleting,
+      readiness: readiness,
     ));
     await tester.pumpAndSettle();
   }
@@ -1098,6 +1184,7 @@ class World {
       newerVersion: newerVersion,
       sessions: sessions,
       deleting: deleting,
+      readiness: readiness,
     ));
     await settle(tester);
   }

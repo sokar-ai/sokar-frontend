@@ -555,6 +555,49 @@ void main() {
     expect((await client.gate(project)).pending, hasLength(1));
   });
 
+  test('the machine says what it can run, and names one action per failure', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final health = await client.doctor();
+
+    expect(health.probes, isNotEmpty);
+    // Degraded leaves a machine ready — it runs tasks, and the report says how well.
+    expect(health.ready, isTrue);
+    expect(health.worthReading, isNotEmpty);
+    // A probe that fails and names nothing to do about it cannot be constructed on the daemon
+    // side, so this can be rendered without checking. That is worth holding to.
+    for (final probe in health.probes) {
+      if (!probe.fine) expect(probe.action, isNotEmpty, reason: probe.name);
+    }
+  });
+
+  test('a provider says where its credential belongs, under the key it really uses', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final answer = await client.providers();
+
+    expect(answer.readable, isTrue);
+    final fallback =
+        answer.providers.firstWhere((each) => each.name == 'other-provider');
+    // Stored under the *agent's* name rather than its own — the key a client would never have
+    // found by intersecting providers with stored names, which is why it is computed there.
+    expect(fallback.credentialName, 'an-agent');
+    expect(fallback.storeCommand, contains('an-agent'));
+  });
+
+  test('importing names an agent that is not there rather than failing vaguely', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final answer = await client.importCredential(agent: 'not-installed');
+
+    expect(answer.outcome, 'NO_SUCH_AGENT');
+    expect(answer.stored, isFalse);
+    expect(answer.length, 0);
+  });
+
   test('a node says which node it is, and says the same thing twice', () async {
     await machineIn('work');
     final client = await connect();

@@ -96,6 +96,15 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Whether this machine can run a task, and what it is short of.
+  Future<Health> doctor();
+
+  /// Which providers this machine has, and where a credential for each belongs.
+  Future<Providers> providers();
+
+  /// Imports a credential an agent already holds on the machine. Moves no secret through here.
+  Future<Imported> importCredential({String? agent, String? configDirectory});
+
   /// Which node this is, or empty from a daemon that does not answer.
   ///
   /// Only ever compared with another one. **Empty is never equal to empty here** — see
@@ -277,6 +286,16 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<Health> doctor() => _opened().doctor();
+
+  @override
+  Future<Providers> providers() => _opened().providers();
+
+  @override
+  Future<Imported> importCredential({String? agent, String? configDirectory}) =>
+      _opened().importCredential(agent: agent, configDirectory: configDirectory);
 
   @override
   Future<String> node() => _opened().node();

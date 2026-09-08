@@ -9,6 +9,7 @@ import 'templates.dart';
 import 'vault.dart';
 import 'widening.dart';
 import 'gate.dart';
+import 'host_readiness.dart';
 import 'logs.dart';
 import 'machines.dart';
 import 'newer_version.dart';
@@ -40,6 +41,7 @@ class SokarApp extends StatelessWidget {
     required this.newerVersion,
     required this.sessions,
     required this.deleting,
+    required this.readiness,
     super.key,
   });
 
@@ -94,6 +96,9 @@ class SokarApp extends StatelessWidget {
   /// Removing what Sokar built for a project.
   final ProjectDeletion deleting;
 
+  /// Whether the machine being acted on can run anything.
+  final HostReadiness readiness;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -125,6 +130,7 @@ class SokarApp extends StatelessWidget {
               newerVersion,
               sessions,
               deleting,
+              readiness,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -144,6 +150,7 @@ class SokarApp extends StatelessWidget {
               newerVersion: newerVersion,
               sessions: sessions,
               deleting: deleting,
+              readiness: readiness,
             ),
           ),
         ),

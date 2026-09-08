@@ -954,6 +954,227 @@ class Widened {
       );
 }
 
+/// One thing outside Sokar that a task depends on.
+///
+/// **Each of these fails far from its cause.** Without `nft` a container comes up with no ruleset;
+/// without `nsenter` a clearance decision cannot reach a running task. Today a person learns about
+/// them by starting work and watching it behave strangely.
+class Probe {
+  /// What is being reported, as an operator would name it.
+  final String name;
+
+  /// `OK`, `DEGRADED`, `MISSING` or `UNKNOWN` — a string rather than a type, by the rule that
+  /// covers every other value here: one added later must render rather than throw.
+  final String state;
+
+  /// What was found, in one line.
+  final String detail;
+
+  /// The single next action.
+  ///
+  /// **Empty only when [state] is `OK`.** A probe that fails and names nothing to do about it
+  /// cannot be constructed on the Sokar side, so this can be rendered without checking.
+  final String action;
+
+  /// Constructor taking every field.
+  const Probe({
+    required this.name,
+    required this.state,
+    required this.detail,
+    required this.action,
+  });
+
+  /// Reads one from a reply.
+  factory Probe.from(Map<String, dynamic> map) => Probe(
+        name: _string(map, 'name'),
+        state: _string(map, 'state'),
+        detail: _string(map, 'detail'),
+        action: _string(map, 'action'),
+      );
+
+  /// Whether this one stops the machine running tasks at all.
+  bool get stopsIt => state == 'MISSING';
+
+  /// Whether it is fine.
+  bool get fine => state == 'OK';
+
+  /// Words for a person, unrecognized states included.
+  String get label => switch (state) {
+        'OK' => 'fine',
+        'DEGRADED' => 'works, but not as well as it should',
+        'MISSING' => 'missing',
+        // **Its own answer, never the good case.** A probe that guesses well is indistinguishable
+        // from one that works, so this says so instead of rounding up.
+        'UNKNOWN' => 'could not be established',
+        _ => state.toLowerCase().replaceAll('_', ' '),
+      };
+}
+
+/// Whether a machine can actually run a task, and what it is short of.
+class Health {
+  /// Everything that was probed, in the order it came.
+  final List<Probe> probes;
+
+  /// Whether the machine can run tasks.
+  ///
+  /// **Never re-derived here.** It is false exactly when something is `MISSING`, and it is the
+  /// same rule the CLI exits non-zero on — so the two cannot come to different conclusions about
+  /// one machine. `DEGRADED` and `UNKNOWN` leave it true: the machine runs tasks, and the probes
+  /// say how well.
+  final bool ready;
+
+  /// Constructor taking both.
+  const Health({required this.probes, required this.ready});
+
+  /// Reads one from a reply.
+  factory Health.from(Map<String, dynamic> map) => Health(
+        probes: _list(map, 'probes').map(Probe.from).toList(),
+        ready: map['ready'] == true,
+      );
+
+  /// What is not fine, which is what a person came to read.
+  List<Probe> get worthReading =>
+      probes.where((probe) => !probe.fine).toList();
+
+  /// Whether it runs tasks but has something worth knowing about.
+  bool get readyWithCaveats => ready && worthReading.isNotEmpty;
+}
+
+/// One provider an agent can authenticate against.
+class Provider {
+  /// As an agent names it, and as `vault put` takes it.
+  final String name;
+
+  /// Human-readable name.
+  final String label;
+
+  /// Where it authenticates against.
+  final String upstream;
+
+  /// The ways of authenticating it supports.
+  final List<String> dialects;
+
+  /// Whether the vault holds a credential for it.
+  ///
+  /// **Meaningless unless [Providers.readable]** — the same trap as the credential list, where a
+  /// locked store and an empty one answered alike.
+  final bool authenticated;
+
+  /// `api-key`, `oauth`, or empty when none is stored or none was recorded.
+  final String credentialType;
+
+  /// The name a credential for this provider is stored under.
+  ///
+  /// **Never recomputed here.** It is usually the provider's own name, but a vault written before
+  /// credentials were keyed by provider answers under the *agent's* name and that key stays in
+  /// use. Intersecting providers with stored names would report a credential missing from
+  /// precisely the vault that has one, because the fallback key is invisible from outside.
+  final String credentialName;
+
+  /// The exact line to run at the machine to store one. **Rendered verbatim.**
+  final String storeCommand;
+
+  /// Constructor taking every field.
+  const Provider({
+    required this.name,
+    required this.label,
+    required this.upstream,
+    required this.dialects,
+    required this.authenticated,
+    required this.credentialType,
+    required this.credentialName,
+    required this.storeCommand,
+  });
+
+  /// Reads one from a reply.
+  factory Provider.from(Map<String, dynamic> map) => Provider(
+        name: _string(map, 'name'),
+        label: _string(map, 'label'),
+        upstream: _string(map, 'upstream'),
+        dialects: _strings(map, 'dialects'),
+        authenticated: map['authenticated'] == true,
+        credentialType: _string(map, 'credentialType'),
+        credentialName: _string(map, 'credentialName'),
+        storeCommand: _string(map, 'storeCommand'),
+      );
+}
+
+/// What providers a machine has, and whether the answer can be believed.
+class Providers {
+  /// Every provider, in the order it came.
+  final List<Provider> providers;
+
+  /// Whether the vault could be read.
+  ///
+  /// **A vault that does not exist is readable and empty.** There is nothing to unlock, and
+  /// telling somebody to unlock it is the one instruction that cannot help them.
+  final bool readable;
+
+  /// Constructor taking both.
+  const Providers({required this.providers, required this.readable});
+
+  /// Reads one from a reply.
+  factory Providers.from(Map<String, dynamic> map) => Providers(
+        providers: _list(map, 'providers').map(Provider.from).toList(),
+        readable: map['readable'] == true,
+      );
+}
+
+/// What importing an agent's own credential did.
+class Imported {
+  /// `IMPORTED`, `NO_SUCH_AGENT`, `NO_CONFIG_DIRECTORY`, `NOTHING_TO_IMPORT`, `VAULT_LOCKED` or
+  /// `FAILED`.
+  final String outcome;
+
+  /// The key it went under.
+  final String name;
+
+  /// What kind it is.
+  final String type;
+
+  /// How long it is. **Never the value** — this is how somebody sees it worked without seeing
+  /// what worked.
+  final int length;
+
+  /// Where it was read from.
+  final String source;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Imported({
+    required this.outcome,
+    required this.name,
+    required this.type,
+    required this.length,
+    required this.source,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Imported.from(Map<String, dynamic> map) => Imported(
+        outcome: _string(map, 'outcome'),
+        name: _string(map, 'name'),
+        type: _string(map, 'type'),
+        length: _int(map, 'length'),
+        source: _string(map, 'source'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// Whether a credential is now in the vault.
+  bool get stored => outcome == 'IMPORTED';
+
+  /// Whether nobody has logged in with that agent here yet.
+  ///
+  /// **Ordinary, not a fault.** The agent is installed and nothing has been done with it, which
+  /// is a sentence with a next step rather than a failure.
+  bool get nothingYet => outcome == 'NOTHING_TO_IMPORT';
+
+  /// Whether the store was shut. **Not a missing credential**, and must not be drawn as one.
+  bool get shut => outcome == 'VAULT_LOCKED';
+}
+
 /// One thing a project deletion removes.
 class Removal {
   /// `MIRROR`, `IMAGE`, `BUILD`, `REGISTRY`, `UPSTREAM_RECORD` or `TASK` — a string rather than a

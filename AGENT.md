@@ -1536,3 +1536,31 @@ the local command instead of the remote one.
 
 **Match a list entry on what it starts with, not on what it contains**, whenever the line carries
 more than the thing being matched.
+
+## A rule about future drift needs a fixture from the future
+
+`Health.ready` is the daemon's answer and is never re-derived here — it is the same rule the CLI
+exits non-zero on, so the two cannot come to different conclusions about one machine.
+
+**Mutating it to re-derive from the probes changed nothing**, and for a while that looked like a
+weak test. It was not: today `ready` is false exactly when something is `MISSING`, so the two
+agree by construction and no honest fixture can separate them. A fixture where they disagree would
+have described something the daemon cannot produce — the sin already recorded twice here.
+
+**The honest fixture is a daemon newer than this build**: a probe in a state this release has never
+heard of, which blocks, with `ready: false`. Re-deriving then says the machine is fine, because
+only `MISSING` is known here. That is producible, it is what the compatibility rules promise will
+happen, and it kills the mutation.
+
+**When a mutation survives, ask what would have to be true for it to matter** — and then ask
+whether that state is reachable. Sometimes the answer is a later release.
+
+## Check that the mutation was applied
+
+A mutation run reported *"all tests passed"* on a replacement that never happened: the anchor
+string appeared twice, the script asserted uniqueness, and the failure scrolled past above a green
+test run. **A guard reported as unproven deserves one check that the measurement itself ran.**
+
+The Sokar side hit the same shape from the other direction on the same day — mutating a class while
+running tests that compiled against an installed jar, so two mutations came back "caught by
+nothing" and were caught once it was rebuilt.

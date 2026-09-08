@@ -54,7 +54,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | authenticate an agent or a provider. `Credentials` is read-only | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
 | F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
-| F19 | [Host Readiness And Remediation](F19-Host-Readiness-And-Remediation.md) | The interface establishes whether the machine can run anything and offers the fix in place. | run the readiness check and act on it | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 
 
@@ -119,6 +118,26 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F19 Host Readiness.** Whether this machine can run a task at all, one action away, with
+  everything that was checked, what it means and **the single next action for anything that is
+  not fine**. Every one of those dependencies fails far from its cause — without `nft` a container
+  comes up with no ruleset, without `nsenter` a clearance decision cannot reach a running task —
+  so until `Doctor` was on the wire people learned about them by starting work and watching it
+  behave strangely.
+
+  **Three states, not two.** `DEGRADED` and `UNKNOWN` leave a machine running tasks, so the
+  verdict distinguishes *"nothing is missing"* from *"it runs work, and one thing is worth
+  knowing about"*, and `UNKNOWN` is its own answer rather than the good case — a probe that
+  guesses well is indistinguishable from one that works. `ready` is the daemon's own answer and is
+  never re-derived here; it is the same rule the CLI exits non-zero on.
+
+  **Half of it was withdrawn rather than built, and the reason is on screen.** It also asked the
+  interface to *offer the fix and run it* — installing packages, writing under `/etc`, which is
+  root on the node. There was a second reason it could never have worked from here: **a machine
+  that is not ready usually has no daemon to ask**, so a check delivered over the daemon's socket
+  can only ever answer for a machine whose daemon is already up. The screen says each next action
+  and that nothing here installs anything.
+
 - **F10 Task Inspection And Work Handover.** What a piece of work is, what it has done to the
   repository, and its changes out of the interface in one action — against the starting point or
   the previous state, saying how much was taken or that there was nothing to take. Its last
