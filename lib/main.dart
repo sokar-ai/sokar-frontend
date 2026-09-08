@@ -30,7 +30,7 @@ Future<void> main() async {
   await settings.load();
 
   final shell = ShellModel();
-  // Read rather than awaited: a recurring job that arrives a frame late costs nothing, and the
+  // Read rather than awaited: a named job that arrives a frame late costs nothing, and the
   // window opening does not wait on a file.
   final templates = Templates(settings);
   unawaited(templates.load());

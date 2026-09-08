@@ -244,16 +244,24 @@ class MockMachine {
   }
 
   /// What is waiting at the gate, by ref name. Approving or dropping one takes it out.
+  ///
+  /// **The name is the ref *under* `refs/sokar/incoming/`, never the whole ref** — the contract
+  /// says so and `Review`, `Approve` and `Reject` take the short form. This served whole refs
+  /// until 2026-09-08, which is a fixture describing something the daemon cannot produce.
+  ///
+  /// `migrate` belongs to a task on this machine and `drop-dead-code` does not, deliberately:
+  /// several containers over time share one ref, so a ref whose container is gone is an ordinary
+  /// state rather than a broken one.
   final Map<String, Map<String, dynamic>> _waiting = <String, Map<String, dynamic>>{
-    'refs/sokar/incoming/fix-rounding': <String, dynamic>{
-      'name': 'refs/sokar/incoming/fix-rounding',
+    'migrate': <String, dynamic>{
+      'name': 'migrate',
       'commit': '9a3c1f2',
       'subject': 'Round to the nearest penny, not away from zero',
       'waiting': '4 minutes',
       'at': '2026-09-07T14:12:00Z',
     },
-    'refs/sokar/incoming/drop-dead-code': <String, dynamic>{
-      'name': 'refs/sokar/incoming/drop-dead-code',
+    'drop-dead-code': <String, dynamic>{
+      'name': 'drop-dead-code',
       'commit': '7f21b0e',
       'subject': 'Delete the retry loop nothing calls any more',
       'waiting': '26 minutes',
@@ -938,7 +946,10 @@ deleted file mode 100644
             activity: 'WAITING',
             waitingFor: 'api.example.test:443',
             minutesAgo: 6),
-        _task('sokar-checkout-migrate', 'checkout', running: false, helpers: 0),
+        // Its own ref is waiting at the gate, which is what `waiting` says and what nothing
+        // could be joined to work out.
+        _task('sokar-checkout-migrate', 'checkout',
+            running: false, helpers: 0, waiting: 1),
         _task('sokar-billing-shell', 'billing',
             securityClass: 'offline',
             helpers: 1,
@@ -978,6 +989,7 @@ deleted file mode 100644
     int minutesAgo = 4,
     String clearance = 'prompt',
     String? prompt,
+    int waiting = 0,
   }) =>
       <String, dynamic>{
         'name': name,
@@ -993,7 +1005,9 @@ deleted file mode 100644
             (mode == 'UNATTENDED'
                 ? 'Fix the rounding in Money.pennies and add a test for it'
                 : ''),
-        'branch': 'refs/sokar/incoming/$name',
+        // The ref carries the *task* name, which is the container name without the project
+        // prefix — not the container name itself, which has the run in it.
+        'branch': 'refs/sokar/incoming/${name.replaceFirst('sokar-$project-', '')}',
         'since': DateTime.now()
             .toUtc()
             .subtract(Duration(minutes: minutesAgo))
@@ -1001,5 +1015,6 @@ deleted file mode 100644
         'activity': running ? activity : 'DEAD',
         'waitingFor': waitingFor,
         'clearance': clearance,
+        'waiting': waiting,
       };
 }

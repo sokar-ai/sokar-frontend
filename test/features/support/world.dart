@@ -420,7 +420,10 @@ class FakeBackend implements FleetBackend {
     'seededFrom': '',
     'pending': <Map<String, dynamic>>[
       <String, dynamic>{
-        'name': 'refs/sokar/incoming/fix-rounding',
+        // The ref *under* `refs/sokar/incoming/`, which is what the contract answers and what
+        // `Review`, `Approve` and `Reject` take. It was the whole ref here until 2026-09-08 —
+        // a fixture describing something the daemon cannot produce.
+        'name': 'migrate',
         'commit': '9a3c1f2',
         'subject': 'Round to the nearest penny, not away from zero',
         'waiting': '4 minutes',
@@ -757,10 +760,13 @@ class World {
             mode: 'UNATTENDED', prompt: 'Bring the schema up to date'),
         // A finished unattended run that kept what it was asked to do, which is what continuing
         // it with a new prompt reads back.
+        // Its own ref is the one waiting at the gate, which `waiting` says on the task itself.
+        // Nothing joins the two: this container's name is not that ref, and never was.
         _task('sokar-checkout-migrate', 'checkout',
             running: false,
             helpers: 0,
             mode: 'UNATTENDED',
+            waiting: 1,
             prompt: 'Fix the rounding in Money.pennies and add a test for it'),
         _task('sokar-billing-shell', 'billing', securityClass: 'offline', helpers: 1),
         // Started with enforcement off: nothing will ever be asked about what it reaches.
@@ -779,6 +785,7 @@ class World {
     String mode = '',
     String prompt = '',
     String agent = 'an-agent',
+    int waiting = 0,
   }) =>
       Task.from(<String, dynamic>{
         'name': name,
@@ -790,6 +797,7 @@ class World {
         'clearance': clearance,
         'mode': mode,
         'prompt': prompt,
+        'waiting': waiting,
         'agent': agent,
       });
 

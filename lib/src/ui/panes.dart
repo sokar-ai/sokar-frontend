@@ -458,6 +458,14 @@ class WorkDetail extends StatelessWidget {
               _Field(name: 'Agent', value: task.agent.isEmpty ? '—' : task.agent),
               _Field(name: 'Mode', value: task.mode.label),
               _Field(name: 'Branch', value: task.branch.isEmpty ? '—' : task.branch),
+              // **Answered by the task, never joined.** `Task.name` is a container name and a
+              // pending push carries a task name, and several containers over time share one
+              // ref — so a client lining the two up would be right for at most one of them.
+              //
+              // An `online` task answers `0` and that is not a smaller number: nothing is ever
+              // reviewed there, so it is a question the class does not have, and saying *nothing
+              // is waiting* would imply somebody could be.
+              _Field(name: 'At the gate', value: task.atTheGate),
               _Field(name: 'Doing', value: task.activity.label),
               _Field(
                 name: 'Egress',

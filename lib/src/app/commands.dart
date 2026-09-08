@@ -242,7 +242,7 @@ List<Command> commandsFor({
       run: startWork,
       unavailable: StartWork.whyNot(selectedProject?.project),
     ),
-    // One command per recurring job, so a template turns up in the finder, the menu bar and
+    // One command per named job, so a template turns up in the finder, the menu bar and
     // wherever else the command list is read — without any of them knowing what a template is.
     // Starting one is then a single action in the same sense every other action is.
     for (final job in selectedProject == null

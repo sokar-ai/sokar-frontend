@@ -227,6 +227,32 @@ class Task {
   /// `api.example.test:443`.
   final String waitingFor;
 
+  /// Whether this task's own work is waiting at the gate: `1` when it is, `0` otherwise.
+  ///
+  /// **An `online` task always answers `0`, and that is not a smaller number** — its ref is
+  /// `refs/heads/<task>` and nothing is ever reviewed, so it is a question the class does not
+  /// have.
+  ///
+  /// Answered here rather than joined, because there is no join to make: [name] is a *container*
+  /// name and `PendingPush.name` is a *task* name, and several containers over time share one
+  /// ref. Anything lined up from the two would be right for at most one of them. Sokar offered
+  /// the field the other way round, went to build it, and withdrew it for that reason.
+  final int waiting;
+
+  /// Whether this task's own work is waiting for somebody to review it.
+  bool get hasWorkWaiting => waiting > 0;
+
+  /// What to say about this task's own work at the gate.
+  ///
+  /// Three answers, not two. **An `online` task has no gate at all** — its ref is
+  /// `refs/heads/<task>` and nothing is ever reviewed — so *"nothing of its own is waiting"*
+  /// would imply that something could be.
+  String get atTheGate => hasWorkWaiting
+      ? 'its own work is waiting for review'
+      : securityClass == 'online'
+          ? 'nothing is reviewed in an online project'
+          : 'nothing of its own is waiting';
+
   /// When the current state began, or null when the runtime could not say.
   DateTime? get startedAt => since.isEmpty ? null : DateTime.tryParse(since);
 
@@ -247,6 +273,7 @@ class Task {
     this.activity = const Activity(''),
     this.waitingFor = '',
     this.clearance = '',
+    this.waiting = 0,
   });
 
   /// Reads one from a reply.
@@ -268,6 +295,7 @@ class Task {
         activity: Activity(_string(map, 'activity')),
         waitingFor: _string(map, 'waitingFor'),
         clearance: _string(map, 'clearance'),
+        waiting: _int(map, 'waiting'),
       );
 }
 

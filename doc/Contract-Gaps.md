@@ -128,6 +128,12 @@ names and the requirements are written from what a person sees.
     to make would have claimed work was waiting for a task whose name merely coincided.
   - **The mirror is read once per project, not once per task**, so the field costs a listing
     nothing. Both properties are held by tests that fail if either is dropped.
+  - **It is on the work's detail, in three answers rather than two.** An online task answers `0`
+    and is told apart from a gated one with nothing waiting, because *"nothing of its own is
+    waiting"* would imply that something could be.
+  - **Two fixtures here described refs the daemon cannot produce** and were corrected the same
+    day: `PendingPush.name` is the ref *under* `refs/sokar/incoming/`, not the whole ref, and a
+    task's `branch` carries the *task* name rather than the container name.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one

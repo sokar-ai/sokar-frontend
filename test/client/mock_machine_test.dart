@@ -539,8 +539,7 @@ void main() {
     final client = await connect();
 
     await expectLater(
-      client.approve('/srv/checkout/project.yml',
-          'refs/sokar/incoming/fix-rounding', ''),
+      client.approve('/srv/checkout/project.yml', 'migrate', ''),
       throwsA(isA<VarlinkException>()
           .having((refusal) => refusal.simpleName, 'simpleName', 'BranchRequired')),
     );
@@ -551,7 +550,7 @@ void main() {
     final client = await connect();
     const project = '/srv/checkout/project.yml';
 
-    await client.reject(project, 'refs/sokar/incoming/drop-dead-code');
+    await client.reject(project, 'drop-dead-code');
 
     expect((await client.gate(project)).pending, hasLength(1));
   });

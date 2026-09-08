@@ -32,8 +32,7 @@ void main() {
       await iSelectTheProject(tester, 'checkout');
     }
 
-    testWidgets(
-        '''a recurring job is named, and becomes an action of its own''',
+    testWidgets('''a job is named, and becomes an action of its own''',
         (tester) async {
       await bddSetUp(tester);
       await iStartWorkInThisProject(tester);

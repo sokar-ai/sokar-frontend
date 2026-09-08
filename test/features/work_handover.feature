@@ -7,6 +7,18 @@ Feature: F10 Task Inspection And Work Handover
     And the app is running
     And I select the project {'checkout'}
 
+  # Answered on the task itself since 2026-09-08. Nothing joins it to the gate: this container's
+  # name is not the ref, and several containers over time share one.
+  Scenario: work whose own commits are waiting for review says so on its detail
+    When I select the work {'sokar-checkout-migrate'}
+    And I open the selection
+    Then it says {'its own work is waiting for review'}
+
+  Scenario: work with nothing of its own waiting says that instead
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'nothing of its own is waiting'}
+
   Scenario: what a project pushed is readable file by file, without leaving the interface
     When I review what is waiting at the gate
     And I open the waiting push

@@ -289,10 +289,15 @@ class _KeepAsTemplateState extends State<_KeepAsTemplate> {
               key: const Key('template-name'),
               controller: _name,
               decoration: const InputDecoration(
-                labelText: 'Keep this as a recurring job',
+                // **Not "a recurring job".** That wording reads as *recurring on its own*, and
+                // it misled the backend into answering a question about schedules that nobody
+                // asked — there is no scheduler, and a job kept here starts when somebody starts
+                // it. Both facts a person would otherwise assume wrongly are said in the helper.
+                labelText: 'Keep this as a named job',
                 hintText: 'nightly-tests',
                 border: OutlineInputBorder(),
-                helperText: 'It carries the agent, the mode and the prompt. Nothing else.',
+                helperText: 'It carries the agent, the mode and the prompt — nothing else. It '
+                    'stays with you rather than with the project, and nothing starts it but you.',
               ),
               onChanged: (typed) {
                 widget.starting.callTheTemplate(typed);

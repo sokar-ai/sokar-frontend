@@ -7,7 +7,7 @@ Feature: F25 Task Templates
     And the app is running
     And I select the project {'checkout'}
 
-  Scenario: a recurring job is named, and becomes an action of its own
+  Scenario: a job is named, and becomes an action of its own
     When I start work in this project
     And I choose the agent {'An Agent'}
     And I choose {'Unattended, against a prompt'}
