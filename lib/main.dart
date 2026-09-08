@@ -14,6 +14,7 @@ import 'src/app/agent_inventory.dart';
 import 'src/app/emergency_stop.dart';
 import 'src/app/start_work.dart';
 import 'src/app/templates.dart';
+import 'src/app/vault.dart';
 import 'src/app/widening.dart';
 import 'src/app/window.dart';
 import 'src/app/operations.dart';
@@ -64,6 +65,7 @@ Future<void> main() async {
     inventory: AgentInventory(),
     templates: templates,
     stopping: EmergencyStop(),
+    vault: Vault(),
     newerVersion: newerVersion,
   ));
 

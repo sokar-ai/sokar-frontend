@@ -122,6 +122,8 @@ class MockMachine {
     daemon.method('Resume', _resume);
     daemon.method('Panic', _panic);
     daemon.method('CanStart', _canStart);
+    daemon.method('Credentials', _credentials);
+    daemon.method('Lock', _lock);
 
     switch (situation) {
       case 'no-watch':
@@ -384,6 +386,39 @@ class MockMachine {
     };
   }
 
+  /// Whether the store is open. Shutting it really does shut it, and the listing goes with it —
+  /// a stand-in that answered *shut* and went on listing names would hide the one distinction
+  /// this screen exists to draw.
+  bool _open = true;
+
+  Map<String, dynamic> _credentials(Map<String, dynamic> parameters) => <String, dynamic>{
+        'vault': '/home/somebody/.local/share/sokar/vault.bin',
+        'exists': true,
+        // Names, kinds and lengths. **Never a value.**
+        'credentials': _open || situation == 'vault-locked'
+            ? <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'name': 'a-provider',
+                  'type': 'api-key',
+                  'characters': 108,
+                },
+              ]
+            : <Map<String, dynamic>>[],
+        // An unlocked store holding nothing answers true; only a shut one answers false.
+        'readable': _open && situation != 'vault-locked',
+      };
+
+  Map<String, dynamic> _lock(Map<String, dynamic> parameters) {
+    final wasOpen = _open;
+    _open = false;
+    return <String, dynamic>{
+      'keyring': true,
+      'wasCached': wasOpen,
+      // A running task's proxy read the secret at start and holds it where locking cannot reach.
+      'holding': tasks.where((task) => task['running'] == true).length,
+    };
+  }
+
   /// Whether work can start, answered before anything is created.
   ///
   /// It acts on the situation rather than answering canned: the three outcomes that mean
@@ -394,7 +429,7 @@ class MockMachine {
     if (situation == 'no-agent') {
       return _readiness('NO_AGENT', detail: 'nothing is installed here to run work with');
     }
-    if (situation == 'vault-locked') {
+    if (situation == 'vault-locked' || !_open) {
       return _readiness('VAULT_LOCKED',
           agent: agent, detail: 'the vault is locked, so nothing can say what it holds');
     }

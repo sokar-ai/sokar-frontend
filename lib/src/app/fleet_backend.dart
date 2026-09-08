@@ -79,6 +79,12 @@ abstract class FleetBackend {
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
 
+  /// What the protected store holds, by name. **Never a value.**
+  Future<VaultState> credentials();
+
+  /// Shuts the protected store. There is no `Unlock`: a daemon has no terminal for a passphrase.
+  Future<Locked> lock();
+
   /// Whether work can start, asked before anything is created.
   Future<Readiness> canStart({String? project, String? agent});
 
@@ -239,6 +245,12 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Future<VaultState> credentials() => _opened().credentials();
+
+  @override
+  Future<Locked> lock() => _opened().lock();
 
   @override
   Future<Readiness> canStart({String? project, String? agent}) =>

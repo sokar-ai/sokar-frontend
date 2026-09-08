@@ -331,6 +331,13 @@ class SokarClient {
         'dryRun': ?dryRun,
       }));
 
+  /// Shuts the protected store.
+  ///
+  /// **There is deliberately no `Unlock`.** A daemon has no terminal to take a passphrase at, so
+  /// it can shut the vault and can never open it — that asymmetry is the design, not a missing
+  /// method, and it belongs on the screen where somebody looks for the button.
+  Future<Locked> lock() async => Locked.from(await _call('Lock'));
+
   /// Whether work can start, asked **before anything is created**.
   ///
   /// The rule turns on four things — the agent's declaration, the installed providers, the run's

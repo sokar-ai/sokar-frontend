@@ -130,6 +130,13 @@ class _Wedged implements FleetBackend {
         detail: '',
       );
 
+  @override
+  Future<VaultState> credentials() async => VaultState.from(const <String, dynamic>{});
+
+  @override
+  Future<Locked> lock() async =>
+      const Locked(keyring: true, wasCached: false, holding: 0);
+
 }
 
 /// A machine that lists one project nothing has ever run on, and one task belonging to a project
@@ -264,6 +271,13 @@ class _Machine implements FleetBackend {
         credential: '',
         detail: '',
       );
+
+  @override
+  Future<VaultState> credentials() async => VaultState.from(const <String, dynamic>{});
+
+  @override
+  Future<Locked> lock() async =>
+      const Locked(keyring: true, wasCached: false, holding: 0);
 
 }
 

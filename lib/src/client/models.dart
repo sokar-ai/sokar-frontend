@@ -403,6 +403,45 @@ class Credential {
       );
 }
 
+/// What locking the store did.
+class Locked {
+  /// Whether the kernel keyring is available at all.
+  final bool keyring;
+
+  /// Whether a passphrase was cached before this. `false` means the store was already shut.
+  final bool wasCached;
+
+  /// How many running tasks still hold what they read when they started.
+  ///
+  /// **Said in the same breath as "locked", never in a detail underneath.** A running task's
+  /// credential proxy read the secret at start and holds it in its own memory, where locking
+  /// cannot reach. Reporting the store shut without this claims more than happened.
+  final int holding;
+
+  /// Constructor taking every field.
+  const Locked({
+    required this.keyring,
+    required this.wasCached,
+    required this.holding,
+  });
+
+  /// Reads one from a reply.
+  factory Locked.from(Map<String, dynamic> map) => Locked(
+        keyring: map['keyring'] == true,
+        wasCached: map['wasCached'] == true,
+        holding: _int(map, 'holding'),
+      );
+
+  /// What to say about it, in one sentence.
+  String get words {
+    final shut = wasCached ? 'The store is shut.' : 'The store was already shut.';
+    if (holding == 0) return shut;
+    final work = holding == 1 ? 'task' : 'tasks';
+    return '$shut $holding running $work still ${holding == 1 ? 'holds' : 'hold'} what '
+        '${holding == 1 ? 'it' : 'they'} read at start — locking cannot reach that.';
+  }
+}
+
 /// One project on the machine.
 ///
 /// Assembled by the daemon from the gate mirrors, the tasks that exist and the project files task

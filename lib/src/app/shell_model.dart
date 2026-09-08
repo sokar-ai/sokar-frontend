@@ -75,6 +75,12 @@ class EgressOpened extends Opened {
   const EgressOpened();
 }
 
+/// What the protected store holds.
+class VaultOpened extends Opened {
+  /// Constructor.
+  const VaultOpened();
+}
+
 /// What agents are installed on this machine.
 class AgentsOpened extends Opened {
   /// Constructor.
@@ -164,6 +170,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens what agents are installed here.
   void openAgents() => _open(const AgentsOpened());
+
+  /// Opens what the protected store holds.
+  void openVault() => _open(const VaultOpened());
 
   /// Closes whatever is open and hands the keyboard back to where it came from.
   ///

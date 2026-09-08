@@ -135,8 +135,8 @@ names and the requirements are written from what a person sees.
   What genuinely has no method is reopening the output of an operation started *before* this
   window, or by something else — no requirement asks for that today. Nothing here needs the
   backend to persist anything.
-- **F15 Secret Store Control** — **one criterion of seven, and none of the other six is work
-  somebody forgot.** Settled on 2026-09-08: `Unlock` will **never** exist over the socket and
+- **F15 Secret Store Control** — **three criteria of seven are built, and none of the other four
+  is work somebody forgot.** Settled on 2026-09-08: `Unlock` will **never** exist over the socket and
   neither will revealing a recovery secret — a daemon has no terminal, and `Credentials` returns
   names, kinds and lengths and never a value, on a socket that can be forwarded. A bounded unlock
   and changing the passphrase are **coming, at the machine only**; the second does not exist in

@@ -9,6 +9,7 @@ import '../app/agent_inventory.dart';
 import '../app/emergency_stop.dart';
 import '../app/start_work.dart';
 import '../app/templates.dart';
+import '../app/vault.dart';
 import '../app/widening.dart';
 import '../app/gate.dart';
 import '../app/logs.dart';
@@ -26,6 +27,7 @@ import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
 import 'emergency_stop_view.dart';
+import 'vault_view.dart';
 import 'start_work_view.dart';
 import 'widening_view.dart';
 import 'gate_view.dart';
@@ -61,6 +63,7 @@ class Shell extends StatefulWidget {
     required this.inventory,
     required this.templates,
     required this.stopping,
+    required this.vault,
     required this.newerVersion,
     super.key,
   });
@@ -103,6 +106,9 @@ class Shell extends StatefulWidget {
 
   /// Cutting every form of access at once.
   final EmergencyStop stopping;
+
+  /// What the protected store holds.
+  final Vault vault;
 
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
@@ -155,6 +161,7 @@ class _ShellState extends State<Shell> {
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
+        showTheVault: _showTheVault,
         startFromTemplate: _startFromTemplate,
         stopEverything: _stopEverything,
         continueTheWork: _continueTheWork,
@@ -214,6 +221,15 @@ class _ShellState extends State<Shell> {
       onStopEverything: () => widget.stopping.stopEverything(_fleet.backend),
     );
     widget.stopping.letItBe();
+  }
+
+  /// Shows what the protected store holds.
+  ///
+  /// Asked every time rather than held: what it holds changes with `vault put` at the machine,
+  /// and nothing tells this interface when that happened.
+  Future<void> _showTheVault() async {
+    widget.shell.openVault();
+    await widget.vault.look(_fleet.backend);
   }
 
   /// Shows what agents this machine has.
@@ -517,6 +533,12 @@ class _ShellState extends State<Shell> {
         final task = _fleet.selectedTask;
         if (task == null) return null;
         return WorkDetail(task: task, onClose: widget.shell.close);
+      case VaultOpened():
+        return VaultView(
+          vault: widget.vault,
+          onLock: () => widget.vault.lock(_fleet.backend),
+          onClose: widget.shell.close,
+        );
       case AgentsOpened():
         return AgentsView(
           inventory: widget.inventory,

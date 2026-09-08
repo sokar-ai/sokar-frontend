@@ -12,6 +12,7 @@ import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/emergency_stop.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/templates.dart';
+import 'package:sokar_frontend/src/app/vault.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
@@ -280,6 +281,39 @@ class FakeBackend implements FleetBackend {
 
   /// Every panic asked for, and whether it was only a preview.
   final List<bool> panics = <bool>[];
+
+  /// What `Credentials` answers. A scenario sets it to produce a shut store, which is a state no
+  /// contrived list of names can express.
+  VaultState theStoreIs = VaultState.from(const <String, dynamic>{
+    'vault': '/home/somebody/.local/share/sokar/vault.bin',
+    'exists': true,
+    'credentials': <Map<String, dynamic>>[
+      <String, dynamic>{'name': 'a-provider', 'type': 'api-key', 'characters': 108},
+    ],
+    'readable': true,
+  });
+
+  /// What the next [lock] answers.
+  Locked nextLock = const Locked(keyring: true, wasCached: true, holding: 0);
+
+  /// How long `Credentials` takes to answer, so a slow one can be overtaken by a fast one.
+  Duration credentialsTake = Duration.zero;
+
+  /// Every question asked of the store, in the order it was asked.
+  final List<String> storeAsked = <String>[];
+
+  @override
+  Future<VaultState> credentials() async {
+    storeAsked.add('credentials');
+    if (credentialsTake > Duration.zero) await Future<void>.delayed(credentialsTake);
+    return theStoreIs;
+  }
+
+  @override
+  Future<Locked> lock() async {
+    storeAsked.add('lock');
+    return nextLock;
+  }
 
   /// What the next [canStart] answers. A scenario sets it to produce a locked vault or a missing
   /// credential, neither of which a contrived agent list can produce.
@@ -645,6 +679,9 @@ class World {
   /// Cutting every form of access at once.
   static late EmergencyStop stopping;
 
+  /// What the protected store holds.
+  static late Vault vault;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -798,6 +835,7 @@ class World {
     templates = Templates(settings);
     await templates.load();
     stopping = EmergencyStop();
+    vault = Vault();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
@@ -847,6 +885,7 @@ class World {
       inventory: inventory,
       templates: templates,
       stopping: stopping,
+      vault: vault,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -899,6 +938,7 @@ class World {
       inventory: inventory,
       templates: templates,
       stopping: stopping,
+      vault: vault,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -920,6 +960,7 @@ class World {
       inventory: inventory,
       templates: templates,
       stopping: stopping,
+      vault: vault,
       newerVersion: newerVersion,
     ));
     await settle(tester);

@@ -1104,3 +1104,28 @@ bullet that was no longer there.
 is meant, count what is inside it first. Recovered from git; the same edit had been made three
 times before anybody noticed.
 
+## The protected store: what happens here, and what happens at the machine
+
+`Credentials` answers **names, kinds and lengths and never a value** — that is the whole promise of
+the method, on a socket that can be forwarded over ssh. Nothing here asks for more, and nothing
+about the store goes into the session record.
+
+- **There is no `Unlock`, and there never will be.** A daemon has no terminal to take a passphrase
+  at, so it can shut the store and can never open it. That is the design. Say it **beside the
+  button that shuts it**, which is where somebody looks for the one that opens it — at the bottom
+  of a pane it is an explanation nobody reaches.
+- **`Lock`'s `holding` goes in the same breath as "shut."** A running task's credential proxy read
+  the secret when it started and holds it where locking cannot reach; reporting the store closed
+  without that claims more than happened.
+- **`wasCached: false` means it was already shut.** Saying *"the store is shut"* for both is
+  claiming to have done something that did not happen.
+- **A shut store and an empty one both answer with no names.** They must never be shown the same
+  way. (`readable` was wrong about this until 2026-09-07 and is now right.)
+- **Changing a passphrase: nothing can do it yet**, in the CLI either. *"Nothing can do this yet"*
+  is a fairer sentence than *"the interface cannot"*, which implies somewhere else can.
+
+**Two parts asking at once must never leave a stale answer over a newer one.** Every question is
+stamped and an answer that arrives after a newer question is dropped. This failure is invisible —
+both are answers — so it is driven by a scenario that races a slow read against a fast one rather
+than trusted to review.
+

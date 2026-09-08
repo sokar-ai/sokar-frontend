@@ -132,6 +132,7 @@ List<Command> commandsFor({
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
+  required VoidCallback showTheVault,
   required void Function(Template job) startFromTemplate,
   required VoidCallback stopEverything,
   required VoidCallback continueTheWork,
@@ -239,6 +240,15 @@ List<Command> commandsFor({
             ? 'this job is missing something it needs to run'
             : StartWork.whyNot(selectedProject?.project),
       ),
+    Command(
+      id: 'vault.show',
+      label: 'Show the protected store',
+      group: 'Machine',
+      run: showTheVault,
+      unavailable: fleet.reachability == Reachability.connected
+          ? null
+          : 'not connected to a backend',
+    ),
     Command(
       id: 'agents.show',
       label: 'Show the agents installed here',

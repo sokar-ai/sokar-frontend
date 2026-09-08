@@ -6,6 +6,7 @@ import 'agent_inventory.dart';
 import 'emergency_stop.dart';
 import 'start_work.dart';
 import 'templates.dart';
+import 'vault.dart';
 import 'widening.dart';
 import 'gate.dart';
 import 'logs.dart';
@@ -33,6 +34,7 @@ class SokarApp extends StatelessWidget {
     required this.inventory,
     required this.templates,
     required this.stopping,
+    required this.vault,
     required this.newerVersion,
     super.key,
   });
@@ -76,6 +78,9 @@ class SokarApp extends StatelessWidget {
   /// Cutting every form of access at once.
   final EmergencyStop stopping;
 
+  /// What the protected store holds.
+  final Vault vault;
+
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
@@ -106,6 +111,7 @@ class SokarApp extends StatelessWidget {
               inventory,
               templates,
               stopping,
+              vault,
               newerVersion,
             ]),
             builder: (context, _) => Shell(
@@ -122,6 +128,7 @@ class SokarApp extends StatelessWidget {
               inventory: inventory,
               templates: templates,
               stopping: stopping,
+              vault: vault,
               newerVersion: newerVersion,
             ),
           ),
