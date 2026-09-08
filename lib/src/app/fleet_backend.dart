@@ -96,6 +96,12 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// What backups have been taken of a project's mirror. Newest first.
+  Future<List<Backup>> backups(String project);
+
+  /// Removes a backup, or says what removing it would take.
+  Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun});
+
   /// Creates a project file, having checked the answers against this machine.
   Future<Created> createProject({
     required String file,
@@ -307,6 +313,13 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<List<Backup>> backups(String project) => _opened().backups(project);
+
+  @override
+  Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) =>
+      _opened().deleteBackup(project, bundle, dryRun: dryRun);
 
   @override
   Future<Created> createProject({

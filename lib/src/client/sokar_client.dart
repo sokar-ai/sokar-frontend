@@ -379,6 +379,30 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// What backups have been taken of a project's mirror.
+  ///
+  /// **Read from a record written when each was taken**, because a bundle is written wherever an
+  /// operator names it and nothing could work that out afterwards. Newest first, and **empty is an
+  /// ordinary answer**: a project nobody has backed up, or one backed up by a Sokar older than the
+  /// record. It never means no bundle exists.
+  Future<List<Backup>> backups(String project) async {
+    final reply = await _call('Backups', {'project': project});
+    final backups = reply['backups'];
+    return backups is List
+        ? backups.whereType<Map<String, dynamic>>().map(Backup.from).toList()
+        : const <Backup>[];
+  }
+
+  /// Removes a backup, or says what removing it would take.
+  ///
+  /// **It takes the path rather than an index**: a list that shifted between somebody reading it
+  /// and acting on it would otherwise delete a different backup than the one they chose. And it
+  /// refuses a path no record names, which is what keeps it from being a file-deletion primitive
+  /// wearing a backup's name.
+  Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) async =>
+      BackupDeleted.from(await _call('DeleteBackup',
+          {'project': project, 'bundle': bundle, 'dryRun': ?dryRun}));
+
   /// Creates a project file, having checked the answers against this machine first.
   ///
   /// **The checking is what a client cannot do for itself**: whether a security class is spelled

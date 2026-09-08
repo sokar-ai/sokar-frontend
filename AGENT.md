@@ -1732,3 +1732,24 @@ content, which is exactly the assertion that was worth having.
 
 **A fixture built by a script is code somebody wrote twice**: once in the script's quoting and once
 in Dart's. Read it back before believing it.
+
+## A record is not the bundle
+
+`Backups` reads a record written when each backup was taken, because `gate backup` writes a bundle
+wherever an operator names it and forgets it. **The missing part was never a listing — it was a
+question with no data behind it.**
+
+That bounds what the screen may promise: **a bundle written by hand, or before the record existed,
+is invisible and always will be**, so an empty list says *nothing recorded* and never *nothing
+exists*.
+
+And the two halves are kept apart because they can disagree: **when it was taken and how much it
+held are what was true then; whether the file is there and how big it is are read from disk now.**
+A bundle somebody moved is shown as **missing rather than dropped** — dropping it would say the
+backup was never taken, which is a different and worse statement than *it was taken and you moved
+it*.
+
+Deleting takes the **path, not an index**: a list that shifted between somebody reading it and
+acting on it would delete a different backup than the one they chose. And a record cleared for a
+bundle already gone is a **tidy-up, not a loss**, said differently — telling somebody they
+destroyed something they did not is its own kind of wrong.

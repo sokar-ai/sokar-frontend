@@ -8,6 +8,7 @@ import '../app/fleet_model.dart';
 import '../app/egress.dart';
 import '../app/agent_inventory.dart';
 import '../app/authentication.dart';
+import '../app/backups.dart';
 import '../app/emergency_stop.dart';
 import '../app/start_work.dart';
 import '../app/templates.dart';
@@ -33,6 +34,7 @@ import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
 import 'authentication_view.dart';
+import 'backups_view.dart';
 import 'emergency_stop_view.dart';
 import 'project_creation_view.dart';
 import 'project_deletion_view.dart';
@@ -82,6 +84,7 @@ class Shell extends StatefulWidget {
     required this.readiness,
     required this.authentication,
     required this.creating,
+    required this.backups,
     super.key,
   });
 
@@ -145,6 +148,9 @@ class Shell extends StatefulWidget {
   /// Describing and creating a project.
   final ProjectCreation creating;
 
+  /// What has been backed up of the project being looked at.
+  final Backups backups;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -196,6 +202,7 @@ class _ShellState extends State<Shell> {
         showTheProviders: _showTheProviders,
         prepareTheProject: _prepareTheProject,
         describeAProject: _describeAProject,
+        showTheBackups: _showTheBackups,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
@@ -271,6 +278,21 @@ class _ShellState extends State<Shell> {
   Future<void> _checkTheMachine() async {
     widget.shell.openReadiness();
     await widget.readiness.look(_fleet.backend);
+  }
+
+  /// Shows what has been backed up of the selected project.
+  Future<void> _showTheBackups() async {
+    final project = _fleet.selectedProject;
+    if (project == null) return;
+    widget.shell.openBackups();
+    await widget.backups.look(_fleet.backend, project.name);
+  }
+
+  /// Removes the backup being considered, and says what that did.
+  Future<void> _removeTheBackup() async {
+    await widget.backups.remove(_fleet.backend);
+    final said = widget.backups.words;
+    if (said.isNotEmpty) _fleet.say(said);
   }
 
   /// Describes a project, checks every answer against the machine, and creates it.
@@ -719,6 +741,14 @@ class _ShellState extends State<Shell> {
         return VaultView(
           vault: widget.vault,
           onLock: () => widget.vault.lock(_fleet.backend),
+          onClose: widget.shell.close,
+        );
+      case BackupsOpened():
+        return BackupsView(
+          backups: widget.backups,
+          onConsider: (backup) => widget.backups.consider(_fleet.backend, backup),
+          onRemove: _removeTheBackup,
+          onLetItBe: widget.backups.letItBe,
           onClose: widget.shell.close,
         );
       case ProvidersOpened():

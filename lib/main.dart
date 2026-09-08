@@ -20,6 +20,7 @@ import 'src/app/vault.dart';
 import 'src/app/widening.dart';
 import 'src/app/window.dart';
 import 'src/app/operations.dart';
+import 'src/app/backups.dart';
 import 'src/app/project_creation.dart';
 import 'src/app/project_deletion.dart';
 import 'src/app/session.dart';
@@ -80,6 +81,7 @@ Future<void> main() async {
     readiness: HostReadiness(),
     authentication: Authentication(),
     creating: ProjectCreation(),
+    backups: Backups(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather

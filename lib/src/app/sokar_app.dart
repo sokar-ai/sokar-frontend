@@ -4,6 +4,7 @@ import '../ui/shell.dart';
 import 'egress.dart';
 import 'agent_inventory.dart';
 import 'authentication.dart';
+import 'backups.dart';
 import 'emergency_stop.dart';
 import 'start_work.dart';
 import 'templates.dart';
@@ -46,6 +47,7 @@ class SokarApp extends StatelessWidget {
     required this.readiness,
     required this.authentication,
     required this.creating,
+    required this.backups,
     super.key,
   });
 
@@ -109,6 +111,9 @@ class SokarApp extends StatelessWidget {
   /// Describing and creating a project.
   final ProjectCreation creating;
 
+  /// What has been backed up of the project being looked at.
+  final Backups backups;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -143,6 +148,7 @@ class SokarApp extends StatelessWidget {
               readiness,
               authentication,
               creating,
+              backups,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -165,6 +171,7 @@ class SokarApp extends StatelessWidget {
               readiness: readiness,
               authentication: authentication,
               creating: creating,
+              backups: backups,
             ),
           ),
         ),

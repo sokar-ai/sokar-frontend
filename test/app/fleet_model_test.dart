@@ -129,6 +129,13 @@ class _Wedged implements FleetBackend {
       const Stream<PrepareProgress>.empty();
 
   @override
+  Future<List<Backup>> backups(String project) async => const <Backup>[];
+
+  @override
+  Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) async =>
+      const BackupDeleted(outcome: 'DELETED', fileRemoved: true, refs: 0, detail: '');
+
+  @override
   Future<Created> createProject({
     required String file,
     required String name,
@@ -321,6 +328,13 @@ class _Machine implements FleetBackend {
   Stream<PrepareProgress> prepare(String project,
           {String? agent, String? rebuild, bool? dryRun}) =>
       const Stream<PrepareProgress>.empty();
+
+  @override
+  Future<List<Backup>> backups(String project) async => const <Backup>[];
+
+  @override
+  Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) async =>
+      const BackupDeleted(outcome: 'DELETED', fileRemoved: true, refs: 0, detail: '');
 
   @override
   Future<Created> createProject({

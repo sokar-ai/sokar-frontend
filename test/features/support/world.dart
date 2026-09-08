@@ -21,6 +21,7 @@ import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/authentication.dart';
+import 'package:sokar_frontend/src/app/backups.dart';
 import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
@@ -392,6 +393,57 @@ class FakeBackend implements FleetBackend {
 
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
+
+  /// What backups a project has. Set by the scenario.
+  ///
+  /// **One that was moved is in here on purpose**: a record is not the bundle, and an absent file
+  /// is shown rather than dropped — dropping it would say the backup was never taken.
+  List<Backup> theBackupsItHas = <Backup>[
+    const Backup(
+      taken: '2026-09-08T09:15:00Z',
+      bundle: '/srv/checkout/backups/before-sync.bundle',
+      refs: 2,
+      present: true,
+      bytes: 4 * 1024 * 1024,
+    ),
+    const Backup(
+      taken: '2026-09-07T18:02:00Z',
+      bundle: '/srv/checkout/backups/moved-away.bundle',
+      refs: 5,
+      present: false,
+      bytes: 0,
+    ),
+  ];
+
+  @override
+  Future<List<Backup>> backups(String project) async => theBackupsItHas;
+
+  /// Whether the next deletion finds the file there. Set by the scenario.
+  bool theBundleIsThere = true;
+
+  /// Every backup deletion asked for.
+  final List<({String bundle, bool preview})> backupDeletions =
+      <({String bundle, bool preview})>[];
+
+  @override
+  Future<BackupDeleted> deleteBackup(String project, String bundle,
+      {bool? dryRun}) async {
+    backupDeletions.add((bundle: bundle, preview: dryRun == true));
+    final known = theBackupsItHas.where((each) => each.bundle == bundle);
+    if (known.isEmpty) {
+      return const BackupDeleted(
+          outcome: 'NO_SUCH_BACKUP',
+          fileRemoved: false,
+          refs: 0,
+          detail: 'no record names that path');
+    }
+    return BackupDeleted(
+      outcome: dryRun == true ? 'PREVIEWED' : 'DELETED',
+      fileRemoved: theBundleIsThere,
+      refs: known.first.refs,
+      detail: '',
+    );
+  }
 
   /// What the next creation answers. Set by the scenario.
   ///
@@ -965,6 +1017,9 @@ class World {
   /// Describing and creating a project.
   static late ProjectCreation creating;
 
+  /// What has been backed up of the project being looked at.
+  static late Backups backups;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -1139,6 +1194,8 @@ class World {
     addTearDown(authentication.dispose);
     creating = ProjectCreation();
     addTearDown(creating.dispose);
+    backups = Backups();
+    addTearDown(backups.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -1201,6 +1258,7 @@ class World {
       readiness: readiness,
       authentication: authentication,
       creating: creating,
+      backups: backups,
     ));
     await tester.pumpAndSettle();
   }
@@ -1259,6 +1317,7 @@ class World {
       readiness: readiness,
       authentication: authentication,
       creating: creating,
+      backups: backups,
     ));
     await tester.pumpAndSettle();
   }
@@ -1286,6 +1345,7 @@ class World {
       readiness: readiness,
       authentication: authentication,
       creating: creating,
+      backups: backups,
     ));
     await settle(tester);
   }

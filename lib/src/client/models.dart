@@ -990,6 +990,100 @@ class Widened {
       );
 }
 
+/// One backup that was taken of a project's mirror.
+///
+/// **A record is not the bundle.** The file can be moved, deleted or replaced afterwards and
+/// nothing on the machine would know — so [taken] and [refs] are what was true then, read from a
+/// record, and [present] and [bytes] are read from disk now.
+class Backup {
+  /// When it was written.
+  final String taken;
+
+  /// Absolute path on the daemon's machine.
+  final String bundle;
+
+  /// How many pushes were waiting for review when it was taken.
+  ///
+  /// What a restore would bring back, and what somebody gives up by deleting it.
+  final int refs;
+
+  /// Whether that file is still there.
+  ///
+  /// **An absent one is shown rather than quietly dropped**: dropping it would say the backup was
+  /// never taken, which is a different and worse statement. It *was* taken, somebody moved it,
+  /// and that is exactly the thing they need to see.
+  final bool present;
+
+  /// Its size now, or zero when it is gone. **Never what it was when taken.**
+  final int bytes;
+
+  /// Constructor taking every field.
+  const Backup({
+    required this.taken,
+    required this.bundle,
+    required this.refs,
+    required this.present,
+    required this.bytes,
+  });
+
+  /// Reads one from a reply.
+  factory Backup.from(Map<String, dynamic> map) => Backup(
+        taken: _string(map, 'taken'),
+        bundle: _string(map, 'bundle'),
+        refs: _int(map, 'refs'),
+        present: map['present'] == true,
+        bytes: _int(map, 'bytes'),
+      );
+
+  /// When it was taken, or null when the record could not say.
+  DateTime? get takenAt => taken.isEmpty ? null : DateTime.tryParse(taken);
+
+  /// Its size in words, or empty when the file is gone.
+  String get size {
+    if (!present) return '';
+    if (bytes < 1024) return '$bytes bytes';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} kB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+/// What deleting a backup did.
+class BackupDeleted {
+  /// `DELETED`, `PREVIEWED`, `NO_SUCH_BACKUP` or `FAILED`.
+  final String outcome;
+
+  /// Whether the file itself was there to remove.
+  ///
+  /// **False with `DELETED` means the record was cleared for a bundle somebody had already
+  /// moved** — a tidy-up rather than a loss, and worth saying differently.
+  final bool fileRemoved;
+
+  /// How many pushes it held, from the record. What somebody is giving up.
+  final int refs;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const BackupDeleted({
+    required this.outcome,
+    required this.fileRemoved,
+    required this.refs,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory BackupDeleted.from(Map<String, dynamic> map) => BackupDeleted(
+        outcome: _string(map, 'outcome'),
+        fileRemoved: map['fileRemoved'] == true,
+        refs: _int(map, 'refs'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// Whether it is gone.
+  bool get gone => outcome == 'DELETED';
+}
+
 /// Something wrong with one answer to the project questions.
 class Problem {
   /// Which answer, named as the call named it.

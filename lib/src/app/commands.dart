@@ -148,6 +148,7 @@ List<Command> commandsFor({
   required VoidCallback showTheProviders,
   required VoidCallback prepareTheProject,
   required VoidCallback describeAProject,
+  required VoidCallback showTheBackups,
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
@@ -220,6 +221,13 @@ List<Command> commandsFor({
         selectedProject!.name,
         muted: !notifications.mutedFor(selectedProject.name),
       ),
+      unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
+      id: 'project.backups',
+      label: 'Show what has been backed up here',
+      group: 'Work',
+      run: showTheBackups,
       unavailable: selectedProject == null ? 'no project selected' : null,
     ),
     Command(

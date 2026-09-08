@@ -81,6 +81,12 @@ class VaultOpened extends Opened {
   const VaultOpened();
 }
 
+/// What has been backed up of a project's mirror.
+class BackupsOpened extends Opened {
+  /// Constructor.
+  const BackupsOpened();
+}
+
 /// Which providers this machine has.
 class ProvidersOpened extends Opened {
   /// Constructor.
@@ -204,6 +210,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens which providers this machine has.
   void openProviders() => _open(const ProvidersOpened());
+
+  /// Opens what has been backed up of the selected project.
+  void openBackups() => _open(const BackupsOpened());
 
   /// Opens what the protected store holds.
   void openVault() => _open(const VaultOpened());

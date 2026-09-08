@@ -9,8 +9,13 @@ import 'package:sokar_frontend/client.dart';
 /// Answers null when the runtime could not say. A container created and never started reports a
 /// zero time, which renders as a date centuries out — showing that would be worse than showing
 /// nothing, so nothing is what it shows.
-String? howLong(Task task, {DateTime? now}) {
-  final began = task.startedAt;
+String? howLong(Task task, {DateTime? now}) => howLongSince(task.startedAt, now: now);
+
+/// How long ago something was, in words, or null when nothing can say.
+///
+/// The same arithmetic and the same wording as a task's state, because *"four hours ago"* is the
+/// same question whether it is asked of a run or of a backup.
+String? howLongSince(DateTime? began, {DateTime? now}) {
   if (began == null) return null;
   final elapsed = (now ?? DateTime.now()).difference(began);
   if (elapsed.isNegative) return null;
