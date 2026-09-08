@@ -145,15 +145,18 @@ names and the requirements are written from what a person sees.
     place, comments and all — the mechanism plainly exists. This end proposed *"a template is not
     Sokar's to put in a project file"* as a reason it would accept, and it is false; a screen
     carrying it would have contradicted the egress editor it already draws.
-  - **The answer is two statements, and only the second has a reason attached**: *a recurring job
-    does not belong to a project*, and *there will be no scheduler*. The first is the operator's
-    decision, flat. The second is explained: work starting with nobody present is what everything
-    else here is careful about — a locked vault would refuse the run rather than ask anybody, a
-    clearance question would expire unseen, and a failure would be found by whoever did not start
-    it.
-  - **The reasoning was read here as covering only a timer, and the question was asked again on
-    that basis.** It was already answered. Where an answer has two parts, the part without a
-    reason attached is still an answer.
+  - **What was refused is the timer, and storage alone is still open.** The answer opened *"a
+    recurring job does not belong to a project, and there will be no scheduler"*, and it was read
+    here — and then withdrawn here — as settling both. Its author says otherwise: the no is to the
+    daemon starting work with nobody present, a capability rather than a field, and *"a named
+    parameter set in `project.yml` that only a person starts is a different proposition"*. It is
+    with the operator as its own question.
+  - **The withdrawal and the answer crossed**, which is worth knowing rather than tidying away:
+    the question was asked, judged redundant here, unasked — and answered in the same minute by
+    the one party who could say. Reasoning attached to one half of an answer is not evidence about
+    the other half, in either direction.
+  - Nothing on screen depends on which way it goes: *it stays with you rather than with the
+    project, and nothing starts it but you* is true today either way.
   - The criterion with teeth needs nothing: a template carries no `clearance` and no `noGate`,
     and the security class is unreachable because `Start` cannot set it.
 
@@ -297,10 +300,24 @@ names and the requirements are written from what a person sees.
     offer. Here the contract **cannot** carry it — measured, not assumed — and the Sokar side has
     named the verb as the way in. That is the difference, and it is the only one: a method that
     exists and is not offered stays off limits.
-  - **The consequence, so nobody meets it by surprise.** A pty on the node can run any command the
-    operator can, `sokar vault unlock` among them. This end will not draw a control for that — see
-    F15, where *"at the machine, with a person present"* is the decision — but a terminal drawn
-    here is a place a person could type it, and *"the interface cannot do this"* stops being the
+  - ~~**The consequence, so nobody meets it by surprise.**~~ — **this was recorded here as *"a pty
+    on the node runs anything the operator can, `sokar vault unlock` among them"*, and it is
+    wrong.** `task attach` execs `podman exec --interactive --tty <container> tmux …`, so the far
+    end is a terminal **in the container**, under the same ruleset as everything else in there —
+    and the `sokar` binary is not installed in that image at all. Read off `Podman.attachArguments`
+    and `Containerfile`, not taken from the correction.
+
+    What remains true is smaller and is not this feature's: **this interface holds an ssh
+    connection and can open channels on the node**, which the forward has done since F27. That is
+    a property of the client. A screen must not warn that a session hands somebody the node; it
+    hands them the container, which is what they asked for.
+  - **The scrollback is 10,000 lines and the figure is Sokar's**, written into
+    `/etc/sokar/tmux.conf` when the image is built and read explicitly by `task attach`, so no
+    base image or dotfile changes it underneath the one process that has to state it. The screen
+    says *the last 10000 lines and no more* rather than *as much as we have* — which is the
+    difference between an answer and an apology, and it is what B16 asked for by name.
+
+    Left over from the wrong version: *"the interface cannot do this"* stops being the
     accurate sentence the day a session opens. Raised on the channel.
 
 - **F21 Continuity And Updates** — **built**, except the half of one criterion that is **F12's,

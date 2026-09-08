@@ -69,7 +69,7 @@ class Session extends ChangeNotifier {
     int columns = 80,
     int rows = 24,
   }) : _open = open ?? Pty.start {
-    terminal = Terminal(maxLines: _scrollback)
+    terminal = Terminal(maxLines: scrollback)
       ..onOutput = _typed
       ..onResize = _resized;
     _start(columns, rows);
@@ -202,10 +202,15 @@ class Session extends ChangeNotifier {
 
   /// How much a session can show of what happened while nobody was watching.
   ///
-  /// **A number, because the criterion is that coming back says what it can show.** This is the
-  /// window's own buffer; what a re-attached `tmux` replays is its `history-limit`, which Sokar
-  /// pins on its side. Until that figure arrives, nothing here claims one.
-  static const int _scrollback = 10000;
+  /// **10,000 lines, and the figure is Sokar's rather than ours.** It is written into
+  /// `/etc/sokar/tmux.conf` when the image is built and read explicitly by `task attach`, so a
+  /// base image or somebody's dotfile cannot change it underneath the one process that has to
+  /// state it. Confirmed on 2026-09-08 as `09cae48`; before that it was tmux's default, a number
+  /// nobody had chosen.
+  ///
+  /// The window's own buffer is the same figure deliberately: one that held less than a
+  /// re-attached session replays would scroll away what coming back had just shown.
+  static const int scrollback = 10000;
 }
 
 /// The sessions somebody has open, and the rules about opening one at all.

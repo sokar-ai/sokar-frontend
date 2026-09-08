@@ -1208,9 +1208,22 @@ vault refuses `sokar vault lock` because that would be a *substitute for a metho
 deliberately does not offer*. Here the contract **cannot** carry it, and the Sokar side named the
 verb as the way in. A method that exists and is not offered stays off limits.
 
-The consequence, written down rather than discovered: **a pty on the node runs anything the
-operator can**, `sokar vault unlock` included. Nothing here draws a control for it — but *"the
-interface cannot do this"* stopped being the accurate sentence the day a session opened.
+**A consequence was written down here and it was wrong**, so it is corrected rather than deleted:
+*"a pty on the node runs anything the operator can, `sokar vault unlock` included"*. It does not.
+`task attach` execs `podman exec --interactive --tty <container> tmux …` — the far end is a
+terminal **in the container**, under the same egress ruleset, clearance watcher and gate as
+everything else in there, and the `sokar` binary is not in that image at all. Read off
+`Podman.attachArguments` and `Containerfile` rather than taken from the correction.
+
+What survives is smaller and belongs to the client, not to this feature: **this interface holds an
+ssh connection and can open channels on the node**, and has since the forward existed. Never warn
+that a session hands somebody the node. It hands them the container, which is what they asked for.
+
+**The scrollback is 10,000 lines, and the figure is Sokar's**: written into `/etc/sokar/tmux.conf`
+when the image is built and read explicitly by `task attach`, so no base image or dotfile changes
+it underneath the one process that has to state it. The screen says *the last 10000 lines and no
+more*. A figure is the honest form of *"what may re-entering claim"* — *as much as we have* leaves
+somebody guessing whether the quiet hour is missing or was simply quiet.
 
 ## The terminal owns the keyboard, or `Escape` never arrives
 
@@ -1259,3 +1272,19 @@ work list had.
 
 A scenario written at 1400 to prove *"the work stays visible beside the session"* proved the
 opposite and looked like a bug in the session. Pick the number by what is left after the rail.
+
+## Reasoning attached to one half of an answer says nothing about the other half
+
+QF5 came back as *"a recurring job does not belong to a project, and there will be no scheduler"*,
+followed by a paragraph explaining why a schedule is a capability rather than a field. The question
+here had been about **storage** — whether a named parameter set could live in `project.yml` — so
+the reasoning was read as answering something else, and the question was asked again.
+
+Then it was withdrawn, on the reading that a flat clause with no reason attached is still an
+answer. **Both readings were guesses about somebody else's meaning, and the second was wrong**: the
+author said the timer was what he refused and that storage alone was not decided. The withdrawal
+and the answer crossed in the same minute.
+
+The lesson is not *ask twice* or *never ask twice*. It is that **the only party who can say what an
+answer covers is the one who wrote it** — so when a two-part answer is ambiguous, ask once, plainly,
+and then wait rather than reasoning about which half the reasoning belonged to.

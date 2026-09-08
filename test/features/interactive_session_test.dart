@@ -178,6 +178,12 @@ void main() {
       await iWorkInItByHand(tester);
       await itSays(tester, 'Closing this window leaves the session running');
     });
+    testWidgets('''coming back says how much of the missed time it can show''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWorkInItByHand(tester);
+      await itSays(tester, 'the last 10000 lines and no more');
+    });
     testWidgets(
         '''a session the machine would not open says so, without claiming the work stopped''',
         (tester) async {

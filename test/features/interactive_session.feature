@@ -112,6 +112,12 @@ Feature: F12 Interactive Session Attach
     When I work in it by hand
     Then it says {'Closing this window leaves the session running'}
 
+  # The figure is Sokar's, pinned in the image rather than left to tmux's default, so coming back
+  # can say what it shows instead of leaving somebody to guess whether a quiet hour is missing.
+  Scenario: coming back says how much of the missed time it can show
+    When I work in it by hand
+    Then it says {'the last 10000 lines and no more'}
+
   Scenario: a session the machine would not open says so, without claiming the work stopped
     When I work in it by hand
     And the session ends with {69}

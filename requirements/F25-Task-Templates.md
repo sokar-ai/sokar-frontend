@@ -45,8 +45,11 @@ One criterion is not met:
 
   **The reason is not that a project file cannot be written.** It can — `SetEgress` edits
   `project.yml` in place, comments and all — and this file nearly recorded the opposite. The
-  answer is the operator's, in two parts: a recurring job does not belong to a project, and there
-  will be no scheduler. The second carries the reasoning — work starting with nobody present is
-  what everything else here is careful about: a locked vault would refuse the run rather than ask
-  anybody, a clearance question would expire unseen, and a failure would be found by whoever did
-  not start it. **There is no scheduler; work starts when somebody starts it.**
+  refusal is to the **timer**: work starting with nobody present is what everything else here is
+  careful about — a locked vault would refuse the run rather than ask anybody, a clearance
+  question would expire unseen, and a failure would be found by whoever did not start it.
+  **There is no scheduler; work starts when somebody starts it.**
+
+  **Whether a named set of parameters could nonetheless be *stored* with the project is still
+  open**, and is with the operator. Nothing on screen turns on it: what is said today — *it stays
+  with you rather than with the project, and nothing starts it but you* — is true either way.

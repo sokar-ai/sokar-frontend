@@ -116,7 +116,12 @@ class SessionView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: Space.normal, vertical: Space.tight),
                 child: Text(
-                  'Closing this window leaves the session running. It ends when the work does.',
+                  // Two facts, and the second is the one B16 asks for by name: coming back has to
+                  // say what it can show. A figure is the honest form of that — a screen saying
+                  // *as much as we have* leaves somebody to guess whether the quiet hour is
+                  // missing or simply was quiet.
+                  'Closing this window leaves the session running; it ends when the work does. '
+                  'Coming back shows the last ${Session.scrollback} lines and no more.',
                   key: const Key('leaving-is-safe'),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
