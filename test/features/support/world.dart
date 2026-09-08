@@ -281,6 +281,22 @@ class FakeBackend implements FleetBackend {
   /// Every panic asked for, and whether it was only a preview.
   final List<bool> panics = <bool>[];
 
+  /// What the next [canStart] answers. A scenario sets it to produce a locked vault or a missing
+  /// credential, neither of which a contrived agent list can produce.
+  Readiness? nextReadiness;
+
+  @override
+  Future<Readiness> canStart({String? project, String? agent}) async =>
+      nextReadiness ??
+      const Readiness(
+        ready: true,
+        outcome: StartOutcome.ready,
+        agent: 'an-agent',
+        provider: 'a-provider',
+        credential: 'a-provider',
+        detail: '',
+      );
+
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
 

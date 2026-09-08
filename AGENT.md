@@ -1053,3 +1053,41 @@ than they need to know what it costs.
 - **`PanickedTask.name` is what `Resume` takes**, so the row that says what was stopped is also
   the row that says how to bring it back.
 
+## Whether work can start is asked, never worked out
+
+`CanStart` answers it before anything is created. **Do not assemble it here.** Which credential a
+run needs turns on four things — the agent's declaration, the installed providers, the run's own
+`provider` override, and *what the vault already holds*, because a vault written before the
+provider-keyed change answers under the agent's own name. A client has one of the four.
+
+`credential` in the reply is **the key that was actually looked for**, not the one that ought to
+apply. Naming the other reports a key missing from a vault that has it.
+
+Three of the eleven outcomes are three different actions, and they must never share a sentence:
+
+| | |
+|---|---|
+| `NO_PROVIDER_CHOSEN` | choose a provider — *a provider, not a secret* |
+| `CREDENTIAL_MISSING` | store a secret, named by `credential` |
+| `VAULT_LOCKED` | unlock **at the machine** — a daemon has no terminal for a passphrase |
+
+**Asked when the dialog opens and again when the agent changes, never cached.** What it answers
+turns on what the vault holds, and that changes without anything else changing.
+
+An unattended run that is not ready is **not offered**: the daemon refuses it before creating
+anything, so the button says so rather than letting somebody find out. Interactive modes are
+offered with the cost stated — a missing credential does not stop a launch, and a failed run is
+kept, so what is left is a container and a workspace to clear up by hand.
+
+## A range replace between two anchors deletes everything in between
+
+`doc/Contract-Gaps.md` lost five requirements' worth of reasoning — F08, F09, F10, F11 and F25 —
+to one edit meant to replace a single bullet. The shape was `text[:start] + new + text[end:]` with
+`end` found by searching for the *next* heading, and everything between the two anchors went with
+it. Nothing failed, nothing was reported, and it was found a day later while trying to edit a
+bullet that was no longer there.
+
+**Replace an exact block, never a range between two landmarks**, and when a range really is what
+is meant, count what is inside it first. Recovered from git; the same edit had been made three
+times before anybody noticed.
+

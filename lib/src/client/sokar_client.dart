@@ -331,6 +331,26 @@ class SokarClient {
         'dryRun': ?dryRun,
       }));
 
+  /// Whether work can start, asked **before anything is created**.
+  ///
+  /// The rule turns on four things — the agent's declaration, the installed providers, the run's
+  /// own override, and what the vault already holds — and a client has one of them. So this is
+  /// asked rather than assembled, and `credential` names **the key that was actually looked
+  /// for**: a vault written before the provider-keyed change answers under the agent's own name,
+  /// and naming the other would report a key missing from a vault that has it.
+  Future<Readiness> canStart({
+    String? project,
+    String? agent,
+    String? provider,
+    String? credentialType,
+  }) async =>
+      Readiness.from(await _call('CanStart', {
+        'project': ?project,
+        'agent': ?agent,
+        'provider': ?provider,
+        'credentialType': ?credentialType,
+      }));
+
   /// Stops every running task and its helpers at once.
   ///
   /// **It stops and never removes.** Workspaces, logs and unpushed commits all survive, and

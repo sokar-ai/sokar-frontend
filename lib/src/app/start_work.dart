@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 
@@ -52,6 +54,13 @@ class StartWork extends ChangeNotifier {
   /// Why it could not be read or started, in words.
   String? problem;
 
+  /// Whether work can start here, as the daemon answers it. Null until it has been asked.
+  ///
+  /// Asked when the dialog opens and again when the agent changes, never cached for the session:
+  /// what it answers turns on what the vault holds, and that changes without anything else
+  /// changing.
+  Readiness? readiness;
+
   /// Whether a prompt belongs with the chosen mode.
   ///
   /// Only with `UNATTENDED`. The backend accepts `SHELL` with a prompt and records `SHELL`, which
@@ -67,7 +76,29 @@ class StartWork extends ChangeNotifier {
       project != null &&
       agent != null &&
       mode != null &&
-      (!takesAPrompt || prompt.trim().isNotEmpty);
+      (!takesAPrompt || prompt.trim().isNotEmpty) &&
+      !refusedOutright;
+
+  /// Whether starting would be refused before anything was created.
+  ///
+  /// **Only for an unattended run.** One that cannot authenticate is certain to be wasted and
+  /// nobody is watching it, so the daemon refuses it outright — and a button that is going to be
+  /// refused is better not offered. The interactive modes are offered anyway: a person is right
+  /// there, may know something this does not, and the cost is said rather than hidden.
+  bool get refusedOutright =>
+      takesAPrompt && readiness != null && !readiness!.ready;
+
+  /// What starting would cost when it is offered in spite of a problem.
+  ///
+  /// Measured on the Sokar side rather than guessed: a missing credential does not stop a launch.
+  /// It prints one line and starts anyway, the agent fails to authenticate from inside, and a
+  /// failed run is **kept** — so what is left is a container and a workspace to clear up by hand.
+  String? get whatItWouldCost {
+    final answer = readiness;
+    if (answer == null || answer.ready || takesAPrompt) return null;
+    return 'This will start a container you will have to clear up: the agent cannot '
+        'authenticate, and a run that fails is kept rather than removed.';
+  }
 
   /// Why work cannot be started in this project, or null when it can.
   static String? whyNot(Project? project) {
@@ -157,10 +188,16 @@ class StartWork extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Chooses the agent.
+  /// Chooses the agent, and asks again whether work can start with it.
+  ///
+  /// Asked again rather than kept: what `CanStart` answers turns on which agent was chosen, and
+  /// an answer from the previous one is worse than none.
   void chooseAgent(String name) {
     agent = name;
+    readiness = null;
     notifyListeners();
+    final machine = _machine;
+    if (machine != null) unawaited(_askWhetherItCanStart(machine));
   }
 
   /// Chooses how somebody is involved.
@@ -225,7 +262,27 @@ class StartWork extends ChangeNotifier {
     );
   }
 
+  /// The machine this was opened against, so choosing an agent can ask it again.
+  FleetBackend? _machine;
+
+  /// Asks the daemon whether work can start, without starting anything.
+  Future<void> _askWhetherItCanStart(FleetBackend backend) async {
+    final where = project;
+    if (where == null || !where.canBeActedOn) return;
+    try {
+      readiness = await backend.canStart(project: where.file, agent: agent);
+    } on VarlinkDisconnected {
+      // Nothing to say: the dialog already shows what it could not read, and a second sentence
+      // about the same lost connection is noise at the moment somebody is trying to work.
+    } on FeatureNotSupported {
+      // A backend older than `CanStart`. Nothing is claimed either way, which is what leaving it
+      // null means — better than asserting readiness nobody measured.
+    }
+    notifyListeners();
+  }
+
   Future<void> _reading(FleetBackend backend) async {
+    _machine = backend;
     busy = true;
     notifyListeners();
     try {
@@ -248,6 +305,7 @@ class StartWork extends ChangeNotifier {
         problem = '$agent is not installed on this machine any more.';
         agent = null;
       }
+      await _askWhetherItCanStart(backend);
     } on VarlinkDisconnected catch (ex) {
       problem = 'Lost contact with the machine: ${ex.message}';
     } on FeatureNotSupported catch (ex) {

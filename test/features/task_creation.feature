@@ -84,3 +84,39 @@ Feature: F08 Task Creation And Modes
     Then the launch asked for the mode {'SHELL'}
     And the launch was asked for nothing in particular
 
+  Scenario: a missing credential is named before anything is started
+    Given the vault holds no credential for what a run would use
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    Then it says {'The vault holds no credential called a-provider'}
+    And nothing was started
+
+  Scenario: a locked vault is a different sentence, and points at the machine
+    Given the vault is locked
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    Then it says {'Unlock it at the machine'}
+    And it says {'a daemon has no terminal'}
+
+  Scenario: choosing a provider is not storing a secret
+    Given the agent names no default provider
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    Then it says {'this is a provider, not a secret'}
+
+  Scenario: an unattended run that cannot authenticate is not offered at all
+    Given the vault is locked
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'Unattended, against a prompt'}
+    And I ask it to {'Fix the rounding'}
+    Then starting is not offered yet
+    And it says {'no container, no workspace, nothing to clear up'}
+
+  Scenario: an interactive run is offered anyway, and says what it will cost
+    Given the vault is locked
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then it says {'a container you will have to clear up'}
+

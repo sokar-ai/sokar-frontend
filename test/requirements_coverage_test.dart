@@ -28,7 +28,7 @@ void main() {
   /// requirement must never quietly delete its tests. So the id outlives the file, which also
   /// keeps the traceability report reading the same way it always did.
   const retired = <String>{
-    'F01', 'F02', 'F11', 'F13', 'F18', 'F20', 'F22', 'F23', 'F24', 'F27',
+    'F01', 'F02', 'F08', 'F11', 'F13', 'F18', 'F20', 'F22', 'F23', 'F24', 'F27',
   };
 
   const pending = <String>{

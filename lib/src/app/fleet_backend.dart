@@ -79,6 +79,9 @@ abstract class FleetBackend {
   /// Starts a stopped task's container again, with the helpers it is recorded as having had.
   Future<Resumed> resumeTask(String task);
 
+  /// Whether work can start, asked before anything is created.
+  Future<Readiness> canStart({String? project, String? agent});
+
   /// Stops every running task and its helpers at once, or says what it would stop.
   ///
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
@@ -236,6 +239,10 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Resumed> resumeTask(String task) => _opened().resume(task);
+
+  @override
+  Future<Readiness> canStart({String? project, String? agent}) =>
+      _opened().canStart(project: project, agent: agent);
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);

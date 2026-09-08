@@ -175,6 +175,14 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                       ),
                       onChanged: starting.ask,
                     ),
+                    // Answered before anything is created, and shown before the button. Three of
+                    // its outcomes are different actions — choose a provider, store a secret,
+                    // unlock the vault — and sending somebody to the wrong one costs more than
+                    // saying nothing would.
+                    if (starting.readiness != null && !starting.readiness!.ready) ...<Widget>[
+                      const SizedBox(height: Space.wide),
+                      _NotReady(starting: starting),
+                    ],
                     const SizedBox(height: Space.wide),
                     _KeepAsTemplate(starting: starting, onKeep: widget.onKeep),
                   ],
@@ -308,4 +316,59 @@ class _KeepAsTemplateState extends State<_KeepAsTemplate> {
           ),
         ],
       );
+}
+
+/// What stands in the way of starting, and what to do about it.
+///
+/// Coloured by whether the person can act on it here. Unlocking a vault happens at the machine —
+/// a daemon has no terminal to take a passphrase at — and that is a different sentence from *this
+/// cannot be done*, so it is not drawn as a fault.
+class _NotReady extends StatelessWidget {
+  const _NotReady({required this.starting});
+
+  final StartWork starting;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final answer = starting.readiness!;
+    final elsewhere = answer.outcome.answeredAtTheMachine;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Space.normal),
+      decoration: BoxDecoration(
+        color: elsewhere ? scheme.tertiaryContainer : scheme.errorContainer,
+        borderRadius: BorderRadius.circular(Radii.small),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(answer.whatToDo, key: const Key('not-ready')),
+          // The daemon's own words, under ours. Never parsed, only shown.
+          if (answer.detail.isNotEmpty) ...<Widget>[
+            const SizedBox(height: Space.tight),
+            Text(answer.detail,
+                key: const Key('not-ready-detail'),
+                style: Theme.of(context).textTheme.bodySmall),
+          ],
+          if (starting.refusedOutright) ...<Widget>[
+            const SizedBox(height: Space.small),
+            Text(
+              'An unattended run that cannot authenticate is refused before anything is created — '
+              'no container, no workspace, nothing to clear up. Nobody would be watching it fail.',
+              key: const Key('refused-outright'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          if (starting.whatItWouldCost != null) ...<Widget>[
+            const SizedBox(height: Space.small),
+            Text(starting.whatItWouldCost!,
+                key: const Key('what-it-would-cost'),
+                style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ],
+      ),
+    );
+  }
 }

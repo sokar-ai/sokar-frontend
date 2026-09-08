@@ -838,6 +838,164 @@ class Widened {
       );
 }
 
+/// Whether work can start, and what stands in the way.
+///
+/// **Not a Dart enum**, by the rule that already covers [Outcome]: a value added later must render
+/// rather than throw.
+class StartOutcome {
+  /// Constructor taking the name as the contract spells it.
+  const StartOutcome(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// Everything is in place.
+  static const ready = StartOutcome('READY');
+
+  /// Nothing is installed to run.
+  static const noAgent = StartOutcome('NO_AGENT');
+
+  /// The named agent is not installed here.
+  static const unknownAgent = StartOutcome('UNKNOWN_AGENT');
+
+  /// More than one is installed and none was named.
+  static const severalAgents = StartOutcome('SEVERAL_AGENTS');
+
+  /// The agent names no default provider, so one has to be chosen. **A provider, not a secret.**
+  static const noProviderChosen = StartOutcome('NO_PROVIDER_CHOSEN');
+
+  /// The named provider is not one this machine knows.
+  static const unknownProvider = StartOutcome('UNKNOWN_PROVIDER');
+
+  /// The provider does not speak what the agent expects.
+  static const wrongDialect = StartOutcome('WRONG_DIALECT');
+
+  /// Nothing recorded a project file, so there is nothing to start against.
+  static const noProjectFile = StartOutcome('NO_PROJECT_FILE');
+
+  /// The vault holds no credential under the name that was looked for. **Storing a secret.**
+  static const credentialMissing = StartOutcome('CREDENTIAL_MISSING');
+
+  /// There is a credential and it cannot be used as this provider needs it.
+  static const credentialUnusable = StartOutcome('CREDENTIAL_UNUSABLE');
+
+  /// The vault is shut, so nothing can say what it holds. **Unlocking, at the machine.**
+  static const vaultLocked = StartOutcome('VAULT_LOCKED');
+
+  /// The values this build knows.
+  static const known = <StartOutcome>[
+    ready,
+    noAgent,
+    unknownAgent,
+    severalAgents,
+    noProviderChosen,
+    unknownProvider,
+    wrongDialect,
+    noProjectFile,
+    credentialMissing,
+    credentialUnusable,
+    vaultLocked,
+  ];
+
+  /// Whether this build knows what it means.
+  bool get recognized => known.any((value) => value.name == name);
+
+  /// Whether this is answered at the machine rather than here.
+  ///
+  /// A daemon has no terminal to take a passphrase at, so unlocking is not something this
+  /// interface can offer — and saying *"this happens at the machine"* is a different sentence from
+  /// *"this cannot be done"*.
+  bool get answeredAtTheMachine => name == 'VAULT_LOCKED';
+
+  @override
+  bool operator ==(Object other) => other is StartOutcome && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// Whether a run can start, asked before anything is created.
+///
+/// The rule it answers lives on the daemon and is not restated here: which credential a run needs
+/// turns on the agent's declaration, the installed providers, the run's own override **and what
+/// the vault already holds** — an older vault answers under the agent's name rather than the
+/// provider's. A client holds one of the four.
+class Readiness {
+  /// Whether work can start.
+  ///
+  /// Never disagrees with [outcome]: `READY` is the only value that sets it.
+  final bool ready;
+
+  /// What stands in the way, or `READY`.
+  final StartOutcome outcome;
+
+  /// The agent that would run.
+  final String agent;
+
+  /// The provider that would be used.
+  final String provider;
+
+  /// **The key that was actually looked for**, not the one that ought to apply.
+  ///
+  /// A vault written before the provider-keyed change answers under the agent's own name, so the
+  /// name to show is the one the daemon looked up. Naming the other would tell somebody a key is
+  /// missing from a vault that has it.
+  final String credential;
+
+  /// Prose for a person. **Never parsed.**
+  final String detail;
+
+  /// Constructor taking every field.
+  const Readiness({
+    required this.ready,
+    required this.outcome,
+    required this.agent,
+    required this.provider,
+    required this.credential,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Readiness.from(Map<String, dynamic> map) => Readiness(
+        ready: map['ready'] == true,
+        outcome: StartOutcome(_string(map, 'outcome')),
+        agent: _string(map, 'agent'),
+        provider: _string(map, 'provider'),
+        credential: _string(map, 'credential'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// What to do about it, in one line, or empty when there is nothing to do.
+  ///
+  /// **Three of these are different actions**, and confusing them sends somebody to the wrong
+  /// place: choosing a provider is not storing a secret, and neither is unlocking a vault.
+  String get whatToDo => switch (outcome.name) {
+        'READY' => '',
+        'NO_PROVIDER_CHOSEN' =>
+          'This agent names no default provider. Choose one — this is a provider, not a secret.',
+        'CREDENTIAL_MISSING' => credential.isEmpty
+            ? 'The vault holds no credential for this.'
+            : 'The vault holds no credential called $credential. Store one and try again.',
+        'CREDENTIAL_UNUSABLE' =>
+          'There is a credential called $credential and it cannot be used the way this provider '
+              'needs it.',
+        'VAULT_LOCKED' =>
+          'The vault is shut, so nothing here can say what it holds. Unlock it at the machine: '
+              'a daemon has no terminal to take a passphrase at.',
+        'NO_AGENT' => 'Nothing is installed here to run work with.',
+        'UNKNOWN_AGENT' => '$agent is not installed on this machine.',
+        'SEVERAL_AGENTS' => 'More than one agent is installed. Choose which to run.',
+        'UNKNOWN_PROVIDER' => '$provider is not a provider this machine knows.',
+        'WRONG_DIALECT' => '$provider does not speak what $agent expects.',
+        'NO_PROJECT_FILE' => 'No project file is recorded, and starting takes one.',
+        // Added after this build shipped: the daemon's own words rather than silence.
+        _ => detail.isEmpty ? 'This cannot start, and nothing said why.' : detail,
+      };
+}
+
 /// One piece of work an emergency stop reached.
 class PanickedTask {
   /// Container name, **which is what `Resume` takes** — so the row that says what was stopped is

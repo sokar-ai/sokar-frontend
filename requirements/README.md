@@ -47,7 +47,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F08 | [Task Creation And Modes](F08-Task-Creation-And-Modes.md) | Work is started with a project, an agent and a mode, and finished unattended work can be continued with a new prompt. | which credential a run needs, answered before it starts — **being added** | |
 | F09 | [Task Control](F09-Task-Control.md) | Running work can be stopped, restarted, recreated, renamed and deleted, each named by its consequence. | a changeable label beside a task’s fixed identity — **asked for** | |
 | F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | | |
 | F12 | [Interactive Session Attach](F12-Interactive-Session-Attach.md) | An interactive session is one action away, and the way back is reliable. | a way to attach to a running task. `Start` has only the no-attach path | |
@@ -86,6 +85,13 @@ be read again.
   things it measured: `ssh` can exit before a stderr subscription has delivered the one sentence
   worth having, and waiting for the endpoint to *exist* makes any leftover file read as a working
   tunnel.
+- **F08 Task Creation And Modes.** Work started with a name, an agent and one of three modes
+  with nothing preselected; a prompt belongs to `UNATTENDED` alone and is never sent with another
+  mode even if it was typed first; a finished unattended run continued with its old prompt in the
+  box. Its last criterion was the one that taught the most: **which credential a run needs cannot
+  be assembled by a client** — it turns on what the vault already holds, and a field on `Agent`
+  would have reported a credential missing from precisely the vaults that have one. Asked as a
+  method instead, and the three outcomes that mean different actions are kept apart on screen.
 - **F18 Emergency Stop.** One action on the status line that stops every piece of work at once,
   reachable by name and by key, previewed before it acts, with leaving as the default. What it
   reports is **what survived** — Panic stops and never removes — and a helper that outlived its

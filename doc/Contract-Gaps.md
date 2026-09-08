@@ -92,6 +92,41 @@ names and the requirements are written from what a person sees.
     has no `Agent` entry to mark — which is the concrete reason the duplicate-name view here could
     not have been fed by a real daemon.
 
+- ~~**F08 Task Creation And Modes**~~ — **met.** `Start` gained `mode` and `prompt` on 2026-09-07,
+  and `CanStart` landed on 2026-09-08 to answer the sixth criterion.
+  - **The credential rule is asked, never assembled.** It turns on the agent's declaration, the
+    installed providers, the run's own override and **what the vault already holds**; a client has
+    one of the four. A field on `Agent` would have reported a credential missing from exactly the
+    vaults that have one — shown by mutation on the Sokar side rather than argued.
+  - **`credential` is the key that was looked for**, not the one that ought to apply.
+  - Three of the eleven outcomes are three different actions — choose a provider, store a secret,
+    unlock at the machine — and confusing them sends somebody to the wrong place.
+  - `Task.mode` was sending lower case against an IDL that declared the `Mode` type, and was fixed
+    on the Sokar side. Nothing here changed, because this build compares against the contract's
+    spelling and not against what happened to arrive.
+  - `Task.mode` stays a **string**, not the type: it has a fourth state, `""`, for a task started
+    before the field existed. Render the absence; never default it to `SHELL`.
+- **F09 Task Control** — **built**, except for two things, and the first turned out not to be
+  what the requirement wanted. **Renaming has no method**, and a task's name is its identity in
+  four places — the container, the gate ref, the workspace, the log files — so a rename would move
+  a ref with unreviewed pushes behind it. What the criterion actually wants is a **label**: a
+  changeable display name beside a fixed identity, which is a reply field and cheap. Asked for on
+  2026-09-07. Recreating is `Stop` then `Start`, which `Project.file` makes possible; that half is
+  unbuilt rather than blocked.
+- ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection
+  half needed, the same day it was asked for.
+- ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
+  asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
+  which files exist depends on what the task started, and a client that knew them would offer one
+  that was never going to exist and would never show one a later release adds.
+- **F25 Task Templates** — **three of four criteria are built**, and the fourth is a gap this
+  file previously missed by reading the requirement as *"start with fixed parameters"*. It also
+  says *shared with the project*, and **nothing in the contract writes to a project file except
+  `SetEgress`** — so a template is kept beside the interface's own settings and follows the person
+  rather than the project. Asked for. The criterion with teeth needs nothing: a template carries
+  no `clearance` and no `noGate`, and the security class is unreachable because `Start` cannot
+  set it.
+
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.
 - ~~**F13 Operation Feedback And History**~~ — **built.** The gap was read too widely: *"every
@@ -100,7 +135,14 @@ names and the requirements are written from what a person sees.
   What genuinely has no method is reopening the output of an operation started *before* this
   window, or by something else — no requirement asks for that today. Nothing here needs the
   backend to persist anything.
-- **F15 Secret Store Control** — `Credentials` reports the store's state. `readable` **was** wrong — an
+- **F15 Secret Store Control** — **one criterion of seven, and none of the other six is work
+  somebody forgot.** Settled on 2026-09-08: `Unlock` will **never** exist over the socket and
+  neither will revealing a recovery secret — a daemon has no terminal, and `Credentials` returns
+  names, kinds and lengths and never a value, on a socket that can be forwarded. A bounded unlock
+  and changing the passphrase are **coming, at the machine only**; the second does not exist in
+  the CLI either today, so the honest sentence is *"nothing can do this yet"* rather than *"the
+  interface cannot"*. Everything the screen can do is say **where** it happens.
+  `Credentials` reports the store's state. `readable` **was** wrong — an
   unlocked but empty vault answered `false`, exactly as a locked one did — and was fixed the same
   day in `758969f`, before anything here consumed it. It can now be trusted: unlocked and empty is
   `true`, locked and undecryptable are `false`, and a vault that does not exist yet is readable

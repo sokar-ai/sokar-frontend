@@ -120,6 +120,16 @@ class _Wedged implements FleetBackend {
   Future<Panicked> panic({bool? dryRun}) async =>
       const Panicked(tasks: <PanickedTask>[], surviving: <String>[], previewed: false);
 
+  @override
+  Future<Readiness> canStart({String? project, String? agent}) async => const Readiness(
+        ready: true,
+        outcome: StartOutcome.ready,
+        agent: '',
+        provider: '',
+        credential: '',
+        detail: '',
+      );
+
 }
 
 /// A machine that lists one project nothing has ever run on, and one task belonging to a project
@@ -244,6 +254,16 @@ class _Machine implements FleetBackend {
   @override
   Future<Panicked> panic({bool? dryRun}) async =>
       const Panicked(tasks: <PanickedTask>[], surviving: <String>[], previewed: false);
+
+  @override
+  Future<Readiness> canStart({String? project, String? agent}) async => const Readiness(
+        ready: true,
+        outcome: StartOutcome.ready,
+        agent: '',
+        provider: '',
+        credential: '',
+        detail: '',
+      );
 
 }
 

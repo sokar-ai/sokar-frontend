@@ -30,6 +30,10 @@ import './step/the_command_is_offered_as_unavailable.dart';
 import './step/one_agent_on_the_machine_cannot_be_read.dart';
 import './step/it_says.dart';
 import './step/the_launch_was_asked_for_nothing_in_particular.dart';
+import './step/the_vault_holds_no_credential_for_what_a_run_would_use.dart';
+import './step/nothing_was_started.dart';
+import './step/the_vault_is_locked.dart';
+import './step/the_agent_names_no_default_provider.dart';
 
 void main() {
   group('''F08 Task Creation And Modes''', () {
@@ -143,6 +147,55 @@ void main() {
       await iStartIt(tester);
       await theLaunchAskedForTheMode(tester, 'SHELL');
       await theLaunchWasAskedForNothingInParticular(tester);
+    });
+    testWidgets('''a missing credential is named before anything is started''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theVaultHoldsNoCredentialForWhatARunWouldUse(tester);
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await itSays(tester, 'The vault holds no credential called a-provider');
+      await nothingWasStarted(tester);
+    });
+    testWidgets(
+        '''a locked vault is a different sentence, and points at the machine''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theVaultIsLocked(tester);
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await itSays(tester, 'Unlock it at the machine');
+      await itSays(tester, 'a daemon has no terminal');
+    });
+    testWidgets('''choosing a provider is not storing a secret''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theAgentNamesNoDefaultProvider(tester);
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await itSays(tester, 'this is a provider, not a secret');
+    });
+    testWidgets(
+        '''an unattended run that cannot authenticate is not offered at all''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theVaultIsLocked(tester);
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'Unattended, against a prompt');
+      await iAskItTo(tester, 'Fix the rounding');
+      await startingIsNotOfferedYet(tester);
+      await itSays(tester, 'no container, no workspace, nothing to clear up');
+    });
+    testWidgets(
+        '''an interactive run is offered anyway, and says what it will cost''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theVaultIsLocked(tester);
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await itSays(tester, 'a container you will have to clear up');
     });
   });
 }

@@ -121,6 +121,7 @@ class MockMachine {
     daemon.method('Decide', _decide);
     daemon.method('Resume', _resume);
     daemon.method('Panic', _panic);
+    daemon.method('CanStart', _canStart);
 
     switch (situation) {
       case 'no-watch':
@@ -148,6 +149,8 @@ class MockMachine {
     'out-of-time': 'an unattended run killed by its own time limit, with its log kept',
     'no-agent': 'a run asked for when no agent is installed, which is a refusal not a failure',
     'helper-survives': 'an emergency stop that leaves a helper running, to be killed by hand',
+    'vault-locked': 'a vault nothing can read, so nothing can say what it holds',
+    'no-credential': 'a vault with no credential for the provider a run would use',
   };
 
   /// The daemon answering for this machine.
@@ -380,6 +383,56 @@ class MockMachine {
       'detail': '',
     };
   }
+
+  /// Whether work can start, answered before anything is created.
+  ///
+  /// It acts on the situation rather than answering canned: the three outcomes that mean
+  /// different actions are each reachable, and `credential` names the key that was looked for
+  /// rather than the one that ought to apply.
+  Map<String, dynamic> _canStart(Map<String, dynamic> parameters) {
+    final agent = parameters['agent'] as String? ?? '';
+    if (situation == 'no-agent') {
+      return _readiness('NO_AGENT', detail: 'nothing is installed here to run work with');
+    }
+    if (situation == 'vault-locked') {
+      return _readiness('VAULT_LOCKED',
+          agent: agent, detail: 'the vault is locked, so nothing can say what it holds');
+    }
+    if (situation == 'no-credential') {
+      return _readiness('CREDENTIAL_MISSING',
+          agent: agent,
+          provider: 'a-provider',
+          // The provider's name, which is what is actually looked up — an older vault answers
+          // under the agent's own name, and naming the wrong one reports a key missing from a
+          // vault that has it.
+          credential: 'a-provider',
+          detail: "the vault holds no credential for 'a-provider'");
+    }
+    if (agent == 'other-agent') {
+      return _readiness('NO_PROVIDER_CHOSEN',
+          agent: agent, detail: 'names no default provider, so one has to be chosen');
+    }
+    return _readiness('READY',
+        ready: true, agent: agent.isEmpty ? 'an-agent' : agent, provider: 'a-provider',
+        credential: 'a-provider');
+  }
+
+  static Map<String, dynamic> _readiness(
+    String outcome, {
+    bool ready = false,
+    String agent = '',
+    String provider = '',
+    String credential = '',
+    String detail = '',
+  }) =>
+      <String, dynamic>{
+        'ready': ready,
+        'outcome': outcome,
+        'agent': agent,
+        'provider': provider,
+        'credential': credential,
+        'detail': detail,
+      };
 
   /// Stops every running task at once, and never removes anything.
   ///
