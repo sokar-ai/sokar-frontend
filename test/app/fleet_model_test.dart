@@ -124,6 +124,11 @@ class _Wedged implements FleetBackend {
   Future<String> node() async => '';
 
   @override
+  Stream<PrepareProgress> prepare(String project,
+          {String? agent, String? rebuild, bool? dryRun}) =>
+      const Stream<PrepareProgress>.empty();
+
+  @override
   Future<Health> doctor() async =>
       const Health(probes: <Probe>[], ready: true);
 
@@ -294,6 +299,11 @@ class _Machine implements FleetBackend {
 
   @override
   Future<String> node() async => '';
+
+  @override
+  Stream<PrepareProgress> prepare(String project,
+          {String? agent, String? rebuild, bool? dryRun}) =>
+      const Stream<PrepareProgress>.empty();
 
   @override
   Future<Health> doctor() async =>

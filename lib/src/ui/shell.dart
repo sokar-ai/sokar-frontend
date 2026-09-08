@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/commands.dart';
+import '../app/fleet_backend.dart';
 import '../app/fleet_model.dart';
 import '../app/egress.dart';
 import '../app/agent_inventory.dart';
@@ -44,6 +45,7 @@ import 'log_view.dart';
 import 'machine_switcher.dart';
 import 'operations.dart';
 import 'panes.dart';
+import 'prepare_view.dart';
 import 'refusal.dart';
 import 'status_line.dart';
 import 'tokens.dart';
@@ -186,6 +188,7 @@ class _ShellState extends State<Shell> {
         removeWhatWasBuilt: _removeWhatWasBuilt,
         checkTheMachine: _checkTheMachine,
         showTheProviders: _showTheProviders,
+        prepareTheProject: _prepareTheProject,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
@@ -261,6 +264,28 @@ class _ShellState extends State<Shell> {
   Future<void> _checkTheMachine() async {
     widget.shell.openReadiness();
     await widget.readiness.look(_fleet.backend);
+  }
+
+  /// Builds a project's environment without starting anything, at a depth somebody chooses.
+  ///
+  /// **The depth is asked before the build, because it is what the build costs.** It runs as an
+  /// operation, so the rest of the interface stays usable while it goes and the output is still
+  /// readable afterwards — including the step a failure names.
+  Future<void> _prepareTheProject() async {
+    final project = _fleet.selectedProject;
+    if (project == null || !project.canBeActedOn) return;
+    final depth = await askHowMuchToBuild(context, project: project.name);
+    if (depth == null || !mounted) return;
+
+    final operation = widget.operations.run(
+      title: 'Build the environment for ${project.name}',
+      output: _fleet.backend
+          .buildEnvironment(project.project.file, rebuild: depth.name),
+    );
+    widget.shell.openOperation(operation.id);
+    // What is on screen has to be what is true: a built image changes `preparedState`, which the
+    // project row draws.
+    await _fleet.refresh();
   }
 
   /// Shows what this machine can authenticate against, and where each credential belongs.

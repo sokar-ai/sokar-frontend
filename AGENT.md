@@ -1615,3 +1615,25 @@ Three of its outcomes are not failures and must not read as one:
 
 **Omitting the agent means "the only one installed"; an empty string matches nothing.** Two
 different things, kept apart on both sides.
+
+## Three rebuild depths, and the middle one is a mechanism
+
+The image layers are base → OS packages → agent layers → project snippet, so invalidating from the
+agent's layers genuinely keeps the packages. **But there is no podman flag for "rebuild from layer
+N"**: the middle depth works by changing a build argument placed where the agent's layers begin,
+which invalidates the cache from that line down. Real, and not free.
+
+That is why it was worth asking before drawing three buttons. **A screen offering three depths
+where only two were real would have been a lie about cost**, and a rebuild that costs ten times
+what the screen implied is what teaches people not to press it.
+
+`CACHED` is not *"skip the build"*: the build runs and the cache decides line by line, which is
+what every task start already does. **The cost belongs on the choice**, not in a warning
+afterwards — somebody deciding to rebuild is deciding what it will cost them.
+
+## An apostrophe in a command label breaks the generated test
+
+`bdd_widget_test` writes the step's argument into a single-quoted Dart string, so a label like
+*"Build this project's environment"* produces an unterminated literal and the whole build fails
+with no output. The command was renamed rather than escaped: a label is read by people, and a
+backslash in one is a fix in the wrong place.

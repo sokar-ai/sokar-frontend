@@ -146,6 +146,7 @@ List<Command> commandsFor({
   required VoidCallback removeWhatWasBuilt,
   required VoidCallback checkTheMachine,
   required VoidCallback showTheProviders,
+  required VoidCallback prepareTheProject,
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
@@ -219,6 +220,19 @@ List<Command> commandsFor({
         muted: !notifications.mutedFor(selectedProject.name),
       ),
       unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
+      id: 'project.prepare',
+      label: 'Build the environment for this project',
+      group: 'Work',
+      run: prepareTheProject,
+      unavailable: selectedProject == null
+          ? 'no project selected'
+          : !selectedProject.canBeActedOn
+              // `Prepare` takes the project file, so a project nothing recorded one for cannot be
+              // prepared — unlike removing what was built, which takes the name.
+              ? 'no project file is recorded for ${selectedProject.name}'
+              : null,
     ),
     Command(
       id: 'project.delete',

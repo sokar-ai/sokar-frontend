@@ -392,6 +392,38 @@ class FakeBackend implements FleetBackend {
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
 
+  /// What a build prints before it ends. Set by the scenario.
+  List<String> theBuildPrints = <String>[
+    'STEP 1/6: FROM ubuntu:24.04',
+    'STEP 4/6: RUN apt-get install -y git',
+    'COMMIT sokar/checkout:latest',
+  ];
+
+  /// How the next build ends.
+  String theBuildEndsWith = 'PREPARED';
+
+  /// Every build asked for: the project, the depth, and whether it was a preview.
+  final List<({String project, String? rebuild, bool preview})> builds =
+      <({String project, String? rebuild, bool preview})>[];
+
+  @override
+  Stream<PrepareProgress> prepare(String project,
+      {String? agent, String? rebuild, bool? dryRun}) async* {
+    builds.add((project: project, rebuild: rebuild, preview: dryRun == true));
+    for (final line in theBuildPrints) {
+      yield PrepareProgress(line: line);
+    }
+    yield PrepareProgress(
+      outcome: theBuildEndsWith,
+      image: theBuildEndsWith == 'PREPARED' ? 'sokar/checkout:latest' : '',
+      // Read back rather than echoed: a depth the daemon did not recognise has to be visible.
+      rebuild: rebuild ?? 'CACHED',
+      detail: theBuildEndsWith == 'FAILED'
+          ? 'STEP 4/6: RUN apt-get install -y git returned 100'
+          : '',
+    );
+  }
+
   /// What the machine answers about itself. Set by the scenario.
   ///
   /// **Ready with nothing wrong by default**, because that is the ordinary machine — a scenario

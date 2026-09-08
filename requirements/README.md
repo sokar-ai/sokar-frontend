@@ -47,7 +47,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | rebuild, at depths distinguishable by what each replaces | |
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
 | F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | read and write instructions at both levels, and show the resolved result | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
@@ -118,6 +117,23 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F03 Project Environment Preparation.** An environment built on purpose rather than as a side
+  effect of starting work — which is where the first task in a project otherwise spends its
+  minutes — **at three depths that are real**: build what changed, replace the agent's tooling
+  keeping the base image and its packages, or discard everything. The middle one is a mechanism
+  rather than a switch, and that is why it was worth asking about before drawing three buttons:
+  there is no *"rebuild from here"*, so it works by changing a build argument placed where the
+  agent's layers begin.
+
+  **The cost is on the choice rather than in a warning afterwards.** Somebody deciding to rebuild
+  is deciding what it will cost them, and *"rebuild"* with no answer to *"how much of it"* is a
+  button people press once and then avoid. It runs as an operation, so the frame stays usable and
+  the output is still readable after the fact — including the step a failure names, which is the
+  one thing somebody needs from a build that failed at a line of a Containerfile.
+
+  Its last criterion was met earlier and separately: `preparedState` marks an environment built
+  before the project file changed, which `prepared` could never say.
+
 - **F19 Host Readiness.** Whether this machine can run a task at all, one action away, with
   everything that was checked, what it means and **the single next action for anything that is
   not fine**. Every one of those dependencies fails far from its cause — without `nft` a container

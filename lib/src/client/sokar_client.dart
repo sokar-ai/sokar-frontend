@@ -379,6 +379,29 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Builds a project's task image without starting anything.
+  ///
+  /// **Streamed, because a build takes minutes** and showing nothing for that long is
+  /// indistinguishable from having hung.
+  ///
+  /// [rebuild] is `CACHED`, `AGENT` or `EVERYTHING`. `CACHED` is not *"skip the build"*: the build
+  /// runs and the layer cache decides line by line, which is what every task start already does.
+  /// `AGENT` keeps the base image and its packages, and is a mechanism rather than a switch —
+  /// there is no *"rebuild from here"*, so it works by changing a build argument placed where the
+  /// agent's layers begin.
+  Stream<PrepareProgress> prepare(
+    String project, {
+    String? agent,
+    String? rebuild,
+    bool? dryRun,
+  }) =>
+      _callMore('Prepare', {
+        'project': project,
+        'agent': ?agent,
+        'rebuild': ?rebuild,
+        'dryRun': ?dryRun,
+      }).map(PrepareProgress.from);
+
   /// Whether this machine can actually run a task, and what it is short of.
   ///
   /// **It runs external programs to find out, so it takes a moment and is not something to
@@ -587,4 +610,53 @@ class StartProgress {
 
   /// Whether this is the last reply, carrying the result rather than output.
   bool get isResult => container != null || exitCode != null;
+}
+
+/// One reply from a build: a line it printed, or the result.
+class PrepareProgress {
+  /// A line the build printed, or null on the final reply.
+  final String? line;
+
+  /// `PREPARED`, `PREVIEWED`, `NO_SUCH_PROJECT` or `FAILED`. Null while output is still arriving.
+  final String? outcome;
+
+  /// The image that was built, or empty when nothing was.
+  final String image;
+
+  /// The depth actually used.
+  ///
+  /// **Read rather than assumed.** It comes back so a depth this build asked for and the daemon
+  /// did not recognise is visible instead of being silently defaulted.
+  final String rebuild;
+
+  /// Why it failed, naming the step. Empty otherwise.
+  final String detail;
+
+  /// Constructor taking every field.
+  const PrepareProgress({
+    this.line,
+    this.outcome,
+    this.image = '',
+    this.rebuild = '',
+    this.detail = '',
+  });
+
+  /// Reads one from a reply.
+  factory PrepareProgress.from(Map<String, dynamic> map) {
+    final line = map['line'];
+    final outcome = map['outcome'];
+    return PrepareProgress(
+      line: line is String ? line : null,
+      outcome: outcome is String ? outcome : null,
+      image: map['image'] is String ? map['image']! as String : '',
+      rebuild: map['rebuild'] is String ? map['rebuild']! as String : '',
+      detail: map['detail'] is String ? map['detail']! as String : '',
+    );
+  }
+
+  /// Whether this is the last reply, carrying the result rather than output.
+  bool get isResult => outcome != null;
+
+  /// Whether an image was built.
+  bool get built => outcome == 'PREPARED';
 }

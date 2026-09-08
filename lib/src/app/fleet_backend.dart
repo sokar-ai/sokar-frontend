@@ -96,6 +96,16 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Builds a project's task image without starting anything. Streamed: a build takes minutes.
+  Stream<PrepareProgress> prepare(
+    String project, {
+    String? agent,
+    String? rebuild,
+    bool? dryRun,
+  });
+
+
+
   /// Whether this machine can run a task, and what it is short of.
   Future<Health> doctor();
 
@@ -288,6 +298,11 @@ class SokarBackend implements FleetBackend {
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
 
   @override
+  Stream<PrepareProgress> prepare(String project,
+          {String? agent, String? rebuild, bool? dryRun}) =>
+      _opened().prepare(project, agent: agent, rebuild: rebuild, dryRun: dryRun);
+
+  @override
   Future<Health> doctor() => _opened().doctor();
 
   @override
@@ -385,6 +400,49 @@ class SokarBackend implements FleetBackend {
 ///
 /// Not a fault in the client and not a lost backend: the operation ran, and it failed. It gets
 /// said in the same place a success would have been said.
+/// A build, as lines, so it runs through the same machinery a launch does.
+///
+/// **An extension rather than a member**, so every backend gets it and no fake has to reimplement
+/// shaping that is not the backend's job.
+extension BuildingAnEnvironment on FleetBackend {
+  /// The same build, as lines.
+  ///
+  /// **The stream erroring is how a failure reaches an operation**, which is what puts the failed
+  /// step in the record and keeps it readable afterwards. Nothing else has to know what an outcome
+  /// means.
+  Stream<String> buildEnvironment(
+    String project, {
+    String? agent,
+    String? rebuild,
+  }) async* {
+    var failed = '';
+    await for (final progress in prepare(project, agent: agent, rebuild: rebuild)) {
+      final line = progress.line;
+      if (line != null) yield line;
+      if (progress.isResult && !progress.built) {
+        failed = progress.detail.isEmpty ? progress.outcome! : progress.detail;
+      }
+    }
+    if (failed.isNotEmpty) throw PreparationFailed(failed);
+  }
+}
+
+/// A build that did not produce an image.
+///
+/// **It carries the step rather than a code.** A build fails at a line of a Containerfile, and the
+/// one thing somebody needs is which line — an exit code would send them to the output to find out
+/// what this already knows.
+class PreparationFailed implements Exception {
+  /// Constructor taking what the daemon said, naming the step.
+  const PreparationFailed(this.step);
+
+  /// The step that failed, in the daemon's own words.
+  final String step;
+
+  @override
+  String toString() => step;
+}
+
 class OperationFailed implements Exception {
   /// Constructor taking what the launch returned.
   const OperationFailed(this.exitCode);
