@@ -991,3 +991,25 @@ one artifact has to be deleted from Artifactory or it strands whoever installed 
 the next build sorts above it and that 10 beats 9. Lexical comparison would have worked for nine
 builds and then stopped quietly.
 
+## An upload that succeeded is not a package anybody can install
+
+Artifactory indexes asynchronously, and **a missing index, an empty index and a late index look
+identical from a client.** Measured on 2026-09-08 while both repositories were empty, the Debian
+index answered three different ways in twelve minutes:
+
+| | |
+|---|---|
+| 404 | nothing there |
+| 200, `Packages` empty (`d41d8cd…`) | a valid, empty index — `apt update` **succeeds** and finds nothing |
+| 404 again | it settled |
+
+None of the three was wrong, and a single probe of any of them is a coin toss rather than a
+measurement. **Probe with a retry or do not probe.** The publish job waits up to two minutes —
+twenty attempts, six seconds apart — for the `Packages` file to carry the exact `Version` field
+from the built `.deb`, and for the rpm `primary.xml` to name the package, before it believes the
+upload. It fails with *"uploaded but not indexed"* rather than reporting success.
+
+This is the other half of the `--target-props` lesson. That the properties are *passed* is asserted
+by a test on the workflow; that the package is *indexed* can only be seen from outside, afterwards.
+The first is cheap and the second is the one that matters.
+

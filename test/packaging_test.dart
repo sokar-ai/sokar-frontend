@@ -132,6 +132,25 @@ void main() {
       expect('runs-on: ubuntu-22.04'.allMatches(workflow).length, 3);
     });
 
+    test('the publish is not believed until the index carries it', () {
+      // An upload that succeeded is not a package anybody can install: Artifactory indexes
+      // asynchronously, and a missing index, an empty one and a late one look identical from a
+      // client. The only difference is how long you are willing to look.
+      expect(workflow, contains('uploaded but not indexed'));
+      expect(workflow, contains('binary-amd64/Packages'));
+      expect(workflow, contains('repomd.xml'));
+    });
+
+    test('the index check retries rather than probing once', () {
+      // A single probe of an asynchronous index is a coin toss, not a measurement.
+      expect(workflow, contains(r'for attempt in $(seq 1 20)'));
+    });
+
+    test('the version it looks for is the one in the package, not the filename', () {
+      // A filename is what the build wrote; the Version field is what apt reads.
+      expect(workflow, contains(r'dpkg-deb -f packages/*.deb Version'));
+    });
+
     test('the packages are proven to install before they are published', () {
       expect(workflow, contains('needs: [build, installs]'));
       expect(workflow, contains('debian:12'));

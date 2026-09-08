@@ -183,3 +183,44 @@ jobs:
       - name: Upload the rpm
         run: |
           jf rt upload "packages/*.rpm" "sokar-dist-rpm/snapshots/" --flat=true
+
+      # An upload that succeeded is not a package anybody can install. Artifactory indexes
+      # asynchronously, and **a missing index, an empty index and a late index look identical from
+      # a client** — measured on 2026-09-08, when the Debian index went 404, then 200 with an empty
+      # Packages file, then 404 again inside twelve minutes. A single probe of an asynchronous
+      # index is not a measurement, so this retries before it believes the answer.
+      #
+      # This is the other half of the `--target-props` lesson: the properties being *passed* is
+      # asserted by a test, and the package being *indexed* can only be seen from outside.
+      - name: Wait until it is actually indexed
+        run: |
+          set -u
+          version="$(dpkg-deb -f packages/*.deb Version)"
+          deb="${{ vars.JF_URL }}/sokar-dist-deb/dists/snapshots/main/binary-amd64/Packages"
+          rpm="${{ vars.JF_URL }}/sokar-dist-rpm/snapshots/repodata/repomd.xml"
+
+          found_deb=no
+          found_rpm=no
+          for attempt in $(seq 1 20); do
+            if [ "$found_deb" = no ] && \
+               curl -fsS "$deb" 2>/dev/null | grep -q "^Version: $version$"; then
+              found_deb=yes
+              echo "the deb index carries $version"
+            fi
+            if [ "$found_rpm" = no ] && curl -fsS "$rpm" >/dev/null 2>&1; then
+              primary="$(curl -fsS "$rpm" | grep -oE 'repodata/[a-f0-9]+-primary.xml.gz' | head -1)"
+              if [ -n "$primary" ] && curl -fsS \
+                   "${{ vars.JF_URL }}/sokar-dist-rpm/snapshots/$primary" \
+                   | gunzip -c | grep -q "<name>sokar-frontend</name>"; then
+                found_rpm=yes
+                echo "the rpm index carries sokar-frontend"
+              fi
+            fi
+            [ "$found_deb" = yes ] && [ "$found_rpm" = yes ] && exit 0
+            sleep 6
+          done
+
+          echo "::error::uploaded but not indexed after two minutes" \
+               "(deb: $found_deb, rpm: $found_rpm). The packages are stored and nothing can" \
+               "install them — check that the token has Annotate as well as Deploy." >&2
+          exit 1
