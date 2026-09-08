@@ -6,6 +6,7 @@ import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/egress.dart';
 import '../app/agent_inventory.dart';
+import '../app/emergency_stop.dart';
 import '../app/start_work.dart';
 import '../app/templates.dart';
 import '../app/widening.dart';
@@ -24,6 +25,7 @@ import 'clearance_view.dart';
 import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
+import 'emergency_stop_view.dart';
 import 'start_work_view.dart';
 import 'widening_view.dart';
 import 'gate_view.dart';
@@ -58,6 +60,7 @@ class Shell extends StatefulWidget {
     required this.starting,
     required this.inventory,
     required this.templates,
+    required this.stopping,
     required this.newerVersion,
     super.key,
   });
@@ -97,6 +100,9 @@ class Shell extends StatefulWidget {
 
   /// The recurring jobs somebody named.
   final Templates templates;
+
+  /// Cutting every form of access at once.
+  final EmergencyStop stopping;
 
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
@@ -150,6 +156,7 @@ class _ShellState extends State<Shell> {
         startWork: _startWork,
         showAgents: _showAgents,
         startFromTemplate: _startFromTemplate,
+        stopEverything: _stopEverything,
         continueTheWork: _continueTheWork,
         quit: _quit,
       );
@@ -191,6 +198,22 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openEgress();
     await widget.egress.lookAt(_fleet.backend, project);
+  }
+
+  /// Opens the emergency stop, having first asked what it would stop.
+  ///
+  /// Never stops anything by itself: what would be stopped is shown, and agreeing to it is a
+  /// second, separate act. One press away from stopping a machine is an accident waiting for a
+  /// stray click.
+  Future<void> _stopEverything() async {
+    widget.stopping.letItBe();
+    unawaited(widget.stopping.consider(_fleet.backend));
+    await openEmergencyStop(
+      context,
+      stopping: widget.stopping,
+      onStopEverything: () => widget.stopping.stopEverything(_fleet.backend),
+    );
+    widget.stopping.letItBe();
   }
 
   /// Shows what agents this machine has.
@@ -416,6 +439,7 @@ class _ShellState extends State<Shell> {
                   operations: widget.operations,
                   cannotNotify: widget.notifications.problem,
                   onShowOperations: () => widget.shell.goTo(Section.operations),
+                  onStopEverything: _stopEverything,
                 ),
               ],
             ),

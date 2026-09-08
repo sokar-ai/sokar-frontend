@@ -199,12 +199,21 @@ jobs:
       - name: Wait until it is actually indexed
         run: |
           set -u
-          # -L on every fetch: Artifactory answers an artifact with a 302 to a CDN, and `curl -f`
-          # treats a redirect as success — so without it the body is empty, nothing matches, and
-          # this reports "not indexed" for a package that is perfectly well indexed.
+          # A trailing slash on JF_URL makes every path here a doubled slash, which Artifactory
+          # answers 404 — and the first version of this step failed for two minutes without ever
+          # saying which URL it had asked for. Strip it rather than assume.
+          base="${{ vars.JF_URL }}"
+          while [ "${base%/}" != "$base" ]; do base="${base%/}"; done
+          test -n "$base" || { echo "::error::vars.JF_URL is not set" >&2; exit 1; }
+
           version="$(dpkg-deb -f packages/*.deb Version)"
-          deb="${{ vars.JF_URL }}/sokar-dist-deb/dists/snapshots/main/binary-amd64/Packages"
-          rpm="${{ vars.JF_URL }}/sokar-dist-rpm/snapshots/repodata/repomd.xml"
+          test -n "$version" || { echo "::error::could not read the built version" >&2; exit 1; }
+
+          deb="$base/sokar-dist-deb/dists/snapshots/main/binary-amd64/Packages"
+          rpm="$base/sokar-dist-rpm/snapshots/repodata/repomd.xml"
+          echo "looking for $version"
+          echo "  $deb"
+          echo "  $rpm"
 
           found_deb=no
           found_rpm=no
@@ -214,20 +223,26 @@ jobs:
               found_deb=yes
               echo "the deb index carries $version"
             fi
-            if [ "$found_rpm" = no ] && curl -fsSL "$rpm" >/dev/null 2>&1; then
-              primary="$(curl -fsSL "$rpm" | grep -oE 'repodata/[a-f0-9]+-primary.xml.gz' | head -1)"
-              if [ -n "$primary" ] && curl -fsSL \
-                   "${{ vars.JF_URL }}/sokar-dist-rpm/snapshots/$primary" \
-                   | gunzip -c | grep -q "<name>sokar-frontend</name>"; then
+            if [ "$found_rpm" = no ]; then
+              primary="$(curl -fsSL "$rpm" 2>/dev/null \
+                | grep -oE 'repodata/[a-f0-9]+-primary.xml.gz' | head -1)"
+              if [ -n "$primary" ] && curl -fsSL "$base/sokar-dist-rpm/snapshots/$primary" \
+                   2>/dev/null | gunzip -c | grep -q "<name>sokar-frontend</name>"; then
                 found_rpm=yes
                 echo "the rpm index carries sokar-frontend"
               fi
             fi
-            [ "$found_deb" = yes ] && [ "$found_rpm" = yes ] && exit 0
+            if [ "$found_deb" = yes ] && [ "$found_rpm" = yes ]; then exit 0; fi
             sleep 6
           done
 
+          # What it asked and what came back, rather than a cause it cannot know. The first
+          # version of this asserted the token lacked Annotate; the packages were indexed and the
+          # URL was wrong.
+          echo "deb index: HTTP $(curl -sSL -o /dev/null -w '%{http_code}' "$deb")"
+          echo "rpm index: HTTP $(curl -sSL -o /dev/null -w '%{http_code}' "$rpm")"
+          curl -fsSL "$deb" 2>/dev/null | grep '^Version:' | sed 's/^/  in the index: /' || true
           echo "::error::uploaded but not indexed after two minutes" \
                "(deb: $found_deb, rpm: $found_rpm). The packages are stored and nothing can" \
-               "install them — check that the token has Annotate as well as Deploy." >&2
+               "install them. What was asked for and what came back is above." >&2
           exit 1

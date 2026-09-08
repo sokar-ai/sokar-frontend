@@ -838,6 +838,43 @@ class Widened {
       );
 }
 
+/// What an emergency stop did.
+///
+/// **It stops and never removes.** Every workspace, every log and every commit that never reached
+/// the gate is exactly where it was, and `Resume` brings a task back with the work it had. An
+/// interface that presented this as a cleanup would send somebody looking for work that is still
+/// there — which is why what this carries is *what survived*, not what was cleared away.
+class Panicked {
+  /// How many pieces of work were stopped.
+  final int stopped;
+
+  /// Helpers that outlived their stop, **by name**.
+  ///
+  /// Named rather than counted because a person has to kill these by hand: a number is something
+  /// nobody can act on. Usually empty, and it matters when it is not.
+  final List<String> surviving;
+
+  /// Whether this was a preview and nothing was actually stopped.
+  final bool previewed;
+
+  /// Constructor taking every field.
+  const Panicked({
+    required this.stopped,
+    required this.surviving,
+    required this.previewed,
+  });
+
+  /// Reads one from a reply.
+  factory Panicked.from(Map<String, dynamic> map) => Panicked(
+        // The reply carries a task per entry; what is rendered today is how many. The per-task
+        // detail is a shape this build has not been told, and a guessed field name renders a
+        // blank where a number belongs with nothing on screen saying it guessed.
+        stopped: map['tasks'] is List ? (map['tasks']! as List).length : 0,
+        surviving: _strings(map, 'surviving'),
+        previewed: map['previewed'] == true,
+      );
+}
+
 /// One of a task's log files.
 class Log {
   /// File name. **Pass it to `Tail` unchanged** — it is a name, never a path.

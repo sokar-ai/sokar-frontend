@@ -116,6 +116,10 @@ class _Wedged implements FleetBackend {
         shadowed: const <ShadowedAgent>[],
       );
 
+  @override
+  Future<Panicked> panic({bool? dryRun}) async =>
+      const Panicked(stopped: 0, surviving: <String>[], previewed: false);
+
 }
 
 /// A machine that lists one project nothing has ever run on, and one task belonging to a project
@@ -236,6 +240,10 @@ class _Machine implements FleetBackend {
         failures: const <String, String>{},
         shadowed: const <ShadowedAgent>[],
       );
+
+  @override
+  Future<Panicked> panic({bool? dryRun}) async =>
+      const Panicked(stopped: 0, surviving: <String>[], previewed: false);
 
 }
 

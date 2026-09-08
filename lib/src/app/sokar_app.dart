@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../ui/shell.dart';
 import 'egress.dart';
 import 'agent_inventory.dart';
+import 'emergency_stop.dart';
 import 'start_work.dart';
 import 'templates.dart';
 import 'widening.dart';
@@ -31,6 +32,7 @@ class SokarApp extends StatelessWidget {
     required this.starting,
     required this.inventory,
     required this.templates,
+    required this.stopping,
     required this.newerVersion,
     super.key,
   });
@@ -71,6 +73,9 @@ class SokarApp extends StatelessWidget {
   /// The recurring jobs somebody named.
   final Templates templates;
 
+  /// Cutting every form of access at once.
+  final EmergencyStop stopping;
+
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
@@ -100,6 +105,7 @@ class SokarApp extends StatelessWidget {
               starting,
               inventory,
               templates,
+              stopping,
               newerVersion,
             ]),
             builder: (context, _) => Shell(
@@ -115,6 +121,7 @@ class SokarApp extends StatelessWidget {
               starting: starting,
               inventory: inventory,
               templates: templates,
+              stopping: stopping,
               newerVersion: newerVersion,
             ),
           ),

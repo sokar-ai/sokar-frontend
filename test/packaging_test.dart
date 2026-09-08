@@ -141,6 +141,20 @@ void main() {
       expect(workflow, contains('repomd.xml'));
     });
 
+    test('a trailing slash on the base URL cannot make every path a 404', () {
+      // Artifactory answers a doubled slash with 404. The first version of this step asked the
+      // wrong URL for two minutes and reported it as a permissions problem.
+      expect(workflow, contains(r'while [ "${base%/}" != "$base" ]; do base="${base%/}"; done'));
+    });
+
+    test('a failure reports what it asked and what came back, not a cause', () {
+      // It said "check that the token has Annotate as well as Deploy" — a confident diagnosis,
+      // and wrong: the packages were indexed and the URL was malformed.
+      expect(workflow.contains('check that the token has Annotate'), isFalse);
+      expect(workflow, contains('What was asked for and what came back is above'));
+      expect(workflow, contains(r"deb index: HTTP $(curl"));
+    });
+
     test('the index check follows redirects, or it reads an empty body', () {
       // Artifactory answers an artifact with a 302 to a CDN, and `curl -f` treats a redirect as
       // success — so without -L the body is empty, nothing matches, and a perfectly well indexed

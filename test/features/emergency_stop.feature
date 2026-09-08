@@ -1,0 +1,47 @@
+# The requirement id belongs on the Feature line and nowhere else: it becomes the JUnit group,
+# which is what makes the CI report a traceability matrix.
+Feature: F18 Emergency Stop
+
+  Background:
+    Given a backend with work on it
+    And the app is running
+
+  Scenario: the way to stop everything is on screen without opening anything
+    Then stopping everything is offered on the frame
+
+  Scenario: it is reachable by name as well
+    When I open the command finder
+    Then the command finder names {'Stop everything on this machine'}
+
+  Scenario: it never stops anything on the first press
+    When I ask to stop everything
+    Then nothing has been stopped
+    And it says {'This would stop 3 pieces of work'}
+
+  Scenario: leaving is the default, so a stray Return carries nothing
+    When I ask to stop everything
+    Then leaving it running is the default
+
+  Scenario: agreeing stops everything and says what state the machine is in
+    When I ask to stop everything
+    And I agree to stop everything
+    Then it says {'Stopped 3 pieces of work. Nothing was removed.'}
+    And it says {'exactly where it was'}
+
+  Scenario: the way back is named, not left to be worked out
+    When I ask to stop everything
+    And I agree to stop everything
+    Then it says how to get back to work
+
+  Scenario: a helper that outlived its stop is named, never counted
+    Given one helper will outlive the stop
+    When I ask to stop everything
+    And I agree to stop everything
+    Then it names the helper {'sokar-checkout-shell-gate (pid 4711)'}
+    And it says {'killed on the machine by hand'}
+
+  Scenario: losing the machine mid-stop says nothing was stopped
+    Given the backend will refuse to stop everything
+    When I ask to stop everything
+    And I agree to stop everything
+    Then it says {'Nothing was stopped, and work is still running'}

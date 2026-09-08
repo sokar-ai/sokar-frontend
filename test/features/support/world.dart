@@ -9,6 +9,7 @@ import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/agent_inventory.dart';
+import 'package:sokar_frontend/src/app/emergency_stop.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/templates.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
@@ -271,6 +272,35 @@ class FakeBackend implements FleetBackend {
 
   /// Set to refuse the next answer, the way a task that has stopped running does.
   VarlinkException? refuseTheAnswer;
+
+  /// What the next [panic] answers. A scenario sets it to produce a surviving helper, which no
+  /// contrived task list can produce on demand.
+  Panicked? nextPanic;
+
+
+  /// Every panic asked for, and whether it was only a preview.
+  final List<bool> panics = <bool>[];
+
+  /// Set to lose the machine part way through stopping it.
+  bool refusePanic = false;
+
+  @override
+  Future<Panicked> panic({bool? dryRun}) async {
+    panics.add(dryRun == true);
+    if (refusePanic && dryRun != true) {
+      throw const VarlinkDisconnected('the tunnel went away');
+    }
+    return Panicked.from(<String, dynamic>{
+      'tasks': <Map<String, dynamic>>[
+        for (final task in _tasks)
+          if (task.running) <String, dynamic>{'name': task.name},
+      ],
+      'surviving': dryRun == true
+          ? const <String>[]
+          : nextPanic?.surviving ?? const <String>[],
+      'previewed': dryRun == true,
+    });
+  }
 
   @override
   Stream<Prompt> prompts() => asking.stream;
@@ -589,6 +619,9 @@ class World {
   /// The recurring jobs somebody named.
   static late Templates templates;
 
+  /// Cutting every form of access at once.
+  static late EmergencyStop stopping;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -741,6 +774,7 @@ class World {
     forwardsFailWith = null;
     templates = Templates(settings);
     await templates.load();
+    stopping = EmergencyStop();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
@@ -789,6 +823,7 @@ class World {
       starting: starting,
       inventory: inventory,
       templates: templates,
+      stopping: stopping,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -840,6 +875,7 @@ class World {
       starting: starting,
       inventory: inventory,
       templates: templates,
+      stopping: stopping,
       newerVersion: newerVersion,
     ));
     await tester.pumpAndSettle();
@@ -860,6 +896,7 @@ class World {
       starting: starting,
       inventory: inventory,
       templates: templates,
+      stopping: stopping,
       newerVersion: newerVersion,
     ));
     await settle(tester);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/fleet_model.dart';
 import '../app/operations.dart';
+import 'emergency_stop_view.dart';
 import 'tokens.dart';
 
 /// One line across the bottom saying what just happened, and to which machine.
@@ -15,6 +16,7 @@ class StatusLine extends StatelessWidget {
     required this.fleet,
     required this.operations,
     required this.onShowOperations,
+    required this.onStopEverything,
     this.cannotNotify,
     super.key,
   });
@@ -30,6 +32,13 @@ class StatusLine extends StatelessWidget {
 
   /// Why nothing can be notified, when that is so.
   final String? cannotNotify;
+
+  /// Opens the emergency stop.
+  ///
+  /// **On the status line, which is on every screen.** Somebody reaching for this has realised
+  /// something is wrong and does not yet know what; a person in that minute does not go hunting
+  /// through menus.
+  final VoidCallback onStopEverything;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +78,8 @@ class StatusLine extends StatelessWidget {
                 operations: operations,
                 onShow: onShowOperations,
               ),
+              const SizedBox(width: Space.small),
+              EmergencyStopButton(onPressed: onStopEverything),
               // Said rather than left silent: believing notifications are on when they are not is
               // worse than knowing they are off, which is the whole point of the requirement.
               if (cannotNotify != null)

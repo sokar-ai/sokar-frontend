@@ -120,6 +120,7 @@ class MockMachine {
     });
     daemon.method('Decide', _decide);
     daemon.method('Resume', _resume);
+    daemon.method('Panic', _panic);
 
     switch (situation) {
       case 'no-watch':
@@ -146,6 +147,7 @@ class MockMachine {
     'failing-start': 'a launch that prints for a while and then comes back non-zero',
     'out-of-time': 'an unattended run killed by its own time limit, with its log kept',
     'no-agent': 'a run asked for when no agent is installed, which is a refusal not a failure',
+    'helper-survives': 'an emergency stop that leaves a helper running, to be killed by hand',
   };
 
   /// The daemon answering for this machine.
@@ -376,6 +378,48 @@ class MockMachine {
               'host being unreachable'
           : '',
       'detail': '',
+    };
+  }
+
+  /// Stops every running task at once, and never removes anything.
+  ///
+  /// It acts: the tasks really do stop being listed as running, and `Resume` brings them back —
+  /// a stand-in that answered *stopped* and went on listing them as up is how a working interface
+  /// looks like one where nothing happens.
+  Map<String, dynamic> _panic(Map<String, dynamic> parameters) {
+    final preview = parameters['dryRun'] == true;
+    final stopping = tasks.where((task) => task['running'] == true).toList();
+
+    if (!preview) {
+      tasks = <Map<String, dynamic>>[
+        for (final task in tasks)
+          if (task['running'] != true)
+            task
+          else
+            <String, dynamic>{
+              ...task,
+              'running': false,
+              // Stopped, not removed: the state directory, the workspace and the logs are all
+              // still there, which is what makes Resume possible.
+              'state': 'Exited (143) 0 seconds ago',
+              'activity': 'DEAD',
+              'helpers': 0,
+            },
+      ];
+      _changes.add(<String, dynamic>{'tasks': tasks});
+    }
+
+    return <String, dynamic>{
+      'tasks': <Map<String, dynamic>>[
+        for (final task in stopping)
+          <String, dynamic>{'name': task['name'], 'helpers': task['helpers']},
+      ],
+      // A helper that outlived its stop. Named rather than counted, because somebody has to kill
+      // it by hand — and a machine where this is empty proves nothing about one where it is not.
+      'surviving': situation == 'helper-survives' && !preview
+          ? <String>['sokar-checkout-shell-gate (pid 4711)']
+          : <String>[],
+      'previewed': preview,
     };
   }
 

@@ -784,6 +784,11 @@ obvious method exists. This has now been got wrong twice on the same map:
   thirds of what the requirement asked for.
 - **F24**, because `Agents` exists and answers a list. Two of its four criteria — the pinned build
   and its digest, and which copy of a shadowed name is in use — have no field behind them.
+- **F15**, because `Lock` landed and the row was changed to *"nothing missing"* on the strength of
+  it. `Lock` answers half of one criterion out of seven: there is no `Unlock` (by design), nothing
+  says how an unlocking is remembered, nothing reveals a recovery secret, and nothing changes a
+  passphrase. **A method arriving is not a requirement being answered, even when it is the method
+  that was asked for.**
 
 The pattern is structural, not careless: the gap map is written from method names and the
 requirements are written from what a person sees. **Walk a requirement criterion by criterion
@@ -1012,4 +1017,12 @@ upload. It fails with *"uploaded but not indexed"* rather than reporting success
 This is the other half of the `--target-props` lesson. That the properties are *passed* is asserted
 by a test on the workflow; that the package is *indexed* can only be seen from outside, afterwards.
 The first is cheap and the second is the one that matters.
+
+**And a check that fails must report what it asked, never a cause.** The first version of this step
+failed a green publish and said *"check that the token has Annotate as well as Deploy"* — a
+confident diagnosis, and wrong: `snapshot.4` was in the index within a second of the upload, and
+the step had spent two minutes asking a URL with a doubled slash, which Artifactory answers 404.
+It now strips trailing slashes from `JF_URL`, prints the URLs it will use, and on failure prints
+the HTTP code and every `Version:` line the index does carry. **A wrong diagnosis is worse than no
+diagnosis**: it sends the next person to look at permissions.
 

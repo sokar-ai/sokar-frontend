@@ -44,6 +44,12 @@ enum WindowSize {
   /// Whether the rail says what its destinations are, rather than only drawing them.
   bool get railShowsLabels => this == WindowSize.large;
 
+  /// Whether the status line has room for words beside its icons.
+  ///
+  /// Below this it keeps every affordance and drops the labels: an emergency stop that fell off
+  /// the edge of a narrow window would be missing exactly when somebody reached for it.
+  bool get statusLineShowsLabels => this != WindowSize.compact;
+
   /// Whether there is room for a menu bar across the top.
   ///
   /// Below this the command finder carries it. Two rows of chrome over one pane is a window that

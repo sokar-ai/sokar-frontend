@@ -331,6 +331,17 @@ class SokarClient {
         'dryRun': ?dryRun,
       }));
 
+  /// Stops every running task and its helpers at once.
+  ///
+  /// **It stops and never removes.** Workspaces, logs and unpushed commits all survive, and
+  /// `Resume` brings a task back with the work it had — so nothing here is a cleanup, and saying
+  /// otherwise would send somebody looking for work that is exactly where they left it.
+  ///
+  /// With `dryRun` it lists what it would stop and stops nothing. Worth doing every time: this is
+  /// the action somebody reaches for without yet knowing what is wrong.
+  Future<Panicked> panic({bool? dryRun}) async =>
+      Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
+
   /// Which logs a task has.
   ///
   /// Asked rather than assumed: which files exist depends on what the task started — one with no

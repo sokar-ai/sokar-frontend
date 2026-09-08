@@ -57,11 +57,11 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | read and write instructions at both levels, and show the resolved result | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | authenticate an agent or a provider. `Credentials` is read-only | |
-| F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | nothing — `Lock` landed 2026-09-07, **not built here yet** | |
+| F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | unlock, how unlocking is remembered, the recovery secret, changing the passphrase. `Lock` alone answers half of one criterion — **asked** | |
 | F16 | [Access Key Routing](F16-Access-Key-Routing.md) | Which keys reach which projects is answerable in both directions from one view, and editable there. | create, remove and link keys | |
 | F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
 | F19 | [Host Readiness And Remediation](F19-Host-Readiness-And-Remediation.md) | The interface establishes whether the machine can run anything and offers the fix in place. | run the readiness check and act on it | |
-| F18 | [Emergency Stop](F18-Emergency-Stop.md) | One always-visible action cuts every form of access at once and says what state it left behind. | nothing — `Panic` landed 2026-09-07, **not built here yet** | |
+| F18 | [Emergency Stop](F18-Emergency-Stop.md) | One always-visible action cuts every form of access at once and says what state it left behind. | nothing — `Panic` landed 2026-09-07. **Being built** | |
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 

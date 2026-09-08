@@ -133,6 +133,7 @@ List<Command> commandsFor({
   required VoidCallback startWork,
   required VoidCallback showAgents,
   required void Function(Template job) startFromTemplate,
+  required VoidCallback stopEverything,
   required VoidCallback continueTheWork,
   required VoidCallback quit,
 }) {
@@ -143,6 +144,20 @@ List<Command> commandsFor({
   return <Command>[
     // Grouped for the menu bar, which reads the same list: a group is a menu, and the order here
     // is the order both it and the finder offer.
+    Command(
+      id: 'machine.panic',
+      label: 'Stop everything on this machine',
+      group: 'Machine',
+      // Shift as well as Control, deliberately: every other shortcut here is one modifier, so
+      // nothing adjacent can be hit by mistake. The key is `.` because it is nowhere near the
+      // letters the other actions use.
+      shortcut: const SingleActivator(LogicalKeyboardKey.period,
+          control: true, shift: true),
+      run: stopEverything,
+      unavailable: fleet.reachability == Reachability.connected
+          ? null
+          : 'not connected to a backend',
+    ),
     Command(
       id: 'app.quit',
       label: 'Quit',
