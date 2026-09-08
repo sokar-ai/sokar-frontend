@@ -114,8 +114,13 @@ names and the requirements are written from what a person sees.
     stop: that would leave two containers and lose the reason.
   - `Task.label` is `""` for every task until somebody types one, which is a normal state and not
     a gap.
-- ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection
-  half needed, the same day it was asked for.
+- **F10 Task Inspection And Work Handover** — **built except one join.** B11 landed the fields the
+  inspection half needed, and the handover half is built on `Review` and `Approve`. What a task
+  cannot say is *whether its own work is waiting for review*: `Task.branch` is a ref and
+  `PendingPush.name` is a ref, and the contract documents them separately. **Matching the two
+  strings would be a rule this end invented**, which is the mistake the credential question
+  already taught — a client being *able* to line two values up is not evidence that it should.
+  Asked as QF11.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one
@@ -206,10 +211,12 @@ names and the requirements are written from what a person sees.
 | F16 Access Key Routing | create, remove and link keys |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
 
-- **F21 Continuity And Updates** — **built**, except the half of one criterion that belongs to
-  F12: *"where the environment allows work **and sessions** to outlive the window, they do"*. Work
-  does and is reconnected to; a session cannot outlive anything that cannot be attached to in the
-  first place.
+- **F21 Continuity And Updates** — **built**, except the half of one criterion that is **F12's,
+  not ours**: *"where the environment allows work **and sessions** to outlive the window, they
+  do"*. Work does and is reconnected to; a session cannot outlive anything that cannot be attached
+  to in the first place, and attaching has no method. Recorded here because this file briefly said
+  it was half a criterion *"that belongs to us"*, which was the tidier sentence rather than the
+  true one.
 
 ### What is still worth asking for
 
