@@ -141,6 +141,14 @@ void main() {
       expect(workflow, contains('repomd.xml'));
     });
 
+    test('the index check follows redirects, or it reads an empty body', () {
+      // Artifactory answers an artifact with a 302 to a CDN, and `curl -f` treats a redirect as
+      // success — so without -L the body is empty, nothing matches, and a perfectly well indexed
+      // package is reported as "not indexed".
+      expect(workflow.contains('curl -fsS "'), isFalse,
+          reason: 'every fetch in the index check needs -L');
+    });
+
     test('the index check retries rather than probing once', () {
       // A single probe of an asynchronous index is a coin toss, not a measurement.
       expect(workflow, contains(r'for attempt in $(seq 1 20)'));

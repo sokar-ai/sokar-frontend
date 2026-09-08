@@ -199,6 +199,9 @@ jobs:
       - name: Wait until it is actually indexed
         run: |
           set -u
+          # -L on every fetch: Artifactory answers an artifact with a 302 to a CDN, and `curl -f`
+          # treats a redirect as success — so without it the body is empty, nothing matches, and
+          # this reports "not indexed" for a package that is perfectly well indexed.
           version="$(dpkg-deb -f packages/*.deb Version)"
           deb="${{ vars.JF_URL }}/sokar-dist-deb/dists/snapshots/main/binary-amd64/Packages"
           rpm="${{ vars.JF_URL }}/sokar-dist-rpm/snapshots/repodata/repomd.xml"
@@ -207,13 +210,13 @@ jobs:
           found_rpm=no
           for attempt in $(seq 1 20); do
             if [ "$found_deb" = no ] && \
-               curl -fsS "$deb" 2>/dev/null | grep -q "^Version: $version$"; then
+               curl -fsSL "$deb" 2>/dev/null | grep -q "^Version: $version$"; then
               found_deb=yes
               echo "the deb index carries $version"
             fi
-            if [ "$found_rpm" = no ] && curl -fsS "$rpm" >/dev/null 2>&1; then
-              primary="$(curl -fsS "$rpm" | grep -oE 'repodata/[a-f0-9]+-primary.xml.gz' | head -1)"
-              if [ -n "$primary" ] && curl -fsS \
+            if [ "$found_rpm" = no ] && curl -fsSL "$rpm" >/dev/null 2>&1; then
+              primary="$(curl -fsSL "$rpm" | grep -oE 'repodata/[a-f0-9]+-primary.xml.gz' | head -1)"
+              if [ -n "$primary" ] && curl -fsSL \
                    "${{ vars.JF_URL }}/sokar-dist-rpm/snapshots/$primary" \
                    | gunzip -c | grep -q "<name>sokar-frontend</name>"; then
                 found_rpm=yes
