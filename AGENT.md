@@ -1506,3 +1506,33 @@ be claimed. If a field for a secret is ever built here, it is also worth knowing
 does not give us: on **Linux/X11 there is no screen-capture protection and no secure keyboard
 input at all** — any client may read any window and grab the keyboard. Wayland is better and, by
 their own note, unmeasured per compositor.
+
+## Two guards for one rule leave both untested
+
+`Node()` says which node a daemon is, so two entries in the machine list can be told to be one
+node reached twice — which a client cannot work out, because a hostname has many spellings and a
+socket somebody else forwarded looks nothing like a tunnel raised here. The failure it prevents is
+not cosmetic: **the same node listed twice delivers every clearance question twice, and answering
+one leaves the other on screen until it expires.**
+
+The rule that matters is **an empty id is not an identity** — a daemon older than the method
+answers nothing, and two machines both saying nothing are not thereby one.
+
+It was written twice: once where the answer is recorded, once where two are compared. **Both
+mutations survived**, because each guard covered for the other. The rule now lives in one place —
+the comparison, where it means something — and recording keeps whatever came.
+
+**And the feature scenario could not test it**, because the local machine records its id as the
+frame comes up, so a step can only ever clear one of the two. It is held by a unit test that builds
+the exact state instead, with the features' own fake rather than a stub written to make one
+assertion pass.
+
+## An entry that says more than its name breaks a finder that matched on "contains"
+
+The machine list now appends *"· the same node as X"*. That put another machine's name inside this
+machine's line, and the step that switched machines — `find.textContaining(name)`, first match —
+started tapping the wrong entry. Nothing failed where the change was; a session two files away ran
+the local command instead of the remote one.
+
+**Match a list entry on what it starts with, not on what it contains**, whenever the line carries
+more than the thing being matched.

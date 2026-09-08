@@ -144,6 +144,9 @@ class Machines extends ChangeNotifier {
   /// forwarded is opened as it always was, and is not in here to be taken down.
   final Tunnels tunnels;
   final Map<String, FleetModel> _watching = <String, FleetModel>{};
+
+  /// Which node each machine turned out to be, by machine name. **Only ever non-empty ids.**
+  final Map<String, String> _nodes = <String, String>{};
   final List<Machine> _machines = <Machine>[];
   String? _selected;
   bool _disposed = false;
@@ -164,6 +167,23 @@ class Machines extends ChangeNotifier {
 
   /// The fleet of one machine, whether or not it is the one being acted on.
   FleetModel of(Machine machine) => _watching[machine.name]!;
+
+  /// Which node [machine] turned out to be, or empty when it has not said.
+  String nodeOf(Machine machine) => _nodes[machine.name] ?? '';
+
+  /// The other machines in the list that are the same node as [machine].
+  ///
+  /// **Empty is never equal to empty.** A daemon older than the method says nothing, and treating
+  /// that as a value would report every such machine as the same node — which is the same failure
+  /// this exists to prevent, arriving from the other direction.
+  List<Machine> sameNodeAs(Machine machine) {
+    final id = nodeOf(machine);
+    if (id.isEmpty) return const <Machine>[];
+    return <Machine>[
+      for (final other in _machines)
+        if (other != machine && _nodes[other.name] == id) other,
+    ];
+  }
 
   /// How many machines are not answering.
   int get unreachable => _watching.values
@@ -252,6 +272,37 @@ class Machines extends ChangeNotifier {
     await tunnels.raiseFor(machine);
     await fleet.connect();
     _notify();
+    await _askWhichNode(machine, fleet);
+  }
+
+  /// Asks a machine which node it is, once it is answering.
+  ///
+  /// **Two entries can be one node and nothing else can tell.** A hostname has many spellings, and
+  /// a socket somebody else forwarded looks nothing like a tunnel this interface raised to the
+  /// same place — so this is asked rather than worked out. What it prevents is not cosmetic: the
+  /// same node twice delivers every clearance question twice, and answering one leaves the other
+  /// on screen until it expires.
+  Future<void> _askWhichNode(Machine machine, FleetModel fleet) async {
+    // **Only a machine that answered.** Asking one that never opened raises a state error rather
+    // than a disconnection — it is a question about a socket that was never there, not a socket
+    // that went away.
+    if (_disposed || fleet.reachability != Reachability.connected) return;
+    try {
+      final id = await fleet.backend.node();
+      if (_disposed) return;
+      // Recorded as it came, empty included. **The rule that empty is not an identity lives in
+      // one place** — the comparison, where it means something — because a second copy of it here
+      // would cover for that one and leave both untested. Found by mutation: removing the guard
+      // in `sameNodeAs` broke nothing while this one stood.
+      _nodes[machine.name] = id;
+      _notify();
+    } on VarlinkDisconnected {
+      // It stopped answering. Nothing to record, and nothing worth saying about it here: the
+      // machine already reads as unreachable.
+    } on FeatureNotSupported {
+      // A daemon older than the method. Absence is the honest state, and the alternative — an
+      // empty id kept as a value — would report every such machine as the same node.
+    }
   }
 
   /// Raises a dropped forward again and reconnects over it.

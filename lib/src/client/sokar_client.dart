@@ -379,6 +379,21 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Which node this is.
+  ///
+  /// **`GetInfo` says what a daemon is and never which one.** This says which one — so two entries
+  /// in a list of machines can be told to be the same node reached two ways, which a client
+  /// cannot work out for itself: a hostname has many spellings, and a socket somebody else
+  /// forwarded looks nothing like a tunnel this interface raised to the same place.
+  ///
+  /// **An empty answer is not an identity.** A daemon older than the method answers nothing, and
+  /// treating that as a value would report every such machine as the same node.
+  Future<String> node() async {
+    final answered = await _call('Node', const <String, dynamic>{});
+    final id = answered['id'];
+    return id is String ? id : '';
+  }
+
   /// Removes what Sokar built for a project.
   ///
   /// **Not "deleting the project".** The project file is the operator's, in their own directory,

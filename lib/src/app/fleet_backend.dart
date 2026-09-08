@@ -96,6 +96,12 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Which node this is, or empty from a daemon that does not answer.
+  ///
+  /// Only ever compared with another one. **Empty is never equal to empty here** — see
+  /// [Machines].
+  Future<String> node();
+
   /// Removes what Sokar built for a project, or says what it would remove.
   ///
   /// **Never the project file, the checkout or the upstream**: those are the operator's, and
@@ -271,6 +277,9 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<String> node() => _opened().node();
 
   @override
   Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) =>

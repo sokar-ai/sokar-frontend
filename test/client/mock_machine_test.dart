@@ -555,6 +555,19 @@ void main() {
     expect((await client.gate(project)).pending, hasLength(1));
   });
 
+  test('a node says which node it is, and says the same thing twice', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final first = await client.node();
+    final second = await client.node();
+
+    // Stable is the whole property: an id that changed between calls would report one node as
+    // two, which is the failure it exists to prevent arriving backwards.
+    expect(first, isNotEmpty);
+    expect(second, first);
+  });
+
   test('a deletion previews without removing, and names what it keeps', () async {
     await machineIn('work');
     final client = await connect();

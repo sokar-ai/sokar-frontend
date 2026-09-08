@@ -21,6 +21,11 @@ import './step/the_machine_is_shown_as_not_answering.dart';
 import './step/the_work_is_listed.dart';
 import './step/enough_time_passes_for_another_try.dart';
 import './step/the_machine_is_shown_as_answering.dart';
+import './step/the_machine_is_the_same_node.dart';
+import './step/i_open_the_machine_list.dart';
+import './step/the_machine_is_shown_as_the_same_node_as.dart';
+import './step/no_machine_is_shown_as_the_same_node.dart';
+import './step/no_machine_can_say_which_node_it_is.dart';
 
 void main() {
   group('''F20 Access From Elsewhere''', () {
@@ -76,6 +81,33 @@ void main() {
       await theWorkIsListed(tester, 'sokar-checkout-shell');
       await enoughTimePassesForAnotherTry(tester);
       await theMachineIsShownAsAnswering(tester);
+    });
+    testWidgets(
+        '''one node reached two ways is said, rather than counted as two machines''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineIsTheSameNode(tester, 'elsewhere');
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iOpenTheMachineList(tester);
+      await theMachineIsShownAsTheSameNodeAs(
+          tester, 'elsewhere', 'this machine');
+    });
+    testWidgets(
+        '''two machines that really are two nodes say nothing about each other''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iOpenTheMachineList(tester);
+      await noMachineIsShownAsTheSameNode(tester);
+    });
+    testWidgets(
+        '''machines that cannot say which node they are are never merged''',
+        (tester) async {
+      await bddSetUp(tester);
+      await noMachineCanSayWhichNodeItIs(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iOpenTheMachineList(tester);
+      await noMachineIsShownAsTheSameNode(tester);
     });
   });
 }

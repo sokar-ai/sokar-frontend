@@ -385,6 +385,16 @@ class FakeBackend implements FleetBackend {
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
 
+  /// Which node this backend is. Set by the scenario; empty means a daemon that cannot say.
+  ///
+  /// **Two different ones by default**, because that is the ordinary case — one machine per node.
+  /// A scenario that wants the same node says so, and one that wants a daemon too old to answer
+  /// clears it.
+  String nodeId = 'node-a';
+
+  @override
+  Future<String> node() async => nodeId;
+
   /// What the next deletion answers. Set by the scenario.
   DeleteOutcome deletionAnswers = DeleteOutcome.deleted;
 
@@ -961,7 +971,8 @@ class World {
       ..watchOperations(operations, open: (operation) => shell.openOperation(operation.id));
     addTearDown(notifications.dispose);
     await notifications.load();
-    elsewhere = FakeBackend(<Task>[_task('sokar-shared-shell', 'shared')]);
+    elsewhere = FakeBackend(<Task>[_task('sokar-shared-shell', 'shared')])
+      ..nodeId = 'node-b';
     addTearDown(elsewhere.stop);
 
     // One machine to begin with, and a second only when a scenario asks. Reaching several is

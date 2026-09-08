@@ -36,3 +36,26 @@ Feature: F20 Access From Elsewhere
     And the work {'sokar-checkout-shell'} is listed
     When enough time passes for another try
     Then the machine is shown as answering
+
+  # `Node()` landed on 2026-09-08 for exactly this. A client cannot work it out: a hostname has
+  # many spellings, and a socket somebody else forwarded looks nothing like a tunnel raised here.
+  # Unsaid, every clearance question on that node arrives twice, and answering one leaves the
+  # other on screen until it expires.
+  Scenario: one node reached two ways is said, rather than counted as two machines
+    Given the machine {'elsewhere'} is the same node
+    When I watch another machine called {'elsewhere'}
+    And I open the machine list
+    Then the machine {'elsewhere'} is shown as the same node as {'this machine'}
+
+  Scenario: two machines that really are two nodes say nothing about each other
+    When I watch another machine called {'elsewhere'}
+    And I open the machine list
+    Then no machine is shown as the same node
+
+  # Absence is not a value. Two daemons too old to answer both say nothing, and saying nothing
+  # twice is not saying the same thing.
+  Scenario: machines that cannot say which node they are are never merged
+    Given no machine can say which node it is
+    When I watch another machine called {'elsewhere'}
+    And I open the machine list
+    Then no machine is shown as the same node

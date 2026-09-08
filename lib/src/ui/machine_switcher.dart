@@ -92,9 +92,12 @@ class MachineSwitcher extends StatelessWidget {
               onPressed: () => machines.select(machine),
               // Which of the two kinds it is, said rather than left to be inferred: it decides
               // what happens when it stops answering, and what happens when the window closes.
-              child: Text(machine.needsATunnel
-                  ? '${machine.name}  ·  forward raised here'
-                  : machine.name),
+              //
+              // And whether it is a second way in to a node already listed. **That is asked, not
+              // worked out**: a hostname has many spellings and a forwarded socket looks nothing
+              // like a tunnel raised here. Left unsaid, every clearance question on that node
+              // arrives twice and answering one leaves the other expiring.
+              child: Text(_describe(machines, machine)),
             ),
           const Divider(height: 1),
           MenuItemButton(
@@ -117,6 +120,17 @@ class MachineSwitcher extends StatelessWidget {
 }
 
 /// Whether one machine is answering, in the space of an icon.
+/// What one entry says about itself in the list.
+String _describe(Machines machines, Machine machine) {
+  final also = machines.sameNodeAs(machine);
+  final same = also.isEmpty
+      ? ''
+      : '  ·  the same node as ${also.map((each) => each.name).join(', ')}';
+  return machine.needsATunnel
+      ? '${machine.name}  ·  forward raised here$same'
+      : '${machine.name}$same';
+}
+
 class _Reach extends StatelessWidget {
   const _Reach({required this.name, required this.fleet, this.tunnel});
 

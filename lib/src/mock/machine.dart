@@ -130,6 +130,9 @@ class MockMachine {
     daemon.method('Resume', _resume);
     daemon.method('Panic', _panic);
     daemon.method('DeleteProject', _deleteProject);
+    // Which node this is. Random per mock instance, so two mocks are two nodes and one mock
+    // reached twice is one — which is the thing a client has to be able to tell.
+    daemon.method('Node', (_) => <String, dynamic>{'id': _nodeId});
     daemon.method('Label', _label);
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
@@ -730,6 +733,10 @@ class MockMachine {
   /// `never-run` is here on purpose: a project with no tasks, which a client deriving projects
   /// from the task list could never show. `no-file` is the other state worth having — listed, and
   /// nothing can act on it.
+  /// What this mock answers when asked which node it is.
+  final String _nodeId =
+      'mock-${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}';
+
   /// Projects removed by `DeleteProject`, which stop being listed.
   final Set<String> _removedProjects = <String>{};
 
