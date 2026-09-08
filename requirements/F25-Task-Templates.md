@@ -44,8 +44,9 @@ One criterion is not met:
   neither does the same project on another machine.
 
   **The reason is not that a project file cannot be written.** It can — `SetEgress` edits
-  `project.yml` in place, comments and all — and this file nearly recorded the opposite. A job
-  kept *with a project* is a job the machine could start with nobody present, and that is a
-  capability rather than a field: a locked vault would refuse the run rather than ask anybody, a
-  clearance question would expire unseen, and a failure would be found by whoever did not start
-  it. **There is no scheduler; work starts when somebody starts it.**
+  `project.yml` in place, comments and all — and this file nearly recorded the opposite. The
+  answer is the operator's, in two parts: a recurring job does not belong to a project, and there
+  will be no scheduler. The second carries the reasoning — work starting with nobody present is
+  what everything else here is careful about: a locked vault would refuse the run rather than ask
+  anybody, a clearance question would expire unseen, and a failure would be found by whoever did
+  not start it. **There is no scheduler; work starts when somebody starts it.**

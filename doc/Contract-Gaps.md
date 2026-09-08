@@ -145,10 +145,15 @@ names and the requirements are written from what a person sees.
     place, comments and all — the mechanism plainly exists. This end proposed *"a template is not
     Sokar's to put in a project file"* as a reason it would accept, and it is false; a screen
     carrying it would have contradicted the egress editor it already draws.
-  - **The reason is that a job kept with a project implies a scheduler, and there is none.** Work
-    starting with nobody present is what everything else here is careful about: a locked vault
-    would refuse the run rather than ask anybody, a clearance question would expire unseen, and a
-    failure would be found by whoever did not start it.
+  - **The answer is two statements, and only the second has a reason attached**: *a recurring job
+    does not belong to a project*, and *there will be no scheduler*. The first is the operator's
+    decision, flat. The second is explained: work starting with nobody present is what everything
+    else here is careful about — a locked vault would refuse the run rather than ask anybody, a
+    clearance question would expire unseen, and a failure would be found by whoever did not start
+    it.
+  - **The reasoning was read here as covering only a timer, and the question was asked again on
+    that basis.** It was already answered. Where an answer has two parts, the part without a
+    reason attached is still an answer.
   - The criterion with teeth needs nothing: a template carries no `clearance` and no `noGate`,
     and the security class is unreachable because `Start` cannot set it.
 
