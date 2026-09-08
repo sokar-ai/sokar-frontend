@@ -179,10 +179,13 @@ class Settings extends ChangeNotifier {
 
   /// The recurring jobs somebody named, as stored.
   ///
-  /// **Kept here rather than with the project, which is not where they belong.** The requirement
-  /// asks for templates shared with the project, and nothing in the contract writes to a project
-  /// file except `SetEgress`. Until there is somewhere to put them, they live beside this
-  /// interface's other choices — which means they follow the person and not the project.
+  /// **Kept here rather than with the project, and that is settled rather than temporary.** The
+  /// requirement asks for templates shared with the project; the answer, on 2026-09-08, is no.
+  ///
+  /// Not because a project file cannot be written — `SetEgress` edits `project.yml` in place, so
+  /// it plainly can. A job kept *with a project* is one the machine could start with nobody
+  /// present, and there is no scheduler: work starts when somebody starts it. So a template lives
+  /// beside this interface's other choices and follows the person.
   Future<List<Map<String, Object?>>> templates() async {
     final stored = (await _store.read())['templates'];
     if (stored is! List) return const <Map<String, Object?>>[];

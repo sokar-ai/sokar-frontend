@@ -920,6 +920,13 @@ rather than the directive. When a mutation survives, the first question is not *
 too weak"* but *"is my check reading the thing, or reading something the thing says about
 itself"*.
 
+**And a scenario can pass for the wrong reason**, which is the other half of the same lesson.
+F12's *"work that is not running has no session"* was written against a stopped **unattended** run
+— so the agent rule took the action away, and deleting the running check changed nothing. The
+mutation survived and the scenario looked fine. Two fixes, both worth copying: measure a rule
+against work where **nothing else can produce the same outcome**, and assert **which** reason was
+given rather than that there was one. A refusal has a sentence; check the sentence.
+
 ## The build that publishes
 
 `.github/workflows/build.yml`, on push to `main` and on `workflow_dispatch`. Three jobs: test and
@@ -1183,3 +1190,72 @@ The launch is given the **same name, agent, mode and prompt**: recreating is mea
 environment and nothing else, and a launch without the name would put a second piece of work beside
 the first rather than replacing it.
 
+
+## A session is a pty, and varlink was measured before it was ruled out
+
+Attaching to running work is **not a method**, and that was settled against the protocol rather
+than argued: varlink is one call in and many replies out. `more` streams replies *from* the
+service; there is no message a client sends into a call that is already open. A keystroke per call
+was considered and rejected — calls are independent, so nothing orders two of them.
+
+What carries a session is a **pty running `sokar task attach <task>`** — through `ssh -t` for a
+machine reached over one, directly for a machine whose socket is here. Sokar's own verb, never
+`podman exec`: this end never learns which container runtime is underneath, and the daemon can
+still refuse before it execs and record that somebody was inside.
+
+**Running that CLI is not a breach of the rule against shelling out, and the line matters.** The
+vault refuses `sokar vault lock` because that would be a *substitute for a method the contract
+deliberately does not offer*. Here the contract **cannot** carry it, and the Sokar side named the
+verb as the way in. A method that exists and is not offered stays off limits.
+
+The consequence, written down rather than discovered: **a pty on the node runs anything the
+operator can**, `sokar vault unlock` included. Nothing here draws a control for it — but *"the
+interface cannot do this"* stopped being the accurate sentence the day a session opened.
+
+## The terminal owns the keyboard, or `Escape` never arrives
+
+The frame holds a focus node for whatever is open, and hands the keyboard to it. That costs
+nothing for every other view, because they are read rather than typed into. **A terminal is the
+opposite**: with the frame holding the node, `Escape` closed the pane and the far end never saw the
+key — which would have made `vim` unusable inside a session, silently.
+
+Found by asking where the key went, in a throwaway test that printed what the far end received,
+rather than by assuming it arrived. The session's terminal is now given the frame's own focus node,
+and the pane's way out is its header control rather than `Escape`.
+
+## Nothing forks out of Dart
+
+The obvious pty is `forkpty` and then `exec` in the child — and the child returns into the Dart
+runtime, in a process whose other threads no longer exist. That is a hang that happens once a week
+and never in a test.
+
+`posix_spawn` with `POSIX_SPAWN_SETSID` does the fork and the exec inside libc, where no Dart code
+runs, and the child takes the terminal by **opening it as a session leader without `O_NOCTTY`**.
+That is what makes `Ctrl-C` reach the far end and lets `SIGWINCH` arrive at all.
+
+Two things that came out of writing it rather than taking a plugin. **libc answers a missing
+command itself** — `posix_spawnp` reports the failed exec back to the caller, so *"there is no
+`sokar` here"* is a refusal to open rather than a session that appeared for an instant and exited
+127; the two read differently and should. And **a blocking `read` needs somewhere to block**:
+`dart:io` cannot wrap a descriptor it did not create, so an isolate sits in `read(2)`, posts what
+it gets, and reaps the child when it ends.
+
+## Cancelling a broadcast subscription settles a turn late
+
+`await subscription.cancel()` before closing a channel put the close **behind the frame that had
+already reported the session gone** — the window said it had left while the far end was still
+attached. Caught by a scenario that asked the fake whether it had been closed, not by reading the
+code.
+
+The subscription is cancelled without waiting and the channel close is what is awaited. Order the
+awaits by what somebody can see, not by the order the fields were declared in.
+
+## The frame branches on the width under the rail
+
+`WindowSize` is read from the `LayoutBuilder` constraints inside the frame, not from the window —
+correctly, because the rail is chrome. It means **a 1400-pixel window is not a wide one**: an
+extended rail is 256 of them, and 1144 is one class down, where what is open takes the space the
+work list had.
+
+A scenario written at 1400 to prove *"the work stays visible beside the session"* proved the
+opposite and looked like a bug in the session. Pick the number by what is left after the rail.

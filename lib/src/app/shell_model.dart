@@ -93,6 +93,19 @@ class ReviewOpened extends Opened {
   const ReviewOpened();
 }
 
+/// A shell inside one running task.
+///
+/// Only the task, and not the session itself: what is open over the frame is a *place*, and the
+/// session outlives being looked at. Holding the object here would tie a running session to
+/// whether somebody is currently looking at it.
+class SessionOpened extends Opened {
+  /// Constructor taking which task's session.
+  const SessionOpened(this.task);
+
+  /// The container.
+  final String task;
+}
+
 /// One of a task's logs.
 class LogOpened extends Opened {
   /// Constructor taking which log of which task.
@@ -159,6 +172,9 @@ class ShellModel extends ChangeNotifier {
   /// Opens one of a task's logs.
   void openLog(String task, String log) => _open(LogOpened(task, log));
 
+  /// Opens the session inside one running task.
+  void openSession(String task) => _open(SessionOpened(task));
+
   /// Opens what is waiting at the selected project's gate.
   void openGate() => _open(const GateOpened());
 
@@ -191,6 +207,10 @@ class ShellModel extends ChangeNotifier {
     } else if (_opened is LogOpened && what is LogOpened) {
       final open = _opened as LogOpened;
       if (open.task == what.task && open.log == what.log) return;
+    } else if (_opened is SessionOpened && what is SessionOpened) {
+      // Going from one open session to another is a move, not a no-op: the pane stays where it
+      // is and what is inside it changes.
+      if ((_opened as SessionOpened).task == what.task) return;
     } else if (_opened.runtimeType == what.runtimeType && _pane == Pane.opened) {
       return;
     }

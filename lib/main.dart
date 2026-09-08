@@ -18,6 +18,7 @@ import 'src/app/vault.dart';
 import 'src/app/widening.dart';
 import 'src/app/window.dart';
 import 'src/app/operations.dart';
+import 'src/app/session.dart';
 import 'src/app/settings.dart';
 import 'src/app/shell_model.dart';
 import 'src/app/sokar_app.dart';
@@ -46,6 +47,9 @@ Future<void> main() async {
   }
 
   final newerVersion = NewerVersion()..watch();
+  // Nothing is opened here: a session exists only once somebody asks for one, and the list is
+  // what makes several of them tellable apart.
+  final sessions = Sessions();
   final whereYouWere = WhereYouWere(settings, machines, shell);
   final operations = Operations();
   final notifications = Notifications(DesktopNotifier(), settings)
@@ -67,6 +71,7 @@ Future<void> main() async {
     stopping: EmergencyStop(),
     vault: Vault(),
     newerVersion: newerVersion,
+    sessions: sessions,
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather

@@ -33,6 +33,40 @@ without one gets re-argued every time somebody new reads it.
   `analysis_options.yaml` with an exclude block nobody wrote, which silences findings instead of
   fixing them.
 
+## The terminal, and the only dependency there is
+
+A session inside running work needs two things this codebase did not have: something that
+understands escape sequences, and a pseudoterminal. They were decided separately and the answers
+are different.
+
+- **`xterm` from pub.dev draws it, and it is the first runtime dependency here.** Everything else
+  is hand-written against a contract — the varlink client included, because that protocol is a
+  socket, JSON and a NUL. A VT emulator is where that argument stops holding: cursor motion, an
+  alternate screen, scroll regions, colour, wide characters and reflow are not a small protocol,
+  and getting one subtly wrong is the failure the requirement was about — colours work, and then
+  `Ctrl-C` ends the wrong thing. It is pure Dart, so it changes nothing about the package.
+- **The pty is ours, written with `dart:ffi`.** The usual companion, `flutter_pty`, is a native
+  plugin, and a native plugin is another `.so` in the bundle. Every `.so` in the bundle goes
+  through `dpkg-shlibdeps` and the rpm scanner and comes out as a package dependency, which is
+  the chain [F26](F26-Linux-Packaging.md) is about and the most delicate part of shipping this.
+  `dart:ffi` is in the SDK and costs the packaging nothing.
+- **Nothing forks.** The obvious shape is `forkpty` and then `exec` in the child — and the child
+  returns into the Dart runtime, in a process whose other threads no longer exist. `posix_spawn`
+  with `POSIX_SPAWN_SETSID` does both inside libc, and the child takes the terminal by opening it
+  as a session leader, so no Dart code ever runs in a forked process.
+- **A blocking `read` needs somewhere to block.** `dart:io` cannot wrap a descriptor it did not
+  create, so an isolate sits in `read(2)` and posts what it gets. It reaps the child too, so a
+  session that ends leaves no zombie.
+- **The terminal holds the frame's keyboard for what is open**, rather than the frame holding it.
+  Every other thing that opens over the frame is read rather than typed into, so the frame keeping
+  the keyboard costs them nothing; a terminal is the opposite. With the frame holding it `Escape`
+  closed the pane and never reached the far end, which would have made `vim` unusable inside a
+  session.
+- **What cannot be faked is tested against the kernel.** `test/app/pty_test.dart` runs `stty size`
+  in a pty and reads the answer back, which proves the controlling terminal and the window size in
+  one line. Everything above the byte channel is proven through a seam, on the fake clock, like
+  the rest of the interface.
+
 ## Testing
 
 Tests are written as Gherkin `.feature` files and run as ordinary Flutter widget tests, via

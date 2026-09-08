@@ -17,6 +17,7 @@ import '../app/notifications.dart';
 import '../app/machines.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
+import '../app/session.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
 import 'package:sokar_frontend/client.dart';
@@ -27,6 +28,7 @@ import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
 import 'emergency_stop_view.dart';
+import 'session_view.dart';
 import 'vault_view.dart';
 import 'start_work_view.dart';
 import 'widening_view.dart';
@@ -65,6 +67,7 @@ class Shell extends StatefulWidget {
     required this.stopping,
     required this.vault,
     required this.newerVersion,
+    required this.sessions,
     super.key,
   });
 
@@ -113,6 +116,9 @@ class Shell extends StatefulWidget {
   /// Whether a newer build has been installed underneath this one.
   final NewerVersion newerVersion;
 
+  /// The shells somebody has open inside running work.
+  final Sessions sessions;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -156,6 +162,7 @@ class _ShellState extends State<Shell> {
         checkWorkCanStart: _checkWorkCanStart,
         askToStop: _askToStop,
         askWhichLog: _askWhichLog,
+        openSession: _openSession,
         openTheGate: _openTheGate,
         openEgress: _openEgress,
         widenTheWork: _widenTheWork,
@@ -622,6 +629,22 @@ class _ShellState extends State<Shell> {
           onApprove: _approve,
           onReject: _reject,
         );
+      case SessionOpened(:final task):
+        final session = widget.sessions.find(task, widget.machines.current);
+        // Gone because the machine was switched, or because it was left. Falling through to
+        // nothing puts the frame back rather than drawing a session against nothing.
+        if (session == null) return null;
+        return SessionView(
+          session: session,
+          others: widget.sessions.all,
+          focusNode: _openedFocus,
+          onGoTo: (other) => widget.shell.openSession(other.task),
+          onLeave: () async {
+            await widget.sessions.leave(session);
+            widget.shell.close();
+          },
+          onClose: widget.shell.close,
+        );
       case LogOpened(:final task, :final log):
         final tail = widget.logs.find(task, log);
         if (tail == null) return null;
@@ -716,7 +739,18 @@ class _ShellState extends State<Shell> {
         fleet: _fleet,
         askToStop: _askToStop,
         askWhichLog: _askWhichLog,
+        openSession: _openSession,
       );
+
+  /// Opens a shell inside running work, or goes back to the one that is already open.
+  ///
+  /// **Opening is not starting.** A session against this task may already be running from
+  /// earlier in this window; `openOn` hands that one back rather than making a second way in to
+  /// one container.
+  void _openSession(Task task) {
+    widget.sessions.openOn(task.name, widget.machines.current);
+    widget.shell.openSession(task.name);
+  }
 
   Widget _onePane(Widget? opened) {
     if (opened != null) return opened;

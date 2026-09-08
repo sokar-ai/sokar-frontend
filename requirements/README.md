@@ -48,10 +48,9 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
 | F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | | |
-| F12 | [Interactive Session Attach](F12-Interactive-Session-Attach.md) | An interactive session is one action away, and the way back is reliable. | a way to attach to a running task. `Start` has only the no-attach path | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | rebuild, at depths distinguishable by what each replaces | |
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
-| F05 | [Project Configuration](F05-Project-Configuration.md) | Agents, hardware and reachable destinations are set per project, with open-ended and explicit selections never confused. | edit the agent roster, list the machine’s hardware, delete a project | |
+| F05 | [Project Configuration](F05-Project-Configuration.md) | Agents, hardware and reachable destinations are set per project, with open-ended and explicit selections never confused. | `DeleteProject`, being built. The roster and the hardware are settled as never | |
 | F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | read and write instructions at both levels, and show the resolved result | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | authenticate an agent or a provider. `Credentials` is read-only | |
@@ -62,11 +61,11 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 
-| F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | somewhere a recurring job can be kept **with the project** rather than with the person | |
+| F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | | |
 
 ## What was here and is finished
 
-Six requirements have been met and retired. Their files are gone; the scenarios that guard them
+These requirements have been met and retired. Their files are gone; the scenarios that guard them
 are still in `test/features`, and what each measured is in [AGENT.md](../AGENT.md), where it will
 be read again.
 
@@ -125,6 +124,24 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F12 Interactive Session Attach.** A shell inside running work, drawn in this window, one
+  action from where the work is listed — several at once, each named by its task and its machine,
+  and the way back is the frame's own: leaving returns to the same place with the same selection.
+  Asked for as
+  [B16](https://github.com/fuinorg/sokar/blob/main/requirements/base/B16-Working-Inside-A-Running-Container.md)
+  and designed there: **varlink cannot carry a session** — one call in, many replies out — so the
+  session is a **pty running `sokar task attach`**, over ssh for a machine that needs one and here
+  for a machine that does not. Sokar's own verb rather than the runtime's, so this end never
+  learns which runtime is underneath and the daemon can still refuse and record.
+
+  Three things it taught. **`Escape` was being taken from the far end**: the frame holds the
+  keyboard for whatever is open, which costs a view that is only read nothing and would have made
+  `vim` unusable in a session — the terminal now holds that focus node itself. **The frame
+  branches on the width under the rail, not the window's**, so a 1400-pixel window is not a wide
+  one. And a scenario about work that is not running **passed with the running check deleted**,
+  because the task it used was agent-driven as well; the check is now measured against work whose
+  mode nothing recorded, where nothing else can take the action away.
+
 - **F11 Live Log Viewing.** A task's logs are asked for rather than guessed, followed as they are
   written, and suspended without losing what arrives meanwhile. ANSI color is honored by meaning
   rather than by value, so red is the theme's red and stays legible on both appearances.

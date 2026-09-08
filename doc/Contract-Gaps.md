@@ -114,24 +114,37 @@ names and the requirements are written from what a person sees.
     stop: that would leave two containers and lose the reason.
   - `Task.label` is `""` for every task until somebody types one, which is a normal state and not
     a gap.
-- **F10 Task Inspection And Work Handover** — **built except one join.** B11 landed the fields the
-  inspection half needed, and the handover half is built on `Review` and `Approve`. What a task
-  cannot say is *whether its own work is waiting for review*: `Task.branch` is a ref and
-  `PendingPush.name` is a ref, and the contract documents them separately. **Matching the two
-  strings would be a rule this end invented**, which is the mistake the credential question
-  already taught — a client being *able* to line two values up is not evidence that it should.
-  Asked as QF11.
+- **F10 Task Inspection And Work Handover** — **the join is answered, and there is a field
+  instead of it.** `Task.waiting` landed on 2026-09-08: `1` when this task's own ref is waiting
+  for review, `0` otherwise. The last thing a task could not say about itself is said, and no
+  string is matched against another.
+  - **The join would have been wrong, and not only by a prefix.** `Task.name` is a *container*
+    name — `sokar-<project>-<task>-<run>` — and `PendingPush.name` is a *task* name. Two runs of
+    the same task push to one ref, so no field can name *the* task that pushed it: Sokar offered
+    `PendingPush.task`, went to build it, and withdrew it for that reason. **Two levels, not two
+    spellings of one.**
+  - **An `online` task always answers `0`, and that is not a smaller number.** Its ref is
+    `refs/heads/<task>` and nothing is ever reviewed — so the tail match this end would have had
+    to make would have claimed work was waiting for a task whose name merely coincided.
+  - **The mirror is read once per project, not once per task**, so the field costs a listing
+    nothing. Both properties are held by tests that fail if either is dropped.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was
   asked for, so a task's logs are listed rather than typed. Nothing here holds a set of log names:
   which files exist depends on what the task started, and a client that knew them would offer one
   that was never going to exist and would never show one a later release adds.
-- **F25 Task Templates** — **three of four criteria are built**, and the fourth is a gap this
-  file previously missed by reading the requirement as *"start with fixed parameters"*. It also
-  says *shared with the project*, and **nothing in the contract writes to a project file except
-  `SetEgress`** — so a template is kept beside the interface's own settings and follows the person
-  rather than the project. Asked for. The criterion with teeth needs nothing: a template carries
-  no `clearance` and no `noGate`, and the security class is unreachable because `Start` cannot
-  set it.
+- **F25 Task Templates** — **three of four criteria are built, and the fourth is answered *no*
+  rather than left pending.** Settled on 2026-09-08: a template does not belong to a project, so
+  it follows the person. Reworded, on the same terms as the roster and the hardware below.
+  - **The reason is not *"there is nowhere to put one"*.** `SetEgress` edits `project.yml` in
+    place, comments and all — the mechanism plainly exists. This end proposed *"a template is not
+    Sokar's to put in a project file"* as a reason it would accept, and it is false; a screen
+    carrying it would have contradicted the egress editor it already draws.
+  - **The reason is that a job kept with a project implies a scheduler, and there is none.** Work
+    starting with nobody present is what everything else here is careful about: a locked vault
+    would refuse the run rather than ask anybody, a clearance question would expire unseen, and a
+    failure would be found by whoever did not start it.
+  - The criterion with teeth needs nothing: a template carries no `clearance` and no `noGate`,
+    and the security class is unreachable because `Start` cannot set it.
 
 - **F01 Application Shell** — `List`, `Watch` and `Agents` carry the frame. The command finder
   cannot yet "name everything the product can do", because a third of it has no method.
@@ -180,17 +193,33 @@ names and the requirements are written from what a person sees.
   reach and where each host came from, what is asked for and refused, the sets installed here, and
   changing them behind a preview. Three of its six criteria have nothing behind them, and one has
   half:
-  - ~~*"The agent roster for a project is editable"*~~ — **not a gap: a project has no roster.**
-    Any installed agent may run in any project, bounded by its class, its egress and its gate.
-    Criterion reworded. One caveat kept: an agent's `allowedDomains` are added to a task's egress,
-    so a roster, if ever built, would have to be an explicit list.
-  - ~~*"Hardware access is selectable"*~~ — **not a gap: a project cannot ask for hardware at
-    all.** No device flag anywhere and nothing lists a machine's hardware. Criterion reworded.
-  - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method,
-    and being built** in the shape asked for: `dryRun`, a named outcome, and `HOLDS_WORK` rather
-    than a warning when unreviewed pushes would go with it. **`project.yml` is not Sokar's** and
-    must not be touched, so the confirmation says *"this removes what Sokar built for this
-    project"*.
+  - ~~*"The agent roster for a project is editable"*~~ — **not a gap, and now settled as never.**
+    A project does not restrict which agents may run in it and will not: the bound is its
+    security class and its egress, not a list of names. The one thing installing an agent really
+    widens is its `allowedDomains`, added to a task's egress on top of the project's own — and the
+    answer to that is **visibility rather than a list**: the start report already names the origin
+    of every host, so *"which of these did the agent bring"* is answerable today. It cannot be
+    refused in advance, and that is the decision rather than an omission.
+  - ~~*"Hardware access is selectable"*~~ — **not a gap, and now settled as never**, with a reason
+    worth putting on screen: **a device node is a hole in the container of exactly the kind this
+    product is built around not having.** Everything else that reaches into a task is a unix
+    socket Sokar holds and decides over — the credential broker, the git gate, the clearance
+    watcher. A GPU or `/dev/kvm` is a direct kernel surface with nothing to mediate, nothing to
+    record and nothing to interrupt. Rootless bounds it anyway, and it is not an egress question
+    at all, so the security class says nothing about it.
+  - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method
+    yet, and being built**, in the shape asked for and with one addition. `DeleteProject` takes
+    `dryRun` and `force` and answers `DELETED`, `PREVIEWED`, `HOLDS_WORK`, `TASKS_RUNNING`,
+    `NO_SUCH_PROJECT` or `FAILED`, with `removes`, `unreviewed`, `running` — and **`keeps`**.
+    - **`keeps` exists because of a sentence written here.** This end said it would have listed
+      `project.yml` among the casualties and believed it, so the contract now names what
+      survives: the project file is still there, and a task run in that directory builds all of
+      it again. That is what makes the action safe to offer at all — so the confirmation says
+      *"this removes what Sokar built for this project"*, never *"this deletes the project"*.
+    - **The two refusals are not the same weight and must not read as one.** A running task is
+      work cut off mid-flight, and the operator still has their repository. **An unreviewed push
+      exists only in the mirror** — nothing else has it, anywhere. That one is what the whole
+      confirmation is for, and `force` is what destroys it.
   - *"…with the same 'all, including future additions' versus explicit-list distinction"* —
     **not a gap, and this file said otherwise for a while.** `SetEgress` takes an explicit list on
     purpose: an open-ended selection would let a set shipped in a later release widen a project
@@ -206,17 +235,74 @@ names and the requirements are written from what a person sees.
 | F04 Guided Project Creation | create a project |
 | F06 Upstream Synchronisation And Backups | sync, list snapshots, restore, delete |
 | F07 Instruction Management | read and write instructions at both levels, and show the resolved result |
-| F12 Interactive Session Attach | attach to a running task. `Start` has only the no-attach path |
 | F14 Authentication Flows | authenticate an agent or a provider. `Credentials` is read-only |
 | F16 Access Key Routing | create, remove and link keys |
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
 
+- ~~**F12 Interactive Session Attach**~~ — **built, and not on the socket at all.** Settled on
+  2026-09-08 as B16, after the Sokar side proposed a shape and withdrew it a few minutes later;
+  what is built is the second one. `sokar task attach` is committed on their side as `cd639c5`,
+  and this end runs it in a pty of its own.
+  - **varlink cannot carry a session, and that is measured rather than assumed.** One call in,
+    many replies out: `more` streams replies *from* the service, and there is no message a client
+    sends into a call already in flight. A keystroke per call was considered and rejected — calls
+    are independent, so nothing orders two of them.
+  - **The session is a pty running `sokar task attach <task>`** — through `ssh -t` for a machine
+    this interface reaches over one, and directly for a machine whose socket is here. This end
+    already holds an ssh connection and it multiplexes: the same one carries the forwarded socket
+    and an exec channel. **ssh is the byte pipe varlink is not** — window size, `SIGWINCH`,
+    signals, escape sequences and `TERM` all arrive correct, which is exactly what would have been
+    rebuilt subtly wrong through a daemon pipe.
+  - **The pty is this end's own, written against libc with `dart:ffi`.** Not a plugin: a native
+    plugin is another `.so` in the bundle and every `.so` becomes a derived package dependency,
+    which is [F26](../requirements/F26-Linux-Packaging.md)'s chain and the most delicate part of
+    shipping this. Nothing forks — `posix_spawn` with `POSIX_SPAWN_SETSID` does the fork and the
+    exec inside libc, and the child acquires the terminal by opening it as a session leader, so no
+    Dart code ever runs in a forked process.
+  - **Sokar's own verb, never `podman exec`.** Running the runtime's command here would teach this
+    end which runtime is underneath — which [B08](https://github.com/fuinorg/sokar) exists so it
+    does not — and would leave Sokar unable to refuse or to record that somebody was inside.
+  - **No privilege is added**, and the earlier claim that it *"opens a much bigger door"* was
+    withdrawn as conditional stated absolutely. Whoever forwards the socket already has an account
+    on the node. It only fails to hold for a key restricted with `restrict,permitopen=`, and the
+    operator has decided that is not a shape this supports.
+  - **Leaving does not end it, because the session is `tmux` inside the container** — a process in
+    the container, not on the channel. `tmux` is installed and pinned by Sokar in the layer it
+    already writes, so nothing depends on what a base image carried, and its `history-limit` is
+    the number behind *"what may re-entering claim"*: **the last N lines**, said as a figure
+    rather than as an apology.
+  - **No class refusal.** An `offline` project may be attached to — the class governs egress, and
+    a person typing is neither resolving nor leaving; offline is precisely where somebody has to
+    work by hand. So the action is offered for every running `SHELL` task without checking the
+    class, and the two refusals left — not running, and no shell in the container — are both
+    predictable from `Task`.
+  - **`AGENT` and `UNATTENDED` are a different action**, and the distinction has to survive onto
+    the screen: their main process is the agent, not the multiplexer, so *"see what this task is
+    doing"* is `Tail` on `task.log`. Offering a session for work that has no shell to attach to is
+    the confusing half.
+  - **It runs a `sokar` command, which is the thing this file forbids elsewhere — and the line
+    has to be drawn out loud.** Shelling out is refused for the vault because it would be a
+    *substitute for a missing method*: doing over the CLI what the contract deliberately does not
+    offer. Here the contract **cannot** carry it — measured, not assumed — and the Sokar side has
+    named the verb as the way in. That is the difference, and it is the only one: a method that
+    exists and is not offered stays off limits.
+  - **The consequence, so nobody meets it by surprise.** A pty on the node can run any command the
+    operator can, `sokar vault unlock` among them. This end will not draw a control for that — see
+    F15, where *"at the machine, with a person present"* is the decision — but a terminal drawn
+    here is a place a person could type it, and *"the interface cannot do this"* stops being the
+    accurate sentence the day a session opens. Raised on the channel.
+
 - **F21 Continuity And Updates** — **built**, except the half of one criterion that is **F12's,
   not ours**: *"where the environment allows work **and sessions** to outlive the window, they
   do"*. Work does and is reconnected to; a session cannot outlive anything that cannot be attached
-  to in the first place, and attaching has no method. Recorded here because this file briefly said
-  it was half a criterion *"that belongs to us"*, which was the tidier sentence rather than the
-  true one.
+  to in the first place. Recorded here because this file briefly said it was half a criterion
+  *"that belongs to us"*, which was the tidier sentence rather than the true one.
+  - **It is answerable now, and the answer is yes.** B16 was designed on 2026-09-08: the session
+    is `tmux new-session -A -s sokar` **inside the container**, not on the channel that reaches
+    it, so closing this window leaves it running and the next attachment finds it as it was.
+  - **The boundary is the container, not the window**, and the screen must say the first without
+    implying the second: `task stop` takes a session with it and `task resume` brings back an
+    empty one.
 
 ### What is still worth asking for
 

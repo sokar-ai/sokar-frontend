@@ -5,6 +5,7 @@ import 'package:sokar_frontend/client.dart';
 import 'fleet_model.dart';
 import 'notifications.dart';
 import 'operations.dart';
+import 'session.dart';
 import 'settings.dart';
 import 'shell_model.dart';
 import 'start_work.dart';
@@ -69,6 +70,7 @@ List<Command> workCommands({
   required FleetModel fleet,
   required void Function(Task task) askToStop,
   required void Function(Task task) askWhichLog,
+  required void Function(Task task) openSession,
 }) {
   const nothingSelected = 'no work is selected';
   return <Command>[
@@ -89,6 +91,17 @@ List<Command> workCommands({
       group: 'Work',
       run: () => askToStop(task!),
       unavailable: task == null ? nothingSelected : null,
+    ),
+    Command(
+      id: 'work.session',
+      label: 'Work in it by hand',
+      group: 'Work',
+      run: () => openSession(task!),
+      // **Both reasons are answerable from the task itself**, so this is offered as unavailable
+      // with the reason rather than offered and refused. Sokar refuses the same two cases with
+      // exit 69, and finding that out by pressing something is the worse way to learn it.
+      unavailable:
+          task == null ? nothingSelected : Sessions.whyNot(task)?.words,
     ),
     Command(
       id: 'work.log',
@@ -127,6 +140,7 @@ List<Command> commandsFor({
   required VoidCallback checkWorkCanStart,
   required void Function(Task task) askToStop,
   required void Function(Task task) askWhichLog,
+  required void Function(Task task) openSession,
   required VoidCallback openTheGate,
   required VoidCallback openEgress,
   required VoidCallback widenTheWork,
@@ -189,6 +203,7 @@ List<Command> commandsFor({
       fleet: fleet,
       askToStop: askToStop,
       askWhichLog: askWhichLog,
+      openSession: openSession,
     ),
     Command(
       id: 'notifications.mute',

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,8 @@ import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/emergency_stop.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/templates.dart';
+import 'package:sokar_frontend/src/app/pty.dart';
+import 'package:sokar_frontend/src/app/session.dart';
 import 'package:sokar_frontend/src/app/vault.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
@@ -726,6 +729,17 @@ class World {
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
+  /// The shells somebody has open inside running work.
+  static late Sessions sessions;
+
+  /// Every terminal a scenario opened, in the order they were opened.
+  ///
+  /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
+  /// terminal — `test/app/pty_test.dart` does that against the kernel — so what is proven here is
+  /// everything above it: which command was run against which machine, that what comes back
+  /// reaches the screen, and what an ending is said to mean.
+  static final List<FakeTerminal> terminals = <FakeTerminal>[];
+
   /// Where somebody was, so a restart can put them back.
   static late WhereYouWere whereYouWere;
 
@@ -878,6 +892,13 @@ class World {
     stopping = EmergencyStop();
     vault = Vault();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
+    terminals.clear();
+    sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
+      final terminal = FakeTerminal(<String>[executable, ...arguments]);
+      terminals.add(terminal);
+      return terminal;
+    });
+    addTearDown(sessions.dispose);
     notifier = RecordingNotifier();
     notifications = Notifications(notifier, settings)
       ..watchOperations(operations, open: (operation) => shell.openOperation(operation.id));
@@ -928,6 +949,7 @@ class World {
       stopping: stopping,
       vault: vault,
       newerVersion: newerVersion,
+      sessions: sessions,
     ));
     await tester.pumpAndSettle();
   }
@@ -981,6 +1003,7 @@ class World {
       stopping: stopping,
       vault: vault,
       newerVersion: newerVersion,
+      sessions: sessions,
     ));
     await tester.pumpAndSettle();
   }
@@ -1003,6 +1026,7 @@ class World {
       stopping: stopping,
       vault: vault,
       newerVersion: newerVersion,
+      sessions: sessions,
     ));
     await settle(tester);
   }
@@ -1049,6 +1073,58 @@ class World {
 /// The frame is judged on what it asks for, what it says, and what it lets go of. Starting a real
 /// `ssh` here would make every scenario a test of somebody's network; the process itself has its
 /// own tests against real sockets.
+/// A terminal that never starts anything.
+///
+/// It is the seam [SessionChannel] exists for: what is above it — which command, against which
+/// machine, what reaches the screen, and what an ending says — is the requirement, and none of it
+/// needs a process.
+class FakeTerminal implements SessionChannel {
+  /// Constructor taking the command it stands in for.
+  FakeTerminal(this.command);
+
+  /// What would have been run.
+  final List<String> command;
+
+  /// What was typed into it, in order.
+  final List<String> typed = <String>[];
+
+  /// The sizes it was told about, most recent last.
+  final List<String> sizes = <String>[];
+
+  /// Whether this side closed it.
+  bool closed = false;
+
+  final StreamController<List<int>> _output = StreamController<List<int>>.broadcast();
+  final Completer<int> _ended = Completer<int>();
+
+  @override
+  Stream<List<int>> get output => _output.stream;
+
+  @override
+  Future<int> get ended => _ended.future;
+
+  @override
+  void send(String input) => typed.add(input);
+
+  @override
+  void resize({required int columns, required int rows}) =>
+      sizes.add('${columns}x$rows');
+
+  @override
+  Future<void> close() async {
+    closed = true;
+    if (!_ended.isCompleted) _ended.complete(129);
+  }
+
+  /// Makes the far end print something.
+  void prints(String words) => _output.add(utf8.encode(words));
+
+  /// Makes the far end go away with [code].
+  void endsWith(int code) {
+    if (!_ended.isCompleted) _ended.complete(code);
+  }
+}
+
 class FakeTunnels extends Tunnels {
   final Map<String, Tunnel> _mine = <String, Tunnel>{};
 

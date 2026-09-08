@@ -1,7 +1,8 @@
 # F25 — Task Templates
 
-**Status:** open — three of four criteria built. Templates are kept beside the interface rather
-than with the project, because nothing in the contract writes one to a project file.
+**Status:** open — three of four criteria built, and the fourth answered *no* on 2026-09-08.
+Templates follow the person rather than the project, and that is a decision rather than a
+shortfall.
 
 The same few jobs recur. A template names one, carries its prompt, and records the settings that
 job needs.
@@ -37,9 +38,14 @@ security class itself is out of reach by the contract: `Start` has no parameter 
 
 One criterion is not met:
 
-- *"Templates are definable per project and **shared with it**."* They are definable per project.
-  They are not shared with it: **nothing in the contract writes to a project file except
-  `SetEgress`**, so a template lives beside this interface's own choices and follows the person
-  rather than the project. Somebody else on the same machine does not see it, and neither does the
-  same project on another machine. Asked for on the channel; until there is somewhere to put one,
-  this is a real shortfall rather than a rendering decision.
+- ~~*"Templates are definable per project and **shared with it**."*~~ — **reworded: a template
+  follows the person.** They are definable per project and they are not shared with it, and
+  after 2026-09-08 they never will be. Somebody else on the same machine does not see one, and
+  neither does the same project on another machine.
+
+  **The reason is not that a project file cannot be written.** It can — `SetEgress` edits
+  `project.yml` in place, comments and all — and this file nearly recorded the opposite. A job
+  kept *with a project* is a job the machine could start with nobody present, and that is a
+  capability rather than a field: a locked vault would refuse the run rather than ask anybody, a
+  clearance question would expire unseen, and a failure would be found by whoever did not start
+  it. **There is no scheduler; work starts when somebody starts it.**
