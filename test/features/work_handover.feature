@@ -59,3 +59,12 @@ Feature: F10 Task Inspection And Work Handover
     When I review what is waiting at the gate
     Then it says {'Work can also be pushed straight upstream by hand'}
     And it says {'per clone, on the machine you push from'}
+
+  # Withdrawn entirely on 2026-09-08, not reworded into a smaller feature: Sokar does not know
+  # what instruction files are called, and cannot merge them, because how an agent combines
+  # several is that agent's rule. A screen guessing a set of filenames would answer "no
+  # instructions" with confidence for a task that had them.
+  Scenario: where somebody asks what an agent was told, the answer is not here
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'in the repository — nothing here has a view of them'}

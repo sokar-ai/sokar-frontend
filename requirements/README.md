@@ -48,7 +48,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
-| F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | read and write instructions at both levels, and show the resolved result | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | `Login` for choosing between ways in. `StoreCredential` is parked; the rest is built | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
@@ -117,6 +116,23 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F07 Instruction Management.** **Withdrawn entirely rather than built**, by the operator on
+  2026-09-08, and the reasoning is worth more than the outcome. Standing instructions live in the
+  repository, checked in or not. **Sokar does not know what they are called** — `CLAUDE.md`,
+  `AGENTS.md`, whatever an agent invents next year — and it cannot merge them, because how an
+  agent combines several is that agent's rule and not Sokar's. A team running more than one agent
+  has to agree upfront how instructions are stored in their repository, and that agreement is
+  theirs to make.
+
+  **The backend was one step from building the wrong thing**, and said so: a known set of
+  filenames, read out of the mirror and recorded at task start. That hardcodes exactly the
+  knowledge nobody has — and for a feature whose only job is to show what an agent was told, **a
+  filename that goes out of date produces a confident *"no instructions"* for a task that had
+  them.** A blank that looks like an answer is worse than no feature.
+
+  So the work's detail says where they are and that nothing here has a view of them, in the place
+  somebody would ask.
+
 - **F03 Project Environment Preparation.** An environment built on purpose rather than as a side
   effect of starting work — which is where the first task in a project otherwise spends its
   minutes — **at three depths that are real**: build what changed, replace the agent's tooling

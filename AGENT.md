@@ -1637,3 +1637,41 @@ afterwards — somebody deciding to rebuild is deciding what it will cost them.
 *"Build this project's environment"* produces an unterminated literal and the whole build fails
 with no output. The command was renamed rather than escaped: a label is read by people, and a
 backslash in one is a fix in the wrong place.
+
+## A blank that looks like an answer is worse than no feature
+
+Instructions were withdrawn entirely rather than reworded into something smaller. Standing
+instructions live in the repository, checked in or not, and **Sokar does not know what they are
+called** — `CLAUDE.md`, `AGENTS.md`, whatever an agent invents next year — nor how a given agent
+combines several of them, because that is the agent's rule.
+
+The backend was one step from building a *known set* of filenames, read out of the mirror and
+recorded at task start, and said so rather than shipping it. **For a feature whose only job is to
+show what an agent was told, a filename that goes out of date produces a confident "no
+instructions" for a task that had them.** The screen would have looked finished and been wrong in
+the direction nobody checks.
+
+So the work's detail says where they are and that nothing here has a view of them — in the place
+somebody would ask.
+
+## Four criteria in this set described relations that do not exist
+
+The agent roster, hardware access, key routing, and per-project authentication. **Every time the
+honest answer was "that is not a thing this system has"**, and every time asking first cost a
+paragraph and saved a screen that would have looked finished.
+
+The tell is the same each time: a criterion joins two things the contract never joins. A project
+and a list of agents; a project and a device; a project and a key; a project and a credential.
+**When a requirement asks for a relation, ask whether the relation exists before designing the view
+that edits it.**
+
+## `mode: AGENT` now means an agent was really there
+
+`--attach agent` with no agent installed used to attach a plain shell and record `AGENT` anyway, so
+a task could say `AGENT` while nothing agent-shaped ever ran in it — and `CanStart` answered
+`NO_AGENT` for the same machine, so the check and the launch disagreed. It refuses now, before the
+workspace, the image and the container.
+
+Nothing here changed, but what the field *means* did: `AGENT` is now evidence rather than a
+recorded intention. **`SHELL` still needs no agent** — working inside the container by hand is
+exactly what it is for, which is why F12 offers a session for it.

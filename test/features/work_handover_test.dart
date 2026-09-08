@@ -101,5 +101,14 @@ void main() {
       await itSays(tester, 'Work can also be pushed straight upstream by hand');
       await itSays(tester, 'per clone, on the machine you push from');
     });
+    testWidgets(
+        '''where somebody asks what an agent was told, the answer is not here''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iOpenTheSelection(tester);
+      await itSays(
+          tester, 'in the repository — nothing here has a view of them');
+    });
   });
 }

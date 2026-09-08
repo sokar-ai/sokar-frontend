@@ -8,12 +8,23 @@ Four of six criteria are met: the providers are listed with what each one is, wh
 authenticated and which are not is stated, existing configuration on the machine is imported rather
 than retyped, and nothing displays a secret because nothing here takes one.
 
-**Two are not.** *"Where a provider supports more than one way of authenticating, the choice is
-presented with the consequence of each"* waits on `Login` — the dialects are shown, but choosing
-between them is what `Login` does. And *"authentication can be started from within a project for
-that project"* **describes a relation that may not exist**: `Providers()` takes no project, and
-nothing scopes a credential to one. That is asked rather than assumed, the way the agent roster and
-key routing were — and both of those turned out to be reworded rather than built.
+**One is not, and one was reworded.**
+
+*"Where a provider supports more than one way of authenticating, the choice is presented with the
+consequence of each"* waits on `Login`. The dialects are shown; choosing between them is what
+`Login` does.
+
+~~*"Authentication can be started from within a project, for that project."*~~ — **reworded: the
+relation does not exist.** Confirmed on 2026-09-08. A credential is keyed by the provider's name,
+falling back to the agent's, and nothing scopes one to a project — **and nothing would vary if it
+did**: a provider is reached on the strength of the agent's own allowed domains, added on top of
+whatever the project declares, so two projects on one node see exactly the same authentication. The
+nearest true sentence is *"which providers this machine can reach, and which have a credential"*,
+which is what the screen says.
+
+That is the fourth criterion in this set to be reworded rather than built — after the agent roster,
+hardware, and key routing. Each time the honest answer was *"that is not a thing this system has"*,
+and each time asking first cost a paragraph and saved a screen that would have looked finished.
 
 Getting agents and providers authenticated, from the interface, both for the machine
 as a whole and for a single project.

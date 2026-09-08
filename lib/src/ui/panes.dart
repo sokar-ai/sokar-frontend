@@ -498,6 +498,17 @@ class WorkDetail extends StatelessWidget {
               _Field(name: 'Helpers alive', value: '${task.helpers}'),
               if (task.prompt.isNotEmpty)
                 _Field(name: 'Asked to', value: task.prompt),
+              // **Where somebody asks what this agent was told, and the honest answer is "not
+              // here".** Standing instructions live in the repository, checked in or not, and
+              // Sokar does not know what they are called — `CLAUDE.md`, `AGENTS.md`, whatever an
+              // agent invents next year — nor how a given agent combines several of them.
+              //
+              // A screen that guessed a set of filenames would answer *"no instructions"* with
+              // confidence for a task that had them, which is worse than saying nothing.
+              const _Field(
+                name: 'Standing instructions',
+                value: 'in the repository — nothing here has a view of them',
+              ),
               if (ungated) ...<Widget>[
                 const SizedBox(height: Space.wide),
                 Card(
