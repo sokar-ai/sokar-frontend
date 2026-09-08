@@ -1288,3 +1288,35 @@ and the answer crossed in the same minute.
 The lesson is not *ask twice* or *never ask twice*. It is that **the only party who can say what an
 answer covers is the one who wrote it** — so when a two-part answer is ambiguous, ask once, plainly,
 and then wait rather than reasoning about which half the reasoning belonged to.
+
+## A project file describes constraints, not instructions
+
+Why a template is not shared with the project, settled by the operator on 2026-09-08 and worth
+holding on to beyond templates.
+
+Everything in `project.yml` is a **bound**: what work here may reach, how far it is trusted, what
+image it runs in, how far it may go. A prompt is the other kind of thing entirely — it is what a
+model is *told to do*. Put an instruction in a committed file and it **arrives with the
+repository**: whoever can commit could put words in front of an agent that somebody else starts,
+and nothing in a container fixes that, because an agent acts on what it reads and no boundary makes
+a model treat a sentence as data rather than as an order.
+
+A second edge, moot once the answer landed but worth the same shelf: a stored job could have
+carried `clearance: off`. Somebody who types a job name does not necessarily read the file, so a
+committed line could quietly have turned off the thing that asks.
+
+**Sharing is not this product's problem to solve.** A team that wants the same named jobs keeps
+them in a repository of their own — they are text, and teams already share text.
+
+## The word was ours, and it sent the answer somewhere else
+
+The field said *"Keep this as a recurring job"*. It reads as **recurring on its own**, and the
+backend answered a question about schedulers that nobody had asked — twice, across three exchanges,
+before it was clear the storage half had never been decided.
+
+It now says *"Keep this as a named job"*, and the helper carries the two things somebody would
+otherwise assume wrongly: **it stays with you rather than with the project, and nothing starts it
+but you.**
+
+When an answer comes back about something adjacent to what was asked, check the wording of the
+question before deciding the answer was wrong.

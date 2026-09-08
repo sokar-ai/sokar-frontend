@@ -61,7 +61,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 
-| F25 | [Task Templates](F25-Task-Templates.md) | A recurring job is startable by name, and a template can never widen what work may reach. | | |
 
 ## What was here and is finished
 
@@ -124,6 +123,22 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F25 Task Templates.** A job named from the start dialog once its choices are made, which
+  becomes an action of its own — in the finder, the menu bar and anywhere else the command list is
+  read — and starts in one action with its prompt editable before it runs. The criterion with
+  teeth is met by **what a template cannot carry**: `clearance` and `noGate` are not fields on
+  one, so a job named last month cannot be running today with the gate off, and reading one names
+  its fields rather than copying a map.
+
+  Its fourth criterion — *shared with the project* — was answered **no** by the operator, and the
+  reason is worth keeping: **a project file describes constraints, not instructions.** Everything
+  in it is a bound; a prompt is what a model is *told to do*, and an instruction in a committed
+  file arrives with the repository, where whoever can commit could put words in front of an agent
+  somebody else starts. Sharing is not this product's problem: a team that wants the same named
+  jobs keeps them in a repository of their own. The word *"recurring job"* was ours and it was
+  wrong — it reads as recurring on its own, and it sent the backend answering a question about
+  schedulers that nobody had asked.
+
 - **F12 Interactive Session Attach.** A shell inside running work, drawn in this window, one
   action from where the work is listed — several at once, each named by its task and its machine,
   and the way back is the frame's own: leaving returns to the same place with the same selection.

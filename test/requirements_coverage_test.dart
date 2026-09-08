@@ -29,7 +29,7 @@ void main() {
   /// keeps the traceability report reading the same way it always did.
   const retired = <String>{
     'F01', 'F02', 'F08', 'F09', 'F11', 'F12', 'F13', 'F18', 'F20', 'F22', 'F23',
-    'F24', 'F27',
+    'F24', 'F25', 'F27',
   };
 
   const pending = <String>{

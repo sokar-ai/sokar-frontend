@@ -145,18 +145,20 @@ names and the requirements are written from what a person sees.
     place, comments and all — the mechanism plainly exists. This end proposed *"a template is not
     Sokar's to put in a project file"* as a reason it would accept, and it is false; a screen
     carrying it would have contradicted the egress editor it already draws.
-  - **What was refused is the timer, and storage alone is still open.** The answer opened *"a
-    recurring job does not belong to a project, and there will be no scheduler"*, and it was read
-    here — and then withdrawn here — as settling both. Its author says otherwise: the no is to the
-    daemon starting work with nobody present, a capability rather than a field, and *"a named
-    parameter set in `project.yml` that only a person starts is a different proposition"*. It is
-    with the operator as its own question.
-  - **The withdrawal and the answer crossed**, which is worth knowing rather than tidying away:
-    the question was asked, judged redundant here, unasked — and answered in the same minute by
-    the one party who could say. Reasoning attached to one half of an answer is not evidence about
-    the other half, in either direction.
-  - Nothing on screen depends on which way it goes: *it stays with you rather than with the
-    project, and nothing starts it but you* is true today either way.
+  - **Both halves are refused, and the reason is a line worth holding on to: a project file
+    describes constraints, not instructions.** Everything in it is a bound — what work may reach,
+    how far it is trusted, what image it runs in. A prompt is the opposite kind of thing, and an
+    instruction in a committed file **arrives with the repository**: whoever can commit could put
+    words in front of an agent somebody else starts, and no boundary makes a model treat a
+    sentence as data rather than as an order.
+  - **Sharing is not the contract's problem.** A team that wants the same named jobs keeps them in
+    a repository of their own — they are text, and teams already share text. That is better than
+    the middle way the Sokar side was about to offer, which would have split a template between
+    the project and the person and left both ends explaining which half lived where.
+  - **It took three tries to establish what one answer covered.** The first answer refused a
+    schedule, was read here as covering storage, then read as not covering it, then withdrawn —
+    and the storage half was live the whole time. Reasoning attached to one half of an answer is
+    not evidence about the other half, in either direction.
   - The criterion with teeth needs nothing: a template carries no `clearance` and no `noGate`,
     and the security class is unreachable because `Start` cannot set it.
 
