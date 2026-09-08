@@ -37,6 +37,12 @@ class MockMachine {
                     'from': '/usr/share/sokar/agents/an-agent.yml',
                     'allowedDomains': <String>['api.anthropic.com'],
                     'refusedDomains': <String>['telemetry.example.test'],
+                    // What its commits are attributed to, which is what tells somebody looking at
+                    // one whether an agent or a person wrote it.
+                    'commitsAs': <String, dynamic>{
+                      'name': 'An Agent',
+                      'email': 'an-agent@sokar.invalid',
+                    },
                     'artifacts': <Map<String, dynamic>>[
                       <String, dynamic>{
                         'url': 'https://example.test/an-agent-2.4.0.tar.gz',
@@ -56,6 +62,8 @@ class MockMachine {
                     'from': '/etc/sokar/agents/other-agent.yml',
                     'allowedDomains': <String>['api.example.test'],
                     'refusedDomains': <String>[],
+                    // Installed by a Sokar older than the field: absent, which is a state to
+                    // render rather than a blank to fill in.
                     // Knowingly unverified, with the reason that makes it a decision rather than
                     // an oversight. The daemon refuses to build one with neither.
                     'artifacts': <Map<String, dynamic>>[

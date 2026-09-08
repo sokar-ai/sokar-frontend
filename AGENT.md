@@ -1345,3 +1345,27 @@ changes its word to *"Remove it anyway"* rather than staying the same and quietl
 **It takes the project's name, not its file.** So it is offered for a project whose file nothing
 can find any more — which is exactly the one somebody wants to clear away, and the one every other
 project action is unavailable for.
+
+## The field name in a message is not the field name on the wire
+
+The Sokar side offered a field and called it `gitIdentity`. On the wire it is **`commitsAs`, of
+type `GitIdentity`** — the first is what an agent's own manifest calls it internally. Reading the
+name from the message would have compiled, run, found nothing, and drawn a blank field with no
+error anywhere.
+
+Checked against the IDL before a line was written, which is the fourth time in one day that
+verifying rather than believing changed the result. **A name in prose is a description of a field.
+The IDL is the field.**
+
+## The gate is not a wall, and the screen says so
+
+Work can be pushed straight upstream by hand, past the gate entirely. Sokar's guard is a **pre-push
+hook, installed per clone, on whichever machine somebody pushes from** — very often not the machine
+this interface is talking to, and over a forwarded socket not reachable from here at all. So the
+gate view says where that happens rather than offering a control that could only ever protect one
+machine.
+
+**It is a loud accident-catcher, not a control**, and the backend is explicit about the four ways
+round it: `--no-verify` (which is the point — somebody who means it can still do it), a
+`core.hooksPath` pointing elsewhere, a fresh clone, and a client that does not run the git command.
+Nothing here may present it as prevention.

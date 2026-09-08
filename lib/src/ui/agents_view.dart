@@ -133,6 +133,16 @@ class _AgentRow extends StatelessWidget {
         children: <Widget>[
           _Field(name: 'Found at', value: agent.from),
           _Field(name: 'Runs', value: agent.binary),
+          // **The answer to "did a person or an agent write this commit?"**, which had nowhere to
+          // be looked up before the field existed. It is also what a pre-push guard on somebody's
+          // own checkout matches on, so the two have to agree — and reading it here means nobody
+          // has to open a manifest to find out what they agree on.
+          _Field(
+            name: 'Commits as',
+            value: agent.commitsAs.recorded
+                ? agent.commitsAs.words
+                : 'not recorded — installed before this was reported',
+          ),
           const _Heading(words: 'Hosts it needs'),
           if (agent.allowedDomains.isEmpty)
             const Padding(

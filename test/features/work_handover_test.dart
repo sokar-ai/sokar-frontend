@@ -93,5 +93,13 @@ void main() {
       await theCommandIsOfferedAsUnavailable(
           tester, 'Review what is waiting at the gate');
     });
+    testWidgets(
+        '''the gate says what it does not see, rather than reading as a wall''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iReviewWhatIsWaitingAtTheGate(tester);
+      await itSays(tester, 'Work can also be pushed straight upstream by hand');
+      await itSays(tester, 'per clone, on the machine you push from');
+    });
   });
 }

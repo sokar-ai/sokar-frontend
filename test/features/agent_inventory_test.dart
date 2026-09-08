@@ -112,5 +112,20 @@ void main() {
       await itListsTheUnusedCopy(tester, '/usr/libexec/sokar/agents/an-agent');
       await itSays(tester, 'runs instead');
     });
+    testWidgets('''an agent says who its commits are attributed to''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowTheAgentsInstalledHere(tester);
+      await iOpenTheAgent(tester, 'An Agent');
+      await itSays(tester, 'An Agent <an-agent@sokar.invalid>');
+    });
+    testWidgets(
+        '''an agent installed before that was reported says so rather than showing a blank''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowTheAgentsInstalledHere(tester);
+      await iOpenTheAgent(tester, 'Another Agent');
+      await itSays(tester, 'not recorded — installed before this was reported');
+    });
   });
 }

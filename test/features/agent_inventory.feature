@@ -61,3 +61,15 @@ Feature: F24 Agent Inventory
     Then it lists the unused copy {'/usr/libexec/sokar/agents/an-agent'}
     And it says {'runs instead'}
 
+  # The answer to "did a person or an agent write this commit?", which had nowhere to be looked up
+  # before `commitsAs` was on the wire. It is also what a pre-push guard on somebody's own
+  # checkout matches on, so what is shown here and what that guard uses have to be the same thing.
+  Scenario: an agent says who its commits are attributed to
+    When I show the agents installed here
+    And I open the agent {'An Agent'}
+    Then it says {'An Agent <an-agent@sokar.invalid>'}
+
+  Scenario: an agent installed before that was reported says so rather than showing a blank
+    When I show the agents installed here
+    And I open the agent {'Another Agent'}
+    Then it says {'not recorded — installed before this was reported'}

@@ -334,6 +334,16 @@ class Agent {
   /// it has a pinned version and no digest at all.
   final List<InstallArtifact> artifacts;
 
+  /// The identity this agent's commits carry, from its own manifest.
+  ///
+  /// **This is what tells somebody looking at a commit whether an agent or a person wrote it**,
+  /// and it is what the pre-push guard on an operator's own checkout matches on. Until it was on
+  /// the wire there was nowhere to look that up.
+  ///
+  /// The field is `commitsAs`, not `gitIdentity` — the second is what an agent's manifest calls
+  /// it internally, and reading that name here would have found nothing and drawn a blank.
+  final GitIdentity commitsAs;
+
   /// Constructor taking every field.
   const Agent({
     required this.name,
@@ -344,6 +354,7 @@ class Agent {
     required this.allowedDomains,
     this.refusedDomains = const <String>[],
     this.artifacts = const <InstallArtifact>[],
+    this.commitsAs = const GitIdentity(name: '', email: ''),
   });
 
   /// Reads one from a reply.
@@ -356,7 +367,32 @@ class Agent {
         allowedDomains: _strings(map, 'allowedDomains'),
         refusedDomains: _strings(map, 'refusedDomains'),
         artifacts: _list(map, 'artifacts').map(InstallArtifact.from).toList(),
+        commitsAs: map['commitsAs'] is Map<String, dynamic>
+            ? GitIdentity.from(map['commitsAs']! as Map<String, dynamic>)
+            : const GitIdentity(name: '', email: ''),
       );
+}
+
+/// Who an agent's commits are attributed to.
+class GitIdentity {
+  /// Author name on its commits.
+  final String name;
+
+  /// Author address on its commits.
+  final String email;
+
+  /// Constructor taking both.
+  const GitIdentity({required this.name, required this.email});
+
+  /// Reads one from a reply.
+  factory GitIdentity.from(Map<String, dynamic> map) =>
+      GitIdentity(name: _string(map, 'name'), email: _string(map, 'email'));
+
+  /// Whether anything was recorded. False for an agent installed by a Sokar older than the field.
+  bool get recorded => name.isNotEmpty || email.isNotEmpty;
+
+  /// How it reads on a commit, which is the form somebody is comparing against.
+  String get words => email.isEmpty ? name : '$name <$email>';
 }
 
 /// One file an agent fetches when it is installed.

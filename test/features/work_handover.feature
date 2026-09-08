@@ -50,3 +50,12 @@ Feature: F10 Task Inspection And Work Handover
     When I select the project {'unrecorded'}
     And I open the command finder
     Then the command {'Review what is waiting at the gate'} is offered as unavailable
+
+  # A screen full of waiting pushes reads as a wall, and it is not one: work can go straight
+  # upstream by hand. The guard against that is a pre-push hook installed per clone, on whichever
+  # machine somebody pushes from — which is not this interface's to install and often not even the
+  # machine it is talking to.
+  Scenario: the gate says what it does not see, rather than reading as a wall
+    When I review what is waiting at the gate
+    Then it says {'Work can also be pushed straight upstream by hand'}
+    And it says {'per clone, on the machine you push from'}

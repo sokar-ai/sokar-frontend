@@ -83,6 +83,12 @@ class FakeBackend implements FleetBackend {
       'from': '/usr/share/sokar/agents/an-agent.yml',
       'allowedDomains': <String>['api.anthropic.com'],
       'refusedDomains': <String>['telemetry.example.test'],
+      // What its commits are attributed to. The second agent has none, which is what an agent
+      // installed by a Sokar older than the field answers — a state to render, not a blank.
+      'commitsAs': <String, dynamic>{
+        'name': 'An Agent',
+        'email': 'an-agent@sokar.invalid',
+      },
       'artifacts': <Map<String, dynamic>>[
         <String, dynamic>{
           'url': 'https://example.test/an-agent-2.4.0.tar.gz',

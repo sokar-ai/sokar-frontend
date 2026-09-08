@@ -75,6 +75,23 @@ class GateView extends StatelessWidget {
               rowOf: (context, push, selected) => _WaitingRow(push: push),
             ),
           ),
+          // **What the gate does not see, said where somebody would otherwise assume it is a
+          // wall.** Agent work can still be pushed straight upstream by hand, past this screen
+          // entirely. Sokar's guard against that is a pre-push hook, and it is installed **per
+          // clone, on the machine somebody pushes from** — which is very often not the machine
+          // this interface is talking to, and over a forwarded socket is not reachable from here
+          // at all. So this says where it happens rather than offering a control that would only
+          // ever protect one machine.
+          Padding(
+            padding: const EdgeInsets.all(Space.normal),
+            child: Text(
+              'This is what reached the gate. Work can also be pushed straight upstream by hand, '
+              'past it — `sokar gate protect` installs a guard against that, per clone, on the '
+              'machine you push from.',
+              key: const Key('what-the-gate-does-not-see'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         ],
       );
 }
