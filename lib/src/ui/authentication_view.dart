@@ -147,6 +147,25 @@ class _ProviderRow extends StatelessWidget {
         _Field(name: 'Reaches', value: provider.upstream),
         if (provider.dialects.isNotEmpty)
           _Field(name: 'Ways in', value: provider.dialects.join(', ')),
+        // **What differs between them, without pretending to know each agent's flow.** The two
+        // kinds go in different headers, which is why the command carries `--type` — sending one
+        // as the other fails as an authentication error that looks exactly like a wrong key.
+        //
+        // Where the value comes from is the agent's own documentation, and restating it here
+        // would be per-agent knowledge going stale silently: the same trap that withdrew
+        // instructions.
+        if (provider.dialects.length > 1)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                Space.normal, Space.tight, Space.normal, Space.small),
+            child: Text(
+              'A key and a subscription token are stored differently — the command below carries '
+              'which. Getting either one is the agent’s own login, on the machine, and its own '
+              'documentation says how.',
+              key: const Key('which-way-in'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         // **Never recomputed here.** It is usually the provider's own name, but a vault written
         // before credentials were keyed by provider answers under the *agent's* name and that key
         // stays in use — so a client intersecting two lists would report a credential missing from

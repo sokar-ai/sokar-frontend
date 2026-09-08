@@ -65,3 +65,12 @@ Feature: F14 Authentication Flows
     And I open the provider {'A Provider'}
     And I import what the agent already has
     Then it says {'The store is shut, so nothing here can say whether it holds one'}
+
+  # `Login` is held open rather than built: getting a credential is the agent's own login on the
+  # machine, and how that works is per-agent knowledge that would go stale here silently. What the
+  # screen owes is what differs between the ways in, and where the choosing happens.
+  Scenario: where a provider has more than one way in, what differs is said
+    When I show what this machine can authenticate against
+    And I open the provider {'Another Provider'}
+    Then it says {'A key and a subscription token are stored differently'}
+    And it says {'the agent’s own login, on the machine'}

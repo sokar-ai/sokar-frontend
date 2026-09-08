@@ -49,7 +49,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 |---|---|---|---|---|
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
-| F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | `Login` for choosing between ways in. `StoreCredential` is parked; the rest is built | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
 | F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
@@ -116,6 +115,24 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F14 Authentication Flows.** Which providers a machine can reach, which of them have a
+  credential, what differs between the ways in, and **where a value goes** — the command rendered
+  verbatim, because the key it is stored under is usually the provider's name but falls back to
+  the agent's for older vaults, and a client intersecting two lists would report a credential
+  missing from precisely the vault that has one. Importing what an agent already holds moves **no
+  secret at all**: the daemon reads that agent's own config on its own disk, and only a name
+  crosses.
+
+  **`authenticated` is drawn only beside a readable store**, because a shut one and an
+  unauthenticated provider are different sentences and only one of them is somebody's problem.
+
+  Two criteria are answered by saying *where* rather than by a control, and both were decided
+  rather than deferred. **No secret is entered here** — a rule that moved three times in one day
+  and is parked with the vault passphrase, while every screen said *where* throughout and none of
+  them had to change. And **`Login` is held open as *later, nice to have***: getting a credential
+  is the agent's own login on the machine, and teaching Sokar how each agent does that is
+  per-agent knowledge that goes stale silently — the instructions problem again.
+
 - **F07 Instruction Management.** **Withdrawn entirely rather than built**, by the operator on
   2026-09-08, and the reasoning is worth more than the outcome. Standing instructions live in the
   repository, checked in or not. **Sokar does not know what they are called** — `CLAUDE.md`,

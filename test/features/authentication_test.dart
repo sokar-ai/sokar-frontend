@@ -99,5 +99,15 @@ void main() {
       await itSays(tester,
           'The store is shut, so nothing here can say whether it holds one');
     });
+    testWidgets(
+        '''where a provider has more than one way in, what differs is said''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowWhatThisMachineCanAuthenticateAgainst(tester);
+      await iOpenTheProvider(tester, 'Another Provider');
+      await itSays(
+          tester, 'A key and a subscription token are stored differently');
+      await itSays(tester, 'the agent’s own login, on the machine');
+    });
   });
 }

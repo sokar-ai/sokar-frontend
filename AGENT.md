@@ -1675,3 +1675,30 @@ workspace, the image and the container.
 Nothing here changed, but what the field *means* did: `AGENT` is now evidence rather than a
 recorded intention. **`SHELL` still needs no agent** — working inside the container by hand is
 exactly what it is for, which is why F12 offers a session for it.
+
+## Three different things get called "login"
+
+Only one of them is a flow, and it is not this interface's:
+
+- **Getting the credential** — the agent's own login on the node, once, outside any container. It
+  opens a browser and produces a long-lived token.
+- **A task authenticating** — not a login at all. The agent holds a phantom token and the broker
+  swaps the real credential in on the way out.
+- **Logging in inside a container** — blocked and pointless: the ruleset denies the provider's own
+  host, and the value would land somewhere that is removed.
+
+So `Login` is held open as *later, nice to have* rather than built. **Somebody at this interface
+already holds a terminal on that machine** — the socket only reaches here because it is forwarded
+over ssh — so it would save typing one command in a window that is already open.
+
+And it is not free: nothing tells Sokar how to log a given agent in, so it means a new field in the
+agent manifest landing in every agent repository, after which Sokar owns a flow it cannot test for
+agents it does not ship. **That is the instructions problem again** — per-agent knowledge held
+centrally goes stale silently, and being wrong produces a confident failure rather than an obvious
+one.
+
+What the screen owes instead is what differs between the ways in — a key and a subscription token
+are stored differently, which is why the command carries `--type` — and that getting either is the
+agent's own login. **If somebody is observed getting stuck at exactly that question**, the smallest
+fix is two strings an agent *declares* and Sokar only *displays*: a login command and a
+documentation link. On evidence, not on anticipation.
