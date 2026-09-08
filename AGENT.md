@@ -1702,3 +1702,33 @@ are stored differently, which is why the command carries `--type` — and that g
 agent's own login. **If somebody is observed getting stuck at exactly that question**, the smallest
 fix is two strings an agent *declares* and Sokar only *displays*: a login command and a
 documentation link. On evidence, not on anticipation.
+
+## The checking is what makes creating a project not a form
+
+Whether a name survives becoming an image tag and an nftables set name, whether an egress set
+exists on that machine, whether a class is spelled right — **none of it can be judged here**. An
+answer accepted in a dialog and refused at the first task start is refused far from where it was
+given.
+
+So every change asks the machine with `dryRun`, which writes nothing, and what comes back is the
+file as it would be written plus what is wrong with the answers. **Not on every keystroke**: a
+project name typed a letter at a time would ask the machine eleven times to be told the same thing.
+
+Two distinctions the contract makes and the screen has to keep:
+
+- **A problem that blocks and one that does not.** A base image that is not on the machine yet will
+  simply be pulled; refusing there would turn a note into a wall.
+- **`ALREADY_EXISTS` is a refusal and never an overwrite.** The file may be somebody's whole
+  configuration, and this is the one operation that would replace it with nothing to restore from.
+
+And the rendered file is **filled even on a refusal**, because seeing what was rejected is most of
+understanding why.
+
+## A `\$` in a generated fixture is a literal, not an interpolation
+
+The fake's rendered project file was written through a script and came out as `"$name"` on screen —
+a Dart escape, not a value. The scenario failed on the one assertion that read the rendered
+content, which is exactly the assertion that was worth having.
+
+**A fixture built by a script is code somebody wrote twice**: once in the script's quoting and once
+in Dart's. Read it back before believing it.

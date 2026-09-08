@@ -379,6 +379,35 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Creates a project file, having checked the answers against this machine first.
+  ///
+  /// **The checking is what a client cannot do for itself**: whether a security class is spelled
+  /// right, whether an egress set exists here, whether the name survives becoming an image tag and
+  /// an nftables set name. An answer accepted in a form and rejected at the first task start is
+  /// rejected far from where it was given.
+  ///
+  /// `ALREADY_EXISTS` is **a refusal and never an overwrite**: the file may be somebody's whole
+  /// configuration, and this is the one operation that would replace it with nothing to restore
+  /// from.
+  Future<Created> createProject({
+    required String file,
+    required String name,
+    required String securityClass,
+    required String baseImage,
+    String? upstream,
+    List<String> sets = const <String>[],
+    bool? dryRun,
+  }) async =>
+      Created.from(await _call('CreateProject', {
+        'file': file,
+        'name': name,
+        'securityClass': securityClass,
+        'baseImage': baseImage,
+        'upstream': ?upstream,
+        'sets': sets,
+        'dryRun': ?dryRun,
+      }));
+
   /// Builds a project's task image without starting anything.
   ///
   /// **Streamed, because a build takes minutes** and showing nothing for that long is

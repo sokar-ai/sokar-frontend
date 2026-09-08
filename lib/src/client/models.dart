@@ -990,6 +990,86 @@ class Widened {
       );
 }
 
+/// Something wrong with one answer to the project questions.
+class Problem {
+  /// Which answer, named as the call named it.
+  final String field;
+
+  /// What is wrong with it.
+  final String what;
+
+  /// Whether it stops the project being created.
+  ///
+  /// **A non-fatal one is worth showing and not worth blocking on** — a base image that is not on
+  /// the machine yet will simply be pulled, and refusing there would turn a note into a wall.
+  final bool fatal;
+
+  /// Constructor taking every field.
+  const Problem({required this.field, required this.what, required this.fatal});
+
+  /// Reads one from a reply.
+  factory Problem.from(Map<String, dynamic> map) => Problem(
+        field: _string(map, 'field'),
+        what: _string(map, 'what'),
+        fatal: map['fatal'] == true,
+      );
+}
+
+/// What creating a project did, or would do.
+class Created {
+  /// `CREATED`, `PREVIEWED`, `ALREADY_EXISTS`, `INVALID` or `FAILED`.
+  final String outcome;
+
+  /// The file that was written, or would be.
+  final String file;
+
+  /// The file as it would be written, for review.
+  ///
+  /// **Filled even on a refusal**, because seeing what was rejected is most of understanding why.
+  final String content;
+
+  /// What is wrong with the answers.
+  final List<Problem> problems;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Created({
+    required this.outcome,
+    required this.file,
+    required this.content,
+    required this.problems,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Created.from(Map<String, dynamic> map) => Created(
+        outcome: _string(map, 'outcome'),
+        file: _string(map, 'file'),
+        content: _string(map, 'content'),
+        problems: _list(map, 'problems').map(Problem.from).toList(),
+        detail: _string(map, 'detail'),
+      );
+
+  /// Whether a project file now exists.
+  bool get written => outcome == 'CREATED';
+
+  /// Whether this is a review of what would be written.
+  bool get previewed => outcome == 'PREVIEWED';
+
+  /// Whether anything stops it being created.
+  bool get blocked => problems.any((problem) => problem.fatal);
+
+  /// What is wrong and does not block, which is worth showing beside what does.
+  List<Problem> get warnings =>
+      problems.where((problem) => !problem.fatal).toList();
+
+  /// What is wrong and blocks.
+  List<Problem> get refusals =>
+      problems.where((problem) => problem.fatal).toList();
+}
+
 /// One thing outside Sokar that a task depends on.
 ///
 /// **Each of these fails far from its cause.** Without `nft` a container comes up with no ruleset;

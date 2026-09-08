@@ -129,6 +129,23 @@ class _Wedged implements FleetBackend {
       const Stream<PrepareProgress>.empty();
 
   @override
+  Future<Created> createProject({
+    required String file,
+    required String name,
+    required String securityClass,
+    required String baseImage,
+    String? upstream,
+    List<String> sets = const <String>[],
+    bool? dryRun,
+  }) async =>
+      const Created(
+          outcome: 'CREATED',
+          file: '',
+          content: '',
+          problems: <Problem>[],
+          detail: '');
+
+  @override
   Future<Health> doctor() async =>
       const Health(probes: <Probe>[], ready: true);
 
@@ -304,6 +321,23 @@ class _Machine implements FleetBackend {
   Stream<PrepareProgress> prepare(String project,
           {String? agent, String? rebuild, bool? dryRun}) =>
       const Stream<PrepareProgress>.empty();
+
+  @override
+  Future<Created> createProject({
+    required String file,
+    required String name,
+    required String securityClass,
+    required String baseImage,
+    String? upstream,
+    List<String> sets = const <String>[],
+    bool? dryRun,
+  }) async =>
+      const Created(
+          outcome: 'CREATED',
+          file: '',
+          content: '',
+          problems: <Problem>[],
+          detail: '');
 
   @override
   Future<Health> doctor() async =>

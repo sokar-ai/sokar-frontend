@@ -96,6 +96,17 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Creates a project file, having checked the answers against this machine.
+  Future<Created> createProject({
+    required String file,
+    required String name,
+    required String securityClass,
+    required String baseImage,
+    String? upstream,
+    List<String> sets,
+    bool? dryRun,
+  });
+
   /// Builds a project's task image without starting anything. Streamed: a build takes minutes.
   Stream<PrepareProgress> prepare(
     String project, {
@@ -296,6 +307,26 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<Created> createProject({
+    required String file,
+    required String name,
+    required String securityClass,
+    required String baseImage,
+    String? upstream,
+    List<String> sets = const <String>[],
+    bool? dryRun,
+  }) =>
+      _opened().createProject(
+        file: file,
+        name: name,
+        securityClass: securityClass,
+        baseImage: baseImage,
+        upstream: upstream,
+        sets: sets,
+        dryRun: dryRun,
+      );
 
   @override
   Stream<PrepareProgress> prepare(String project,

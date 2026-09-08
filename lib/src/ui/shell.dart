@@ -20,6 +20,7 @@ import '../app/notifications.dart';
 import '../app/machines.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
+import '../app/project_creation.dart';
 import '../app/project_deletion.dart';
 import '../app/session.dart';
 import '../app/settings.dart';
@@ -33,6 +34,7 @@ import 'egress_view.dart';
 import 'agents_view.dart';
 import 'authentication_view.dart';
 import 'emergency_stop_view.dart';
+import 'project_creation_view.dart';
 import 'project_deletion_view.dart';
 import 'session_view.dart';
 import 'vault_view.dart';
@@ -79,6 +81,7 @@ class Shell extends StatefulWidget {
     required this.deleting,
     required this.readiness,
     required this.authentication,
+    required this.creating,
     super.key,
   });
 
@@ -139,6 +142,9 @@ class Shell extends StatefulWidget {
   /// What the machine being acted on can authenticate against.
   final Authentication authentication;
 
+  /// Describing and creating a project.
+  final ProjectCreation creating;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -189,6 +195,7 @@ class _ShellState extends State<Shell> {
         checkTheMachine: _checkTheMachine,
         showTheProviders: _showTheProviders,
         prepareTheProject: _prepareTheProject,
+        describeAProject: _describeAProject,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
@@ -264,6 +271,31 @@ class _ShellState extends State<Shell> {
   Future<void> _checkTheMachine() async {
     widget.shell.openReadiness();
     await widget.readiness.look(_fleet.backend);
+  }
+
+  /// Describes a project, checks every answer against the machine, and creates it.
+  ///
+  /// **Nothing is written until the last press**: every check runs with `dryRun`, so a flow
+  /// somebody walks away from leaves nothing on that machine.
+  Future<void> _describeAProject() async {
+    widget.creating.startOn(_fleet.backend);
+    // The sets this machine really has, rather than a list typed from memory: one that is not
+    // installed there is a refusal waiting at the first task start.
+    final (sets, _) = await _fleet.backend.egressSets();
+    if (!mounted) return;
+    final made = await createAProject(
+      context,
+      creation: widget.creating,
+      setsHere: sets.map((set) => set.name).toList(),
+      onCheck: () => widget.creating.check(_fleet.backend),
+      onCreate: () async {
+        await widget.creating.create(_fleet.backend);
+        final said = widget.creating.words;
+        if (said.isNotEmpty) _fleet.say(said);
+      },
+    );
+    if (made) await _fleet.refresh();
+    widget.creating.letItBe();
   }
 
   /// Builds a project's environment without starting anything, at a depth somebody chooses.

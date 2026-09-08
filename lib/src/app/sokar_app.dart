@@ -16,6 +16,7 @@ import 'machines.dart';
 import 'newer_version.dart';
 import 'notifications.dart';
 import 'operations.dart';
+import 'project_creation.dart';
 import 'project_deletion.dart';
 import 'session.dart';
 import 'settings.dart';
@@ -44,6 +45,7 @@ class SokarApp extends StatelessWidget {
     required this.deleting,
     required this.readiness,
     required this.authentication,
+    required this.creating,
     super.key,
   });
 
@@ -104,6 +106,9 @@ class SokarApp extends StatelessWidget {
   /// What the machine being acted on can authenticate against.
   final Authentication authentication;
 
+  /// Describing and creating a project.
+  final ProjectCreation creating;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -137,6 +142,7 @@ class SokarApp extends StatelessWidget {
               deleting,
               readiness,
               authentication,
+              creating,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -158,6 +164,7 @@ class SokarApp extends StatelessWidget {
               deleting: deleting,
               readiness: readiness,
               authentication: authentication,
+              creating: creating,
             ),
           ),
         ),

@@ -24,6 +24,7 @@ import 'package:sokar_frontend/src/app/authentication.dart';
 import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
+import 'package:sokar_frontend/src/app/project_creation.dart';
 import 'package:sokar_frontend/src/app/newer_version.dart';
 import 'package:sokar_frontend/src/app/where_you_were.dart';
 import 'package:sokar_frontend/src/app/notifications.dart';
@@ -391,6 +392,52 @@ class FakeBackend implements FleetBackend {
 
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
+
+  /// What the next creation answers. Set by the scenario.
+  ///
+  /// **The rendered file is filled even on a refusal**, because seeing what was rejected is most
+  /// of understanding why.
+  String theCreationAnswers = 'CREATED';
+
+  /// What the machine says is wrong with the answers. Set by the scenario.
+  List<Problem> theCreationProblems = const <Problem>[];
+
+  /// Every creation asked for.
+  final List<({String file, String name, String securityClass, bool preview})> creations =
+      <({String file, String name, String securityClass, bool preview})>[];
+
+  @override
+  Future<Created> createProject({
+    required String file,
+    required String name,
+    required String securityClass,
+    required String baseImage,
+    String? upstream,
+    List<String> sets = const <String>[],
+    bool? dryRun,
+  }) async {
+    creations.add((
+      file: file,
+      name: name,
+      securityClass: securityClass,
+      preview: dryRun == true,
+    ));
+    final blocked = theCreationProblems.any((problem) => problem.fatal);
+    return Created(
+      outcome: blocked
+          ? 'INVALID'
+          : dryRun == true
+              ? 'PREVIEWED'
+              : theCreationAnswers,
+      file: file,
+      content: 'project:\n  name: "$name"\n  security_class: "$securityClass"\n'
+          'image:\n  base_image: "$baseImage"\n',
+      problems: theCreationProblems,
+      detail: theCreationAnswers == 'ALREADY_EXISTS'
+          ? 'a project file is already there'
+          : '',
+    );
+  }
 
   /// What a build prints before it ends. Set by the scenario.
   List<String> theBuildPrints = <String>[
@@ -915,6 +962,9 @@ class World {
   /// What the machine being acted on can authenticate against.
   static late Authentication authentication;
 
+  /// Describing and creating a project.
+  static late ProjectCreation creating;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -1087,6 +1137,8 @@ class World {
     addTearDown(readiness.dispose);
     authentication = Authentication();
     addTearDown(authentication.dispose);
+    creating = ProjectCreation();
+    addTearDown(creating.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -1148,6 +1200,7 @@ class World {
       deleting: deleting,
       readiness: readiness,
       authentication: authentication,
+      creating: creating,
     ));
     await tester.pumpAndSettle();
   }
@@ -1205,6 +1258,7 @@ class World {
       deleting: deleting,
       readiness: readiness,
       authentication: authentication,
+      creating: creating,
     ));
     await tester.pumpAndSettle();
   }
@@ -1231,6 +1285,7 @@ class World {
       deleting: deleting,
       readiness: readiness,
       authentication: authentication,
+      creating: creating,
     ));
     await settle(tester);
   }

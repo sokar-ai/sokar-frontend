@@ -47,7 +47,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
 | F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
@@ -115,6 +114,23 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F04 Guided Project Creation.** Every question in one place, and **every answer checked by the
+  machine that will run it** — whether a name survives becoming an image tag and an nftables set
+  name, whether an egress set exists there, whether a class is spelled right. None of that can be
+  judged here, and an answer accepted in a dialog and refused at the first task start is refused
+  far from where it was given. The sets offered are the ones that machine really has.
+
+  **Nothing is written until the last press.** Every check runs with `dryRun`, so a flow somebody
+  walks away from leaves nothing behind — and what would be written is shown before it is, filled
+  even on a refusal, because seeing what was rejected is most of understanding why.
+
+  Two distinctions the contract makes and the screen keeps: **a problem that blocks and one that
+  does not** — a base image not on the machine yet will simply be pulled, and refusing there would
+  turn a note into a wall — and **`ALREADY_EXISTS` is a refusal and never an overwrite**, because
+  the file may be somebody's whole configuration and this is the one operation that would replace
+  it with nothing to restore from. Creating does not prepare: it says so and leaves the minutes
+  for a decision somebody makes.
+
 - **F14 Authentication Flows.** Which providers a machine can reach, which of them have a
   credential, what differs between the ways in, and **where a value goes** — the command rendered
   verbatim, because the key it is stored under is usually the provider's name but falls back to

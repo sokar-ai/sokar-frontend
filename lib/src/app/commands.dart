@@ -147,6 +147,7 @@ List<Command> commandsFor({
   required VoidCallback checkTheMachine,
   required VoidCallback showTheProviders,
   required VoidCallback prepareTheProject,
+  required VoidCallback describeAProject,
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
@@ -220,6 +221,12 @@ List<Command> commandsFor({
         muted: !notifications.mutedFor(selectedProject.name),
       ),
       unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
+      id: 'project.create',
+      label: 'Describe a new project',
+      group: 'Work',
+      run: describeAProject,
     ),
     Command(
       id: 'project.prepare',
