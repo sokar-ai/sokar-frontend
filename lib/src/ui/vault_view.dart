@@ -124,11 +124,17 @@ class VaultView extends StatelessWidget {
                 // Beside the button that shuts it, because that is where somebody looks for the
                 // one that opens it. At the bottom of the pane it would be an explanation nobody
                 // reached; here it is the answer to the question the button raises.
+                // **"Today", not "never".** The reason given for never was partly that no
+                // secret crosses this socket, and that rule changed on 2026-09-08: a credential
+                // may be transferred, and only storing it here is forbidden. Whether that reopens
+                // unlocking is the backend's to say — so this screen states where it happens and
+                // stops short of a promise about always.
                 const _Elsewhere(
                   what: 'Opening it again',
-                  why: 'A daemon has no terminal to take a passphrase at, so it can shut the '
-                      'store and can never open it. Run `sokar vault unlock` where the machine '
-                      'is.',
+                  why: 'Nothing here opens it. The store is unlocked where the machine is, with '
+                      '`sokar vault unlock` — and the person reading this holds an ssh connection '
+                      'to that machine already, because that is why this window can see it at '
+                      'all.',
                   id: 'unlocking-elsewhere',
                 ),
               ],

@@ -82,7 +82,8 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iShowTheProtectedStore(tester);
-      await itSays(tester, 'daemon has no terminal to take a passphrase at');
+      await itSays(tester, 'The store is unlocked where the machine is');
+      await itSays(tester, 'holds an ssh connection to that machine already');
     });
     testWidgets('''the other three are said too, rather than left blank''',
         (tester) async {

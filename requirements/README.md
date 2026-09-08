@@ -47,16 +47,14 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | rebuild, at depths distinguishable by what each replaces | |
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
 | F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | read and write instructions at both levels, and show the resolved result | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | authenticate an agent or a provider. `Credentials` is read-only | |
-| F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Unlocking and revealing a recovery secret will **never** be possible here, by design — the requirement says which is which | |
+| F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
 | F17 | [Network Exposure Control](F17-Network-Exposure-Control.md) | What running work may reach is changeable while it runs, and refusals are watchable and answerable live. | turn enforcement off on a task that is already running | |
 | F19 | [Host Readiness And Remediation](F19-Host-Readiness-And-Remediation.md) | The interface establishes whether the machine can run anything and offers the fix in place. | run the readiness check and act on it | |
-| F21 | [Continuity And Updates](F21-Continuity-And-Updates.md) | Closing, reopening or updating the interface never disturbs running work. | | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 
 
@@ -121,6 +119,23 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F10 Task Inspection And Work Handover.** What a piece of work is, what it has done to the
+  repository, and its changes out of the interface in one action — against the starting point or
+  the previous state, saying how much was taken or that there was nothing to take. Its last
+  criterion, *whether anything is waiting for review*, was the one that could not be answered
+  here: a container name is not a ref, and several containers over time push to one, so the join
+  a client would have made would have been right for at most one of them. Answered on the task
+  itself as `Task.waiting`, in **three** states rather than two — an `online` task answers zero,
+  and that is a question the class does not have rather than a smaller number.
+
+- **F21 Continuity And Updates.** Closing the window never stops work, a second launch brings the
+  first forward rather than competing with it, quitting says what carries on, a newer build offers
+  a restart, and a restart returns to the same selection. Its last criterion — *"where the
+  environment allows work **and sessions** to outlive the window, they do"* — was half F12's, and
+  closed when F12 was built: the session is a multiplexer **inside the container**, so closing the
+  window leaves it running and coming back finds it as it was. The boundary is the container, not
+  the window, and the screen says the first without implying the second.
+
 - **F16 Access Key Routing.** **Reworded rather than built: the relation it described does not
   exist.** A credential is held under the name of the *provider* that uses it — falling back to
   the agent's name for older vaults — and nothing in a project file ever names a key. So *"which

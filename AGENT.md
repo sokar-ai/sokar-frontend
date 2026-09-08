@@ -1458,3 +1458,19 @@ not be made or unmade, and it would have looked finished. **Three times now the 
 requirement has been "that is not a thing this system has"** — the roster, hardware, and this — and
 each time the criterion was reworded and the screen made to say why, which is worth as much as a
 feature and costs a paragraph.
+
+## When a rule moves, check what was resting on it
+
+*"No secret crosses this socket"* was the second of two reasons why `Unlock` would never exist
+here — the first being that a daemon has no terminal to take a passphrase at. The rule was
+withdrawn the same day: a credential may be **transferred**, and only keeping it here is forbidden.
+
+**If a value can be sent, a daemon does not need a terminal to take one.** So a screen saying the
+store *"can never"* be opened from here was resting on a reason that had moved, and it said so with
+more confidence than anything supported. It now says **where** unlocking happens rather than
+promising it will never happen anywhere else.
+
+The habit worth keeping is not the correction, it is the sweep: **when an answer changes, look for
+what was built on the old one.** Two screens and an index row were, and none of them would have
+failed a test — they would simply have been wrong, in the confident register that is hardest to
+notice.

@@ -40,9 +40,13 @@ Feature: F15 Secret Store Control
     When I show the protected store
     Then it says {'It is open and holds nothing. That is a state, not a failure.'}
 
+  # Beside the button that shuts it, because that is where somebody looks for the one that opens
+  # it. The sentence says where it happens and stops short of "never": the reason given for never
+  # was partly that no secret crosses this socket, and that rule changed on 2026-09-08.
   Scenario: opening it again is answered beside the button that shuts it
     When I show the protected store
-    Then it says {'daemon has no terminal to take a passphrase at'}
+    Then it says {'The store is unlocked where the machine is'}
+    And it says {'holds an ssh connection to that machine already'}
 
   Scenario: the other three are said too, rather than left blank
     When I show the protected store

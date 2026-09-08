@@ -171,9 +171,15 @@ names and the requirements are written from what a person sees.
   window, or by something else — no requirement asks for that today. Nothing here needs the
   backend to persist anything.
 - **F15 Secret Store Control** — **three criteria of seven are built, and none of the other four
-  is work somebody forgot.** Settled on 2026-09-08: `Unlock` will **never** exist over the socket and
-  neither will revealing a recovery secret — a daemon has no terminal, and `Credentials` returns
-  names, kinds and lengths and never a value, on a socket that can be forwarded. A bounded unlock
+  is work somebody forgot.** Settled on 2026-09-08: revealing a recovery secret will **never** be
+  possible here — `Credentials` returns names, kinds and lengths and never a value, and reading one
+  back is the direction that stayed closed.
+  - **The `Unlock` half of that answer has lost one of its two reasons, and the screen no longer
+    claims *never*.** It rested on *a daemon has no terminal* **and** *no secret crosses this
+    socket* — and the second was withdrawn hours later: a credential may be transferred, and only
+    keeping it here is forbidden. If a value can be sent, a daemon does not need a terminal to
+    take one. Whether that reopens unlocking is the backend's to say and is asked; until then the
+    screen says where it happens today, which is true either way. A bounded unlock
   and changing the passphrase are **coming, at the machine only**; the second does not exist in
   the CLI either today, so the honest sentence is *"nothing can do this yet"* rather than *"the
   interface cannot"*. Everything the screen can do is say **where** it happens.
