@@ -141,9 +141,12 @@ void main() {
       expect(workflow, contains('repomd.xml'));
     });
 
-    test('a trailing slash on the base URL cannot make every path a 404', () {
-      // Artifactory answers a doubled slash with 404. The first version of this step asked the
-      // wrong URL for two minutes and reported it as a permissions problem.
+    test('the base URL is normalised to the one raw curl needs', () {
+      // `JF_URL` is the platform url and the `jf` CLI appends `/artifactory` itself; raw curl
+      // does not. Two runs failed on this — the first silently, the second with a diagnosis of a
+      // trailing slash that had never been measured.
+      expect(workflow, contains(r'base="${base%/artifactory}"'));
+      expect(workflow, contains(r'base="$base/artifactory"'));
       expect(workflow, contains(r'while [ "${base%/}" != "$base" ]; do base="${base%/}"; done'));
     });
 

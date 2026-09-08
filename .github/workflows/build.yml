@@ -199,12 +199,15 @@ jobs:
       - name: Wait until it is actually indexed
         run: |
           set -u
-          # A trailing slash on JF_URL makes every path here a doubled slash, which Artifactory
-          # answers 404 — and the first version of this step failed for two minutes without ever
-          # saying which URL it had asked for. Strip it rather than assume.
+          # `JF_URL` is the **platform** url — `https://…jfrog.io` — and the `jf` CLI appends
+          # `/artifactory` itself. Raw curl does not, which is why the first version of this step
+          # spent two minutes asking a 404 and the second blamed a trailing slash it had never
+          # measured. Normalised both ways so either shape works.
           base="${{ vars.JF_URL }}"
           while [ "${base%/}" != "$base" ]; do base="${base%/}"; done
+          base="${base%/artifactory}"
           test -n "$base" || { echo "::error::vars.JF_URL is not set" >&2; exit 1; }
+          base="$base/artifactory"
 
           version="$(dpkg-deb -f packages/*.deb Version)"
           test -n "$version" || { echo "::error::could not read the built version" >&2; exit 1; }

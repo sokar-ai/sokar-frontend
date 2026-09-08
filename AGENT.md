@@ -1018,13 +1018,26 @@ This is the other half of the `--target-props` lesson. That the properties are *
 by a test on the workflow; that the package is *indexed* can only be seen from outside, afterwards.
 The first is cheap and the second is the one that matters.
 
-**And a check that fails must report what it asked, never a cause.** The first version of this step
-failed a green publish and said *"check that the token has Annotate as well as Deploy"* — a
-confident diagnosis, and wrong: `snapshot.4` was in the index within a second of the upload, and
-the step had spent two minutes asking a URL with a doubled slash, which Artifactory answers 404.
-It now strips trailing slashes from `JF_URL`, prints the URLs it will use, and on failure prints
-the HTTP code and every `Version:` line the index does carry. **A wrong diagnosis is worse than no
-diagnosis**: it sends the next person to look at permissions.
+**`JF_URL` is the platform url, not the Artifactory base.** `https://…jfrog.io`, and the `jf` CLI
+appends `/artifactory` itself. Raw `curl` does not, so anything built by hand has to add it —
+normalise both ways rather than assume which shape the variable holds.
+
+**And a check that fails must report what it asked, never a cause.** This step failed two green
+publishes before it was right, and the second failure is the lesson. The first said *"check that
+the token has Annotate as well as Deploy"* — a confident diagnosis, and wrong. The fix printed the
+URLs and the HTTP codes; the next run then said
+
+```
+looking for 0.1.0~snapshot.5
+  https://fuinorg.jfrog.io/sokar-dist-deb/…/Packages
+  deb index: HTTP 404
+```
+
+and the cause was visible in one line: `/artifactory` was missing. **The second diagnosis — a
+doubled slash — was also wrong**, and was written into this file as fact before it had been
+measured. What made the third attempt a thirty-second job was not a better guess; it was that the
+check had stopped guessing. **A wrong diagnosis is worse than no diagnosis**: it sends the next
+person to look at permissions, and it gets written down.
 
 ## Panic stops and never removes
 
