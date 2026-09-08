@@ -78,3 +78,21 @@ Feature: F09 Task Control
   Scenario: the dialog says the name will not move
     When I ask what this work should read as
     Then it says {'Its name stays sokar-checkout-shell'}
+
+  Scenario: recreating says why it exists, and what it costs
+    When I ask to recreate the selected work
+    Then it says {'picks up a newly built environment'}
+    And it says {'goes with it and exists nowhere else'}
+
+  Scenario: recreating stops it and starts the same work again
+    When I ask to recreate the selected work
+    And I agree to recreate it
+    Then the stop asked for {'sokar-checkout-shell'}
+    And the launch was called {'sokar-checkout-shell'}
+
+  Scenario: work that holds unpushed commits stops the recreation, and says so
+    Given stopping will refuse because the work is held
+    When I ask to recreate the selected work
+    And I agree to recreate it
+    Then what is held is shown
+    And nothing was started

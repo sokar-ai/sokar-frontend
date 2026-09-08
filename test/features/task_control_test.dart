@@ -31,6 +31,11 @@ import './step/this_work_already_reads_as.dart';
 import './step/the_caption_sent_was_empty.dart';
 import './step/i_ask_what_this_work_should_read_as.dart';
 import './step/it_says.dart';
+import './step/i_ask_to_recreate_the_selected_work.dart';
+import './step/i_agree_to_recreate_it.dart';
+import './step/the_stop_asked_for.dart';
+import './step/the_launch_was_called.dart';
+import './step/nothing_was_started.dart';
 
 void main() {
   group('''F09 Task Control''', () {
@@ -143,6 +148,31 @@ void main() {
       await bddSetUp(tester);
       await iAskWhatThisWorkShouldReadAs(tester);
       await itSays(tester, 'Its name stays sokar-checkout-shell');
+    });
+    testWidgets('''recreating says why it exists, and what it costs''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToRecreateTheSelectedWork(tester);
+      await itSays(tester, 'picks up a newly built environment');
+      await itSays(tester, 'goes with it and exists nowhere else');
+    });
+    testWidgets('''recreating stops it and starts the same work again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToRecreateTheSelectedWork(tester);
+      await iAgreeToRecreateIt(tester);
+      await theStopAskedFor(tester, 'sokar-checkout-shell');
+      await theLaunchWasCalled(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''work that holds unpushed commits stops the recreation, and says so''',
+        (tester) async {
+      await bddSetUp(tester);
+      await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
+      await iAskToRecreateTheSelectedWork(tester);
+      await iAgreeToRecreateIt(tester);
+      await whatIsHeldIsShown(tester);
+      await nothingWasStarted(tester);
     });
   });
 }

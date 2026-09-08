@@ -165,6 +165,7 @@ class _ShellState extends State<Shell> {
         startFromTemplate: _startFromTemplate,
         stopEverything: _stopEverything,
         nameTheWork: _nameTheWork,
+        recreate: _recreate,
         continueTheWork: _continueTheWork,
         quit: _quit,
       );
@@ -384,6 +385,41 @@ class _ShellState extends State<Shell> {
     );
     if (!agreed) return;
     await _fleet.stopWork(task.name);
+  }
+
+  /// Stops a piece of work and starts it again from scratch.
+  ///
+  /// Two calls, and the first can refuse: `Stop` answers `HOLDS_WORK` for work holding commits
+  /// that never reached the gate. **Nothing is started after a refused stop** — that would leave
+  /// two containers and lose the reason.
+  Future<void> _recreate(Task task) async {
+    final agreed = await confirmRecreate(
+      context,
+      task: task.label.isEmpty ? task.name : task.label,
+      helpers: task.helpers,
+    );
+    if (!agreed) return;
+    final clear = await _fleet.clearTheWayToRecreate(task.name);
+    if (!clear || !mounted) return;
+
+    final project = _fleet.projects
+        .where((each) => each.name == task.project)
+        .map((each) => each.project.file)
+        .firstOrNull;
+    final operation = widget.operations.run(
+      title: 'Recreate ${task.name}',
+      // The same name, so what comes back is the same piece of work rather than a second one
+      // beside it — and the same agent, mode and prompt, because recreating is meant to change
+      // the environment and nothing else.
+      output: _fleet.backend.startTask(
+        task: task.name,
+        project: project,
+        agent: task.agent.isEmpty ? null : task.agent,
+        mode: task.mode.recognized ? task.mode : null,
+        prompt: task.prompt.isEmpty ? null : task.prompt,
+      ),
+    );
+    widget.shell.openOperation(operation.id);
   }
 
   Future<void> _openFinder() async {

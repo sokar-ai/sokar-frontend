@@ -106,13 +106,14 @@ names and the requirements are written from what a person sees.
     spelling and not against what happened to arrive.
   - `Task.mode` stays a **string**, not the type: it has a fourth state, `""`, for a task started
     before the field existed. Render the absence; never default it to `SHELL`.
-- **F09 Task Control** — **built**, except for two things, and the first turned out not to be
-  what the requirement wanted. **Renaming has no method**, and a task's name is its identity in
-  four places — the container, the gate ref, the workspace, the log files — so a rename would move
-  a ref with unreviewed pushes behind it. What the criterion actually wants is a **label**: a
-  changeable display name beside a fixed identity, which is a reply field and cheap. Asked for on
-  2026-09-07. Recreating is `Stop` then `Start`, which `Project.file` makes possible; that half is
-  unbuilt rather than blocked.
+- ~~**F09 Task Control**~~ — **met.** `Label` landed on 2026-09-08 and answers what the
+  *renamed* criterion actually wanted: a caption **beside** the identity. Renaming would have moved
+  a gate ref with unreviewed pushes behind it.
+  - **Recreating is `Stop` then `Start`**, and needed no method — `Project.file` made it possible
+    on 2026-09-07. The stop can refuse with `HOLDS_WORK`, and nothing is started after a refused
+    stop: that would leave two containers and lose the reason.
+  - `Task.label` is `""` for every task until somebody types one, which is a normal state and not
+    a gap.
 - ~~**F10 Task Inspection And Work Handover**~~ — **built.** B11 landed the fields the inspection
   half needed, the same day it was asked for.
 - ~~**F11 Live Log Viewing**~~ — **built.** `Logs` landed on 2026-09-07, the same day it was

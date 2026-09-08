@@ -1169,3 +1169,17 @@ usage:
   2026-09-08. A project file still saying `sets: [node]` is **refused with the set name**, not
   ignored — which is the good failure, and why the rename happened before there was a release.
 
+## Recreating is two calls, and the first can refuse
+
+Recreating work is `Stop` then `Start` — no method missing. It exists for one reason and the dialog
+says it: **a task keeps the image it started with**, so picking up a newly built environment means
+being created again rather than resumed.
+
+**Nothing is started after a refused stop.** `Stop` answers `HOLDS_WORK` for a task holding commits
+that never reached the gate, and starting anyway would leave two containers and lose the reason
+the first one refused. The refusal is rendered where a stop's refusal is already rendered.
+
+The launch is given the **same name, agent, mode and prompt**: recreating is meant to change the
+environment and nothing else, and a launch without the name would put a second piece of work beside
+the first rather than replacing it.
+

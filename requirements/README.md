@@ -47,7 +47,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F09 | [Task Control](F09-Task-Control.md) | Running work can be stopped, restarted, recreated, renamed and deleted, each named by its consequence. | a changeable label beside a task’s fixed identity — **asked for** | |
 | F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | | |
 | F12 | [Interactive Session Attach](F12-Interactive-Session-Attach.md) | An interactive session is one action away, and the way back is reliable. | a way to attach to a running task. `Start` has only the no-attach path | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | rebuild, at depths distinguishable by what each replaces | |
@@ -85,6 +84,15 @@ be read again.
   things it measured: `ssh` can exit before a stderr subscription has delivered the one sentence
   worth having, and waiting for the endpoint to *exist* makes any leftover file read as a working
   tunnel.
+- **F09 Task Control.** Work stopped, restarted, recreated and deleted, each named by its
+  consequence, each reporting its outcome, and an action the state does not allow shown as
+  unavailable rather than failing when it is chosen. Two things it settled. *Renamed* was the
+  wrong word: a task's name is its identity in four places — the container, the gate ref, the
+  workspace, the log files — so what the criterion wanted was a **caption beside the identity**,
+  and Sokar proved the difference by mutating the code to write one into the branch field, a
+  rename by the back door. And **recreating is two calls where the first can refuse**: `Stop`
+  answers `HOLDS_WORK` for commits that never reached the gate, and starting after a refused stop
+  would leave two containers and lose the reason.
 - **F08 Task Creation And Modes.** Work started with a name, an agent and one of three modes
   with nothing preselected; a prompt belongs to `UNATTENDED` alone and is never sent with another
   mode even if it was typed first; a finished unattended run continued with its old prompt in the

@@ -137,3 +137,44 @@ Future<bool> confirmStop(
       ),
     ) ??
     false;
+
+/// Asks before recreating a piece of work.
+///
+/// **Recreating exists for one reason and the dialog says it**: a task keeps the image it started
+/// with, so work that should pick up a newly built environment has to be created again rather than
+/// resumed. Somebody reaching for this has usually just rebuilt something.
+///
+/// It is the same destruction a stop is, and the same refusal protects it — work that never
+/// reached the gate stops this and says so.
+Future<bool> confirmRecreate(
+  BuildContext context, {
+  required String task,
+  required int helpers,
+}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Recreate $task from scratch?'),
+        content: Text(
+          'A task keeps the image it started with, so this is how it picks up a newly built '
+          'environment: it is stopped and created again rather than resumed.\n\n'
+          'The container goes and so ${helpers == 1 ? 'does the helper' : 'do the $helpers '
+              'helpers'} beside it. Whatever the agent installed inside — packages, caches, '
+          'anything it built — goes with it and exists nowhere else.\n\n'
+          'Work it holds that never reached the gate will stop this, and say so, rather than '
+          'being destroyed. Nothing is started again until the stop has gone through.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('recreate-it'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Stop it and build it again'),
+          ),
+        ],
+      ),
+    ) ??
+    false;

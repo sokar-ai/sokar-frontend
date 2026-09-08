@@ -136,6 +136,7 @@ List<Command> commandsFor({
   required void Function(Template job) startFromTemplate,
   required VoidCallback stopEverything,
   required void Function(Task task) nameTheWork,
+  required void Function(Task task) recreate,
   required VoidCallback continueTheWork,
   required VoidCallback quit,
 }) {
@@ -267,6 +268,15 @@ List<Command> commandsFor({
       // Three separate reasons, each said rather than collapsed into "not now": still running,
       // not an unattended run, or nothing recorded what it was asked to do.
       unavailable: StartWork.whyNotContinue(selectedTask),
+    ),
+    Command(
+      id: 'work.recreate',
+      label: 'Recreate it, so it picks up a newly built environment',
+      group: 'Work',
+      run: () => recreate(selectedTask!),
+      // Nothing to recreate from is the only thing that stops it: a stopped task is recreated as
+      // readily as a running one, and that is often exactly when somebody wants it.
+      unavailable: selectedTask == null ? 'no work is selected' : null,
     ),
     Command(
       id: 'work.label',

@@ -277,6 +277,26 @@ class FleetModel extends ChangeNotifier {
     });
   }
 
+  /// Stops a piece of work so it can be started again from scratch.
+  ///
+  /// **The stop can refuse, and then nothing is started.** `Stop` answers `HOLDS_WORK` for a task
+  /// with commits that never reached the gate; that refusal is the product working, and starting
+  /// after it would leave two containers and lose the reason. Answers whether the way is clear.
+  ///
+  /// The point of recreating is a **newly built environment**: a task keeps the image it started
+  /// with, so picking up a new one means being created again rather than resumed.
+  Future<bool> clearTheWayToRecreate(String task) async {
+    var cleared = false;
+    await _acting(() async {
+      final stopped = await backend.stopTask(task);
+      _say(stopWords(task, stopped));
+      _refusal = stopped.removed ? null : Refusal(task: task, result: stopped);
+      cleared = stopped.removed;
+      await _readOnce();
+    });
+    return cleared && _refusal == null;
+  }
+
   /// Starts a stopped task's container again.
   Future<void> resumeWork(String task) async {
     await _acting(() async {
