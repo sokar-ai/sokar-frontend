@@ -135,8 +135,12 @@ class VaultView extends StatelessWidget {
               const _Heading(words: 'What else happens at the machine'),
               const _Elsewhere(
                 what: 'Changing the passphrase',
-                why: 'Nothing can do this yet — not here and not in the command line either. It '
-                    'is coming, and it will be at the machine for the same reason as unlocking.',
+                why: '`sokar vault passphrase`, at the machine, for the same reason as '
+                    'unlocking. It re-encrypts what is here under the new one and drops the '
+                    'cached passphrase — that one is now the wrong one, and keeping it would '
+                    'turn the next command into a failure that reads like a damaged store. If '
+                    'you are changing it because one leaked, stopping the tasks that already '
+                    'hold it is the part that ends it.',
                 id: 'passphrase-elsewhere',
               ),
               const _Elsewhere(
@@ -148,9 +152,11 @@ class VaultView extends StatelessWidget {
               ),
               const _Elsewhere(
                 what: 'How long it stays open',
-                why: 'Today there is one behaviour and no choice: the passphrase is cached until '
-                    'it is shut or the last session ends. A bounded unlock is coming, and it is a '
-                    'choice about how long rather than about where.',
+                why: 'Unbounded unless somebody asks otherwise: the passphrase is cached until '
+                    'the store is shut or the last session ends. `sokar vault unlock --for 30m` '
+                    'bounds it, and the kernel does the discarding, so nothing has to remember. '
+                    'There is deliberately no default — a bound that crept in would start asking '
+                    'people for a passphrase they never used to be asked for.',
                 id: 'remembering-elsewhere',
               ),
             ],

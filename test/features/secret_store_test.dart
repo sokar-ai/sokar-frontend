@@ -89,9 +89,9 @@ void main() {
       await bddSetUp(tester);
       await iShowTheProtectedStore(tester);
       await iReadToTheBottomOfTheStore(tester);
-      await itSays(tester, 'not here and not in the command line either');
+      await itSays(tester, 'sokar vault passphrase`, at the machine');
       await itSays(tester, 'never reveals a stored value');
-      await itSays(tester, 'one behaviour and no choice');
+      await itSays(tester, 'no default');
     });
     testWidgets('''a slow answer never lands on top of a newer one''',
         (tester) async {

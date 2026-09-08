@@ -1121,8 +1121,13 @@ about the store goes into the session record.
   claiming to have done something that did not happen.
 - **A shut store and an empty one both answer with no names.** They must never be shown the same
   way. (`readable` was wrong about this until 2026-09-07 and is now right.)
-- **Changing a passphrase: nothing can do it yet**, in the CLI either. *"Nothing can do this yet"*
-  is a fairer sentence than *"the interface cannot"*, which implies somewhere else can.
+- **Changing a passphrase and bounding an unlock both happen at the machine** — `sokar vault
+  passphrase` and `sokar vault unlock --for 30m`. Neither is a method and neither will be: both
+  take a passphrase, and a daemon has no terminal. A bounded unlock has **no default**, so a
+  locked store stays something somebody did rather than something that happened.
+- **A bound running out makes `VAULT_LOCKED` ordinary.** The sentence the start dialog shows for
+  it was written for a rare case and is about to carry real traffic; it says *unlock it at the
+  machine*, which is true whether the store was shut by hand or by a timer.
 
 **Two parts asking at once must never leave a stale answer over a newer one.** Every question is
 stamped and an answer that arrives after a newer question is dropped. This failure is invisible —

@@ -47,9 +47,9 @@ Feature: F15 Secret Store Control
   Scenario: the other three are said too, rather than left blank
     When I show the protected store
     And I read to the bottom of the store
-    Then it says {'not here and not in the command line either'}
+    Then it says {'sokar vault passphrase`, at the machine'}
     And it says {'never reveals a stored value'}
-    And it says {'one behaviour and no choice'}
+    And it says {'no default'}
 
   Scenario: a slow answer never lands on top of a newer one
     Given reading the store is slow
