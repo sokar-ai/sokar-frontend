@@ -118,7 +118,7 @@ class _Wedged implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) async =>
-      const Panicked(stopped: 0, surviving: <String>[], previewed: false);
+      const Panicked(tasks: <PanickedTask>[], surviving: <String>[], previewed: false);
 
 }
 
@@ -243,7 +243,7 @@ class _Machine implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) async =>
-      const Panicked(stopped: 0, surviving: <String>[], previewed: false);
+      const Panicked(tasks: <PanickedTask>[], surviving: <String>[], previewed: false);
 
 }
 

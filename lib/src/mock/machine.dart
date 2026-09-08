@@ -412,7 +412,17 @@ class MockMachine {
     return <String, dynamic>{
       'tasks': <Map<String, dynamic>>[
         for (final task in stopping)
-          <String, dynamic>{'name': task['name'], 'helpers': task['helpers']},
+          <String, dynamic>{
+            'name': task['name'],
+            'helpers': task['helpers'],
+            // A dry run attempts nothing, so nothing can have survived it — which is not the
+            // same as nothing surviving, and must never be drawn as though it were.
+            'surviving': situation == 'helper-survives' &&
+                    !preview &&
+                    task['name'] == 'sokar-checkout-shell'
+                ? <String>['sokar-checkout-shell-gate (pid 4711)']
+                : <String>[],
+          },
       ],
       // A helper that outlived its stop. Named rather than counted, because somebody has to kill
       // it by hand — and a machine where this is empty proves nothing about one where it is not.

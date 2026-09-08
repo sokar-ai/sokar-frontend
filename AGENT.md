@@ -1044,4 +1044,12 @@ than they need to know what it costs.
 - **It lives on the status line**, which is on every screen, and keeps its button on a compact
   window even when the label goes. An emergency stop that falls off the edge of a narrow window is
   missing exactly when somebody reaches for it.
+- **A task that was already stopped is absent from the answer**, not listed. So the sentence is
+  *"stopped the 3 that were running"* and never *"stopped 3 of 7"*: this call never saw the other
+  four, and somebody reading *"of 7"* goes looking for what happened to them.
+- **A dry run's empty `surviving` means nothing was attempted**, not that nothing would survive.
+  Rendering it as *"everything will stop cleanly"* would be a promise made out of an absence of
+  evidence.
+- **`PanickedTask.name` is what `Resume` takes**, so the row that says what was stopped is also
+  the row that says how to bring it back.
 

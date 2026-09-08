@@ -293,7 +293,14 @@ class FakeBackend implements FleetBackend {
     return Panicked.from(<String, dynamic>{
       'tasks': <Map<String, dynamic>>[
         for (final task in _tasks)
-          if (task.running) <String, dynamic>{'name': task.name},
+          if (task.running)
+            <String, dynamic>{
+              'name': task.name,
+              'helpers': task.helpers,
+              'surviving': dryRun == true || nextPanic == null
+                  ? const <String>[]
+                  : nextPanic!.surviving,
+            },
       ],
       'surviving': dryRun == true
           ? const <String>[]

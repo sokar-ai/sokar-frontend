@@ -18,6 +18,8 @@ import './step/it_says_how_to_get_back_to_work.dart';
 import './step/one_helper_will_outlive_the_stop.dart';
 import './step/it_names_the_helper.dart';
 import './step/the_backend_will_refuse_to_stop_everything.dart';
+import './step/it_names_the_work_among_what_was_stopped.dart';
+import './step/it_does_not_claim_everything_will_stop_cleanly.dart';
 
 void main() {
   group('''F18 Emergency Stop''', () {
@@ -42,7 +44,8 @@ void main() {
       await bddSetUp(tester);
       await iAskToStopEverything(tester);
       await nothingHasBeenStopped(tester);
-      await itSays(tester, 'This would stop 3 pieces of work');
+      await itSays(
+          tester, 'This would stop the 3 pieces of work that are running');
     });
     testWidgets('''leaving is the default, so a stray Return carries nothing''',
         (tester) async {
@@ -56,7 +59,8 @@ void main() {
       await bddSetUp(tester);
       await iAskToStopEverything(tester);
       await iAgreeToStopEverything(tester);
-      await itSays(tester, 'Stopped 3 pieces of work. Nothing was removed.');
+      await itSays(
+          tester, 'Stopped the 3 that were running. Nothing was removed.');
       await itSays(tester, 'exactly where it was');
     });
     testWidgets('''the way back is named, not left to be worked out''',
@@ -82,6 +86,20 @@ void main() {
       await iAskToStopEverything(tester);
       await iAgreeToStopEverything(tester);
       await itSays(tester, 'Nothing was stopped, and work is still running');
+    });
+    testWidgets(
+        '''what was stopped is named, because the name is how it comes back''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToStopEverything(tester);
+      await iAgreeToStopEverything(tester);
+      await itNamesTheWorkAmongWhatWasStopped(tester, 'sokar-checkout-shell');
+    });
+    testWidgets('''a preview promises nothing about what will survive''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToStopEverything(tester);
+      await itDoesNotClaimEverythingWillStopCleanly(tester);
     });
   });
 }

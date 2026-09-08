@@ -838,6 +838,33 @@ class Widened {
       );
 }
 
+/// One piece of work an emergency stop reached.
+class PanickedTask {
+  /// Container name, **which is what `Resume` takes** — so the row that says what was stopped is
+  /// also the row that says how to bring it back.
+  final String name;
+
+  /// How many helper processes it had.
+  final int helpers;
+
+  /// Its helpers that outlived the stop. Empty is the normal case.
+  final List<String> surviving;
+
+  /// Constructor taking every field.
+  const PanickedTask({
+    required this.name,
+    required this.helpers,
+    required this.surviving,
+  });
+
+  /// Reads one from a reply.
+  factory PanickedTask.from(Map<String, dynamic> map) => PanickedTask(
+        name: _string(map, 'name'),
+        helpers: _int(map, 'helpers'),
+        surviving: _strings(map, 'surviving'),
+      );
+}
+
 /// What an emergency stop did.
 ///
 /// **It stops and never removes.** Every workspace, every log and every commit that never reached
@@ -845,31 +872,41 @@ class Widened {
 /// interface that presented this as a cleanup would send somebody looking for work that is still
 /// there — which is why what this carries is *what survived*, not what was cleared away.
 class Panicked {
-  /// How many pieces of work were stopped.
-  final int stopped;
-
-  /// Helpers that outlived their stop, **by name**.
+  /// The work it reached.
   ///
-  /// Named rather than counted because a person has to kill these by hand: a number is something
-  /// nobody can act on. Usually empty, and it matters when it is not.
+  /// **Every task that was *running* when the call arrived, and no other.** A task that was
+  /// already stopped is absent rather than listed — so *"stopped the 3 that were running"* is
+  /// honest and *"stopped 3 of 7"* is not: this call never saw the other four, and somebody who
+  /// reads *"of 7"* goes looking for what happened to them.
+  final List<PanickedTask> tasks;
+
+  /// Every helper that outlived its stop, across all of them, **by name**.
+  ///
+  /// A flattening of the per-task lists rather than a second source: nothing can appear here whose
+  /// task is not in [tasks]. Named rather than counted because a person has to kill these by hand,
+  /// and a number is not something anybody can act on.
   final List<String> surviving;
 
   /// Whether this was a preview and nothing was actually stopped.
+  ///
+  /// **Then every `surviving` is empty because nothing was attempted**, not because nothing would
+  /// survive. Rendering a dry run's empty list as *"everything will stop cleanly"* would be a
+  /// promise made out of an absence of evidence.
   final bool previewed;
+
+  /// How many pieces of work it reached.
+  int get stopped => tasks.length;
 
   /// Constructor taking every field.
   const Panicked({
-    required this.stopped,
+    required this.tasks,
     required this.surviving,
     required this.previewed,
   });
 
   /// Reads one from a reply.
   factory Panicked.from(Map<String, dynamic> map) => Panicked(
-        // The reply carries a task per entry; what is rendered today is how many. The per-task
-        // detail is a shape this build has not been told, and a guessed field name renders a
-        // blank where a number belongs with nothing on screen saying it guessed.
-        stopped: map['tasks'] is List ? (map['tasks']! as List).length : 0,
+        tasks: _list(map, 'tasks').map(PanickedTask.from).toList(),
         surviving: _strings(map, 'surviving'),
         previewed: map['previewed'] == true,
       );

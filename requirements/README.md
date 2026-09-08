@@ -92,7 +92,8 @@ be read again.
   stop is named rather than counted, because somebody has to kill it by hand. Its narrow-window
   behaviour was found by a scenario, not by looking: adding the button overflowed the status line
   on a compact window, where an emergency stop falling off the edge is missing exactly when
-  somebody reaches for it.
+  somebody reaches for it. A task already stopped is absent from the answer, so it says *"the 3
+  that were running"* and never *"3 of 7"* — a total this call never saw.
 - **F02 Project Overview.** Every project on the machine with enough on the row to decide whether
   it needs attention: what it is, whether its environment is prepared, how much work it has, how
   much is waiting at the gate, and how far behind its upstream it has fallen — **with the age of

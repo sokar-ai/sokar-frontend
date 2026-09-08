@@ -16,7 +16,7 @@ Feature: F18 Emergency Stop
   Scenario: it never stops anything on the first press
     When I ask to stop everything
     Then nothing has been stopped
-    And it says {'This would stop 3 pieces of work'}
+    And it says {'This would stop the 3 pieces of work that are running'}
 
   Scenario: leaving is the default, so a stray Return carries nothing
     When I ask to stop everything
@@ -25,7 +25,7 @@ Feature: F18 Emergency Stop
   Scenario: agreeing stops everything and says what state the machine is in
     When I ask to stop everything
     And I agree to stop everything
-    Then it says {'Stopped 3 pieces of work. Nothing was removed.'}
+    Then it says {'Stopped the 3 that were running. Nothing was removed.'}
     And it says {'exactly where it was'}
 
   Scenario: the way back is named, not left to be worked out
@@ -45,3 +45,13 @@ Feature: F18 Emergency Stop
     When I ask to stop everything
     And I agree to stop everything
     Then it says {'Nothing was stopped, and work is still running'}
+
+  Scenario: what was stopped is named, because the name is how it comes back
+    When I ask to stop everything
+    And I agree to stop everything
+    Then it names the work {'sokar-checkout-shell'} among what was stopped
+
+  Scenario: a preview promises nothing about what will survive
+    When I ask to stop everything
+    Then it does not claim everything will stop cleanly
+

@@ -59,11 +59,15 @@ class EmergencyStop extends ChangeNotifier {
   }
 
   /// What to say about what it did, in one line.
+  ///
+  /// *"the N that were running"*, never *"N of M"*: a task that was already stopped is not in the
+  /// answer at all, so a total would be one this call never saw — and somebody reading *"3 of 7"*
+  /// goes looking for what happened to the other four.
   String get words {
     final result = done;
     if (result == null) return '';
-    final work = result.stopped == 1 ? 'piece of work' : 'pieces of work';
-    return 'Stopped ${result.stopped} $work. Nothing was removed.';
+    final work = result.stopped == 1 ? 'the one that was' : 'the ${result.stopped} that were';
+    return 'Stopped $work running. Nothing was removed.';
   }
 
   /// The way back, named rather than left to be worked out.

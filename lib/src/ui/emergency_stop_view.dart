@@ -119,6 +119,24 @@ class EmergencyStopDialog extends StatelessWidget {
                         'is exactly where it was.',
                         key: Key('nothing-was-removed'),
                       ),
+                      const SizedBox(height: Space.wide),
+                      Text('What was stopped',
+                          style: Theme.of(context).textTheme.labelLarge),
+                      const SizedBox(height: Space.tight),
+                      // Named, because the name is what `Resume` takes: the row that says what
+                      // was stopped is the row that says how to bring it back.
+                      for (final task in done.tasks)
+                        Padding(
+                          padding: const EdgeInsets.only(top: Space.tight),
+                          child: Text(
+                            task.helpers == 0
+                                ? task.name
+                                : '${task.name}  ·  ${task.helpers} '
+                                    '${task.helpers == 1 ? 'helper' : 'helpers'}',
+                            key: const Key('stopped-task'),
+                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                          ),
+                        ),
                       if (done.surviving.isNotEmpty) ...<Widget>[
                         const SizedBox(height: Space.wide),
                         Text('Still running, and not stopped by this',
@@ -176,8 +194,11 @@ class EmergencyStopDialog extends StatelessWidget {
                           child: Text(
                             preview.stopped == 0
                                 ? 'Nothing is running. This would stop nothing.'
-                                : 'This would stop ${preview.stopped} '
-                                    '${preview.stopped == 1 ? 'piece' : 'pieces'} of work.',
+                                // "that are running", never a total: a task already stopped is
+                                // not in the answer, so a total would be one this call never saw.
+                                : 'This would stop the ${preview.stopped} '
+                                    '${preview.stopped == 1 ? 'piece' : 'pieces'} of work '
+                                    'that ${preview.stopped == 1 ? 'is' : 'are'} running.',
                             key: const Key('what-would-stop'),
                           ),
                         ),
