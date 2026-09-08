@@ -9,10 +9,18 @@
   buttons: podman has no *"rebuild from layer N"*, so the middle depth needs a build argument
   placed at the agent layer whose value changes. Implementable, not free — and a screen offering
   three depths where only two were real would have been a lie about cost.
-- **Staleness is not computable today.** `prepared` says whether an image exists; nothing records
-  what it was built from, so *absent* and *stale* cannot be told apart. Until they can, this
-  interface says nothing about stale rather than guessing — see
-  [B19](https://github.com/fuinorg/sokar/blob/main/requirements/base/B19-Preparing-An-Environment-On-Purpose.md).
+- ~~**Staleness is not computable today.**~~ — **`Project.preparedState` landed on 2026-09-08**
+  with `ABSENT`, `READY`, `STALE` and `UNKNOWN`, and the criterion *"starting work against a
+  project whose environment is stale or absent says so before anything is started"* is **met**:
+  the row marks a stale environment separately from an absent one.
+  - **`UNKNOWN` is never drawn as stale.** An image that does not record what it was built from —
+    an older Sokar, or a project whose file has moved — is not known to be either, and rebuilding
+    for no reason is how the word stops being read.
+  - **What counts as a change is narrow, and that is what makes the mark worth reading**: the base
+    image and the image snippet, nothing else. Egress, limits and the upstream change what a task
+    may *do* rather than what it is built *from*.
+  - What is still missing is the preparing itself, at depths — see
+    [B19](https://github.com/fuinorg/sokar/blob/main/requirements/base/B19-Preparing-An-Environment-On-Purpose.md).
 
 Making a project runnable, and rebuilding it when something underneath has moved.
 The distinction that matters is how much gets thrown away, because the cheapest

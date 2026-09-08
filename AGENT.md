@@ -1564,3 +1564,19 @@ test run. **A guard reported as unproven deserves one check that the measurement
 The Sokar side hit the same shape from the other direction on the same day — mutating a class while
 running tests that compiled against an installed jar, so two mutations came back "caught by
 nothing" and were caught once it was rebuilt.
+
+## Prepared and up to date are different questions
+
+`Project.prepared` says whether an image exists. It is true the whole time an image is **stale** —
+built before the project file changed under it — so work would start in something the file no
+longer describes and nothing would have mentioned it. `preparedState` says which of `ABSENT`,
+`READY`, `STALE` and `UNKNOWN` it is, and the row marks stale separately from absent.
+
+**`UNKNOWN` is never drawn as stale.** It is an image that does not record what it was built from —
+an older Sokar, or a project whose file has moved. Nothing knows either way, and a rebuild that
+turns out to have been unnecessary is how somebody learns to ignore the word.
+
+**What counts as a change is deliberately narrow**: the base image and the image snippet, and
+nothing else. Egress, limits and the upstream change what a task may *do* rather than what it is
+built *from*, and marking after an edit that could not have mattered is the same failure wearing
+the other face.

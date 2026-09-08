@@ -154,6 +154,7 @@ class FakeBackend implements FleetBackend {
       'file': '/srv/checkout/project.yml',
       'mirror': '/srv/checkout/.sokar/mirror',
       'prepared': true,
+      'preparedState': 'READY',
       'behind': 3,
       'behindMeasured': DateTime.now()
           .toUtc()
@@ -172,6 +173,7 @@ class FakeBackend implements FleetBackend {
       'mirror': '/srv/unrecorded/.sokar/mirror',
       // Nothing has run here, so no image was built and nothing was ever checked.
       'prepared': false,
+      'preparedState': 'ABSENT',
       'behindReason': 'NEVER_CHECKED',
       'pending': 1,
       'tasks': 0,
@@ -182,7 +184,10 @@ class FakeBackend implements FleetBackend {
       'securityClass': 'offline',
       'file': '/srv/billing/project.yml',
       'mirror': '',
+      // **Prepared and up to date are different questions**, and this is the pair that shows it:
+      // an image is there, and it was built before the project file changed under it.
       'prepared': true,
+      'preparedState': 'STALE',
       // Reaches nothing, so nothing was tried. Distinct from zero, which would read as up to date.
       'behindReason': 'OFFLINE',
       'pending': 0,

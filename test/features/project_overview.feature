@@ -42,3 +42,15 @@ Feature: F02 Project Overview
     Then the project {'billing'} says {'The last check did not work'}
     And the project {'billing'} does not say {'7 behind'}
 
+  # `preparedState` landed on 2026-09-08. **Prepared and up to date are different questions**:
+  # `prepared` is true the whole time an image is stale, so work would start in something the
+  # project file no longer describes and nothing would have mentioned it.
+  Scenario: an environment built before the project file changed is marked
+    Then the project {'billing'} is marked as stale
+    And the project {'checkout'} is not marked as stale
+
+  # Nothing knows either way there, and rebuilding for no reason is how a word stops being read.
+  Scenario: an image that records nothing about itself is not called stale
+    Given the project {'checkout'} records nothing about its image
+    When the app is restarted
+    Then the project {'checkout'} is not marked as stale

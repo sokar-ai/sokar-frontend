@@ -847,6 +847,7 @@ class MockMachine {
             'file': '/srv/checkout/project.yml',
             'mirror': '/srv/checkout/.sokar/mirror',
             'prepared': true,
+            'preparedState': 'READY',
             'behind': 3,
             'behindMeasured': DateTime.now()
                 .toUtc()
@@ -866,6 +867,7 @@ class MockMachine {
             'file': '/srv/billing/project.yml',
             'mirror': '',
             'prepared': true,
+            'preparedState': 'STALE',
             'behind': 0,
             'behindMeasured': '',
             // An offline project reaches nothing, so nothing was tried. Distinct from zero.
@@ -884,6 +886,7 @@ class MockMachine {
             'mirror': '',
             // Nothing has run here, so no image was ever built.
             'prepared': false,
+            'preparedState': 'ABSENT',
             'behind': 0,
             'behindMeasured': '',
             'behindReason': 'NEVER_CHECKED',
@@ -898,6 +901,7 @@ class MockMachine {
             'file': '',
             'mirror': '/srv/moved/.sokar/mirror',
             'prepared': true,
+            'preparedState': 'UNKNOWN',
             'behind': 0,
             'behindMeasured': DateTime.now()
                 .toUtc()

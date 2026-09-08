@@ -231,6 +231,20 @@ class _ProjectRow extends StatelessWidget {
                 size: Sizes.rowIcon,
                 color: scheme.tertiary),
           ),
+        // **Prepared and up to date are different questions.** An image built before the project
+        // file changed under it runs work in something the file no longer describes, and nothing
+        // would have mentioned it — `prepared` is true the whole time. Marked separately for that
+        // reason, and never for `UNKNOWN`: nothing knows either way there, and calling it stale
+        // sends somebody rebuilding for no reason, which is how the word stops being read.
+        if (project.project.environmentIsStale)
+          Tooltip(
+            message: 'Its environment was built before the project file changed. Work started '
+                'here would run in something the file no longer describes.',
+            child: Icon(Icons.update_disabled,
+                key: const Key('project-stale'),
+                size: Sizes.rowIcon,
+                color: scheme.error),
+          ),
         // A project the daemon has no file for can be listed and not acted on. Saying so on the
         // row beats a refusal at the point somebody tries.
         if (!project.canBeActedOn)

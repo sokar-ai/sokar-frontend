@@ -566,6 +566,40 @@ class Project {
   /// ordinary use of this interface expensive for reasons nothing on screen could explain.
   final bool prepared;
 
+  /// What [prepared] cannot say: `ABSENT`, `READY`, `STALE` or `UNKNOWN`.
+  ///
+  /// **`STALE` is the state this field exists for.** An image is there and was built before the
+  /// project file changed under it, so work would start in something the file no longer describes
+  /// and nothing would mention it. A bool could only ever say whether something was there.
+  ///
+  /// **`UNKNOWN` is not stale.** It is an image that does not record what it was built from —
+  /// built by an older Sokar, or belonging to a project whose file has moved. Nothing knows either
+  /// way, and drawing it as stale sends somebody rebuilding for no reason, which is how a word
+  /// stops being read.
+  ///
+  /// Only the base image and the image snippet decide it. Egress, limits and the upstream change
+  /// what a task may *do* rather than what it is built *from*.
+  ///
+  /// Empty from a daemon older than the field, which is an absence to render rather than a fourth
+  /// meaning to invent.
+  final String preparedState;
+
+  /// Whether work started here would run in something the project file no longer describes.
+  bool get environmentIsStale => preparedState == 'STALE';
+
+  /// What to say about the environment, or empty when there is nothing worth saying.
+  ///
+  /// **Nothing for `READY`, and nothing for a daemon that did not say.** A row that commented on
+  /// every project would bury the one that matters.
+  String get environmentWords => switch (preparedState) {
+        'ABSENT' => 'no environment yet — the first task here builds one, which takes minutes',
+        'STALE' => 'built before the project file changed: work would run in something the file '
+            'no longer describes',
+        'UNKNOWN' => 'nothing records what this image was built from, so whether it matches the '
+            'project file cannot be said',
+        _ => '',
+      };
+
   /// How many commits its mirror is behind the upstream.
   ///
   /// **Meaningless unless [behindReason] is `MEASURED`.** Zero means "up to date" only then; the
@@ -600,6 +634,7 @@ class Project {
     required this.tasks,
     required this.running,
     this.prepared = false,
+    this.preparedState = '',
     this.behind = 0,
     this.behindMeasured = '',
     this.behindReason = '',
@@ -616,6 +651,7 @@ class Project {
         tasks: _int(map, 'tasks'),
         running: _int(map, 'running'),
         prepared: map['prepared'] == true,
+        preparedState: _string(map, 'preparedState'),
         behind: _int(map, 'behind'),
         behindMeasured: _string(map, 'behindMeasured'),
         behindReason: _string(map, 'behindReason'),

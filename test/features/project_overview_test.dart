@@ -17,6 +17,10 @@ import './step/i_select_the_project.dart';
 import './step/nothing_was_asked_of_the_backend_about.dart';
 import './step/the_last_check_for_failed_leaving_a_stale_count.dart';
 import './step/the_project_does_not_say.dart';
+import './step/the_project_is_marked_as_stale.dart';
+import './step/the_project_is_not_marked_as_stale.dart';
+import './step/the_project_records_nothing_about_its_image.dart';
+import './step/the_app_is_restarted.dart';
 
 void main() {
   group('''F02 Project Overview''', () {
@@ -88,6 +92,21 @@ void main() {
       await theLastCheckForFailedLeavingAStaleCount(tester, 'billing');
       await theProjectSays(tester, 'billing', 'The last check did not work');
       await theProjectDoesNotSay(tester, 'billing', '7 behind');
+    });
+    testWidgets(
+        '''an environment built before the project file changed is marked''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectIsMarkedAsStale(tester, 'billing');
+      await theProjectIsNotMarkedAsStale(tester, 'checkout');
+    });
+    testWidgets(
+        '''an image that records nothing about itself is not called stale''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectRecordsNothingAboutItsImage(tester, 'checkout');
+      await theAppIsRestarted(tester);
+      await theProjectIsNotMarkedAsStale(tester, 'checkout');
     });
   });
 }
