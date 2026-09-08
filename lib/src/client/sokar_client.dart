@@ -379,6 +379,20 @@ class SokarClient {
   Future<Panicked> panic({bool? dryRun}) async =>
       Panicked.from(await _call('Panic', {'dryRun': ?dryRun}));
 
+  /// Removes what Sokar built for a project.
+  ///
+  /// **Not "deleting the project".** The project file is the operator's, in their own directory,
+  /// and so are their checkout and their real upstream — none is touched, and `keeps` names them.
+  /// What goes is the mirror, the image, the build directory, the registry entry, the recorded
+  /// upstream distance, and every task with its container, state and logs. Afterwards a task run
+  /// in that directory builds all of it again, which is what makes this safe to offer at all.
+  ///
+  /// It **refuses rather than decides**: unreviewed pushes exist only in the mirror and a running
+  /// task is work cut off mid-flight. `force` is how somebody says they meant it.
+  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
+      Deletion.from(await _call(
+          'DeleteProject', {'project': project, 'dryRun': ?dryRun, 'force': ?force}));
+
   /// Which logs a task has.
   ///
   /// Asked rather than assumed: which files exist depends on what the task started — one with no

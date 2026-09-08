@@ -17,6 +17,7 @@ import '../app/notifications.dart';
 import '../app/machines.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
+import '../app/project_deletion.dart';
 import '../app/session.dart';
 import '../app/settings.dart';
 import '../app/shell_model.dart';
@@ -28,6 +29,7 @@ import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
 import 'emergency_stop_view.dart';
+import 'project_deletion_view.dart';
 import 'session_view.dart';
 import 'vault_view.dart';
 import 'start_work_view.dart';
@@ -68,6 +70,7 @@ class Shell extends StatefulWidget {
     required this.vault,
     required this.newerVersion,
     required this.sessions,
+    required this.deleting,
     super.key,
   });
 
@@ -119,6 +122,9 @@ class Shell extends StatefulWidget {
   /// The shells somebody has open inside running work.
   final Sessions sessions;
 
+  /// Removing what Sokar built for a project.
+  final ProjectDeletion deleting;
+
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -165,6 +171,7 @@ class _ShellState extends State<Shell> {
         openSession: _openSession,
         openTheGate: _openTheGate,
         openEgress: _openEgress,
+        removeWhatWasBuilt: _removeWhatWasBuilt,
         widenTheWork: _widenTheWork,
         startWork: _startWork,
         showAgents: _showAgents,
@@ -206,6 +213,31 @@ class _ShellState extends State<Shell> {
     // removed. Nothing somebody else raised is touched — none of it is in here to touch.
     await widget.machines.letGoOfTheTunnels();
     await SystemNavigator.pop();
+  }
+
+  /// Asks what removing what Sokar built for this project would take, then offers to do it.
+  ///
+  /// **Nothing is removed by opening this.** The preview is a call with `dryRun`, and what it
+  /// lists is what somebody agrees to — the sentence above the button is not.
+  Future<void> _removeWhatWasBuilt() async {
+    final project = _fleet.selectedProject;
+    if (project == null) return;
+    widget.deleting.letItBe();
+    unawaited(widget.deleting.consider(_fleet.backend, project.name));
+    await openProjectDeletion(
+      context,
+      deleting: widget.deleting,
+      onRemove: ({required force}) => _remove(force: force),
+    );
+    widget.deleting.letItBe();
+  }
+
+  /// Removes it, and refreshes the list so what is on screen is what is there.
+  Future<void> _remove({required bool force}) async {
+    await widget.deleting.remove(_fleet.backend, force: force);
+    final said = widget.deleting.words;
+    if (said.isNotEmpty) _fleet.say(said);
+    if (widget.deleting.removed) await _fleet.refresh();
   }
 
   /// Opens what the selected project's work may reach.

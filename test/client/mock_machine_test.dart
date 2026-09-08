@@ -555,6 +555,48 @@ void main() {
     expect((await client.gate(project)).pending, hasLength(1));
   });
 
+  test('a deletion previews without removing, and names what it keeps', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final would = await client.deleteProject('billing', dryRun: true);
+
+    expect(would.outcome, DeleteOutcome.previewed);
+    expect(would.removes.map((each) => each.kind), contains('MIRROR'));
+    // The operator's own file, named by the contract rather than worked out by a client — which
+    // is what lets a confirmation say it survives.
+    expect(would.keeps, contains('/srv/billing/project.yml'));
+
+    // Nothing went: the project is still listed and its work is still there.
+    expect((await client.projects()).map((each) => each.name), contains('billing'));
+  });
+
+  test('unreviewed work refuses a deletion, and force is what goes past it', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final refused = await client.deleteProject('checkout');
+
+    expect(refused.outcome, DeleteOutcome.holdsWork);
+    expect(refused.unreviewed, isNotEmpty);
+    expect((await client.projects()).map((each) => each.name), contains('checkout'));
+
+    final forced = await client.deleteProject('checkout', force: true);
+
+    expect(forced.outcome, DeleteOutcome.deleted);
+    expect((await client.projects()).map((each) => each.name), isNot(contains('checkout')));
+  });
+
+  test('a project nothing knows is a named outcome, never an exception', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final answer = await client.deleteProject('never-existed');
+
+    expect(answer.outcome, DeleteOutcome.noSuchProject);
+    expect(answer.removes, isEmpty);
+  });
+
   test('which logs a task has is asked, and an empty answer is normal', () async {
     await machineIn('work');
     final client = await connect();

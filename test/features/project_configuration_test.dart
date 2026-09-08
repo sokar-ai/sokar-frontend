@@ -25,6 +25,14 @@ import './step/the_next_change_will_report_a_cost.dart';
 import './step/the_cost_warning_says.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
+import './step/i_ask_to_remove_what_sokar_built_here.dart';
+import './step/nothing_was_removed.dart';
+import './step/i_agree_to_remove_it.dart';
+import './step/it_was_removed_for.dart';
+import './step/nothing_was_forced.dart';
+import './step/removing_will_refuse_because.dart';
+import './step/it_was_forced.dart';
+import './step/the_command_is_offered.dart';
 
 void main() {
   group('''F05 Project Configuration''', () {
@@ -115,6 +123,70 @@ void main() {
       await iSelectTheProject(tester, 'checkout');
       await iOpenWhatThisProjectMayReach(tester);
       await itSays(tester, 'ones installed later');
+    });
+    testWidgets('''what would go is shown, and asking removes nothing''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToRemoveWhatSokarBuiltHere(tester);
+      await itSays(tester, 'This removes what Sokar built for checkout');
+      await nothingWasRemoved(tester);
+    });
+    testWidgets('''the project file is named as kept, never as a casualty''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToRemoveWhatSokarBuiltHere(tester);
+      await itSays(tester, '/srv/checkout/project.yml');
+      await itSays(
+          tester, 'A task run in that directory builds all of it again');
+    });
+    testWidgets(
+        '''agreeing is a second act, and it says what is still there afterwards''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToRemoveWhatSokarBuiltHere(tester);
+      await iAgreeToRemoveIt(tester);
+      await itWasRemovedFor(tester, 'checkout');
+      await itSays(tester, 'The project file is still there');
+      await nothingWasForced(tester);
+    });
+    testWidgets('''commits nobody reviewed stop it, and say where they exist''',
+        (tester) async {
+      await bddSetUp(tester);
+      await removingWillRefuseBecause(tester, 'HOLDS_WORK');
+      await iAskToRemoveWhatSokarBuiltHere(tester);
+      await iAgreeToRemoveIt(tester);
+      await itSays(tester, 'nobody has reviewed it');
+      await itSays(tester, 'in the mirror and nowhere else');
+      await nothingWasForced(tester);
+    });
+    testWidgets('''running work stops it, and is not told the same way''',
+        (tester) async {
+      await bddSetUp(tester);
+      await removingWillRefuseBecause(tester, 'TASKS_RUNNING');
+      await iAskToRemoveWhatSokarBuiltHere(tester);
+      await iAgreeToRemoveIt(tester);
+      await itSays(tester, 'Work is still running');
+      await itSays(tester, 'cut off where it stands');
+    });
+    testWidgets(
+        '''going past a refusal is a second decision, and is what carries force''',
+        (tester) async {
+      await bddSetUp(tester);
+      await removingWillRefuseBecause(tester, 'HOLDS_WORK');
+      await iAskToRemoveWhatSokarBuiltHere(tester);
+      await iAgreeToRemoveIt(tester);
+      await iAgreeToRemoveIt(tester);
+      await itWasForced(tester);
+      await itSays(tester, 'is gone');
+    });
+    testWidgets(
+        '''a project whose file nothing can find can still be removed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'unrecorded');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsOffered(
+          tester, 'Remove what Sokar built for this project');
     });
   });
 }

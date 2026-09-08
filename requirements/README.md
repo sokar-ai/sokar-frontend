@@ -50,7 +50,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 | F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | | |
 | F03 | [Project Environment Preparation](F03-Project-Environment-Preparation.md) | A project is made runnable from the interface, with rebuild depths distinguished by what each replaces and what it costs. | rebuild, at depths distinguishable by what each replaces | |
 | F04 | [Guided Project Creation](F04-Guided-Project-Creation.md) | A new project is described, checked, reviewed and created without leaving the interface. | create a project | |
-| F05 | [Project Configuration](F05-Project-Configuration.md) | Agents, hardware and reachable destinations are set per project, with open-ended and explicit selections never confused. | `DeleteProject`, being built. The roster and the hardware are settled as never | |
 | F07 | [Instruction Management](F07-Instruction-Management.md) | Standing instructions are editable at both levels, and the combined result is viewable before anything runs. | read and write instructions at both levels, and show the resolved result | |
 | F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | sync, list snapshots, restore, delete | |
 | F14 | [Authentication Flows](F14-Authentication-Flows.md) | Agents and providers are authenticated from the interface without a secret ever being displayed or logged. | authenticate an agent or a provider. `Credentials` is read-only | |
@@ -123,6 +122,26 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F05 Project Configuration.** What a project's work may reach, where each host came from, what
+  is asked for and refused, and the sets installed here — changed behind a preview, with the
+  **open-ended half deliberately absent**: `SetEgress` takes an explicit list so a set shipped in
+  a later release cannot widen a project nobody edited, and the interface says that where somebody
+  would look for it rather than only leaving it out.
+
+  Two of its criteria were **reworded rather than met**, and both are settled as *never*: a
+  project has no agent roster — the bound is its class and its egress, not a list of names, and
+  what installing an agent really widens is answered by visibility, since the start report names
+  the origin of every host — and a project cannot ask for hardware, because **a device node is a
+  hole in the container of exactly the kind this product is built around not having**, with
+  nothing to mediate, nothing to record and nothing to interrupt.
+
+  Deleting came last, as `DeleteProject` on 2026-09-08, and its shape is the lesson: **it removes
+  what Sokar built and says so, never *"deletes the project"***. The `keeps` field exists because
+  this end said it would have listed `project.yml` among the casualties and believed it — so the
+  contract names what survives, and afterwards a task run in that directory builds all of it
+  again. It **refuses rather than decides**, on two things that are not the same weight: a running
+  task is work cut off mid-flight, and an unreviewed push is in the mirror and nowhere else.
+
 - **F25 Task Templates.** A job named from the start dialog once its choices are made, which
   becomes an action of its own — in the finder, the menu bar and anywhere else the command list is
   read — and starts in one action with its prompt editable before it runs. The criterion with

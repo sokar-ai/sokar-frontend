@@ -205,10 +205,10 @@ names and the requirements are written from what a person sees.
     shown as one. Reading it as a failure tells somebody the task still cannot reach a host it
     can, which is the wrong direction to be wrong in.
 
-- **F05 Project Configuration** — **the destinations third is built**: what a project's work may
-  reach and where each host came from, what is asked for and refused, the sets installed here, and
-  changing them behind a preview. Three of its six criteria have nothing behind them, and one has
-  half:
+- ~~**F05 Project Configuration**~~ — **met.** The destinations third was built first: what a
+  project's work may reach and where each host came from, what is asked for and refused, the sets
+  installed here, and changing them behind a preview. Two criteria were reworded as *never*, one
+  was never a gap, and `DeleteProject` landed on 2026-09-08 as `102082c` and finished it.
   - ~~*"The agent roster for a project is editable"*~~ — **not a gap, and now settled as never.**
     A project does not restrict which agents may run in it and will not: the bound is its
     security class and its egress, not a list of names. The one thing installing an agent really
@@ -223,8 +223,8 @@ names and the requirements are written from what a person sees.
     watcher. A GPU or `/dev/kvm` is a direct kernel surface with nothing to mediate, nothing to
     record and nothing to interrupt. Rootless bounds it anyway, and it is not an egress question
     at all, so the security class says nothing about it.
-  - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method
-    yet, and being built**, in the shape asked for and with one addition. `DeleteProject` takes
+  - ~~*"Deleting a project requires a confirmation naming what will be destroyed"*~~ — **built**,
+    in the shape asked for and with one addition. `DeleteProject` takes
     `dryRun` and `force` and answers `DELETED`, `PREVIEWED`, `HOLDS_WORK`, `TASKS_RUNNING`,
     `NO_SUCH_PROJECT` or `FAILED`, with `removes`, `unreviewed`, `running` — and **`keeps`**.
     - **`keeps` exists because of a sentence written here.** This end said it would have listed

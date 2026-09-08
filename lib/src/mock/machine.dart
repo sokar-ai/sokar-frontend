@@ -121,6 +121,7 @@ class MockMachine {
     daemon.method('Decide', _decide);
     daemon.method('Resume', _resume);
     daemon.method('Panic', _panic);
+    daemon.method('DeleteProject', _deleteProject);
     daemon.method('Label', _label);
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
@@ -511,6 +512,80 @@ class MockMachine {
   /// It acts: the tasks really do stop being listed as running, and `Resume` brings them back —
   /// a stand-in that answered *stopped* and went on listing them as up is how a working interface
   /// looks like one where nothing happens.
+  /// Removes what Sokar built for a project, or says what it would remove.
+  ///
+  /// **It refuses rather than decides**, on the same two things the daemon does: a ref nobody has
+  /// reviewed, and a task that is up. `keeps` names the operator's own file so a confirmation can
+  /// say it survives without this end having to know which things are Sokar's.
+  Map<String, dynamic> _deleteProject(Map<String, dynamic> parameters) {
+    final name = parameters['project'] as String? ?? '';
+    final preview = parameters['dryRun'] == true;
+    final force = parameters['force'] == true;
+    final its = tasks.where((task) => task['project'] == name).toList();
+
+    final known = (_projects(const <String, dynamic>{})['projects']! as List)
+        .whereType<Map<String, dynamic>>()
+        .any((project) => project['name'] == name);
+    if (!known) {
+      return <String, dynamic>{
+        'outcome': 'NO_SUCH_PROJECT',
+        'removes': <Map<String, dynamic>>[],
+        'keeps': <String>[],
+        'unreviewed': <String>[],
+        'running': <String>[],
+        'detail': 'nothing here knows that project',
+      };
+    }
+
+    // What a person recognizes, in the order somebody would think of them.
+    final removes = <Map<String, dynamic>>[
+      <String, dynamic>{'kind': 'MIRROR', 'what': '/srv/$name/.sokar/mirror'},
+      <String, dynamic>{'kind': 'IMAGE', 'what': 'sokar/$name:latest'},
+      <String, dynamic>{'kind': 'BUILD', 'what': '/srv/$name/.sokar/build'},
+      <String, dynamic>{'kind': 'REGISTRY', 'what': name},
+      for (final task in its)
+        <String, dynamic>{'kind': 'TASK', 'what': task['name']},
+    ];
+    // The gate is the checkout project's, so only that one can hold unreviewed work here.
+    final unreviewed = name == 'checkout' ? _waiting.keys.toList() : <String>[];
+    final running = <String>[
+      for (final task in its)
+        if (task['running'] == true) task['name'] as String,
+    ];
+
+    String outcome;
+    if (preview) {
+      outcome = 'PREVIEWED';
+    } else if (!force && unreviewed.isNotEmpty) {
+      outcome = 'HOLDS_WORK';
+    } else if (!force && running.isNotEmpty) {
+      outcome = 'TASKS_RUNNING';
+    } else {
+      outcome = 'DELETED';
+      tasks = <Map<String, dynamic>>[
+        for (final task in tasks)
+          if (task['project'] != name) task,
+      ];
+      // Gone from the listing as well as from the task list: a project still on screen after it
+      // was removed is the one reading that would send somebody looking for what is left of it.
+      _removedProjects.add(name);
+      _changes.add(<String, dynamic>{'tasks': tasks});
+    }
+
+    return <String, dynamic>{
+      'outcome': outcome,
+      'removes': removes,
+      // Named by the contract, because a client cannot know which things are Sokar's — and one
+      // that guessed would sooner or later name the operator's own file among the casualties.
+      'keeps': <String>['/srv/$name/project.yml'],
+      'unreviewed': unreviewed,
+      'running': running,
+      'detail': outcome == 'HOLDS_WORK' || outcome == 'TASKS_RUNNING'
+          ? 'nothing was removed'
+          : '',
+    };
+  }
+
   Map<String, dynamic> _panic(Map<String, dynamic> parameters) {
     final preview = parameters['dryRun'] == true;
     final stopping = tasks.where((task) => task['running'] == true).toList();
@@ -647,9 +722,18 @@ class MockMachine {
   /// `never-run` is here on purpose: a project with no tasks, which a client deriving projects
   /// from the task list could never show. `no-file` is the other state worth having — listed, and
   /// nothing can act on it.
+  /// Projects removed by `DeleteProject`, which stop being listed.
+  final Set<String> _removedProjects = <String>{};
+
   Map<String, dynamic> _projects(Map<String, dynamic> parameters) =>
       <String, dynamic>{
         'projects': <Map<String, dynamic>>[
+          for (final project in _everyProject)
+            if (!_removedProjects.contains(project['name'])) project,
+        ],
+      };
+
+  List<Map<String, dynamic>> get _everyProject => <Map<String, dynamic>>[
           <String, dynamic>{
             'name': 'checkout',
             'securityClass': 'guarded',
@@ -720,8 +804,7 @@ class MockMachine {
                 .where((task) => task['project'] == 'moved-away' && task['running'] == true)
                 .length,
           },
-        ],
-      };
+      ];
 
   /// Which logs a task has. A task that was purged has none, and that is a normal answer.
   Map<String, dynamic> _logs(Map<String, dynamic> parameters) => <String, dynamic>{

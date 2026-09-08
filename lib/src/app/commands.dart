@@ -143,6 +143,7 @@ List<Command> commandsFor({
   required void Function(Task task) openSession,
   required VoidCallback openTheGate,
   required VoidCallback openEgress,
+  required VoidCallback removeWhatWasBuilt,
   required VoidCallback widenTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
@@ -215,6 +216,16 @@ List<Command> commandsFor({
         selectedProject!.name,
         muted: !notifications.mutedFor(selectedProject.name),
       ),
+      unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
+      id: 'project.delete',
+      label: 'Remove what Sokar built for this project',
+      group: 'Work',
+      run: removeWhatWasBuilt,
+      // **Takes the project's name, not its file** — so this is offered for a project whose file
+      // nothing can find any more, which is exactly the one somebody wants to clear away. Every
+      // other project action needs the file and is unavailable there.
       unavailable: selectedProject == null ? 'no project selected' : null,
     ),
     Command(

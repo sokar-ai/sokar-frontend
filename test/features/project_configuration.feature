@@ -63,3 +63,54 @@ Feature: F05 Project Configuration
     And I open what this project may reach
     Then it says {'ones installed later'}
 
+  # `DeleteProject` landed on 2026-09-08. It removes what Sokar built and refuses rather than
+  # deciding, which is why every scenario here is about what it did *not* do.
+  Scenario: what would go is shown, and asking removes nothing
+    When I ask to remove what Sokar built here
+    Then it says {'This removes what Sokar built for checkout'}
+    And nothing was removed
+
+  # The field exists because this end said it would have listed the project file among the
+  # casualties and believed it. The contract names what survives so a confirmation cannot get it
+  # wrong.
+  Scenario: the project file is named as kept, never as a casualty
+    When I ask to remove what Sokar built here
+    Then it says {'/srv/checkout/project.yml'}
+    And it says {'A task run in that directory builds all of it again'}
+
+  Scenario: agreeing is a second act, and it says what is still there afterwards
+    When I ask to remove what Sokar built here
+    And I agree to remove it
+    Then it was removed for {'checkout'}
+    And it says {'The project file is still there'}
+    And nothing was forced
+
+  Scenario: commits nobody reviewed stop it, and say where they exist
+    Given removing will refuse because {'HOLDS_WORK'}
+    When I ask to remove what Sokar built here
+    And I agree to remove it
+    Then it says {'nobody has reviewed it'}
+    And it says {'in the mirror and nowhere else'}
+    And nothing was forced
+
+  Scenario: running work stops it, and is not told the same way
+    Given removing will refuse because {'TASKS_RUNNING'}
+    When I ask to remove what Sokar built here
+    And I agree to remove it
+    Then it says {'Work is still running'}
+    And it says {'cut off where it stands'}
+
+  Scenario: going past a refusal is a second decision, and is what carries force
+    Given removing will refuse because {'HOLDS_WORK'}
+    When I ask to remove what Sokar built here
+    And I agree to remove it
+    And I agree to remove it
+    Then it was forced
+    And it says {'is gone'}
+
+  # It takes the project's name, not its file — so the one project nothing else can act on is
+  # still the one that can be cleared away.
+  Scenario: a project whose file nothing can find can still be removed
+    When I select the project {'unrecorded'}
+    And I open the command finder
+    Then the command {'Remove what Sokar built for this project'} is offered

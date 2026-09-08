@@ -121,6 +121,16 @@ class _Wedged implements FleetBackend {
       const Panicked(tasks: <PanickedTask>[], surviving: <String>[], previewed: false);
 
   @override
+  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
+      const Deletion(
+          outcome: DeleteOutcome.deleted,
+          removes: <Removal>[],
+          keeps: <String>[],
+          unreviewed: <String>[],
+          running: <String>[],
+          detail: '');
+
+  @override
   Future<Readiness> canStart({String? project, String? agent}) async => const Readiness(
         ready: true,
         outcome: StartOutcome.ready,
@@ -265,6 +275,16 @@ class _Machine implements FleetBackend {
   @override
   Future<Panicked> panic({bool? dryRun}) async =>
       const Panicked(tasks: <PanickedTask>[], surviving: <String>[], previewed: false);
+
+  @override
+  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
+      const Deletion(
+          outcome: DeleteOutcome.deleted,
+          removes: <Removal>[],
+          keeps: <String>[],
+          unreviewed: <String>[],
+          running: <String>[],
+          detail: '');
 
   @override
   Future<Readiness> canStart({String? project, String? agent}) async => const Readiness(

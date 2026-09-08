@@ -96,6 +96,12 @@ abstract class FleetBackend {
   /// **Stops and never removes.** What comes back is what survived, not what was cleared away.
   Future<Panicked> panic({bool? dryRun});
 
+  /// Removes what Sokar built for a project, or says what it would remove.
+  ///
+  /// **Never the project file, the checkout or the upstream**: those are the operator's, and
+  /// `Deletion.keeps` names them so a confirmation can say so.
+  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force});
+
   /// Blocked connections from every task on this machine, as they happen.
   ///
   /// Streaming only, and one subscription covers tasks started after the call.
@@ -265,6 +271,10 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
+
+  @override
+  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) =>
+      _opened().deleteProject(project, dryRun: dryRun, force: force);
 
   @override
   Stream<Prompt> prompts() => _opened().prompts();

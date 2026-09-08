@@ -13,6 +13,7 @@ import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/emergency_stop.dart';
 import 'package:sokar_frontend/src/app/start_work.dart';
 import 'package:sokar_frontend/src/app/templates.dart';
+import 'package:sokar_frontend/src/app/project_deletion.dart';
 import 'package:sokar_frontend/src/app/pty.dart';
 import 'package:sokar_frontend/src/app/session.dart';
 import 'package:sokar_frontend/src/app/vault.dart';
@@ -378,6 +379,43 @@ class FakeBackend implements FleetBackend {
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;
 
+  /// What the next deletion answers. Set by the scenario.
+  DeleteOutcome deletionAnswers = DeleteOutcome.deleted;
+
+  /// Every deletion asked for: the project, and whether it was a preview and whether it was
+  /// forced. **Read off the socket** — a screen that shows a preview while having removed a
+  /// project is exactly the failure this guards.
+  final List<({String project, bool preview, bool force})> deletions =
+      <({String project, bool preview, bool force})>[];
+
+  @override
+  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async {
+    deletions.add((project: project, preview: dryRun == true, force: force == true));
+    final refused = deletionAnswers.canBeForced && force != true;
+    return Deletion(
+      outcome: dryRun == true
+          ? DeleteOutcome.previewed
+          : refused
+              ? deletionAnswers
+              : DeleteOutcome.deleted,
+      // Filled for a refusal too, so the cost can be shown beside the reason it was stopped.
+      removes: const <Removal>[
+        Removal(kind: 'MIRROR', what: '/srv/checkout/.sokar/mirror'),
+        Removal(kind: 'IMAGE', what: 'sokar/checkout:latest'),
+        Removal(kind: 'TASK', what: 'sokar-checkout-shell'),
+        Removal(kind: 'TASK', what: 'sokar-checkout-migrate'),
+      ],
+      keeps: const <String>['/srv/checkout/project.yml'],
+      unreviewed: deletionAnswers == DeleteOutcome.holdsWork
+          ? const <String>['migrate']
+          : const <String>[],
+      running: deletionAnswers == DeleteOutcome.tasksRunning
+          ? const <String>['sokar-checkout-shell']
+          : const <String>[],
+      detail: refused ? 'nothing was removed' : '',
+    );
+  }
+
   @override
   Future<Panicked> panic({bool? dryRun}) async {
     panics.add(dryRun == true);
@@ -735,6 +773,9 @@ class World {
   /// The shells somebody has open inside running work.
   static late Sessions sessions;
 
+  /// Removing what Sokar built for a project.
+  static late ProjectDeletion deleting;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -901,6 +942,8 @@ class World {
     vault = Vault();
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     terminals.clear();
+    deleting = ProjectDeletion();
+    addTearDown(deleting.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -958,6 +1001,7 @@ class World {
       vault: vault,
       newerVersion: newerVersion,
       sessions: sessions,
+      deleting: deleting,
     ));
     await tester.pumpAndSettle();
   }
@@ -1012,6 +1056,7 @@ class World {
       vault: vault,
       newerVersion: newerVersion,
       sessions: sessions,
+      deleting: deleting,
     ));
     await tester.pumpAndSettle();
   }
@@ -1035,6 +1080,7 @@ class World {
       vault: vault,
       newerVersion: newerVersion,
       sessions: sessions,
+      deleting: deleting,
     ));
     await settle(tester);
   }

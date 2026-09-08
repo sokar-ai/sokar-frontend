@@ -14,6 +14,7 @@ import 'machines.dart';
 import 'newer_version.dart';
 import 'notifications.dart';
 import 'operations.dart';
+import 'project_deletion.dart';
 import 'session.dart';
 import 'settings.dart';
 import 'shell_model.dart';
@@ -38,6 +39,7 @@ class SokarApp extends StatelessWidget {
     required this.vault,
     required this.newerVersion,
     required this.sessions,
+    required this.deleting,
     super.key,
   });
 
@@ -89,6 +91,9 @@ class SokarApp extends StatelessWidget {
   /// The shells somebody has open inside running work.
   final Sessions sessions;
 
+  /// Removing what Sokar built for a project.
+  final ProjectDeletion deleting;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -119,6 +124,7 @@ class SokarApp extends StatelessWidget {
               vault,
               newerVersion,
               sessions,
+              deleting,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -137,6 +143,7 @@ class SokarApp extends StatelessWidget {
               vault: vault,
               newerVersion: newerVersion,
               sessions: sessions,
+              deleting: deleting,
             ),
           ),
         ),

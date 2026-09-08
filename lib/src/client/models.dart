@@ -918,6 +918,152 @@ class Widened {
       );
 }
 
+/// One thing a project deletion removes.
+class Removal {
+  /// `MIRROR`, `IMAGE`, `BUILD`, `REGISTRY`, `UPSTREAM_RECORD` or `TASK` — a string rather than a
+  /// type, by the rule that covers every other value here: a kind added later must render.
+  final String kind;
+
+  /// The thing itself — a path, an image name, a container name — as a person would recognize it.
+  final String what;
+
+  /// Constructor taking both.
+  const Removal({required this.kind, required this.what});
+
+  /// Reads one from a reply.
+  factory Removal.from(Map<String, dynamic> map) =>
+      Removal(kind: _string(map, 'kind'), what: _string(map, 'what'));
+
+  /// Words for a person, unrecognized kinds included.
+  String get label => switch (kind) {
+        'MIRROR' => 'the mirror',
+        'IMAGE' => 'the image',
+        'BUILD' => 'the build directory',
+        'REGISTRY' => 'its entry in the registry',
+        'UPSTREAM_RECORD' => 'the recorded upstream distance',
+        'TASK' => 'a task, with its container, state and logs',
+        _ => kind.toLowerCase().replaceAll('_', ' '),
+      };
+}
+
+/// What removing what Sokar built for a project did, or would do.
+class DeleteOutcome {
+  /// Constructor taking the name as the contract spells it.
+  const DeleteOutcome(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// Everything Sokar built for it is gone.
+  static const deleted = DeleteOutcome('DELETED');
+
+  /// What would go, having removed nothing.
+  static const previewed = DeleteOutcome('PREVIEWED');
+
+  /// Refused: work reached the gate and nobody reviewed it.
+  static const holdsWork = DeleteOutcome('HOLDS_WORK');
+
+  /// Refused: tasks are still up.
+  static const tasksRunning = DeleteOutcome('TASKS_RUNNING');
+
+  /// Nothing there knows that project.
+  static const noSuchProject = DeleteOutcome('NO_SUCH_PROJECT');
+
+  /// Something could not be removed. [Deletion.detail] says what.
+  static const failed = DeleteOutcome('FAILED');
+
+  /// The values this build knows.
+  static const known = <DeleteOutcome>[
+    deleted,
+    previewed,
+    holdsWork,
+    tasksRunning,
+    noSuchProject,
+    failed,
+  ];
+
+  /// Whether this build knows what it means.
+  bool get recognized => known.any((value) => value.name == name);
+
+  /// Whether it refused rather than deciding, and can be asked again with `force`.
+  ///
+  /// **Only these two.** `FAILED` is not one — something went wrong rather than being declined,
+  /// and offering to force past it would be offering to repeat it.
+  bool get canBeForced => name == 'HOLDS_WORK' || name == 'TASKS_RUNNING';
+
+  /// Words for a person, unrecognized values included.
+  String get label {
+    final words = name.toLowerCase().split('_').where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return name;
+    words[0] = words.first[0].toUpperCase() + words.first.substring(1);
+    return words.join(' ');
+  }
+
+  @override
+  bool operator ==(Object other) => other is DeleteOutcome && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// What a deletion removed, or would remove — and what it left alone.
+///
+/// **`keeps` is the field that makes this safe to offer.** The project file is the operator's, in
+/// their own directory, and so are their checkout and their real upstream: none is touched, and
+/// naming them means a confirmation can say so without this end having to know which things are
+/// Sokar's. Afterwards a task run in that directory builds all of it again.
+class Deletion {
+  /// What happened, or would have.
+  final DeleteOutcome outcome;
+
+  /// What goes, or went. Filled for a refusal too, so the cost can be shown beside the reason.
+  final List<Removal> removes;
+
+  /// What is deliberately not touched, named.
+  final List<String> keeps;
+
+  /// Refs nobody reviewed. Non-empty with `HOLDS_WORK`, and under `force` — it is what force
+  /// destroys.
+  final List<String> unreviewed;
+
+  /// Tasks that are up. Non-empty with `TASKS_RUNNING`, and under `force`.
+  final List<String> running;
+
+  /// Why it was refused, or what went wrong. Empty otherwise.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Deletion({
+    required this.outcome,
+    required this.removes,
+    required this.keeps,
+    required this.unreviewed,
+    required this.running,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Deletion.from(Map<String, dynamic> map) => Deletion(
+        outcome: DeleteOutcome(_string(map, 'outcome')),
+        removes: (map['removes'] is List)
+            ? (map['removes']! as List)
+                .whereType<Map<String, dynamic>>()
+                .map(Removal.from)
+                .toList()
+            : const <Removal>[],
+        keeps: _strings(map, 'keeps'),
+        unreviewed: _strings(map, 'unreviewed'),
+        running: _strings(map, 'running'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// How many tasks would go with it, which is the number people react to.
+  int get tasks => removes.where((each) => each.kind == 'TASK').length;
+}
+
 /// What setting or clearing a caption did.
 class Labelled {
   /// `LABELLED`, `CLEARED`, `NOT_A_TASK`, `NOT_RECORDED` or `FAILED`.

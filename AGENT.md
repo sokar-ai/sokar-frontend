@@ -1320,3 +1320,28 @@ but you.**
 
 When an answer comes back about something adjacent to what was asked, check the wording of the
 question before deciding the answer was wrong.
+
+## Removing a project is not deleting it, and the contract says which is which
+
+`DeleteProject` removes **what Sokar built**: the mirror, the image, the build directory, the
+registry entry, the recorded upstream distance, and every task with its container, state and logs.
+The `project.yml`, the operator's checkout and their real upstream are untouched — and afterwards a
+task run in that directory builds all of it again, which is what makes the action safe to offer at
+all.
+
+**`keeps` exists because this end said it would have listed `project.yml` among the casualties and
+believed it.** So the contract names what survives, and a confirmation can say so without a client
+having to know which things are Sokar's. Never work that out here: a client that guessed would
+sooner or later name the operator's own file among the losses.
+
+**Two refusals, and they are not the same weight.** A running task is work cut off mid-flight and
+the operator still has their repository. An unreviewed push is in the mirror and **nowhere else** —
+not in a checkout, not upstream — so forcing past it is the only action in this product that
+destroys something no other copy of exists. They get different sentences on screen for that reason.
+
+`force` is a second decision about something the machine declined, never a retry: the button
+changes its word to *"Remove it anyway"* rather than staying the same and quietly meaning more.
+
+**It takes the project's name, not its file.** So it is offered for a project whose file nothing
+can find any more — which is exactly the one somebody wants to clear away, and the one every other
+project action is unavailable for.
