@@ -1,24 +1,37 @@
 # F14 — Authentication Flows
 
-**Status:** open. A rule about it was settled and then **changed in this interface's favour** on
-the same day — the second version is the one to build against.
+**Status:** open. **The rule about secrets moved three times in one day and is now parked.** What
+holds today: no secret is entered here, and the parked half is `StoreCredential` **alone** — the
+rest of this requirement is designable and buildable.
 
 Getting agents and providers authenticated, from the interface, both for the machine
 as a whole and for a single project.
 
-**A secret may be transferred and must never be stored.** The first answer was *no secret crosses
-this socket at all*, and it was withdrawn the same day by the operator — for a reason worth keeping,
-because this end would have inherited it. The argument against transferring was that plaintext
-should not pass through a GUI; the alternative it recommended puts it through a browser, a
-clipboard, a terminal emulator's paste buffer and its **scrollback**, which many terminals persist
-to disk. Measured on the Sokar side: `vault put` read a typed credential through the *echoing*
-stream while the vault passphrase had always been read without echo. **The advice pointed at the
-path that wrote the secret down.** Fixed there; recorded here so the reasoning is not re-derived
-badly.
+**Nothing here asks for a secret, and that is where it stands rather than where it ends.** The
+rule went through three states on 2026-09-08, and the sequence is the point:
 
-**So `StoreCredential` will exist, and typing a key into this window is not forbidden.** What is
-forbidden is keeping it, and that is an obligation on *this* side that no daemon can enforce —
-written down as
+1. **Refused, both halves** — a secret should pass through neither a GUI nor the varlink layer.
+2. **The credential half was challenged and the rule refined to *transfer yes, storage never*.**
+   The argument against transferring was that plaintext should not pass through a GUI; the
+   alternative it recommended routes the key through a browser, a clipboard, a paste buffer and
+   **scrollback**, which many terminals write to disk. Measured there: `vault put` read a typed
+   credential through the *echoing* stream while the vault passphrase never did. **The advice
+   pointed at the path that wrote the secret down.**
+3. **Parked.** The passphrase was then examined and *its* argument — that a remote client cannot
+   open the store — did not survive either: anybody with a shell can already unlock, and
+   `--passphrase-command` and `--systemd-credential` have always existed. **Two of three original
+   arguments failed under examination**, so the operator holds the passphrase and the credential
+   together and decides them together rather than settling one on what is left of the other's
+   reasoning.
+
+**Only `StoreCredential` is parked.** `Providers` is a read with no secret in it; `ImportCredential`
+moves no secret at all, because the daemon reads the agent's own config on its own disk and only a
+name crosses; and an OAuth token in `Login` is minted by the provider and delivered straight into
+the node's process. **Most of this requirement's screen is unaffected.**
+
+**The storage obligation stands whichever way it is decided**, and it is the thing that will be
+depended on if the answer is yes — an obligation on *this* side that no daemon can enforce, written
+down as
 [B18](https://github.com/fuinorg/sokar/blob/main/requirements/base/B18-Storing-A-Credential-From-Elsewhere.md):
 
 > A client must not persist what it transfers: not in local storage, not in a form draft, not in a

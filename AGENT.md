@@ -1474,3 +1474,35 @@ The habit worth keeping is not the correction, it is the sweep: **when an answer
 what was built on the old one.** Two screens and an index row were, and none of them would have
 failed a test — they would simply have been wrong, in the confident register that is hardest to
 notice.
+
+## An answer that moves three times is a question that was not ready
+
+The rule on secrets crossing the socket, on 2026-09-08: **refused both halves → refined to
+*transfer yes, storage never* → parked.** Each step was reasoned and each reversed something built
+on the step before.
+
+What made it survivable here was not being right. It was that **the screens said *where*, never
+*never***, so none of them had to change through any of it. The record changed three times; the
+product changed once, and in the direction that was true throughout.
+
+**Two of the three original arguments failed under examination** — the *capability boundary* for
+the passphrase, because anybody with a shell can already unlock and `--passphrase-command` has
+always existed; and the *do not route plaintext through a GUI* argument, because the alternative
+routed it through a browser, a clipboard and a terminal's scrollback. That is why the operator now
+holds the passphrase and the credential together rather than settling either quickly.
+
+**The habit: when a rule is young, write the screen against what is true rather than against the
+rule.** *"This happens at the machine"* survives every version of that rule. *"This can never
+happen here"* survived one of them.
+
+## A secret cannot be erased in a managed runtime
+
+From the Sokar side's own design note, and it applies here at least as much: a moving collector
+copies objects, and strings are immutable in Dart as in Java. **Any promise that this interface
+*wipes* a secret asks for something the language cannot deliver.**
+
+What is achievable is **fewer copies, shorter lifetimes, and never at rest** — and that is what may
+be claimed. If a field for a secret is ever built here, it is also worth knowing what the platform
+does not give us: on **Linux/X11 there is no screen-capture protection and no secure keyboard
+input at all** — any client may read any window and grab the keyboard. Wayland is better and, by
+their own note, unmeasured per compositor.

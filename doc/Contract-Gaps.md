@@ -261,18 +261,23 @@ names and the requirements are written from what a person sees.
 | F19 Host Readiness And Remediation | run the readiness check and act on it |
 
 - **F14 Authentication Flows** — **a no with a design attached, on 2026-09-08.**
-  - ~~**No secret crosses this socket, either direction, permanently.**~~ — **withdrawn the same
-    day, in this end's favour: a secret may be *transferred* and must never be *stored*.** The
-    reasoning that changed it is the part to keep: the argument against transferring was that
-    plaintext should not pass through a GUI, and the alternative it recommended puts it through a
-    browser, a clipboard, a terminal's paste buffer and its **scrollback**, which many terminals
-    write to disk. Measured there: `vault put` read a typed credential through the *echoing*
-    stream while the vault passphrase never did. **The advice pointed at the path that wrote the
-    secret down.**
-  - **So `StoreCredential` will exist, and the obligation moves here.** No daemon can enforce it:
-    never persist what is transferred — not local storage, not a form draft, not a crash report,
-    not an undo buffer — clear the field after sending, and never re-display the value. Written
-    down on their side as B18 so it is a requirement rather than a promise.
+  - **The rule moved three times in one day and is now parked.** Refused both halves; refined to
+    *transfer yes, storage never* when the argument against transferring was found to recommend a
+    path that writes the secret down — browser, clipboard, paste buffer, **scrollback**, and
+    `vault put` measured echoing what the passphrase never did; then **parked**, because the
+    passphrase's own argument failed too and the operator holds both together rather than settling
+    one on what is left of the other's reasoning.
+  - **What holds today: nothing here asks for a secret. `StoreCredential` alone is parked.**
+    `Providers` is a read with no secret in it, `ImportCredential` moves none — the daemon reads
+    the agent's own config on its own disk and only a name crosses — and an OAuth token in `Login`
+    is minted by the provider straight into the node's process. **Most of F14's screen is
+    unaffected.**
+  - **The storage obligation stands whichever way it goes**, and is the thing that will be
+    depended on if the answer is yes: never persist what is transferred — not local storage, not a
+    form draft, not a crash report, not an undo buffer — clear the field after sending, never
+    re-display. On their side as B18, so it is a requirement rather than a promise.
+  - **Screens here were already right and needed no change**, because they say *where* rather than
+    *never*. That is the whole return on having taken *"never"* off an hour earlier.
   - **`Credentials` stays read-only the other way**: names, kinds and lengths, never a value.
     Reading one back and putting one in are different acts, and only the second has somebody
     present who already knows it. `StoreCredential` answers the key, the kind and the **length** —
