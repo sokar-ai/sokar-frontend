@@ -47,7 +47,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F02 | [Project Overview](F02-Project-Overview.md) | Every project on the machine is listed with enough state to decide whether it needs attention, without opening it. | whether a project is prepared, and how far behind upstream it is — **being added** | |
 | F08 | [Task Creation And Modes](F08-Task-Creation-And-Modes.md) | Work is started with a project, an agent and a mode, and finished unattended work can be continued with a new prompt. | which credential a run needs, answered before it starts — **being added** | |
 | F09 | [Task Control](F09-Task-Control.md) | Running work can be stopped, restarted, recreated, renamed and deleted, each named by its consequence. | a changeable label beside a task’s fixed identity — **asked for** | |
 | F10 | [Task Inspection And Work Handover](F10-Task-Inspection-And-Work-Handover.md) | What a piece of work is and what it did to the repository is visible, and its changes leave the interface in one action. | | |
@@ -88,6 +87,14 @@ be read again.
   things it measured: `ssh` can exit before a stderr subscription has delivered the one sentence
   worth having, and waiting for the endpoint to *exist* makes any leftover file read as a working
   tunnel.
+- **F02 Project Overview.** Every project on the machine with enough on the row to decide whether
+  it needs attention: what it is, whether its environment is prepared, how much work it has, how
+  much is waiting at the gate, and how far behind its upstream it has fallen — **with the age of
+  that measurement in the same sentence**, because a number without one has to be drawn as though
+  it were current. It taught two things. *"The list reflects what changed elsewhere"* was not true:
+  the work pane updated on a `Watch` push and the row above it kept stale counts, because there is
+  no `WatchProjects` and nothing re-asked. And `behind` is meaningless unless `behindReason` says
+  `MEASURED` — every other reason reports zero, and zero would otherwise read as *up to date*.
 - **F24 Agent Inventory.** What a machine has to run agents with, in three lists — what it can
   use, what is installed and unusable, and what is installed and permanently hidden by another
   copy. It taught two things. `Agent.version` is the build an agent *pins*, from its own manifest,

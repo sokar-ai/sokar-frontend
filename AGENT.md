@@ -942,3 +942,26 @@ signs the repository **index**, not the packages, which is why the Fedora repo f
 Publishing goes to the **`snapshots`** distribution. That word is in the line a person configures,
 so a stable release will be a different word in the same repository rather than a new repository.
 
+## A project's counts go stale on a push, and nothing said so
+
+There is no `WatchProjects`. `Projects` answers how much work a project has, how much is running
+and how much waits at the gate — all of it the daemon's arithmetic — and a task starting elsewhere
+changes every one of those numbers.
+
+`Watch` is the only signal that work moved, so **it is also the signal that those counts are
+stale**. Until 2026-09-08 the task list updated on a push and the row above it did not: the work
+pane and the project row disagreed, on screen, about the same machine. `FleetModel` now re-asks
+`Projects` on every push, one read at a time — overlapping reads answer out of order and leave the
+older one on screen.
+
+## `behind` is a number; `behindReason` is whether it means anything
+
+`Project.behind` is **meaningless unless `behindReason` is `MEASURED`**. Every other reason —
+`NEVER_CHECKED`, `NO_UPSTREAM`, `OFFLINE`, `FAILED` — reports zero, and zero drawn without its
+reason reads as *up to date*. A daemon reporting a failure may also leave the previous count in the
+field, so a non-zero number with another reason is possible and must not be shown as a measurement.
+
+**The age is part of the sentence, not a detail under it.** It is measured on the daemon's own
+timer and never on the listing path, so the number is as old as the last tick. *"3 behind, as of 20
+minutes ago"* is a fact somebody can judge; *"3 behind"* is one they have to assume is current.
+

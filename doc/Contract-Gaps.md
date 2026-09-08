@@ -55,18 +55,19 @@ missing, ask.**
 
 ## Partly ready — build the covered half, stop at the line
 
-- **F02 Project Overview** — `Projects()` answers the name, the security class, how much work it
-  has, how many pushes wait for review, and whether it can be acted on at all. Two of its criteria
-  still have nothing behind them: **whether a project's environment is prepared and usable**, and
-  **whether its copy of the upstream has fallen behind, and by how much**. The first is being
-  added as a field. The second is **not** the cheap change this file called it: the mirror is
-  local and the upstream is on the network, so answering it live would make `Projects` perform a
-  fetch — and `Projects` is asked again after anything that changes it. Asked for instead as a
-  number *with the age of the measurement beside it*, fetched on the daemon's own schedule. A
-  number with no age would have to be drawn as though it were current. Agreed on the Sokar side,
-  and it comes with **a reason enumeration** rather than a bare timestamp: never checked, the
-  vault was locked when the fetch was tried, or the project reaches nothing by design. The middle
-  one is somebody's to fix and the other two are not, which is why they cannot be one value.
+- ~~**F02 Project Overview**~~ — **met.** `Projects` answers the name, the security class, how
+  much work, how many pushes wait for review, whether it can be acted on at all, and — since
+  2026-09-08 — `prepared` and the four behind-upstream fields.
+  - **`behind` is meaningless unless `behindReason` is `MEASURED`.** Every other reason reports
+    zero, and zero would otherwise read as *up to date*. `NEVER_CHECKED`, `NO_UPSTREAM`, `OFFLINE`
+    and `FAILED` are four different sentences and one number.
+  - **There is no `VAULT_LOCKED`.** It was predicted and withdrawn: the gate fetches with the
+    machine's own git credentials, so the vault is not in that path.
+  - **`behindMeasured` is not optional to show.** It is measured on the daemon's own timer
+    (`SOKAR_UPSTREAM_MINUTES`, `0` disables it), never on the listing path — so the number is as
+    old as the last tick, and a reader who cannot see that has to assume it is current.
+  - **`prepared` is one call for the whole list**, deliberately, because `Projects` is re-asked
+    after every task start and every approval.
 
 Four of these were listed as *ready* until 2026-09-07, when they were walked against the IDL
 method by method rather than by name. Starting is one call, so F08 read as covered; the call has

@@ -321,6 +321,26 @@ class FleetModel extends ChangeNotifier {
     _notify();
   }
 
+  bool _readingProjects = false;
+
+  /// Asks for the project list again, at most one at a time.
+  ///
+  /// `Watch` can push several changes in a row; overlapping reads would answer out of order and
+  /// leave the older one on screen.
+  Future<void> _readProjectsAgain() async {
+    if (_readingProjects) return;
+    _readingProjects = true;
+    try {
+      _known = await backend.projects();
+      _notify();
+    } on VarlinkDisconnected {
+      // The watch reports a lost connection; this one staying quiet keeps one event from being
+      // announced twice.
+    } finally {
+      _readingProjects = false;
+    }
+  }
+
   Future<void> _readOnce() async {
     try {
       // Nothing refreshes the project list on its own — there is no `WatchProjects` — so it is
@@ -338,6 +358,11 @@ class FleetModel extends ChangeNotifier {
       (tasks) {
         _live = true;
         _adopt(tasks);
+        // A project's counts — how much work, how much of it running, how much waiting at the
+        // gate — are the daemon's, and there is no `WatchProjects`. `Watch` is the only signal
+        // that work moved, so it is also the signal that those counts are stale. Without this the
+        // work pane updated and the row above it did not.
+        unawaited(_readProjectsAgain());
       },
       onError: (Object error) {
         if (error is FeatureNotSupported) {

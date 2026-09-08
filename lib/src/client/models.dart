@@ -443,6 +443,37 @@ class Project {
   /// and must never be assumed of the other.
   final int running;
 
+  /// Whether a task can start here without building an image first.
+  ///
+  /// One call on the daemon's side for the whole list, not one per project — `Projects` is asked
+  /// again after every task start and every approval, so a subprocess per project would have made
+  /// ordinary use of this interface expensive for reasons nothing on screen could explain.
+  final bool prepared;
+
+  /// How many commits its mirror is behind the upstream.
+  ///
+  /// **Meaningless unless [behindReason] is `MEASURED`.** Zero means "up to date" only then; the
+  /// other reasons all report zero and mean something else entirely.
+  final int behind;
+
+  /// When [behind] was measured, RFC 3339. Empty when it never was.
+  ///
+  /// **Not optional to show.** A number with no age has to be drawn as though it were current,
+  /// and the only thing worse than a stale answer is a stale answer that looks fresh. It is
+  /// measured on the daemon's own timer, never on the listing path.
+  final String behindMeasured;
+
+  /// Why [behind] says what it says: `MEASURED`, `NEVER_CHECKED`, `NO_UPSTREAM`, `OFFLINE` or
+  /// `FAILED`.
+  ///
+  /// A string rather than an enum, by the rule that already covers [Outcome]: a value added later
+  /// must render rather than throw. **There is no `VAULT_LOCKED`** — the gate fetches with the
+  /// machine's own git credentials and the vault is not in that path at all.
+  final String behindReason;
+
+  /// Prose for a person, only when [behindReason] is `FAILED`. Never parsed.
+  final String behindDetail;
+
   /// Constructor taking every field.
   const Project({
     required this.name,
@@ -452,6 +483,11 @@ class Project {
     required this.pending,
     required this.tasks,
     required this.running,
+    this.prepared = false,
+    this.behind = 0,
+    this.behindMeasured = '',
+    this.behindReason = '',
+    this.behindDetail = '',
   });
 
   /// Reads one from a reply.
@@ -463,7 +499,47 @@ class Project {
         pending: _int(map, 'pending'),
         tasks: _int(map, 'tasks'),
         running: _int(map, 'running'),
+        prepared: map['prepared'] == true,
+        behind: _int(map, 'behind'),
+        behindMeasured: _string(map, 'behindMeasured'),
+        behindReason: _string(map, 'behindReason'),
+        behindDetail: _string(map, 'behindDetail'),
       );
+
+  /// Whether this project is behind its upstream by an amount somebody can act on.
+  ///
+  /// False for every reason but `MEASURED`, because [behind] is zero in all of them and zero
+  /// would otherwise read as *up to date*.
+  bool get hasFallenBehind => behindReason == 'MEASURED' && behind > 0;
+
+  /// What to say about how far behind it is, in one line.
+  ///
+  /// The age is part of the sentence rather than a detail underneath it: the number is only as
+  /// good as when it was taken, and a reader who cannot see that has to assume it is current.
+  String get behindWords => switch (behindReason) {
+        'MEASURED' when behind == 0 => 'Up to date$_asOf',
+        'MEASURED' => '$behind behind$_asOf',
+        // Not zero, and not up to date. The two are the same number and different sentences.
+        'NEVER_CHECKED' => 'Never checked against the upstream',
+        'NO_UPSTREAM' => 'No upstream to fall behind',
+        'OFFLINE' => 'Not checked: this project reaches nothing',
+        'FAILED' => behindDetail.isEmpty
+            ? 'The last check did not work'
+            : 'The last check did not work: $behindDetail',
+        // Added after this build shipped. Rendered, never thrown on.
+        '' => 'Nothing said how far behind it is',
+        _ => behindReason.toLowerCase().replaceAll('_', ' '),
+      };
+
+  String get _asOf {
+    final when = DateTime.tryParse(behindMeasured);
+    if (when == null) return '';
+    final ago = DateTime.now().difference(when);
+    if (ago.isNegative || ago.inMinutes < 1) return ', measured just now';
+    if (ago.inMinutes < 60) return ', as of ${ago.inMinutes} minutes ago';
+    if (ago.inHours < 48) return ', as of ${ago.inHours} hours ago';
+    return ', as of ${ago.inDays} days ago';
+  }
 
   /// Whether anything can be done to it beyond looking at it.
   ///

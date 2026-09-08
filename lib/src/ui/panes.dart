@@ -173,6 +173,23 @@ class _ProjectRow extends StatelessWidget {
                 '${classification.isEmpty ? '' : ' · $classification'}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              // How far behind, with the age of the measurement in the same sentence. The number
+              // is only as good as when it was taken, and a reader who cannot see that has to
+              // assume it is current. Taken on the daemon's own timer, never on this listing.
+              //
+              // One line for every reason, and only the emphasis differs: being behind is the
+              // one of them somebody can act on.
+              if (project.project.behindReason.isNotEmpty)
+                Text(
+                  project.project.behindWords,
+                  key: const Key('project-behind'),
+                  style: project.project.hasFallenBehind
+                      ? Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: scheme.tertiary)
+                      : Theme.of(context).textTheme.bodySmall,
+                ),
             ],
           ),
         ),
@@ -202,6 +219,17 @@ class _ProjectRow extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               backgroundColor: scheme.tertiaryContainer,
             ),
+          ),
+        // Nothing can start here until an image is built, which is the one state that makes an
+        // otherwise healthy project unusable. Marked on the row rather than found by trying.
+        if (!project.project.prepared)
+          Tooltip(
+            message: 'Its environment is not prepared: a task started here would have to build '
+                'an image first.',
+            child: Icon(Icons.construction_outlined,
+                key: const Key('project-unprepared'),
+                size: Sizes.rowIcon,
+                color: scheme.tertiary),
           ),
         // A project the daemon has no file for can be listed and not acted on. Saying so on the
         // row beats a refusal at the point somebody tries.

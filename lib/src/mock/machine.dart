@@ -476,6 +476,14 @@ class MockMachine {
             'securityClass': 'guarded',
             'file': '/srv/checkout/project.yml',
             'mirror': '/srv/checkout/.sokar/mirror',
+            'prepared': true,
+            'behind': 3,
+            'behindMeasured': DateTime.now()
+                .toUtc()
+                .subtract(const Duration(minutes: 20))
+                .toIso8601String(),
+            'behindReason': 'MEASURED',
+            'behindDetail': '',
             'pending': _waiting.length,
             'tasks': tasks.where((task) => task['project'] == 'checkout').length,
             'running': tasks
@@ -487,6 +495,12 @@ class MockMachine {
             'securityClass': 'offline',
             'file': '/srv/billing/project.yml',
             'mirror': '',
+            'prepared': true,
+            'behind': 0,
+            'behindMeasured': '',
+            // An offline project reaches nothing, so nothing was tried. Distinct from zero.
+            'behindReason': 'OFFLINE',
+            'behindDetail': '',
             'pending': 0,
             'tasks': tasks.where((task) => task['project'] == 'billing').length,
             'running': tasks
@@ -498,6 +512,12 @@ class MockMachine {
             'securityClass': '',
             'file': '/srv/never-run/project.yml',
             'mirror': '',
+            // Nothing has run here, so no image was ever built.
+            'prepared': false,
+            'behind': 0,
+            'behindMeasured': '',
+            'behindReason': 'NEVER_CHECKED',
+            'behindDetail': '',
             'pending': 0,
             'tasks': 0,
             'running': 0,
@@ -507,6 +527,14 @@ class MockMachine {
             'securityClass': 'guarded',
             'file': '',
             'mirror': '/srv/moved/.sokar/mirror',
+            'prepared': true,
+            'behind': 0,
+            'behindMeasured': DateTime.now()
+                .toUtc()
+                .subtract(const Duration(hours: 3))
+                .toIso8601String(),
+            'behindReason': 'FAILED',
+            'behindDetail': 'the upstream refused the connection',
             'pending': 1,
             'tasks': tasks.where((task) => task['project'] == 'moved-away').length,
             'running': tasks

@@ -135,11 +135,18 @@ class FakeBackend implements FleetBackend {
   /// What `Projects` answers. Assembled by the daemon, so a scenario sets it rather than the
   /// interface deriving it.
   List<Project> theProjectsItHas = <Project>[
-    Project.from(const <String, dynamic>{
+    Project.from(<String, dynamic>{
       'name': 'checkout',
       'securityClass': 'guarded',
       'file': '/srv/checkout/project.yml',
       'mirror': '/srv/checkout/.sokar/mirror',
+      'prepared': true,
+      'behind': 3,
+      'behindMeasured': DateTime.now()
+          .toUtc()
+          .subtract(const Duration(minutes: 20))
+          .toIso8601String(),
+      'behindReason': 'MEASURED',
       'pending': 2,
       'tasks': 2,
       'running': 1,
@@ -150,6 +157,9 @@ class FakeBackend implements FleetBackend {
       'securityClass': 'guarded',
       'file': '',
       'mirror': '/srv/unrecorded/.sokar/mirror',
+      // Nothing has run here, so no image was built and nothing was ever checked.
+      'prepared': false,
+      'behindReason': 'NEVER_CHECKED',
       'pending': 1,
       'tasks': 0,
       'running': 0,
@@ -159,6 +169,9 @@ class FakeBackend implements FleetBackend {
       'securityClass': 'offline',
       'file': '/srv/billing/project.yml',
       'mirror': '',
+      'prepared': true,
+      // Reaches nothing, so nothing was tried. Distinct from zero, which would read as up to date.
+      'behindReason': 'OFFLINE',
       'pending': 0,
       'tasks': 2,
       'running': 2,
