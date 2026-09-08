@@ -174,10 +174,17 @@ names and the requirements are written from what a person sees.
   reach and where each host came from, what is asked for and refused, the sets installed here, and
   changing them behind a preview. Three of its six criteria have nothing behind them, and one has
   half:
-  - *"The agent roster for a project is editable"* — **no method**.
-  - *"Hardware access is selectable from what the machine actually has"* — **no method**, and
-    nothing lists the hardware either.
-  - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method**.
+  - ~~*"The agent roster for a project is editable"*~~ — **not a gap: a project has no roster.**
+    Any installed agent may run in any project, bounded by its class, its egress and its gate.
+    Criterion reworded. One caveat kept: an agent's `allowedDomains` are added to a task's egress,
+    so a roster, if ever built, would have to be an explicit list.
+  - ~~*"Hardware access is selectable"*~~ — **not a gap: a project cannot ask for hardware at
+    all.** No device flag anywhere and nothing lists a machine's hardware. Criterion reworded.
+  - *"Deleting a project requires a confirmation naming what will be destroyed"* — **no method,
+    and being built** in the shape asked for: `dryRun`, a named outcome, and `HOLDS_WORK` rather
+    than a warning when unreviewed pushes would go with it. **`project.yml` is not Sokar's** and
+    must not be touched, so the confirmation says *"this removes what Sokar built for this
+    project"*.
   - *"…with the same 'all, including future additions' versus explicit-list distinction"* —
     **not a gap, and this file said otherwise for a while.** `SetEgress` takes an explicit list on
     purpose: an open-ended selection would let a set shipped in a later release widen a project
