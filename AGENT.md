@@ -1812,3 +1812,34 @@ by a scenario reading the status line, not by looking.
 
 **Order the two by what somebody needs to see last.** Anything that announces itself belongs before
 the sentence about the thing they actually asked for.
+
+## A triggered fetch is its own call, never a flag on a listing
+
+`SyncUpstream` exists rather than a `refresh` parameter on `Projects`, for a reason the Sokar side
+enforces with an architecture rule: **a listing that reached the network would make the queue cost
+what a listing must not** — occasionally thirty seconds, for reasons nothing on screen explains.
+
+It goes through the same measurement the daemon's timer uses and writes the same record, so a
+triggered fetch and a timed one cannot disagree, and `Projects` shows whichever ran last without
+being told.
+
+**`behind` still means nothing unless it was measured**, in the answer as in the listing. Zero is
+what a project that is up to date reports *and* what one nothing could be measured about reports,
+so the sentence names which — no upstream, offline, never checked — rather than saying *up to
+date* to both.
+
+## Restoring destroys the only copy there has ever been
+
+`RestoreBackup` refuses with `HOLDS_WORK` and names the refs, the same shape `Stop` and
+`DeleteProject` already use — a third use rather than a fourth invention.
+
+`gate restore` already refused to write over a mirror, which was right and said nothing useful.
+**What was missing was naming the cost**: unreviewed pushes exist only in the mirror — not on the
+upstream, not in a workspace, not in the bundle.
+
+And `force` **reports what it destroyed afterwards**, not only before. Somebody who forced past a
+refusal needs that in the record, not only in the warning they clicked past.
+
+**Restoring from a bundle that is not there is not offered.** The record is listed, because the
+backup was taken — but there is nothing to restore *from*, and offering it would say the record is
+the thing when it is not.

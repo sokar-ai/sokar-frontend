@@ -143,6 +143,16 @@ class _Wedged implements FleetBackend {
           detail: '');
 
   @override
+  Future<Synced> syncUpstream(String project) async => const Synced(
+      outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
+
+  @override
+  Future<Restored> restoreBackup(String project, String bundle,
+          {bool? dryRun, bool? force}) async =>
+      const Restored(
+          outcome: 'RESTORED', mirror: '', unreviewed: <String>[], detail: '');
+
+  @override
   Future<List<Backup>> backups(String project) async => const <Backup>[];
 
   @override
@@ -356,6 +366,16 @@ class _Machine implements FleetBackend {
           addresses: 0,
           persisted: false,
           detail: '');
+
+  @override
+  Future<Synced> syncUpstream(String project) async => const Synced(
+      outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
+
+  @override
+  Future<Restored> restoreBackup(String project, String bundle,
+          {bool? dryRun, bool? force}) async =>
+      const Restored(
+          outcome: 'RESTORED', mirror: '', unreviewed: <String>[], detail: '');
 
   @override
   Future<List<Backup>> backups(String project) async => const <Backup>[];

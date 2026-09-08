@@ -210,6 +210,7 @@ class _ShellState extends State<Shell> {
         prepareTheProject: _prepareTheProject,
         describeAProject: _describeAProject,
         showTheBackups: _showTheBackups,
+        syncTheUpstream: _syncTheUpstream,
         widenTheWork: _widenTheWork,
         narrowTheWork: _narrowTheWork,
         enforceOnTheWork: _enforceOnTheWork,
@@ -295,6 +296,27 @@ class _ShellState extends State<Shell> {
     if (project == null) return;
     widget.shell.openBackups();
     await widget.backups.look(_fleet.backend, project.name);
+  }
+
+  /// Restores the mirror from the backup being considered, and says what that did.
+  ///
+  /// **The record is what it says afterwards, not only the warning.** Somebody who forced past a
+  /// refusal needs to know afterwards which unreviewed pushes went with it.
+  Future<void> _restoreTheMirror({required bool force}) async {
+    await widget.backups.restore(_fleet.backend, force: force);
+    final said = widget.backups.restoreWords;
+    if (said.isNotEmpty) _fleet.say(said);
+  }
+
+  /// Asks the upstream how far behind this project is, now.
+  Future<void> _syncTheUpstream() async {
+    final project = _fleet.selectedProject;
+    if (project == null) return;
+    final said = await widget.backups.syncFor(_fleet.backend, project.name);
+    // Refreshed first: the answer to what somebody asked for should be the last thing said, and a
+    // refresh announces itself.
+    await _fleet.refresh();
+    if (said.isNotEmpty) _fleet.say(said);
   }
 
   /// Removes the backup being considered, and says what that did.
@@ -796,6 +818,9 @@ class _ShellState extends State<Shell> {
         return BackupsView(
           backups: widget.backups,
           onConsider: (backup) => widget.backups.consider(_fleet.backend, backup),
+          onConsiderRestoring: (backup) =>
+              widget.backups.considerRestoring(_fleet.backend, backup),
+          onRestore: ({required force}) => _restoreTheMirror(force: force),
           onRemove: _removeTheBackup,
           onLetItBe: widget.backups.letItBe,
           onClose: widget.shell.close,

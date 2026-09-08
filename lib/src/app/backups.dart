@@ -27,6 +27,12 @@ class Backups extends ChangeNotifier {
   /// What the last deletion did.
   BackupDeleted? removed;
 
+  /// What a restore would do, or did.
+  Restored? restoring;
+
+  /// Which bundle is being restored from.
+  String? restoringFrom;
+
   /// Whether the machine is being asked right now.
   bool busy = false;
 
@@ -58,6 +64,77 @@ class Backups extends ChangeNotifier {
     }
   }
 
+  /// Asks the upstream about one project by name, without the listing being open.
+  Future<String> syncFor(FleetBackend backend, String name) async {
+    project = name;
+    return sync(backend);
+  }
+
+  /// Asks the upstream how far behind this project is, now.
+  ///
+  /// **Its own call and not a refresh of the listing**: a listing that reached the network would
+  /// make every redraw cost what a listing must not. It writes the same record the daemon's timer
+  /// writes, so a triggered fetch and a timed one cannot disagree.
+  Future<String> sync(FleetBackend backend) async {
+    var said = '';
+    await _asking(() async {
+      final answer = await backend.syncUpstream(project);
+      said = _whatTheSyncSaid(answer);
+    });
+    return said;
+  }
+
+  /// Asks what restoring from one would take, restoring nothing.
+  Future<void> considerRestoring(FleetBackend backend, Backup backup) async {
+    restoringFrom = backup.bundle;
+    removed = null;
+    considering = null;
+    await _asking(() async {
+      restoring = await backend.restoreBackup(project, backup.bundle, dryRun: true);
+    });
+  }
+
+  /// Restores from the one being considered. With [force], despite unreviewed work.
+  Future<void> restore(FleetBackend backend, {bool force = false}) async {
+    final path = restoringFrom;
+    if (path == null) return;
+    await _asking(() async {
+      restoring = await backend.restoreBackup(project, path, force: force ? true : null);
+      if (restoring?.done ?? false) taken = await backend.backups(project);
+    });
+  }
+
+  /// What a restore did or would do, in one line.
+  String get restoreWords {
+    final said = restoring;
+    if (said == null) return '';
+    return switch (said.outcome) {
+      'PREVIEWED' when said.unreviewed.isEmpty =>
+        'This writes over the mirror from that bundle. Nothing is waiting for review, so nothing '
+            'that exists only there would be lost.',
+      // **The one thing worth refusing over.** Unreviewed pushes are in the mirror and nowhere
+      // else — not upstream, not in a workspace, not in the bundle.
+      'PREVIEWED' =>
+        'This writes over the mirror, and ${said.unreviewed.length} '
+            '${said.unreviewed.length == 1 ? 'push' : 'pushes'} nobody has reviewed exist only '
+            'there. Restoring destroys the only copy there has ever been.',
+      'HOLDS_WORK' =>
+        'Refused: ${said.unreviewed.length} '
+            '${said.unreviewed.length == 1 ? 'push' : 'pushes'} nobody has reviewed would be '
+            'destroyed. Nothing was written.',
+      'RESTORED' when said.unreviewed.isEmpty =>
+        'The mirror is restored from that bundle.',
+      // Said after the fact as well as before it: somebody who forced needs it in the record,
+      // not only in the warning they clicked past.
+      'RESTORED' => 'The mirror is restored, and ${said.unreviewed.length} unreviewed '
+          '${said.unreviewed.length == 1 ? 'push is' : 'pushes are'} gone: '
+          '${said.unreviewed.join(', ')}.',
+      'NO_SUCH_BACKUP' => 'No record names that bundle, so nothing here will restore from it.',
+      'FAILED' => 'It could not be restored. ${said.detail}'.trim(),
+      _ => '${said.outcome}. ${said.detail}'.trim(),
+    };
+  }
+
   /// Asks what removing one would take, removing nothing.
   Future<void> consider(FleetBackend backend, Backup backup) async {
     bundle = backup.bundle;
@@ -83,7 +160,34 @@ class Backups extends ChangeNotifier {
     bundle = null;
     considering = null;
     removed = null;
+    restoring = null;
+    restoringFrom = null;
     notifyListeners();
+  }
+
+  /// What a sync answered, in one line.
+  ///
+  /// **`behind` means nothing unless it was measured**, and zero is the answer both for a project
+  /// that is up to date and for one nothing could be measured about.
+  static String _whatTheSyncSaid(Synced said) {
+    if (said.outcome == 'NO_MIRROR') {
+      return 'Nothing has used the gate here yet, so there is nothing to measure against.';
+    }
+    if (said.outcome != 'MEASURED') {
+      return 'The upstream could not be asked. ${said.detail}'.trim();
+    }
+    if (!said.measured) {
+      return switch (said.reason) {
+        'NO_UPSTREAM' => 'This project has no upstream, so there is nothing to be behind.',
+        'OFFLINE' => 'An offline project reaches nothing, so nothing was tried.',
+        'NEVER_CHECKED' => 'Nothing has looked yet.',
+        _ => 'How far behind it is could not be established. ${said.detail}'.trim(),
+      };
+    }
+    return said.behind == 0
+        ? 'Up to date with the upstream, as of now.'
+        : '${said.behind} ${said.behind == 1 ? 'commit' : 'commits'} behind the upstream, as of '
+            'now.';
   }
 
   /// What to say about the last deletion, in one line.

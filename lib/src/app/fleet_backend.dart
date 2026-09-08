@@ -110,6 +110,13 @@ abstract class FleetBackend {
   /// What backups have been taken of a project's mirror. Newest first.
   Future<List<Backup>> backups(String project);
 
+  /// Asks the upstream how far behind a project's mirror is, now.
+  Future<Synced> syncUpstream(String project);
+
+  /// Restores a mirror from a backup, or says what restoring would take.
+  Future<Restored> restoreBackup(String project, String bundle,
+      {bool? dryRun, bool? force});
+
   /// Removes a backup, or says what removing it would take.
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun});
 
@@ -340,6 +347,14 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<List<Backup>> backups(String project) => _opened().backups(project);
+
+  @override
+  Future<Synced> syncUpstream(String project) => _opened().syncUpstream(project);
+
+  @override
+  Future<Restored> restoreBackup(String project, String bundle,
+          {bool? dryRun, bool? force}) =>
+      _opened().restoreBackup(project, bundle, dryRun: dryRun, force: force);
 
   @override
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) =>

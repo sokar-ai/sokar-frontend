@@ -419,6 +419,49 @@ class FakeBackend implements FleetBackend {
   @override
   Future<List<Backup>> backups(String project) async => theBackupsItHas;
 
+  /// What the next sync answers. Set by the scenario.
+  Synced theSyncAnswers = const Synced(
+      outcome: 'MEASURED', behind: 3, measured: true, reason: 'MEASURED', detail: '');
+
+  /// Every project a sync was asked for.
+  final List<String> syncs = <String>[];
+
+  @override
+  Future<Synced> syncUpstream(String project) async {
+    syncs.add(project);
+    return theSyncAnswers;
+  }
+
+  /// Refs a restore would destroy, or empty when it would destroy none. Set by the scenario.
+  List<String> theRestoreWouldDestroy = const <String>[];
+
+  /// Every restore asked for.
+  final List<({String bundle, bool preview, bool force})> restores =
+      <({String bundle, bool preview, bool force})>[];
+
+  @override
+  Future<Restored> restoreBackup(String project, String bundle,
+      {bool? dryRun, bool? force}) async {
+    restores.add((
+      bundle: bundle,
+      preview: dryRun == true,
+      force: force == true,
+    ));
+    final refused = theRestoreWouldDestroy.isNotEmpty && force != true;
+    return Restored(
+      outcome: dryRun == true
+          ? 'PREVIEWED'
+          : refused
+              ? 'HOLDS_WORK'
+              : 'RESTORED',
+      mirror: '/srv/$project/.sokar/mirror',
+      // Filled under force too: it is what force destroyed, and somebody who forced needs it
+      // afterwards rather than only in the warning they clicked past.
+      unreviewed: theRestoreWouldDestroy,
+      detail: '',
+    );
+  }
+
   /// Whether the next deletion finds the file there. Set by the scenario.
   bool theBundleIsThere = true;
 

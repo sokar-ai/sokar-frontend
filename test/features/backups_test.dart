@@ -15,6 +15,15 @@ import './step/no_backup_was_removed.dart';
 import './step/i_keep_the_backup.dart';
 import './step/i_remove_the_backup.dart';
 import './step/the_bundle_is_already_gone.dart';
+import './step/i_ask_the_upstream_how_far_behind_this_project_is.dart';
+import './step/the_upstream_was_asked_about.dart';
+import './step/the_status_line_mentions.dart';
+import './step/the_upstream_cannot_be_measured_because.dart';
+import './step/i_consider_restoring_the_first_backup.dart';
+import './step/nothing_was_restored.dart';
+import './step/restoring_would_destroy.dart';
+import './step/i_restore_from_it.dart';
+import './step/restoring_from_the_missing_backup_is_not_offered.dart';
 
 void main() {
   group('''F06 Upstream Synchronisation And Backups''', () {
@@ -82,6 +91,61 @@ void main() {
       await iConsiderRemovingTheFirstBackup(tester);
       await iRemoveTheBackup(tester);
       await itSays(tester, 'The record is cleared. The file was already gone');
+    });
+    testWidgets('''asking the upstream is one action and says what it found''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskTheUpstreamHowFarBehindThisProjectIs(tester);
+      await theUpstreamWasAskedAbout(tester, 'checkout');
+      await theStatusLineMentions(
+          tester, '3 commits behind the upstream, as of now');
+    });
+    testWidgets('''a project with no upstream is not reported as up to date''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theUpstreamCannotBeMeasuredBecause(tester, 'NO_UPSTREAM');
+      await iAskTheUpstreamHowFarBehindThisProjectIs(tester);
+      await theStatusLineMentions(
+          tester, 'no upstream, so there is nothing to be behind');
+    });
+    testWidgets(
+        '''restoring says what it would overwrite before it does anything''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowWhatHasBeenBackedUpHere(tester);
+      await iConsiderRestoringTheFirstBackup(tester);
+      await itSays(tester, 'This writes over the mirror');
+      await nothingWasRestored(tester);
+    });
+    testWidgets(
+        '''work nobody has reviewed refuses the restore, and says what would go''',
+        (tester) async {
+      await bddSetUp(tester);
+      await restoringWouldDestroy(tester, 'migrate');
+      await iShowWhatHasBeenBackedUpHere(tester);
+      await iConsiderRestoringTheFirstBackup(tester);
+      await iRestoreFromIt(tester);
+      await itSays(
+          tester, 'Refused: 1 push nobody has reviewed would be destroyed');
+      await itSays(tester, 'Nothing was written');
+    });
+    testWidgets(
+        '''forcing past the refusal says afterwards what it destroyed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await restoringWouldDestroy(tester, 'migrate');
+      await iShowWhatHasBeenBackedUpHere(tester);
+      await iConsiderRestoringTheFirstBackup(tester);
+      await iRestoreFromIt(tester);
+      await iRestoreFromIt(tester);
+      await itSays(tester, '1 unreviewed push is gone: migrate');
+    });
+    testWidgets(
+        '''a bundle that is not there any more cannot be restored from''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowWhatHasBeenBackedUpHere(tester);
+      await restoringFromTheMissingBackupIsNotOffered(tester);
     });
   });
 }

@@ -423,6 +423,23 @@ class SokarClient {
         : const <Backup>[];
   }
 
+  /// Asks the upstream how far behind a project's mirror is, now.
+  Future<Synced> syncUpstream(String project) async =>
+      Synced.from(await _call('SyncUpstream', {'project': project}));
+
+  /// Restores a mirror from a backup, or says what restoring would take.
+  ///
+  /// **Refuses with `HOLDS_WORK` and names the refs.** Unreviewed pushes exist only in the mirror,
+  /// so overwriting one destroys the only copy there has ever been.
+  Future<Restored> restoreBackup(String project, String bundle,
+          {bool? dryRun, bool? force}) async =>
+      Restored.from(await _call('RestoreBackup', {
+        'project': project,
+        'bundle': bundle,
+        'dryRun': ?dryRun,
+        'force': ?force,
+      }));
+
   /// Removes a backup, or says what removing it would take.
   ///
   /// **It takes the path rather than an index**: a list that shifted between somebody reading it

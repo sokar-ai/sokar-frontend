@@ -47,7 +47,6 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 
 | # | Requirement | What must be true | What is still missing | Open question |
 |---|---|---|---|---|
-| F06 | [Upstream Synchronisation And Backups](F06-Upstream-Synchronisation-And-Backups.md) | Falling behind the upstream is visible, syncing is one action, and snapshots can be listed, restored and deleted. | triggering a fetch, and a restore that refuses when it would discard unreviewed work. Listing and deleting are built | |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 
@@ -113,6 +112,24 @@ be read again.
   neither. Its worst moment was ours: a view was built to mark two agents sharing a name, the
   fixtures were edited so it had something to show, and six scenarios passed on a state the
   contract cannot produce.
+- **F06 Upstream Synchronisation And Backups.** How far behind a project is, asked on demand and
+  shown with the age of the measurement; what has been backed up, listed with enough to tell two
+  apart; and either restored from or removed, both behind a confirmation that names the cost.
+
+  **Three things it says that nothing else would have.** An empty list means *nothing recorded*,
+  never *nothing exists* — a bundle written by hand is invisible here and always will be, because
+  the listing reads a record and `gate backup` writes wherever it is told and forgets. **A record
+  is not the bundle**: when it was taken and how much it held are what was true then, whether the
+  file is there is read now, and one somebody moved is shown as missing rather than dropped. And
+  **`behind` means nothing unless it was measured** — zero is the answer both for up to date and
+  for nothing having been measurable.
+
+  **Restoring refuses rather than decides**, with the same outcome name `Stop` and `DeleteProject`
+  already use: unreviewed pushes exist only in the mirror — not upstream, not in a workspace, not
+  in the bundle — so overwriting one destroys the only copy there has ever been. Forcing past it
+  **says afterwards what it destroyed**, because somebody who forced needs that in the record and
+  not only in the warning they clicked past.
+
 - **F17 Network Exposure Control.** What running work may reach, changed while it runs and in
   both directions — granting a name, taking one back, and **what the work does with a blocked
   connection at all**. Blocked connections from every task in one view, allowed or denied from

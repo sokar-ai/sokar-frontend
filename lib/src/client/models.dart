@@ -1151,6 +1151,96 @@ class Backup {
   }
 }
 
+/// What asking the upstream how far behind a project is answered.
+///
+/// **Its own call rather than a flag on a listing**, and that is the point: a listing that reached
+/// the network would make the queue cost what a listing must not. It goes through the same
+/// measurement the daemon's timer uses and writes the same record, so a triggered fetch and a
+/// timed one cannot disagree.
+class Synced {
+  /// `MEASURED`, `NO_SUCH_PROJECT`, `NO_MIRROR`, `UNREADABLE` or `FAILED`.
+  ///
+  /// **`NO_MIRROR` is ordinary**: a project that has never used the gate has nothing to measure
+  /// against.
+  final String outcome;
+
+  /// How many commits the upstream has that this mirror does not.
+  ///
+  /// **Meaningless unless [measured]** — zero is the answer for a project that is up to date *and*
+  /// for one nothing could be measured about.
+  final int behind;
+
+  /// Whether the number means anything.
+  final bool measured;
+
+  /// What the measurement itself reported: `MEASURED`, `NEVER_CHECKED`, `NO_UPSTREAM`, `OFFLINE`
+  /// or `FAILED`.
+  final String reason;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Synced({
+    required this.outcome,
+    required this.behind,
+    required this.measured,
+    required this.reason,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Synced.from(Map<String, dynamic> map) => Synced(
+        outcome: _string(map, 'outcome'),
+        behind: _int(map, 'behind'),
+        measured: map['measured'] == true,
+        reason: _string(map, 'reason'),
+        detail: _string(map, 'detail'),
+      );
+}
+
+/// What restoring a mirror from a backup did, or would do.
+///
+/// **It refuses rather than decides.** Unreviewed pushes exist only in the mirror — not on the
+/// upstream, not in a workspace, not in the bundle — so overwriting one destroys the only copy
+/// there has ever been. `force` proceeds and still reports what it destroyed, because somebody who
+/// forced needs that afterwards and not only in the warning they clicked past.
+class Restored {
+  /// `RESTORED`, `PREVIEWED`, `HOLDS_WORK`, `NO_SUCH_PROJECT`, `NO_SUCH_BACKUP` or `FAILED`.
+  final String outcome;
+
+  /// The mirror that would be written, or was.
+  final String mirror;
+
+  /// Refs nobody reviewed. Non-empty with `HOLDS_WORK`, **and under `force`**.
+  final List<String> unreviewed;
+
+  /// Why, in words, for an outcome that needs one.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Restored({
+    required this.outcome,
+    required this.mirror,
+    required this.unreviewed,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory Restored.from(Map<String, dynamic> map) => Restored(
+        outcome: _string(map, 'outcome'),
+        mirror: _string(map, 'mirror'),
+        unreviewed: _strings(map, 'unreviewed'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// Whether the mirror was written.
+  bool get done => outcome == 'RESTORED';
+
+  /// Whether it refused because work would be destroyed, and can be asked again meaning it.
+  bool get holdsWork => outcome == 'HOLDS_WORK';
+}
+
 /// What deleting a backup did.
 class BackupDeleted {
   /// `DELETED`, `PREVIEWED`, `NO_SUCH_BACKUP` or `FAILED`.

@@ -56,3 +56,50 @@ Feature: F06 Upstream Synchronisation And Backups
     And I consider removing the first backup
     And I remove the backup
     Then it says {'The record is cleared. The file was already gone'}
+
+  # `SyncUpstream` is its own method and not a flag on a read: a listing that reached the network
+  # would make the queue cost what a listing must not. It writes the same record the timer writes,
+  # so a triggered fetch and a timed one cannot disagree.
+  Scenario: asking the upstream is one action and says what it found
+    When I ask the upstream how far behind this project is
+    Then the upstream was asked about {'checkout'}
+    And the status line mentions {'3 commits behind the upstream, as of now'}
+
+  # `behind` means nothing unless it was measured, and zero is the answer both for up to date and
+  # for nothing having been measurable.
+  Scenario: a project with no upstream is not reported as up to date
+    Given the upstream cannot be measured because {'NO_UPSTREAM'}
+    When I ask the upstream how far behind this project is
+    Then the status line mentions {'no upstream, so there is nothing to be behind'}
+
+  Scenario: restoring says what it would overwrite before it does anything
+    When I show what has been backed up here
+    And I consider restoring the first backup
+    Then it says {'This writes over the mirror'}
+    And nothing was restored
+
+  # Unreviewed pushes exist only in the mirror — not upstream, not in a workspace, not in the
+  # bundle — so overwriting one destroys the only copy there has ever been.
+  Scenario: work nobody has reviewed refuses the restore, and says what would go
+    Given restoring would destroy {'migrate'}
+    When I show what has been backed up here
+    And I consider restoring the first backup
+    And I restore from it
+    Then it says {'Refused: 1 push nobody has reviewed would be destroyed'}
+    And it says {'Nothing was written'}
+
+  # Somebody who forced needs it in the record afterwards, not only in the warning they clicked
+  # past.
+  Scenario: forcing past the refusal says afterwards what it destroyed
+    Given restoring would destroy {'migrate'}
+    When I show what has been backed up here
+    And I consider restoring the first backup
+    And I restore from it
+    And I restore from it
+    Then it says {'1 unreviewed push is gone: migrate'}
+
+  # A bundle somebody moved is listed, because it was taken — but there is nothing to restore
+  # from, and offering it would say the record is the thing when it is not.
+  Scenario: a bundle that is not there any more cannot be restored from
+    When I show what has been backed up here
+    Then restoring from the missing backup is not offered

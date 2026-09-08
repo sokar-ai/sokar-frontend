@@ -150,6 +150,7 @@ List<Command> commandsFor({
   required VoidCallback prepareTheProject,
   required VoidCallback describeAProject,
   required VoidCallback showTheBackups,
+  required VoidCallback syncTheUpstream,
   required VoidCallback widenTheWork,
   required VoidCallback narrowTheWork,
   required VoidCallback enforceOnTheWork,
@@ -224,6 +225,13 @@ List<Command> commandsFor({
         selectedProject!.name,
         muted: !notifications.mutedFor(selectedProject.name),
       ),
+      unavailable: selectedProject == null ? 'no project selected' : null,
+    ),
+    Command(
+      id: 'project.sync',
+      label: 'Ask the upstream how far behind this project is',
+      group: 'Work',
+      run: syncTheUpstream,
       unavailable: selectedProject == null ? 'no project selected' : null,
     ),
     Command(

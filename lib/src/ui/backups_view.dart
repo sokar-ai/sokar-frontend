@@ -17,6 +17,8 @@ class BackupsView extends StatelessWidget {
   const BackupsView({
     required this.backups,
     required this.onConsider,
+    required this.onConsiderRestoring,
+    required this.onRestore,
     required this.onRemove,
     required this.onLetItBe,
     required this.onClose,
@@ -28,6 +30,12 @@ class BackupsView extends StatelessWidget {
 
   /// Asks what removing one would take, removing nothing.
   final void Function(Backup backup) onConsider;
+
+  /// Asks what restoring from one would take, restoring nothing.
+  final void Function(Backup backup) onConsiderRestoring;
+
+  /// Restores from the one being considered. `force` is a second, separate decision.
+  final void Function({required bool force}) onRestore;
 
   /// Removes the one being considered.
   final VoidCallback onRemove;
@@ -63,6 +71,47 @@ class BackupsView extends StatelessWidget {
                 _Block(
                   colour: scheme.surfaceContainerHighest,
                   child: Text(backups.words, key: const Key('backup-says')),
+                ),
+              if (backups.restoring != null)
+                _Block(
+                  colour: backups.restoring!.done
+                      ? scheme.surfaceContainerHighest
+                      : scheme.errorContainer,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(backups.restoreWords, key: const Key('restore-says')),
+                      if (!backups.restoring!.done) ...<Widget>[
+                        const SizedBox(height: Space.small),
+                        Row(
+                          children: <Widget>[
+                            // Leaving is the default, as everywhere else that destroys something
+                            // no other copy of exists.
+                            FilledButton(
+                              key: const Key('leave-the-mirror'),
+                              autofocus: true,
+                              onPressed: onLetItBe,
+                              child: const Text('Leave it'),
+                            ),
+                            const SizedBox(width: Space.small),
+                            TextButton(
+                              key: const Key('restore-it'),
+                              onPressed: backups.busy
+                                  ? null
+                                  // Forcing is a second decision about something the machine
+                                  // declined, not a retry: the word changes with what it means.
+                                  : () => onRestore(
+                                      force: backups.restoring!.holdsWork),
+                              style: TextButton.styleFrom(foregroundColor: scheme.error),
+                              child: Text(backups.restoring!.holdsWork
+                                  ? 'Restore it anyway'
+                                  : 'Restore it'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               if (backups.considering != null)
                 _Block(
@@ -120,7 +169,11 @@ class BackupsView extends StatelessWidget {
                         ),
                       ),
                     for (final backup in backups.taken)
-                      _BackupRow(backup: backup, onConsider: () => onConsider(backup)),
+                      _BackupRow(
+                        backup: backup,
+                        onConsider: () => onConsider(backup),
+                        onConsiderRestoring: () => onConsiderRestoring(backup),
+                      ),
                   ],
                 ),
               ),
@@ -132,10 +185,15 @@ class BackupsView extends StatelessWidget {
 
 /// One backup, with what was true then and what is true now.
 class _BackupRow extends StatelessWidget {
-  const _BackupRow({required this.backup, required this.onConsider});
+  const _BackupRow({
+    required this.backup,
+    required this.onConsider,
+    required this.onConsiderRestoring,
+  });
 
   final Backup backup;
   final VoidCallback onConsider;
+  final VoidCallback onConsiderRestoring;
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +223,24 @@ class _BackupRow extends StatelessWidget {
                 'the file is not there any more',
         key: const Key('backup-detail'),
       ),
-      trailing: IconButton(
-        key: const Key('consider-removing'),
-        icon: const Icon(Icons.delete_outline, size: Sizes.rowIcon),
-        tooltip: 'Remove this backup',
-        onPressed: onConsider,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          IconButton(
+            key: const Key('consider-restoring'),
+            icon: const Icon(Icons.restore, size: Sizes.rowIcon),
+            tooltip: 'Restore the mirror from this backup',
+            // **Only when the file is there.** Restoring from a bundle somebody moved would fail
+            // at the machine, and offering it says the record is the thing when it is not.
+            onPressed: backup.present ? onConsiderRestoring : null,
+          ),
+          IconButton(
+            key: const Key('consider-removing'),
+            icon: const Icon(Icons.delete_outline, size: Sizes.rowIcon),
+            tooltip: 'Remove this backup',
+            onPressed: onConsider,
+          ),
+        ],
       ),
     );
   }
