@@ -36,6 +36,13 @@ Feature: F11 Live Log Viewing
     And the log prints {'deny registry.example.com:443'}
     Then the log shows {'deny registry.example.com:443'}
 
+  Scenario: a log whose name does not say what it is arrives explained
+    Given the work also has the log {'events.jsonl'}
+    And the machine says the log {'events.jsonl'} holds {'what the firewall blocked'}
+    When I ask which logs the work has
+    Then the log {'events.jsonl'} is described as {'what the firewall blocked'}
+    And the log {'agent.log'} is described by nothing
+
   Scenario: work whose logs are gone says so rather than looking broken
     Given the work has no logs left
     When I ask which logs the work has

@@ -284,6 +284,10 @@ class FakeBackend implements FleetBackend {
   /// Logs this machine has. What `Logs` answers, and what `Tail` accepts.
   Set<String> theLogsItHas = <String>{'agent.log'};
 
+  /// What each of them holds, for the ones whose names do not say. The daemon's sentence: nothing
+  /// at this end composes one, so a log the scenario says nothing about is described by nothing.
+  final Map<String, String> whatTheLogsHold = <String, String>{};
+
   /// Blocked connections, driven by the scenario. Nothing here is on a clock: a question with a
   /// deadline tested against wall time is a flaky test of the one thing that must not be flaky.
   final asking = StreamController<Prompt>.broadcast();
@@ -1005,6 +1009,7 @@ diff --git a/lib/money.dart b/lib/money.dart
             'name': name,
             'bytes': 2048,
             'at': '2026-09-07T14:12:00Z',
+            if (whatTheLogsHold[name] != null) 'what': whatTheLogsHold[name],
           }),
       ];
 

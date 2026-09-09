@@ -2052,6 +2052,14 @@ class Log {
   /// File name. **Pass it to `Tail` unchanged** — it is a name, never a path.
   final String name;
 
+  /// What the file holds, in one line, or null where the name speaks for itself.
+  ///
+  /// **It comes from the daemon and is never composed here.** Only that end knows which files a
+  /// task has and what each one is for, and it grows when the file list grows because both come
+  /// from the same place. A table at this end would say nothing about a file added tomorrow while
+  /// looking exactly as authoritative about it.
+  final String? what;
+
   /// How large it is right now. A tail that is running will pass it, so it is a size to show or
   /// to decide by, never a total to count down from.
   final int bytes;
@@ -2060,13 +2068,16 @@ class Log {
   final String at;
 
   /// Constructor taking every field.
-  const Log({required this.name, required this.bytes, required this.at});
+  const Log({required this.name, required this.bytes, required this.at, this.what});
 
   /// Reads one from a reply.
   factory Log.from(Map<String, dynamic> map) => Log(
         name: _string(map, 'name'),
         bytes: _int(map, 'bytes'),
         at: _string(map, 'at'),
+        // Absent, empty and whitespace all mean the same thing: nothing to say. A blank line under
+        // a name would read as a description that failed rather than as one that was never given.
+        what: _optional(map, 'what'),
       );
 }
 
@@ -2384,6 +2395,17 @@ class ServiceInfo {
 String _string(Map<String, dynamic> map, String key) {
   final value = map[key];
   return value is String ? value : '';
+}
+
+/// A string that may be absent, where absent and blank mean the same thing: nothing was said.
+///
+/// **Not `_string`.** An empty string rendered where a sentence belongs is a blank that looks like
+/// an answer — the reader sees a field that failed rather than one that was never given.
+String? _optional(Map<String, dynamic> map, String key) {
+  final value = map[key];
+  if (value is! String) return null;
+  final said = value.trim();
+  return said.isEmpty ? null : said;
 }
 
 int _int(Map<String, dynamic> map, String key) {

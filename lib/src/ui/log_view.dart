@@ -204,8 +204,20 @@ class _WhichLog extends StatelessWidget {
                   for (final log in found)
                     ListTile(
                       dense: true,
+                      isThreeLine: log.what != null,
                       title: Text(log.name),
-                      subtitle: Text('${_size(log.bytes)} · last written ${log.at}'),
+                      // **The name is not always the answer.** `events.jsonl` is what the firewall
+                      // blocked — the file to read when a task starts and then does nothing — and
+                      // nothing about the name says so. The sentence comes from the machine, so a
+                      // file added later arrives explained rather than bare.
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          if (log.what != null)
+                            Text(log.what!, key: const Key('what-the-log-holds')),
+                          Text('${_size(log.bytes)} · last written ${log.at}'),
+                        ],
+                      ),
                       onTap: () => Navigator.of(context).pop(log.name),
                     ),
                 ],

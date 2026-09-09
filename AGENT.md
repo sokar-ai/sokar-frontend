@@ -1913,3 +1913,19 @@ nothing else.
 The scenario is the guard, and it is worth the mutation every time: put `.endsWith('.log')` into
 the picker and **the file a stuck task needs disappears from the list while every other log test
 still passes.**
+
+### And what a name cannot say, the daemon says — never a table here
+
+`Log.what` is one line about what a file holds, absent where the name speaks for itself. It was
+tempting to keep that table at this end, since there were only two names to describe. Two reasons
+not to, and they are the reasons it belongs at the other end:
+
+- **A table here drifts silently.** They add a file; the list grows; the new one has no sentence
+  and looks exactly like the ordinary case.
+- **A table here becomes a second source for one sentence.** When the field arrives, the two
+  disagree and both look authoritative.
+
+`_optional` exists for it and is not `_string`: **absent, empty and whitespace all read as
+nothing**, because a blank line under a name says *this file has a description and it failed*
+rather than *nobody gave one*. Mutate it to `_string` and four tests go red, one of them the
+scenario that a bare name is described by nothing at all.

@@ -1301,9 +1301,23 @@ class MockMachine {
               'name': name,
               'bytes': _sizes[name] ?? 182_311,
               'at': '2026-09-07T14:12:00Z',
+              // Absent for the two whose names say what they are, which is the case the interface
+              // has to render as nothing rather than as a blank line.
+              if (_what[name] != null) 'what': _what[name],
             },
         ],
       };
+
+  /// What each file holds, for the ones whose names do not say.
+  ///
+  /// **The daemon's sentence, not this end's.** It is here because the mock stands in for the
+  /// daemon; the interface composes none of it and shows nothing where there is nothing.
+  static const _what = <String, String>{
+    'events.jsonl': 'What the firewall blocked. Read this when a task starts and then does '
+        'nothing.',
+    'reader.err': 'Standard error of the reader hook, which writes events.jsonl. Empty is normal; '
+        'anything here means the record of blocks may be incomplete.',
+  };
 
   static const _sizes = <String, int>{
     'gate.log': 4096,
@@ -1334,9 +1348,9 @@ class MockMachine {
           '{"at":"2026-09-07T14:11:58Z","action":"deny","host":"registry.example.com:443"}',
           '{"at":"2026-09-07T14:12:01Z","action":"allow","host":"github.com:443"}',
         ],
-      // Whatever the reader writes when it cannot read. What it really holds is the daemon's to
-      // say; what matters here is that a name ending in neither `.log` nor `.jsonl` is served.
-      'reader.err' => <String>['reader: nothing to read on fd 3'],
+      // The reader hook's standard error. Empty is the normal case, which is why the listing
+      // gives it zero bytes: anything in it means the record of blocks may be incomplete.
+      'reader.err' => <String>['reader: NFLOG group 5 already bound, 3 events may be missing'],
       _ => <String>[
           'agent: reading the prompt',
           'agent: running the tests',

@@ -816,6 +816,12 @@ void main() {
     final empty = found.firstWhere((log) => log.name == 'reader.err');
     expect(empty.bytes, 0);
     expect(names, contains('reader.err'));
+
+    // The sentence that makes the name findable comes from the machine, for exactly the files
+    // whose names say nothing — and is absent, not blank, for the ones that speak for themselves.
+    expect(found.firstWhere((log) => log.name == 'events.jsonl').what, contains('firewall'));
+    expect(empty.what, isNotNull);
+    expect(found.firstWhere((log) => log.name == 'agent.log').what, isNull);
   });
 
   test('a launch streams its lines and then its result', () async {
