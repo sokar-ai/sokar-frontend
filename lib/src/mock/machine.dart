@@ -136,6 +136,14 @@ class MockMachine {
     // Which node this is. Random per mock instance, so two mocks are two nodes and one mock
     // reached twice is one — which is the thing a client has to be able to tell.
     daemon.method('Node', (_) => <String, dynamic>{'id': _nodeId});
+    daemon.method('Backups', _backups);
+    daemon.method('DeleteBackup', _deleteBackup);
+    daemon.method('RestoreBackup', _restoreBackup);
+    daemon.method('SyncUpstream', _syncUpstream);
+    daemon.method('CreateProject', _createProject);
+    daemon.method('NarrowTask', _narrowTask);
+    daemon.method('SetClearance', _setClearance);
+    daemon.stream('Prepare', _prepare);
     daemon.method('Label', _label);
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
@@ -658,6 +666,191 @@ class MockMachine {
   /// Everything here is a state a real daemon produces and none of it is canned: whether the
   /// container is up, what class its project runs under, whether that project has a file to write
   /// to, and what it could already reach.
+  /// Creates a project file, having checked the answers against this machine first.
+  ///
+  /// **The checking is what a client cannot do**: whether a class is spelled right, whether a set
+  /// exists here, whether the name survives becoming an image tag and an nftables set name.
+  Map<String, dynamic> _createProject(Map<String, dynamic> parameters) {
+    final file = parameters['file'] as String? ?? '';
+    final name = parameters['name'] as String? ?? '';
+    final klass = parameters['securityClass'] as String? ?? '';
+    final baseImage = parameters['baseImage'] as String? ?? '';
+    final upstream = parameters['upstream'] as String? ?? '';
+    final sets = (parameters['sets'] as List?)?.cast<String>() ?? <String>[];
+    final preview = parameters['dryRun'] == true;
+
+    final problems = <Map<String, dynamic>>[
+      if (!RegExp(r'^[a-z0-9][a-z0-9-]*$').hasMatch(name))
+        _problem('name', 'a project name becomes an image tag and an nftables set name, so it '
+            'may hold only lower-case letters, digits and dashes', fatal: true),
+      if (!const <String>['offline', 'guarded', 'online'].contains(klass))
+        _problem('securityClass', '"$klass" is not a class this machine knows', fatal: true),
+      if (klass == 'online' && upstream.isEmpty)
+        _problem('upstream', 'an online project pushes to its upstream directly, so it needs one',
+            fatal: true),
+      for (final set in sets)
+        if (!_knownSets.contains(set))
+          _problem('sets', 'no egress set called "$set" is installed on this machine',
+              fatal: true),
+      // Worth showing and not worth blocking on: it will simply be pulled.
+      if (baseImage.isNotEmpty && !baseImage.startsWith('ubuntu:'))
+        _problem('baseImage', 'not on this machine yet, so the first build will pull it',
+            fatal: false),
+    ];
+    final blocked = problems.any((each) => each['fatal'] == true);
+
+    // A refusal and never an overwrite: the file may be somebody's whole configuration.
+    final exists = _createdProjects.contains(file) ||
+        _everyProject.any((each) => each['file'] == file);
+
+    // Filled even on a refusal — seeing what was rejected is most of understanding why.
+    final content = StringBuffer()
+      ..writeln('project:')
+      ..writeln('  name: "$name"')
+      ..writeln('  security_class: "$klass"')
+      ..writeln('image:')
+      ..writeln('  base_image: "$baseImage"');
+    if (upstream.isNotEmpty) {
+      content
+        ..writeln('upstream:')
+        ..writeln('  url: "$upstream"');
+    }
+    if (sets.isNotEmpty) {
+      content
+        ..writeln('egress:')
+        ..writeln('  sets: [${sets.join(', ')}]');
+    }
+
+    if (!preview && !blocked && !exists) _createdProjects.add(file);
+
+    return <String, dynamic>{
+      'outcome': blocked
+          ? 'INVALID'
+          : exists
+              ? 'ALREADY_EXISTS'
+              : preview
+                  ? 'PREVIEWED'
+                  : 'CREATED',
+      'file': file,
+      'content': content.toString(),
+      'problems': problems,
+      'detail': exists ? 'a project file is already there' : '',
+    };
+  }
+
+  static Map<String, dynamic> _problem(String field, String what, {required bool fatal}) =>
+      <String, dynamic>{'field': field, 'what': what, 'fatal': fatal};
+
+  /// The egress sets this machine has, by name, for checking answers against.
+  static const _knownSets = <String>['dart-packages', 'containers', 'forges'];
+
+  /// Project files this mock has been asked to create, so a second attempt is refused.
+  final Set<String> _createdProjects = <String>{};
+
+  /// Takes names back from a running task.
+  ///
+  /// **It stops new connections and not the ones already running** — the ruleset accepts
+  /// established traffic without consulting the set again. Nothing here models that, because
+  /// nothing here has traffic; the interface says it, and this is where the wording is checked
+  /// against a real reply.
+  Map<String, dynamic> _narrowTask(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final asked = (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
+    final scope = parameters['scope'] as String? ?? '';
+    final preview = parameters['dryRun'] == true;
+
+    if (scope.isEmpty) throw const MockRefusal('org.fuin.sokar.Tasks1.ScopeRequired');
+
+    final task = tasks.firstWhere(
+      (each) => each['name'] == name,
+      orElse: () => const <String, dynamic>{},
+    );
+    if (task.isEmpty || task['running'] != true) {
+      return _narrowed('NOT_RUNNING', detail: 'there is no running container called $name');
+    }
+
+    // Anything not granted to this run is ignored rather than an error.
+    final already = _granted[name] ?? const <String>{};
+    final closes = <String>[for (final host in asked) if (already.contains(host)) host];
+    if (closes.isEmpty) {
+      return _narrowed('NO_CHANGE', detail: 'none of those is granted to this run');
+    }
+    if (preview) {
+      return _narrowed('PREVIEWED', closes: closes, addresses: closes.length * 2);
+    }
+
+    _granted[name]?.removeAll(closes);
+
+    final file = _fileOf(task['project'] as String? ?? '');
+    if (scope == 'RUN_AND_PROJECT' && file.isEmpty) {
+      return _narrowed('NO_PROJECT_FILE',
+          closes: closes,
+          addresses: closes.length * 2,
+          detail: 'taken back from the run; no project file is recorded, so nothing was written');
+    }
+    return _narrowed('NARROWED',
+        closes: closes,
+        addresses: closes.length * 2,
+        persisted: scope == 'RUN_AND_PROJECT');
+  }
+
+  static Map<String, dynamic> _narrowed(
+    String outcome, {
+    List<String> closes = const <String>[],
+    int addresses = 0,
+    bool persisted = false,
+    String detail = '',
+  }) =>
+      <String, dynamic>{
+        'outcome': outcome,
+        'closes': closes,
+        'addresses': addresses,
+        'persisted': persisted,
+        'detail': detail,
+      };
+
+  /// Turns enforcement on or off on a task that is already running.
+  ///
+  /// **It opens nothing.** The ruleset stays loaded whichever mode is chosen; what changes is
+  /// whether a blocked connection produces a question.
+  Map<String, dynamic> _setClearance(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final mode = parameters['mode'] as String? ?? '';
+    final preview = parameters['dryRun'] == true;
+
+    if (!const <String>['prompt', 'allow', 'deny', 'off'].contains(mode)) {
+      return _clearance('UNKNOWN_MODE', detail: '"$mode" is not a mode this machine knows');
+    }
+    final at = tasks.indexWhere((each) => each['name'] == name);
+    if (at < 0) return _clearance('NO_SUCH_TASK', detail: 'nothing here knows $name');
+    if (tasks[at]['running'] != true) {
+      return _clearance('NOT_RUNNING', detail: '$name is not up');
+    }
+
+    final was = tasks[at]['clearance'] as String? ?? '';
+    // Not a failure: it was already in that mode and nothing was restarted.
+    if (was == mode) return _clearance('UNCHANGED', was: was);
+    if (preview) return _clearance('PREVIEWED', was: was, now: mode);
+
+    tasks[at] = <String, dynamic>{...tasks[at], 'clearance': mode};
+    _changes.add(<String, dynamic>{'tasks': tasks});
+    return _clearance('CHANGED', was: was, now: mode);
+  }
+
+  static Map<String, dynamic> _clearance(
+    String outcome, {
+    String was = '',
+    String now = '',
+    String detail = '',
+  }) =>
+      <String, dynamic>{
+        'outcome': outcome,
+        'was': was,
+        // Empty when nothing changed, exactly as the contract says.
+        'now': now,
+        'detail': detail,
+      };
+
   Map<String, dynamic> _widenTask(Map<String, dynamic> parameters) {
     final name = parameters['task'] as String? ?? '';
     final asked = (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
@@ -821,6 +1014,135 @@ class MockMachine {
       'type': 'api-key',
       'length': 51,
       'source': '/home/michi/.config/an-agent/credentials.json',
+      'detail': '',
+    };
+  }
+
+  /// What has been backed up, by project. **A record rather than a listing of files**: a bundle
+  /// is written wherever an operator names it, so nothing could work this out afterwards.
+  final Map<String, List<Map<String, dynamic>>> _backupRecords =
+      <String, List<Map<String, dynamic>>>{
+    'checkout': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'taken': DateTime.now()
+            .toUtc()
+            .subtract(const Duration(hours: 3))
+            .toIso8601String(),
+        'bundle': '/srv/checkout/backups/before-sync.bundle',
+        'refs': 2,
+        'present': true,
+        'bytes': 4823 * 1024,
+      },
+      // A bundle somebody moved. Listed, because it was taken — dropping it would say the backup
+      // was never made, which is a different and worse statement.
+      <String, dynamic>{
+        'taken': DateTime.now()
+            .toUtc()
+            .subtract(const Duration(days: 2))
+            .toIso8601String(),
+        'bundle': '/srv/checkout/backups/last-week.bundle',
+        'refs': 5,
+        'present': false,
+        'bytes': 0,
+      },
+    ],
+  };
+
+  Map<String, dynamic> _backups(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
+        // Newest first, and empty is ordinary: a project nobody has backed up.
+        'backups': _backupRecords[parameters['project']] ?? <Map<String, dynamic>>[],
+      };
+
+  Map<String, dynamic> _deleteBackup(Map<String, dynamic> parameters) {
+    final project = parameters['project'] as String? ?? '';
+    final bundle = parameters['bundle'] as String? ?? '';
+    final preview = parameters['dryRun'] == true;
+    final records = _backupRecords[project] ?? <Map<String, dynamic>>[];
+    final known = records.where((each) => each['bundle'] == bundle);
+    if (known.isEmpty) {
+      // Refused rather than obeyed: otherwise this is a file-deletion primitive wearing a
+      // backup's name, reachable by anything that can open the socket.
+      return <String, dynamic>{
+        'outcome': 'NO_SUCH_BACKUP',
+        'fileRemoved': false,
+        'refs': 0,
+        'detail': 'no record names that path',
+      };
+    }
+    final record = known.first;
+    if (!preview) {
+      _backupRecords[project] =
+          records.where((each) => each['bundle'] != bundle).toList();
+    }
+    return <String, dynamic>{
+      'outcome': preview ? 'PREVIEWED' : 'DELETED',
+      // False with DELETED means the record was cleared for a bundle somebody had already
+      // moved — a tidy-up, not a loss.
+      'fileRemoved': record['present'] == true,
+      'refs': record['refs'],
+      'detail': '',
+    };
+  }
+
+  Map<String, dynamic> _restoreBackup(Map<String, dynamic> parameters) {
+    final project = parameters['project'] as String? ?? '';
+    final bundle = parameters['bundle'] as String? ?? '';
+    final preview = parameters['dryRun'] == true;
+    final force = parameters['force'] == true;
+    final records = _backupRecords[project] ?? <Map<String, dynamic>>[];
+    if (!records.any((each) => each['bundle'] == bundle)) {
+      return <String, dynamic>{
+        'outcome': 'NO_SUCH_BACKUP',
+        'mirror': '',
+        'unreviewed': <String>[],
+        'detail': 'no record names that path',
+      };
+    }
+    // The checkout gate holds unreviewed work, so restoring over it destroys the only copy
+    // there has ever been. That is the refusal worth having.
+    final unreviewed = project == 'checkout' ? _waiting.keys.toList() : <String>[];
+    final refused = unreviewed.isNotEmpty && !preview && !force;
+    return <String, dynamic>{
+      'outcome': preview
+          ? 'PREVIEWED'
+          : refused
+              ? 'HOLDS_WORK'
+              : 'RESTORED',
+      'mirror': '/srv/$project/.sokar/mirror',
+      // Filled under force too: it is what force destroyed, and that belongs in the record
+      // afterwards rather than only in the warning.
+      'unreviewed': unreviewed,
+      'detail': '',
+    };
+  }
+
+  Map<String, dynamic> _syncUpstream(Map<String, dynamic> parameters) {
+    final project = parameters['project'] as String? ?? '';
+    if (project == 'billing') {
+      // Offline: nothing was tried, and zero would read as up to date.
+      return <String, dynamic>{
+        'outcome': 'MEASURED',
+        'behind': 0,
+        'measured': false,
+        'reason': 'OFFLINE',
+        'detail': '',
+      };
+    }
+    if (project == 'never-run') {
+      return <String, dynamic>{
+        'outcome': 'NO_MIRROR',
+        'behind': 0,
+        'measured': false,
+        'reason': 'NEVER_CHECKED',
+        'detail': '',
+      };
+    }
+    return <String, dynamic>{
+      'outcome': 'MEASURED',
+      'behind': 3,
+      'measured': true,
+      'reason': 'MEASURED',
       'detail': '',
     };
   }
@@ -1019,6 +1341,45 @@ class MockMachine {
   /// The two are different lengths of call, which is the whole point of the change that added
   /// `prompt`: without one this ends when the container is up, with one it lasts as long as the
   /// run and the agent's own output arrives as it is produced.
+  /// Builds a project's image without starting anything.
+  ///
+  /// **Streamed, because a build takes minutes** and showing nothing for that long is
+  /// indistinguishable from having hung. The depth decides how much of it runs — which is the
+  /// whole reason three depths exist rather than one button.
+  Stream<Map<String, dynamic>> _prepare(Map<String, dynamic> parameters) async* {
+    final depth = parameters['rebuild'] as String? ?? 'CACHED';
+    final steps = <String>[
+      'STEP 1/6: FROM ubuntu:24.04',
+      if (depth == 'EVERYTHING') '  --> downloading the base layers again',
+      'STEP 2/6: RUN apt-get update',
+      if (depth == 'EVERYTHING')
+        '  --> installing packages'
+      else
+        '  --> using cache',
+      'STEP 4/6: ARG SOKAR_AGENT_LAYER',
+      if (depth == 'CACHED')
+        '  --> using cache'
+      else
+        '  --> the agent layer is invalidated from here down',
+      'STEP 5/6: RUN install-agent',
+      'STEP 6/6: COPY project snippet',
+    ];
+    for (final line in steps) {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      yield <String, dynamic>{'line': line};
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    yield <String, dynamic>{
+      'outcome': 'PREPARED',
+      'image': 'sokar/${parameters['project']}:latest',
+      // Read back rather than echoed blindly: a depth this daemon did not recognise has to be
+      // visible instead of silently defaulted.
+      'rebuild': depth,
+      'output': <String>[],
+      'detail': '',
+    };
+  }
+
   Stream<Map<String, dynamic>> _launch(Map<String, dynamic> parameters) async* {
     const steps = <String>[
       'Resolving project.yml',

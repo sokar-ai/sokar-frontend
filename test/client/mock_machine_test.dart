@@ -598,6 +598,110 @@ void main() {
     expect(answer.length, 0);
   });
 
+  test('the backups it lists tell a record from the bundle', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    // **The project's name, not its file.** The IDL says only `project: string` for this one,
+    // and the daemon resolves it as a name — one record file per project name. Passing a path
+    // answers an empty list, which reads as *nothing recorded* rather than as a wrong argument:
+    // the worst shape a mistake can take on this particular field.
+    final taken = await client.backups('checkout');
+
+    expect(taken, hasLength(2));
+    // Listed although the file is gone: dropping it would say the backup was never made.
+    expect(taken.any((each) => !each.present), isTrue);
+    expect(taken.firstWhere((each) => !each.present).bytes, 0);
+  });
+
+  test('restoring over unreviewed work refuses, and force says what it destroyed', () async {
+    await machineIn('work');
+    final client = await connect();
+    const project = 'checkout';
+    const bundle = '/srv/checkout/backups/before-sync.bundle';
+
+    final refused = await client.restoreBackup(project, bundle);
+
+    expect(refused.holdsWork, isTrue);
+    expect(refused.unreviewed, isNotEmpty);
+
+    final forced = await client.restoreBackup(project, bundle, force: true);
+
+    expect(forced.done, isTrue);
+    // Reported afterwards as well as before: somebody who forced needs it in the record.
+    expect(forced.unreviewed, isNotEmpty);
+  });
+
+  test('an offline project is not reported as up to date', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final said = await client.syncUpstream('billing');
+
+    // Zero, and meaningless: the same number a project that is up to date answers.
+    expect(said.behind, 0);
+    expect(said.measured, isFalse);
+    expect(said.reason, 'OFFLINE');
+  });
+
+  test('a name a project cannot carry is refused with the reason', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final said = await client.createProject(
+      file: '/srv/new/project.yml',
+      name: 'Not A Name',
+      securityClass: 'guarded',
+      baseImage: 'ubuntu:24.04',
+      dryRun: true,
+    );
+
+    expect(said.blocked, isTrue);
+    expect(said.refusals.single.field, 'name');
+    // Filled even on a refusal: seeing what was rejected is most of understanding why.
+    expect(said.content, contains('security_class'));
+  });
+
+  test('asking for the enforcement it already has is not reported as a change', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final first = await client.setClearance('sokar-billing-audit', 'off');
+
+    expect(first.outcome, 'UNCHANGED');
+    expect(first.settled, isTrue);
+    // Empty when nothing changed, exactly as the contract says.
+    expect(first.now, isEmpty);
+  });
+
+  test('taking back a name that was never granted changes nothing', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final said = await client.narrowTask(
+      'sokar-checkout-shell',
+      <String>['never.granted.test'],
+      scope: Scope.run,
+    );
+
+    expect(said.outcome, WidenOutcome.noChange);
+  });
+
+  test('a build streams its steps and names the depth it used', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final replies = await client
+        .prepare('/srv/checkout/project.yml', rebuild: 'AGENT')
+        .toList();
+
+    expect(replies.where((each) => each.line != null), isNotEmpty);
+    final result = replies.last;
+    expect(result.built, isTrue);
+    // Read back rather than assumed: a depth the daemon did not recognise has to be visible.
+    expect(result.rebuild, 'AGENT');
+  });
+
   test('a node says which node it is, and says the same thing twice', () async {
     await machineIn('work');
     final client = await connect();

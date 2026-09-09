@@ -1843,3 +1843,18 @@ refusal needs that in the record, not only in the warning they clicked past.
 **Restoring from a bundle that is not there is not offered.** The record is listed, because the
 backup was taken — but there is nothing to restore *from*, and offering it would say the record is
 the thing when it is not.
+
+## Name or file: four methods say only `project: string`
+
+`Prepare` documents *"absolute path of the project file"* and `DeleteProject` documents *"project
+name"*. **`Backups`, `DeleteBackup`, `RestoreBackup` and `SyncUpstream` document neither** — and
+they take the **name**, which was established by reading `BackupRecords` (one record file per
+project name) and `UpstreamSync.sync` rather than by guessing.
+
+**Getting it wrong here fails in the worst possible shape**: passing a path answers an **empty
+list**, which this screen deliberately renders as *"nothing is recorded for this project"*. A wrong
+argument would arrive as a legitimate answer, on the one screen built to insist that absence means
+absence of a record and not absence of a backup.
+
+Every project-scoped call in this interface therefore names which it passes at the call site, and
+the mock keys its records by name for the same reason — a fake that accepted either would hide it.
