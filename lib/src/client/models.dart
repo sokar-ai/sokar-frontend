@@ -1151,6 +1151,59 @@ class Backup {
   }
 }
 
+/// What a task holds that never reached the gate.
+///
+/// **Asked for one task, never on a listing.** Every other field about a task comes from one `ps`
+/// and the state directory; this one runs git inside the container, which on a list a client
+/// redraws would be a call per row — the cost `since` and `behindMeasured` both exist to avoid.
+class HeldWork {
+  /// Whether what it holds could be established at all.
+  ///
+  /// **Not *"holds nothing"*.** Holding nothing is readable with two zeros. Unreadable means
+  /// nobody could look: a task killed, or stopped by a Sokar that left no note. Absence rendering
+  /// as nothing-to-worry-about is the failure this separation exists to prevent — the same one
+  /// that put `readable` on `Credentials` and `Providers`.
+  final bool readable;
+
+  /// Files changed and not committed.
+  final int changedFiles;
+
+  /// Commits on no remote.
+  final int unpushedCommits;
+
+  /// When this was true, or null while the task runs and the answer is current.
+  ///
+  /// For a stopped task the workspace lives inside a container that is no longer up, so the only
+  /// source is what the stop wrote down — and *"holds"* and *"held"* are two different sentences.
+  final DateTime? asOf;
+
+  /// Constructor taking every field.
+  const HeldWork({
+    required this.readable,
+    required this.changedFiles,
+    required this.unpushedCommits,
+    this.asOf,
+  });
+
+  /// Reads one from a reply.
+  factory HeldWork.from(Map<String, dynamic> map) {
+    final at = map['asOf'];
+    return HeldWork(
+      readable: map['readable'] == true,
+      changedFiles: _int(map, 'changedFiles'),
+      unpushedCommits: _int(map, 'unpushedCommits'),
+      asOf: at is String && at.isNotEmpty ? DateTime.tryParse(at) : null,
+    );
+  }
+
+  /// Whether it holds anything at all. **Meaningless unless [readable].**
+  bool get holdsSomething =>
+      readable && (changedFiles > 0 || unpushedCommits > 0);
+
+  /// Whether the answer is what is true now rather than what was true when it stopped.
+  bool get current => asOf == null;
+}
+
 /// What asking the upstream how far behind a project is answered.
 ///
 /// **Its own call rather than a flag on a listing**, and that is the point: a listing that reached

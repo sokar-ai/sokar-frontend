@@ -137,6 +137,7 @@ class MockMachine {
     // reached twice is one — which is the thing a client has to be able to tell.
     daemon.method('Node', (_) => <String, dynamic>{'id': _nodeId});
     daemon.method('Backups', _backups);
+    daemon.method('WorkHeld', _workHeld);
     daemon.method('DeleteBackup', _deleteBackup);
     daemon.method('RestoreBackup', _restoreBackup);
     daemon.method('SyncUpstream', _syncUpstream);
@@ -1047,6 +1048,49 @@ class MockMachine {
       },
     ],
   };
+
+  /// What a task holds that never reached the gate.
+  ///
+  /// **Three answers, and the mock has to be able to give all three** — *holds nothing*, *holds
+  /// this much*, and *nobody could look* — because a fake that only ever succeeded would prove
+  /// none of what the screen is careful about.
+  Map<String, dynamic> _workHeld(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final task = tasks.firstWhere(
+      (each) => each['name'] == name,
+      orElse: () => const <String, dynamic>{},
+    );
+    // A name that is no task at all is a refusal, never an unreadable answer: those are different
+    // failures, and merging them makes a wrong argument arrive as a legitimate reading.
+    if (task.isEmpty) throw MockRefusal('org.fuin.sokar.Tasks1.NoSuchTask');
+
+    if (task['running'] == true) {
+      // Current, so no instant: "holds" rather than "held".
+      return <String, dynamic>{
+        'readable': true,
+        'changedFiles': name.endsWith('-shell') ? 3 : 0,
+        'unpushedCommits': name.endsWith('-shell') ? 2 : 0,
+      };
+    }
+    if (name == 'sokar-checkout-tests') {
+      // Killed, or stopped by a Sokar that left no note. Not "nothing".
+      return <String, dynamic>{
+        'readable': false,
+        'changedFiles': 0,
+        'unpushedCommits': 0,
+      };
+    }
+    // Stopped with a note: what was true then, and when.
+    return <String, dynamic>{
+      'readable': true,
+      'changedFiles': 0,
+      'unpushedCommits': 4,
+      'asOf': DateTime.now()
+          .toUtc()
+          .subtract(const Duration(minutes: 40))
+          .toIso8601String(),
+    };
+  }
 
   Map<String, dynamic> _backups(Map<String, dynamic> parameters) =>
       <String, dynamic>{

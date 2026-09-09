@@ -19,6 +19,7 @@ import 'package:sokar_frontend/src/app/session.dart';
 import 'package:sokar_frontend/src/app/vault.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
+import 'package:sokar_frontend/src/app/work_held.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 import 'package:sokar_frontend/src/app/authentication.dart';
 import 'package:sokar_frontend/src/app/backups.dart';
@@ -418,6 +419,30 @@ class FakeBackend implements FleetBackend {
 
   @override
   Future<List<Backup>> backups(String project) async => theBackupsItHas;
+
+  /// What a task holds. Set by the scenario.
+  ///
+  /// **Readable with two zeros by default**, which is *holds nothing* — a scenario that wants
+  /// *nobody could look* says so, because those are the two the screen must not merge.
+  HeldWork theWorkItHolds =
+      const HeldWork(readable: true, changedFiles: 0, unpushedCommits: 0);
+
+  /// Whether the next ask is for a name that is no task at all.
+  bool workHeldIsNoSuchTask = false;
+
+  /// Every task asked about.
+  final List<String> held = <String>[];
+
+  @override
+  Future<HeldWork> workHeld(String task) async {
+    held.add(task);
+    // A wrong name is a refusal, never an unreadable answer: collapsing them would make a
+    // client's mistake arrive as a legitimate reading.
+    if (workHeldIsNoSuchTask) {
+      throw const VarlinkException('org.fuin.sokar.Tasks1.NoSuchTask');
+    }
+    return theWorkItHolds;
+  }
 
   /// What the next sync answers. Set by the scenario.
   Synced theSyncAnswers = const Synced(
@@ -1128,6 +1153,9 @@ class World {
   /// Taking a name back from work that is already running.
   static late Narrowing narrowing;
 
+  /// What the work being looked at holds that never reached the gate.
+  static late WorkHeld held;
+
   /// Every terminal a scenario opened, in the order they were opened.
   ///
   /// **The command is what these hold on to.** A widget test cannot prove that a pty is really a
@@ -1306,6 +1334,8 @@ class World {
     addTearDown(backups.dispose);
     narrowing = Narrowing();
     addTearDown(narrowing.dispose);
+    held = WorkHeld();
+    addTearDown(held.dispose);
     sessions = Sessions(openTerminal: (executable, arguments, {int columns = 80, int rows = 24}) {
       final terminal = FakeTerminal(<String>[executable, ...arguments]);
       terminals.add(terminal);
@@ -1370,6 +1400,7 @@ class World {
       creating: creating,
       backups: backups,
       narrowing: narrowing,
+      held: held,
     ));
     await tester.pumpAndSettle();
   }
@@ -1430,6 +1461,7 @@ class World {
       creating: creating,
       backups: backups,
       narrowing: narrowing,
+      held: held,
     ));
     await tester.pumpAndSettle();
   }
@@ -1459,6 +1491,7 @@ class World {
       creating: creating,
       backups: backups,
       narrowing: narrowing,
+      held: held,
     ));
     await settle(tester);
   }

@@ -14,6 +14,7 @@ import '../app/start_work.dart';
 import '../app/templates.dart';
 import '../app/vault.dart';
 import '../app/widening.dart';
+import '../app/work_held.dart';
 import '../app/gate.dart';
 import '../app/host_readiness.dart';
 import '../app/logs.dart';
@@ -89,6 +90,7 @@ class Shell extends StatefulWidget {
     required this.creating,
     required this.backups,
     required this.narrowing,
+    required this.held,
     super.key,
   });
 
@@ -157,6 +159,9 @@ class Shell extends StatefulWidget {
 
   /// Taking a name back from work that is already running.
   final Narrowing narrowing;
+
+  /// What the work being looked at holds that never reached the gate.
+  final WorkHeld held;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -652,8 +657,12 @@ class _ShellState extends State<Shell> {
   }
 
   void _openWork() {
-    if (_fleet.selectedTask == null) return;
+    final task = _fleet.selectedTask;
+    if (task == null) return;
     widget.shell.openDetail();
+    // Asked when the detail opens, for this one task. It runs git inside the container, so it is
+    // never part of drawing a list.
+    unawaited(widget.held.look(_fleet.backend, task.name));
   }
 
   /// Runs the one long operation the frame has today, and opens it.
@@ -807,7 +816,8 @@ class _ShellState extends State<Shell> {
       case WorkOpened():
         final task = _fleet.selectedTask;
         if (task == null) return null;
-        return WorkDetail(task: task, onClose: widget.shell.close);
+        return WorkDetail(
+            task: task, held: widget.held, onClose: widget.shell.close);
       case VaultOpened():
         return VaultView(
           vault: widget.vault,

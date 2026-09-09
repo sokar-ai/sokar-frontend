@@ -3,6 +3,7 @@ import 'package:sokar_frontend/client.dart';
 
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
+import '../app/work_held.dart';
 import 'command_menu.dart';
 import 'how_long.dart';
 import 'selection_list.dart';
@@ -432,16 +433,29 @@ class _OpenButton extends StatelessWidget {
 /// One piece of work, opened over the frame.
 class WorkDetail extends StatelessWidget {
   /// Constructor taking the work and how to close it.
-  const WorkDetail({required this.task, required this.onClose, super.key});
+  const WorkDetail({
+    required this.task,
+    required this.held,
+    required this.onClose,
+    super.key,
+  });
 
   /// What is open.
   final Task task;
+
+  /// What it holds that never reached the gate, asked when this opened.
+  final WorkHeld held;
 
   /// Closes it, leaving the selection where it was.
   final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: held,
+        builder: (context, _) => _detail(context),
+      );
+
+  Widget _detail(BuildContext context) {
     // A container that is up with no helpers has lost its gate or its clearance watcher, and is
     // not the same thing as a healthy task. It is the one reading worth calling out here.
     final ungated = task.running && task.helpers == 0;
@@ -480,6 +494,14 @@ class WorkDetail extends StatelessWidget {
               // reviewed there, so it is a question the class does not have, and saying *nothing
               // is waiting* would imply somebody could be.
               _Field(name: 'At the gate', value: task.atTheGate),
+              // **The other half of the same question, and it costs a call.** What is waiting at
+              // the gate comes free with the task; what never reached it runs git inside the
+              // container, so it is asked when this opens and never while drawing a list.
+              //
+              // Three answers rather than two: *holds nothing* and *nobody could look* are
+              // different, and only one of them makes it safe to remove a task without asking.
+              if (held.words(task.name).isNotEmpty)
+                _Field(name: 'Never pushed', value: held.words(task.name)),
               _Field(name: 'Doing', value: task.activity.label),
               _Field(
                 name: 'Egress',

@@ -423,6 +423,14 @@ class SokarClient {
         : const <Backup>[];
   }
 
+  /// What a task holds that never reached the gate.
+  ///
+  /// **Asked for one task, on demand** — never while drawing a list. A name that is no task at all
+  /// raises `NoSuchTask` rather than answering unreadable: those are different failures, and
+  /// collapsing them would make a client's wrong argument arrive as a legitimate answer.
+  Future<HeldWork> workHeld(String task) async =>
+      HeldWork.from(await _call('WorkHeld', {'task': task}));
+
   /// Asks the upstream how far behind a project's mirror is, now.
   Future<Synced> syncUpstream(String project) async =>
       Synced.from(await _call('SyncUpstream', {'project': project}));

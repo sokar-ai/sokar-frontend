@@ -1858,3 +1858,42 @@ absence of a record and not absence of a backup.
 
 Every project-scoped call in this interface therefore names which it passes at the call site, and
 the mock keys its records by name for the same reason — a fake that accepted either would hide it.
+
+## What a task holds: three answers, and a fourth that is not one of them
+
+`WorkHeld` is asked for **one task when somebody opens it**, never while drawing a list — it runs
+git inside the container, so on a list this interface redraws it would be a call per row. That is
+the cost `since` and `behindMeasured` both exist to avoid, and it is why this is a method rather
+than a field on `Task`.
+
+The three the screen must keep apart:
+
+- **Holds nothing** — `readable: true` with two zeros.
+- **Holds this much** — the counts, worded here rather than received as a sentence.
+- **Nobody could look** — `readable: false`: killed, rebooted, or stopped by a Sokar that left no
+  note. **Absence rendering as nothing-to-worry-about is what `readable` exists to prevent**, and
+  it is the third field to carry that flag after `Credentials` and `Providers`.
+
+And the fourth, which is not an answer at all: **a name that is no task raises `NoSuchTask`.** A
+client's wrong argument must not arrive as a legitimate reading — the shape that cost an afternoon
+on `Backups`, where a path answered an empty list on the one screen built to insist that empty means
+*no record*.
+
+**`asOf` separates *holds* from *held*** without correlating against `Task.state`, which would be
+two answers a client has to keep agreeing about. Absent means current; present means the workspace
+is inside a container that is down and the only source is what the stop wrote.
+
+## Counts, not a phrase — the rule that decides which
+
+The Sokar side first offered a rendered sentence and then withdrew it themselves: a phrase is
+English, a fixed plural rule and a layout that has to accept it whole, and a number never received
+cannot be badged or sorted.
+
+The rule that decides, in both directions:
+
+- **Render verbatim what only they can compose** — `storeCommand`, whose key comes from a fallback
+  invisible from outside; a probe's next action; a refusal's own words.
+- **Take the parts of what they would only be wording for you** — counts, states, instants.
+
+The test is not who is more convenient. It is **whether the sentence contains knowledge this end
+does not have.**

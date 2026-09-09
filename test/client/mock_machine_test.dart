@@ -702,6 +702,35 @@ void main() {
     expect(result.rebuild, 'AGENT');
   });
 
+  test('what a task holds is three answers, and a wrong name is none of them', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final running = await client.workHeld('sokar-checkout-shell');
+    expect(running.readable, isTrue);
+    // Current, so no instant: "holds" rather than "held".
+    expect(running.current, isTrue);
+    expect(running.holdsSomething, isTrue);
+
+    final unreadable = await client.workHeld('sokar-checkout-tests');
+    // Not "holds nothing": nobody could look.
+    expect(unreadable.readable, isFalse);
+    expect(unreadable.holdsSomething, isFalse);
+
+    final stopped = await client.workHeld('sokar-checkout-migrate');
+    expect(stopped.readable, isTrue);
+    expect(stopped.current, isFalse, reason: 'a stopped task answers as of when it stopped');
+    expect(stopped.asOf, isNotNull);
+
+    // A name that is no task is a refusal, never an unreadable answer — collapsing them makes a
+    // client's mistake arrive as a legitimate reading.
+    await expectLater(
+      client.workHeld('sokar-never-existed'),
+      throwsA(isA<VarlinkException>()
+          .having((refusal) => refusal.simpleName, 'simpleName', 'NoSuchTask')),
+    );
+  });
+
   test('a node says which node it is, and says the same thing twice', () async {
     await machineIn('work');
     final client = await connect();

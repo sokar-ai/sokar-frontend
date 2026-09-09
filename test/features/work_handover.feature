@@ -68,3 +68,44 @@ Feature: F10 Task Inspection And Work Handover
     When I select the work {'sokar-checkout-shell'}
     And I open the selection
     Then it says {'in the repository — nothing here has a view of them'}
+
+  # `WorkHeld` landed on 2026-09-09. Asked for one task when it is opened, never while drawing a
+  # list: it runs git inside the container, which on a list this interface redraws would be a call
+  # per row.
+  Scenario: what a running task holds that never reached the gate is on its detail
+    Given the work holds {2} unpushed commits and {3} changed files
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'holds 2 unpushed commits and 3 changed files'}
+
+  # Holding nothing and nobody having looked are different answers, and only one of them makes it
+  # safe to remove a task without asking.
+  Scenario: holding nothing is said as holding nothing
+    Given the work holds {0} unpushed commits and {0} changed files
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'holds nothing that never reached the gate'}
+
+  Scenario: a task nobody could look inside says that, not that it holds nothing
+    Given nobody could look inside the work
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'nothing recorded what it held'}
+    And it says {'killed, rebooted, or stopped by an older Sokar'}
+
+  # "Holds" and "held" are different sentences: a stopped task's workspace is inside a container
+  # that is no longer up, so the only source is what the stop wrote down.
+  Scenario: a stopped task says what it held when it stopped, and when that was
+    Given the work held {4} unpushed commits when it stopped
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'held 4 unpushed commits when it stopped'}
+    And it says {'minutes ago'}
+
+  # A wrong name is a refusal, never an unreadable answer — merging them would make a client's
+  # mistake arrive as a legitimate reading.
+  Scenario: a name the machine does not know is refused rather than read as unreadable
+    Given the machine knows no such task
+    When I select the work {'sokar-checkout-shell'}
+    And I open the selection
+    Then it says {'does not know a task called'}

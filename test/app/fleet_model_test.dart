@@ -143,6 +143,10 @@ class _Wedged implements FleetBackend {
           detail: '');
 
   @override
+  Future<HeldWork> workHeld(String task) async =>
+      const HeldWork(readable: true, changedFiles: 0, unpushedCommits: 0);
+
+  @override
   Future<Synced> syncUpstream(String project) async => const Synced(
       outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
 
@@ -366,6 +370,10 @@ class _Machine implements FleetBackend {
           addresses: 0,
           persisted: false,
           detail: '');
+
+  @override
+  Future<HeldWork> workHeld(String task) async =>
+      const HeldWork(readable: true, changedFiles: 0, unpushedCommits: 0);
 
   @override
   Future<Synced> syncUpstream(String project) async => const Synced(

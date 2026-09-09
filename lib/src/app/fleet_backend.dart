@@ -110,6 +110,9 @@ abstract class FleetBackend {
   /// What backups have been taken of a project's mirror. Newest first.
   Future<List<Backup>> backups(String project);
 
+  /// What a task holds that never reached the gate. Asked for one task, never on a listing.
+  Future<HeldWork> workHeld(String task);
+
   /// Asks the upstream how far behind a project's mirror is, now.
   Future<Synced> syncUpstream(String project);
 
@@ -347,6 +350,9 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<List<Backup>> backups(String project) => _opened().backups(project);
+
+  @override
+  Future<HeldWork> workHeld(String task) => _opened().workHeld(task);
 
   @override
   Future<Synced> syncUpstream(String project) => _opened().syncUpstream(project);

@@ -23,6 +23,10 @@ import './step/i_drop_the_request.dart';
 import './step/nothing_was_forwarded.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
+import './step/the_work_holds_unpushed_commits_and_changed_files.dart';
+import './step/nobody_could_look_inside_the_work.dart';
+import './step/the_work_held_unpushed_commits_when_it_stopped.dart';
+import './step/the_machine_knows_no_such_task.dart';
 
 void main() {
   group('''F10 Task Inspection And Work Handover''', () {
@@ -109,6 +113,52 @@ void main() {
       await iOpenTheSelection(tester);
       await itSays(
           tester, 'in the repository — nothing here has a view of them');
+    });
+    testWidgets(
+        '''what a running task holds that never reached the gate is on its detail''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHoldsUnpushedCommitsAndChangedFiles(tester, 2, 3);
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iOpenTheSelection(tester);
+      await itSays(tester, 'holds 2 unpushed commits and 3 changed files');
+    });
+    testWidgets('''holding nothing is said as holding nothing''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHoldsUnpushedCommitsAndChangedFiles(tester, 0, 0);
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iOpenTheSelection(tester);
+      await itSays(tester, 'holds nothing that never reached the gate');
+    });
+    testWidgets(
+        '''a task nobody could look inside says that, not that it holds nothing''',
+        (tester) async {
+      await bddSetUp(tester);
+      await nobodyCouldLookInsideTheWork(tester);
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iOpenTheSelection(tester);
+      await itSays(tester, 'nothing recorded what it held');
+      await itSays(tester, 'killed, rebooted, or stopped by an older Sokar');
+    });
+    testWidgets(
+        '''a stopped task says what it held when it stopped, and when that was''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHeldUnpushedCommitsWhenItStopped(tester, 4);
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iOpenTheSelection(tester);
+      await itSays(tester, 'held 4 unpushed commits when it stopped');
+      await itSays(tester, 'minutes ago');
+    });
+    testWidgets(
+        '''a name the machine does not know is refused rather than read as unreadable''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineKnowsNoSuchTask(tester);
+      await iSelectTheWork(tester, 'sokar-checkout-shell');
+      await iOpenTheSelection(tester);
+      await itSays(tester, 'does not know a task called');
     });
   });
 }

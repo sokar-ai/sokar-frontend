@@ -10,6 +10,7 @@ import 'start_work.dart';
 import 'templates.dart';
 import 'vault.dart';
 import 'widening.dart';
+import 'work_held.dart';
 import 'gate.dart';
 import 'host_readiness.dart';
 import 'logs.dart';
@@ -50,6 +51,7 @@ class SokarApp extends StatelessWidget {
     required this.creating,
     required this.backups,
     required this.narrowing,
+    required this.held,
     super.key,
   });
 
@@ -119,6 +121,9 @@ class SokarApp extends StatelessWidget {
   /// Taking a name back from work that is already running.
   final Narrowing narrowing;
 
+  /// What the work being looked at holds that never reached the gate.
+  final WorkHeld held;
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         // Only the appearance rebuilds the application; everything else rebuilds the frame.
@@ -155,6 +160,7 @@ class SokarApp extends StatelessWidget {
               creating,
               backups,
               narrowing,
+              held,
             ]),
             builder: (context, _) => Shell(
               machines: machines,
@@ -179,6 +185,7 @@ class SokarApp extends StatelessWidget {
               creating: creating,
               backups: backups,
               narrowing: narrowing,
+              held: held,
             ),
           ),
         ),

@@ -19,6 +19,7 @@ import 'src/app/start_work.dart';
 import 'src/app/templates.dart';
 import 'src/app/vault.dart';
 import 'src/app/widening.dart';
+import 'src/app/work_held.dart';
 import 'src/app/window.dart';
 import 'src/app/operations.dart';
 import 'src/app/backups.dart';
@@ -84,6 +85,7 @@ Future<void> main() async {
     creating: ProjectCreation(),
     backups: Backups(),
     narrowing: Narrowing(),
+    held: WorkHeld(),
   ));
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather
