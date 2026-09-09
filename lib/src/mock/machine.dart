@@ -211,7 +211,17 @@ class MockMachine {
   /// A real daemon checks a name against the files that are there and refuses one that is not.
   /// Nothing lists them — which is why the interface has to ask, and why this has to be able to
   /// refuse a name rather than only a method.
-  static const logs = <String>{'agent.log', 'gate.log'};
+  ///
+  /// **Two of these are not `.log`, on purpose.** A daemon that served only `.log` files hid
+  /// `events.jsonl`, which is what the firewall blocked and therefore the file somebody needs when
+  /// a task starts and then does nothing. A mock that serves only `.log` files would let a suffix
+  /// rule grow at this end without a single test going red.
+  static const logs = <String>{
+    'agent.log',
+    'gate.log',
+    'events.jsonl',
+    'reader.err',
+  };
 
   final _asking = StreamController<Map<String, dynamic>>.broadcast();
   final _raisedBeforeAnybodyWatched = <Map<String, dynamic>>[];
@@ -1289,11 +1299,17 @@ class MockMachine {
           for (final name in logs)
             <String, dynamic>{
               'name': name,
-              'bytes': name == 'gate.log' ? 4096 : 182_311,
+              'bytes': _sizes[name] ?? 182_311,
               'at': '2026-09-07T14:12:00Z',
             },
         ],
       };
+
+  static const _sizes = <String, int>{
+    'gate.log': 4096,
+    'events.jsonl': 9_212,
+    'reader.err': 0,
+  };
 
   Stream<Map<String, dynamic>> _tail(Map<String, dynamic> parameters) async* {
     final log = parameters['log'];
@@ -1306,18 +1322,28 @@ class MockMachine {
     const red = '\u001B[31m';
     const green = '\u001B[32m';
     const plain = '\u001B[0m';
-    final lines = log == 'gate.log'
-        ? <String>[
-            'gate: mirror at refs/sokar/incoming',
-            'gate: waiting for a decision',
-            '${green}gate: 2 commits accepted$plain',
-          ]
-        : <String>[
-            'agent: reading the prompt',
-            'agent: running the tests',
-            '${red}agent: 1 test failed$plain',
-            'agent: waiting',
-          ];
+    final lines = switch (log) {
+      'gate.log' => <String>[
+          'gate: mirror at refs/sokar/incoming',
+          'gate: waiting for a decision',
+          '${green}gate: 2 commits accepted$plain',
+        ],
+      // What the firewall blocked. Not a line format this end may parse — it is shown as written,
+      // like every other log.
+      'events.jsonl' => <String>[
+          '{"at":"2026-09-07T14:11:58Z","action":"deny","host":"registry.example.com:443"}',
+          '{"at":"2026-09-07T14:12:01Z","action":"allow","host":"github.com:443"}',
+        ],
+      // Whatever the reader writes when it cannot read. What it really holds is the daemon's to
+      // say; what matters here is that a name ending in neither `.log` nor `.jsonl` is served.
+      'reader.err' => <String>['reader: nothing to read on fd 3'],
+      _ => <String>[
+          'agent: reading the prompt',
+          'agent: running the tests',
+          '${red}agent: 1 test failed$plain',
+          'agent: waiting',
+        ],
+    };
     for (final line in lines) {
       if (pace > Duration.zero) await Future<void>.delayed(pace);
       yield <String, dynamic>{

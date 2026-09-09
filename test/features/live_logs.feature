@@ -25,6 +25,17 @@ Feature: F11 Live Log Viewing
     When I ask which logs the work has
     Then the logs offered are {'agent.log'}
 
+  Scenario: a log whose name is not a .log is offered and read like any other
+    Given the work also has the log {'events.jsonl'}
+    When I ask which logs the work has
+    Then the logs offered are {'agent.log, events.jsonl'}
+
+  Scenario: what the firewall blocked is readable, and it is the file a stuck task needs
+    Given the work also has the log {'events.jsonl'}
+    When I read the log {'events.jsonl'}
+    And the log prints {'deny registry.example.com:443'}
+    Then the log shows {'deny registry.example.com:443'}
+
   Scenario: work whose logs are gone says so rather than looking broken
     Given the work has no logs left
     When I ask which logs the work has

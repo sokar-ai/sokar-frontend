@@ -15,6 +15,7 @@ import './step/i_stop_following.dart';
 import './step/the_log_is_not_being_followed.dart';
 import './step/i_ask_which_logs_the_work_has.dart';
 import './step/the_logs_offered_are.dart';
+import './step/the_work_also_has_the_log.dart';
 import './step/the_work_has_no_logs_left.dart';
 import './step/it_says_it_has_no_logs.dart';
 import './step/the_log_prints_a_red_line_saying.dart';
@@ -54,6 +55,23 @@ void main() {
       await bddSetUp(tester);
       await iAskWhichLogsTheWorkHas(tester);
       await theLogsOfferedAre(tester, 'agent.log');
+    });
+    testWidgets(
+        '''a log whose name is not a .log is offered and read like any other''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkAlsoHasTheLog(tester, 'events.jsonl');
+      await iAskWhichLogsTheWorkHas(tester);
+      await theLogsOfferedAre(tester, 'agent.log, events.jsonl');
+    });
+    testWidgets(
+        '''what the firewall blocked is readable, and it is the file a stuck task needs''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkAlsoHasTheLog(tester, 'events.jsonl');
+      await iReadTheLog(tester, 'events.jsonl');
+      await theLogPrints(tester, 'deny registry.example.com:443');
+      await theLogShows(tester, 'deny registry.example.com:443');
     });
     testWidgets(
         '''work whose logs are gone says so rather than looking broken''',

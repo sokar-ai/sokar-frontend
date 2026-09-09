@@ -799,6 +799,25 @@ void main() {
         isNotEmpty);
   });
 
+  test('a log whose name is not .log is offered and reads like any other', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final found = await client.logsOf('sokar-checkout-shell');
+    final names = found.map((log) => log.name).toList();
+
+    // **The file somebody needs when a task starts and then does nothing** is the firewall's
+    // record, and its name says nothing about that. A suffix rule at this end would hide exactly
+    // it, so the wire is asserted on a name that would not survive one.
+    expect(names, contains('events.jsonl'));
+    expect(await client.tailLog('sokar-checkout-shell', 'events.jsonl').first, isNotEmpty);
+
+    // And an empty one is still a log: a size rule would hide it as surely as a suffix rule.
+    final empty = found.firstWhere((log) => log.name == 'reader.err');
+    expect(empty.bytes, 0);
+    expect(names, contains('reader.err'));
+  });
+
   test('a launch streams its lines and then its result', () async {
     await machineIn('failing-start');
     final client = await connect();

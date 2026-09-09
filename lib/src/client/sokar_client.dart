@@ -566,6 +566,12 @@ class SokarClient {
   /// held the names would open an empty viewer on a file that was never going to exist, and would
   /// never show one a later release adds.
   ///
+  /// **Not every log is called `.log`, and nothing here may narrow the answer by its name.** The
+  /// daemon shipped a suffix rule of its own for a day and it hid `events.jsonl` — what the
+  /// firewall blocked, which is the file to read when a task starts and then does nothing. The
+  /// same rule written at this end would hide the same file, and no test of the daemon would see
+  /// it.
+  ///
   /// An empty list is a normal answer. A task whose state directory is gone, which is what `Stop`
   /// with purge does, has no logs; so does a name that is not a Sokar task.
   Future<List<Log>> logsOf(String task) async {

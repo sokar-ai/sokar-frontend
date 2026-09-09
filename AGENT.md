@@ -1897,3 +1897,19 @@ The rule that decides, in both directions:
 
 The test is not who is more convenient. It is **whether the sentence contains knowledge this end
 does not have.**
+
+## A name is data, never a category — not every log is called `.log`
+
+`Logs` answers file names, and **nothing at this end may narrow that answer by what a file is
+called.** The daemon shipped a suffix rule of its own for a day, and it hid `events.jsonl`: what
+the firewall blocked, which is the file to read when a task starts and then does nothing. The same
+rule written here would hide the same file, and no test of the daemon would ever see it.
+
+That is why the mock serves four logs and two of them are not `.log` — one of them zero bytes, so
+a rule that hides empty files fails too. A fixture that only ever holds the shape the code already
+handles is the shape Sokar's own bug had: a parser and its test agreeing with each other and with
+nothing else.
+
+The scenario is the guard, and it is worth the mutation every time: put `.endsWith('.log')` into
+the picker and **the file a stuck task needs disappears from the list while every other log test
+still passes.**
