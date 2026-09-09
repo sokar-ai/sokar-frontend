@@ -1,22 +1,40 @@
-// Turns a test run into one self-contained HTML page: a requirements traceability matrix.
+// Turns a test run into a requirements traceability matrix, in three shapes at once.
 // ignore_for_file: avoid_print - this is a command-line tool; printing is its output.
 //
 // Usage:
 //   flutter test --machine > build/test-results.json
-//   dart tool/test_report.dart [build/test-results.json] [build/test-report.html]
+//   dart tool/test_report.dart [results.json] [report.html] [results.xml]
 //
-// Reads `flutter test --machine` JSON rather than the JUnit XML, for two reasons: it is the
-// source the XML is made from, so the two cannot disagree, and it carries the failure text and
-// the timings that the XML flattens away. No dependencies, so it runs anywhere `dart` does.
+// Reads `flutter test --machine` JSON rather than converting the JUnit XML, for two reasons: it
+// is the source the XML is made from, so the two cannot disagree, and it carries the failure text
+// and the timings the XML flattens away. No dependencies, so it runs anywhere `dart` does.
 //
-// The page is deliberately one file with no external stylesheet, script or font: a build
-// artifact is downloaded and opened from disk, where anything it had to fetch would be missing.
+// **One parse, three outputs, because a build that reports twice reports differently.**
+//
+//  - `report.html` - a page downloaded and opened from disk. Deliberately one file with no
+//    external stylesheet, script or font: anything it had to fetch would be missing.
+//  - `results.xml` - JUnit, whose `classname` is **the requirement**, not the file path. Written
+//    here rather than by `tojunit`, which groups by path and leaves the id an unread prefix inside
+//    each test name. The id on the `Feature:` line is the whole reason it is there.
+//  - The run's own page on GitHub - a summary table on `$GITHUB_STEP_SUMMARY`, and an `::error`
+//    on the line of each failing scenario in its `.feature` file. Nobody downloads an artifact to
+//    find out that a requirement went red.
+//
+// The two GitHub surfaces are stdout and a file the runner hands you: **no action, no third
+// party, and no `permissions:` block.** A check run would want `checks: write`, which is a
+// decision about a repository rather than a detail of a report.
+//
+// `GITHUB_ACTIONS` and `GITHUB_STEP_SUMMARY` are separate switches, on purpose, so both can be
+// driven from a terminal without pushing anything:
+//
+//   GITHUB_ACTIONS=true GITHUB_STEP_SUMMARY=/tmp/summary.md dart tool/test_report.dart
 import 'dart:convert';
 import 'dart:io';
 
 Future<void> main(List<String> args) async {
   final source = File(args.isNotEmpty ? args[0] : 'build/test-results.json');
   final target = File(args.length > 1 ? args[1] : 'build/test-report.html');
+  final junit = File(args.length > 2 ? args[2] : 'build/test-results.xml');
 
   if (!source.existsSync()) {
     stderr.writeln('No test output at ${source.path}.');
@@ -32,12 +50,30 @@ Future<void> main(List<String> args) async {
     return;
   }
 
+  final requirements = _requirementsOnDisk();
   await target.parent.create(recursive: true);
-  await target.writeAsString(_page(run, _requirementsOnDisk()));
+  await target.writeAsString(_page(run, requirements));
+  await junit.parent.create(recursive: true);
+  await junit.writeAsString(_junit(run));
+
+  // Absent means "not on a runner", and both switches are read separately: a summary written to a
+  // file nobody set would go nowhere, and an annotation printed outside Actions is noise in a
+  // terminal.
+  final summaryFile = Platform.environment['GITHUB_STEP_SUMMARY'];
+  if (summaryFile != null && summaryFile.isNotEmpty) {
+    await File(summaryFile)
+        .writeAsString(_summary(run, requirements), mode: FileMode.append);
+  }
+  if (Platform.environment['GITHUB_ACTIONS'] == 'true') {
+    for (final line in _annotations(run)) {
+      print(line);
+    }
+  }
 
   final failed = run.results.where((result) => !result.passed).length;
   print('${target.path}: ${run.results.length} tests, '
       '${failed == 0 ? 'all passed' : '$failed failed'}');
+  print('${junit.path}: grouped by requirement');
   if (failed > 0) exitCode = 1;
 }
 
@@ -62,6 +98,24 @@ class Result {
 
   /// Everything the run said about it going wrong.
   final List<String> problems = <String>[];
+
+  /// What the test framework printed while it ran.
+  ///
+  /// **This is where a widget test's real failure is.** The `error` event for one says only
+  /// *"Test failed. See exception logs above."* — the expectation, the actual, and the `reason`
+  /// are all in the printed dump. A report built on `error` alone tells a reader nothing at
+  /// exactly the moment they need it, and it looks fine until something goes red.
+  final List<String> printed = <String>[];
+
+  /// The whole of what went wrong, printed dump first.
+  String get detail {
+    final said = <String>[
+      ...printed.map((line) => line.trimRight()),
+      ...problems.where((problem) =>
+          !problem.startsWith('Test failed. See exception logs above.')),
+    ].where((line) => line.trim().isNotEmpty);
+    return said.join('\n').trim();
+  }
 
   /// The requirement it covers, or null when it covers none.
   ///
@@ -134,6 +188,9 @@ Run _read(File source) {
         result.passed = decoded['result'] == 'success';
         result.took = Duration(milliseconds: (decoded['time'] as num? ?? 0).toInt());
         run.results.add(result);
+      case 'print':
+        final result = open[decoded['testID'] as int];
+        result?.printed.add('${decoded['message']}');
       case 'error':
         final result = open[decoded['testID'] as int];
         result?.problems.add(
@@ -162,7 +219,10 @@ Map<String, String> _requirementsOnDisk() {
   return found;
 }
 
-String _page(Run run, Map<String, String> requirements) {
+/// Results by requirement id, and everything that covers none of them by suite.
+///
+/// **One grouping, used by all three outputs.** Two would be two answers to *did F11 pass*.
+({Map<String, List<Result>> covered, Map<String, List<Result>> others}) _group(Run run) {
   final covered = <String, List<Result>>{};
   final others = <String, List<Result>>{};
   for (final result in run.results) {
@@ -173,6 +233,236 @@ String _page(Run run, Map<String, String> requirements) {
       others.putIfAbsent(result.suite, () => <Result>[]).add(result);
     }
   }
+  return (covered: covered, others: others);
+}
+
+/// The run's page on GitHub: one row per requirement, and what failed under it.
+///
+/// **A summary nobody reads to the end is the same as no summary**, so the table is the whole
+/// run and the detail is folded away underneath it. A requirement is red when any scenario under
+/// it is, which is the only reading of a requirement that means anything.
+String _summary(Run run, Map<String, String> requirements) {
+  final grouped = _group(run);
+  final ids = grouped.covered.keys.toList()..sort();
+  final uncovered =
+      requirements.keys.where((id) => !grouped.covered.containsKey(id)).toList()..sort();
+  final failed = run.results.where((result) => !result.passed).length;
+
+  final out = StringBuffer()
+    ..writeln('## Requirements')
+    ..writeln()
+    ..writeln(failed == 0
+        ? '**${run.results.length} tests, all passed** · ${_seconds(run.took)}'
+        : '**${run.results.length} tests, $failed failed** · ${_seconds(run.took)}')
+    ..writeln()
+    ..writeln('| | Requirement | Scenarios | |')
+    ..writeln('| --- | --- | --- | --- |');
+
+  for (final id in ids) {
+    final scenarios = grouped.covered[id]!;
+    final broken = scenarios.where((result) => !result.passed).length;
+    out.writeln('| ${broken == 0 ? '✅' : '❌'} | `$id` ${_markdown(_title(scenarios, id))} '
+        '| ${scenarios.length} | ${broken == 0 ? '' : '$broken failed'} |');
+  }
+
+  // **What nothing covers is the question a matrix is read to answer.** A table of what ran can
+  // never say what did not.
+  for (final id in uncovered) {
+    out.writeln('| ⬜ | `$id` ${_markdown(requirements[id] ?? '')} | 0 | no scenario names it |');
+  }
+
+  final everythingElse = grouped.others.values.expand((tests) => tests).toList();
+  // Said only when there are any. "0 tests guard the client" beside a tick is a blank that looks
+  // like an answer, and it is what a single-file run would print every time.
+  if (everythingElse.isNotEmpty) {
+    final elseBroken = everythingElse.where((test) => !test.passed).length;
+    out
+      ..writeln()
+      ..writeln('${elseBroken == 0 ? '✅' : '❌'} **${everythingElse.length}** tests guard the '
+          'client, the wire and the rules rather than a requirement directly'
+          '${elseBroken == 0 ? '.' : ', and $elseBroken failed.'}');
+  }
+
+  final broken = run.results.where((result) => !result.passed).toList();
+  if (broken.isNotEmpty) {
+    out
+      ..writeln()
+      ..writeln('<details open><summary>What failed</summary>')
+      ..writeln();
+    for (final result in broken) {
+      out
+        ..writeln('**${_markdown(result.requirement ?? _shorten(result.suite))}** — '
+            '${_markdown(result.scenario)}')
+        ..writeln()
+        ..writeln('```')
+        // The whole message here, capped only in the annotation: this is a page with room, and
+        // the truncation that matters is the one a reader cannot see.
+        ..writeln(result.detail)
+        ..writeln('```')
+        ..writeln();
+    }
+    out.writeln('</details>');
+  }
+  out.writeln();
+  return out.toString();
+}
+
+/// One `::error` per failing scenario, on its own line in its own `.feature` file.
+///
+/// **A workflow command is one line.** A newline in the message ends the command and prints the
+/// rest as ordinary output, which only ever shows in the failure case — the case the whole report
+/// exists for. Everything is percent-encoded, and the message is capped: an over-long annotation
+/// arrives truncated at a point nobody chose, and the full text is in the summary and the log.
+/// The part of a failure worth putting on one line beside the scenario.
+///
+/// The stack and the framework's own rules are in the log and in the summary; what belongs here is
+/// the expectation, what was actually found, and the reason somebody wrote.
+String _worthAnnotating(String detail) {
+  final kept = <String>[];
+  for (final line in detail.split('\n')) {
+    if (line.startsWith('When the exception was thrown, this was the stack:')) break;
+    // The framework's own banner and rules carry nothing a reader needs and would eat the cap.
+    if (line.trimLeft().startsWith('══')) continue;
+    if (line.trim().replaceAll(RegExp(r'[═╡╞─\s]'), '').isEmpty) continue;
+    kept.add(line.trimRight());
+  }
+  return kept.join('\n').trim();
+}
+
+List<String> _annotations(Run run) {
+  const cap = 900;
+  final lines = <String>[];
+  for (final result in run.results.where((result) => !result.passed)) {
+    final where = _whereScenarioIs(result);
+    var message = _worthAnnotating(result.detail);
+    if (message.isEmpty) message = 'failed with nothing said';
+    if (message.length > cap) {
+      message = '${message.substring(0, cap)}… (cut here; the whole of it is in the summary)';
+    }
+    final title = result.requirement == null
+        ? result.name
+        : '${result.requirement}: ${result.scenario}';
+    final properties = <String>[
+      if (where != null) 'file=${_property(where.file)}',
+      if (where != null) 'line=${where.line}',
+      'title=${_property(title)}',
+    ].join(',');
+    lines.add('::error $properties::${_command(message)}');
+  }
+  return lines;
+}
+
+/// Where a scenario is written, so the annotation lands on it rather than on generated code.
+///
+/// **The `.feature` file, never the generated test.** A person reading a red build has to change
+/// the feature; the generated file is regenerated and would be the one place an edit is lost.
+({String file, int line})? _whereScenarioIs(Result result) {
+  final suite = result.suite;
+  if (!suite.endsWith('_test.dart')) return null;
+  final feature = File(
+      '${suite.substring(0, suite.length - '_test.dart'.length)}.feature');
+  if (!feature.existsSync()) return null;
+
+  final wanted = result.scenario;
+  final lines = feature.readAsLinesSync();
+  for (var index = 0; index < lines.length; index++) {
+    final line = lines[index].trim();
+    if (!line.startsWith('Scenario')) continue;
+    final said = line.substring(line.indexOf(':') + 1).trim();
+    if (said == wanted) {
+      return (file: _relative(feature.path), line: index + 1);
+    }
+  }
+  // The file is better than nothing: a scenario renamed between the run and the read still points
+  // somebody at the right file rather than at no file at all.
+  return (file: _relative(feature.path), line: 1);
+}
+
+String _relative(String path) {
+  final root = '${Directory.current.path}/';
+  return path.startsWith(root) ? path.substring(root.length) : path;
+}
+
+/// JUnit, grouped by requirement.
+///
+/// **`classname` is the requirement and `name` is the scenario**, which is what makes any reader
+/// of this file — a CI plugin, an IDE, a spreadsheet — group by the thing the id was put on the
+/// `Feature:` line for. Grouping by file path, which is what a generic converter does, leaves the
+/// id an unread prefix inside a test name.
+String _junit(Run run) {
+  final grouped = _group(run);
+  final suites = <String, List<Result>>{
+    for (final id in grouped.covered.keys.toList()..sort()) id: grouped.covered[id]!,
+    for (final suite in grouped.others.keys.toList()..sort())
+      _shorten(suite): grouped.others[suite]!,
+  };
+
+  final out = StringBuffer()
+    ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
+    ..writeln('<testsuites tests="${run.results.length}" '
+        'failures="${run.results.where((result) => !result.passed).length}" '
+        'time="${_plainSeconds(run.took)}">');
+
+  suites.forEach((name, results) {
+    final failures = results.where((result) => !result.passed).length;
+    out.writeln('  <testsuite name="${_xml(name)}" tests="${results.length}" '
+        'failures="$failures" errors="0" skipped="0" '
+        'time="${_plainSeconds(results.fold(Duration.zero, (all, one) => all + one.took))}" '
+        'timestamp="${run.at.toUtc().toIso8601String()}">');
+    for (final result in results) {
+      final scenario = result.requirement == null ? result.name : result.scenario;
+      out.write('    <testcase classname="${_xml(name)}" name="${_xml(scenario)}" '
+          'time="${_plainSeconds(result.took)}"');
+      if (result.passed) {
+        out.writeln('/>');
+      } else {
+        out
+          ..writeln('>')
+          ..writeln('      <failure message="${_xml(_firstLine(result.detail))}">'
+              '${_xml(result.detail)}</failure>')
+          ..writeln('    </testcase>');
+      }
+    }
+    out.writeln('  </testsuite>');
+  });
+
+  out.writeln('</testsuites>');
+  return out.toString();
+}
+
+String _firstLine(String detail) {
+  final said = _worthAnnotating(detail);
+  if (said.isEmpty) return 'failed with nothing said';
+  final end = said.indexOf('\n');
+  return end < 0 ? said : said.substring(0, end);
+}
+
+String _plainSeconds(Duration took) =>
+    (took.inMilliseconds / 1000).toStringAsFixed(3);
+
+/// A workflow command is one line, so what would end it is encoded rather than sent.
+String _command(String text) => text
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A');
+
+/// A property is inside a comma-separated list, so it loses two more characters.
+String _property(String text) =>
+    _command(text).replaceAll(':', '%3A').replaceAll(',', '%2C');
+
+/// Enough escaping that a table cell holding a pipe stays one cell.
+String _markdown(String text) => text.replaceAll('|', r'\|').replaceAll('\n', ' ');
+
+String _xml(String text) => text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+
+String _page(Run run, Map<String, String> requirements) {
+  final grouped = _group(run);
+  final covered = grouped.covered;
+  final others = grouped.others;
 
   final ids = covered.keys.toList()..sort();
   final uncovered = requirements.keys.where((id) => !covered.containsKey(id)).toList()
@@ -216,8 +506,8 @@ String _page(Run run, Map<String, String> requirements) {
           '<span class="mark">${scenario.passed ? '✓' : '✗'}</span>'
           '${_escape(scenario.scenario)}'
           '<span class="took">${_seconds(scenario.took)}</span></li>');
-      for (final problem in scenario.problems) {
-        page.writeln('<pre>${_escape(problem)}</pre>');
+      if (!scenario.passed && scenario.detail.isNotEmpty) {
+        page.writeln('<pre>${_escape(scenario.detail)}</pre>');
       }
     }
     page
@@ -263,8 +553,8 @@ String _page(Run run, Map<String, String> requirements) {
             '<span class="mark">${test.passed ? '✓' : '✗'}</span>'
             '${_escape(test.name)}'
             '<span class="took">${_seconds(test.took)}</span></li>');
-        for (final problem in test.problems) {
-          page.writeln('<pre>${_escape(problem)}</pre>');
+        if (!test.passed && test.detail.isNotEmpty) {
+          page.writeln('<pre>${_escape(test.detail)}</pre>');
         }
       }
       page
