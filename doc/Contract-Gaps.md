@@ -349,7 +349,7 @@ names and the requirements are written from what a person sees.
     exec inside libc, and the child acquires the terminal by opening it as a session leader, so no
     Dart code ever runs in a forked process.
   - **Sokar's own verb, never `podman exec`.** Running the runtime's command here would teach this
-    end which runtime is underneath — which [B08](https://github.com/fuinorg/sokar) exists so it
+    end which runtime is underneath — which [B08](https://github.com/sokar-ai/sokar) exists so it
     does not — and would leave Sokar unable to refuse or to record that somebody was inside.
   - **No privilege is added**, and the earlier claim that it *"opens a much bigger door"* was
     withdrawn as conditional stated absolutely. Whoever forwards the socket already has an account
@@ -428,7 +428,7 @@ its list still arrive as clearance prompts — do not badge it as complete.
 
 ### F22 is built
 
-Asked for as [B11](https://github.com/fuinorg/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
+Asked for as [B11](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
 and answered the same day: `Task` gained `agent`, `mode`, `prompt`, `branch`, `since`, `activity`
 and `waitingFor`, and `Watch` redraws on all of them — so a task that starts waiting arrives as a
 change, which it could not before, because the runtime's own words do not change when it does.

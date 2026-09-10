@@ -1,6 +1,6 @@
 # sokar-frontend
 
-The interface for [Sokar](https://github.com/fuinorg/sokar), in Flutter.
+The interface for [Sokar](https://github.com/sokar-ai/sokar), in Flutter.
 
 Sokar runs AI coding agents in locked-down containers: no network except what a project
 declares, no credential the agent can read, and nothing leaves the machine without somebody

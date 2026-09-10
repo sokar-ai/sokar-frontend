@@ -1,6 +1,6 @@
 # Working on the Sokar frontend
 
-The interface people use to work with a [Sokar](https://github.com/fuinorg/sokar) backend, in
+The interface people use to work with a [Sokar](https://github.com/sokar-ai/sokar) backend, in
 Flutter. This file is the working knowledge: the rules, the traps, and the things that were
 measured rather than assumed. What must be *true for a person using it* is in
 [requirements](requirements/README.md); what it is *made of* is in

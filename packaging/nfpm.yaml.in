@@ -13,7 +13,7 @@ description: |
   Watches what work is doing, reviews what it produced before anything leaves the
   machine, and answers what it is refused while it runs.
 vendor: fuin.org
-homepage: https://github.com/fuinorg/sokar-frontend
+homepage: https://github.com/sokar-ai/sokar-frontend
 license: Apache-2.0
 
 # Not `depends`. An interface pointed at a remote daemon over an SSH-forwarded socket is useful

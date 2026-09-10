@@ -11,7 +11,7 @@ Files here are numbered with an `F` prefix; the number is identity, not order. T
 order to build them in is the table below.
 
 **This is the whole of the interface.** It lives in this repository rather than in
-[sokar](https://github.com/fuinorg/sokar) so it can be worked on independently; that repository's
+[sokar](https://github.com/sokar-ai/sokar) so it can be worked on independently; that repository's
 index carries one row pointing here. A few of these files narrow a requirement that is still
 central over there, because it constrains the daemon or the domain rather than the interface;
 where they do, they link to it rather than restating it.
@@ -308,7 +308,7 @@ be read again.
   action from where the work is listed — several at once, each named by its task and its machine,
   and the way back is the frame's own: leaving returns to the same place with the same selection.
   Asked for as
-  [B16](https://github.com/fuinorg/sokar/blob/main/requirements/base/B16-Working-Inside-A-Running-Container.md)
+  [B16](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B16-Working-Inside-A-Running-Container.md)
   and designed there: **varlink cannot carry a session** — one call in, many replies out — so the
   session is a **pty running `sokar task attach`**, over ssh for a machine that needs one and here
   for a machine that does not. Sokar's own verb rather than the runtime's, so this end never
@@ -334,7 +334,7 @@ be read again.
   a tree, where it could scroll out of view. Raising the tunnel is [F27](F27-Managed-Tunnels.md).
 - **F22 Task State Visibility.** Working, idle, waiting and dead, beside the runtime's own words
   and never instead of them, with *"idle for forty minutes"* as arithmetic on a timestamp. Asked
-  for as [B11](https://github.com/fuinorg/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
+  for as [B11](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md)
   and answered the same day. One thing it deliberately does **not** do: `WAITING` covers clearance
   questions only, so an agent asking its own question reads as `UNKNOWN` or `IDLE`, and labeling
   either as *probably waiting* is the guess the field exists to avoid.
