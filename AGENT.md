@@ -1929,3 +1929,30 @@ not to, and they are the reasons it belongs at the other end:
 nothing**, because a blank line under a name says *this file has a description and it failed*
 rather than *nobody gave one*. Mutate it to `_string` and four tests go red, one of them the
 scenario that a bare name is described by nothing at all.
+
+## What the build reports
+
+`tool/test_report.dart` parses `flutter test --machine` once and writes four things: the HTML page,
+JUnit XML, a table on `$GITHUB_STEP_SUMMARY`, and an `::error` per failing scenario on its line in
+its `.feature` file. One parse, because a build that reports twice reports differently.
+
+- **The machine JSON, not the JUnit XML.** It is the source the XML is made from, and it carries
+  the failure text and timings the XML flattens away.
+- **`classname` is the requirement.** `tojunit` grouped by file path and left the id an unread
+  prefix inside each test name — the id doing none of the work it is on the `Feature:` line for.
+- **No action and no `permissions:` block.** The summary is a file the runner hands you and the
+  annotations are stdout. A check run would want `checks: write`, which is a decision about a
+  repository rather than a detail of a report.
+- **`GITHUB_ACTIONS` and `GITHUB_STEP_SUMMARY` are separate switches**, so both surfaces can be
+  driven from a terminal without pushing.
+
+Two things only a deliberate failure showed, and both were invisible while everything was green:
+
+- **A widget test's `error` event says only *"Test failed. See exception logs above."*** The
+  expectation, the actual and the author's `reason` are in a `print` event. The HTML report had
+  been built on `error` alone since it was written, so every failure in it was that one sentence.
+- **A workflow command is one line.** An unescaped newline ends it and prints the rest as ordinary
+  output. Removing the `%0A` escape takes exactly one test red.
+
+Sokar's rule, which found both: **make a scenario fail on purpose and read what comes out.** The
+happy path proves nothing about a failure report.

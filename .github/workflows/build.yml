@@ -35,9 +35,12 @@ jobs:
           flutter-version-file: pubspec.yaml
           cache: true
 
-      # GTK and the toolchain the Linux desktop build needs. The runner has neither by default.
+      # GTK and the toolchain, which the runner has by default in neither case. The third-party
+      # lists go first: `apt-get update` exits 100 when any index fails, and everything installed
+      # here is Ubuntu's own. Chrome's cost run 93144262860.
       - name: Install what a Linux desktop build needs
         run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
             clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
@@ -59,21 +62,8 @@ jobs:
             exit 1
           }
 
-      # One run, four surfaces, all from one parse of the machine JSON: the HTML page and the
-      # JUnit XML as artifacts, a table on this run's own summary page, and an `::error` on the
-      # line of each failing scenario in its `.feature` file. Every feature names one requirement
-      # on its `Feature:` line, and that id is the group in all four.
-      #
-      # **No action, no `permissions:` block.** The summary is a file the runner hands you and the
-      # annotations are stdout. A check run would want `checks: write`, which is a decision about
-      # this repository rather than a detail of a report.
-      #
-      # `tojunit` used to make the XML and grouped it by file path, which left the requirement an
-      # unread prefix inside each test name — the id doing none of the work it is there for. The
-      # tool writes the XML itself now, so the two reports cannot disagree and CI fetches nothing.
-      #
-      # `set +e` so a red run still reports: the tool exits non-zero when anything failed, and
-      # that is what fails the job.
+      # One parse, four surfaces, all grouped by the requirement on each `Feature:` line. `set +e`
+      # so a red run still reports: the tool's own exit code fails the job.
       - name: Test
         run: |
           mkdir -p build

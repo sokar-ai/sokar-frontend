@@ -1,32 +1,13 @@
-// Turns a test run into a requirements traceability matrix, in three shapes at once.
+// Turns one test run into a requirements traceability matrix, in four shapes at once: an HTML
+// page, JUnit XML grouped by requirement, a `$GITHUB_STEP_SUMMARY` table, and an `::error` per
+// failing scenario. Why each is shaped the way it is: AGENT.md, "What the build reports".
 // ignore_for_file: avoid_print - this is a command-line tool; printing is its output.
 //
 // Usage:
 //   flutter test --machine > build/test-results.json
 //   dart tool/test_report.dart [results.json] [report.html] [results.xml]
 //
-// Reads `flutter test --machine` JSON rather than converting the JUnit XML, for two reasons: it
-// is the source the XML is made from, so the two cannot disagree, and it carries the failure text
-// and the timings the XML flattens away. No dependencies, so it runs anywhere `dart` does.
-//
-// **One parse, three outputs, because a build that reports twice reports differently.**
-//
-//  - `report.html` - a page downloaded and opened from disk. Deliberately one file with no
-//    external stylesheet, script or font: anything it had to fetch would be missing.
-//  - `results.xml` - JUnit, whose `classname` is **the requirement**, not the file path. Written
-//    here rather than by `tojunit`, which groups by path and leaves the id an unread prefix inside
-//    each test name. The id on the `Feature:` line is the whole reason it is there.
-//  - The run's own page on GitHub - a summary table on `$GITHUB_STEP_SUMMARY`, and an `::error`
-//    on the line of each failing scenario in its `.feature` file. Nobody downloads an artifact to
-//    find out that a requirement went red.
-//
-// The two GitHub surfaces are stdout and a file the runner hands you: **no action, no third
-// party, and no `permissions:` block.** A check run would want `checks: write`, which is a
-// decision about a repository rather than a detail of a report.
-//
-// `GITHUB_ACTIONS` and `GITHUB_STEP_SUMMARY` are separate switches, on purpose, so both can be
-// driven from a terminal without pushing anything:
-//
+// The two GitHub surfaces are separate switches, so both can be driven from a terminal:
 //   GITHUB_ACTIONS=true GITHUB_STEP_SUMMARY=/tmp/summary.md dart tool/test_report.dart
 import 'dart:convert';
 import 'dart:io';
