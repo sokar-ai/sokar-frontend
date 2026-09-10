@@ -22,7 +22,7 @@ import './step/it_names_the_work_among_what_was_stopped.dart';
 import './step/it_does_not_claim_everything_will_stop_cleanly.dart';
 
 void main() {
-  group('''F18 Emergency Stop''', () {
+  group('''Stopping everything on a machine, and naming what survives''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

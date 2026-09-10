@@ -29,7 +29,7 @@ import './step/the_work_held_unpushed_commits_when_it_stopped.dart';
 import './step/the_machine_knows_no_such_task.dart';
 
 void main() {
-  group('''F10 Task Inspection And Work Handover''', () {
+  group('''Reviewing what work pushed, and what it holds back''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

@@ -1,6 +1,6 @@
-# The requirement id belongs on the Feature line and nowhere else: it becomes the JUnit group,
-# which is what makes the CI report a traceability matrix.
-Feature: F14 Authentication Flows
+# The Feature line is the report row: one short sentence, 70 characters at most,
+# saying what this file tests. It is the group name in every surface CI renders.
+Feature: Which providers a machine is authenticated against
 
   Background:
     Given a backend with work on it

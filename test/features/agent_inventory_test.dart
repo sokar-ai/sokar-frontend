@@ -21,7 +21,8 @@ import './step/one_agent_is_shadowed_by_another_copy.dart';
 import './step/it_lists_the_unused_copy.dart';
 
 void main() {
-  group('''F24 Agent Inventory''', () {
+  group('''Listing the agents a machine has, and what each one may reach''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

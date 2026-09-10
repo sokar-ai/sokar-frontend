@@ -4,7 +4,7 @@ import 'package:sokar_frontend/src/app/settings.dart';
 import 'package:sokar_frontend/src/app/templates.dart';
 
 /// A template is a convenience, and a convenience that can quietly widen what work may reach is
-/// not one. That is the criterion with teeth in F25, and it is what most of this file is about.
+/// not one. That is the part with teeth, and it is what most of this file is about.
 void main() {
   Templates templatesOn(MemorySettingsStore store) => Templates(Settings(store));
 

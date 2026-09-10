@@ -32,10 +32,9 @@ abstract class SessionChannel {
 ///
 /// **Written here rather than taken from a plugin, and the reason is the package.** A native
 /// plugin is another `.so` in the bundle, and every `.so` in the bundle goes through
-/// `dpkg-shlibdeps` and the rpm scanner to become a package dependency —
-/// [F26](../../../requirements/F26-Linux-Packaging.md) is the requirement that chain belongs to,
-/// and it has been the most delicate part of shipping this. `dart:ffi` is in the SDK, so this
-/// costs the packaging nothing.
+/// `dpkg-shlibdeps` and the rpm scanner to become a package dependency, which has been the
+/// most delicate part of shipping this. `dart:ffi` is in the SDK, so this costs the packaging
+/// nothing.
 ///
 /// Two things about it are not obvious and both are deliberate:
 ///

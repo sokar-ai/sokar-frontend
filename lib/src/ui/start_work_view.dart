@@ -219,7 +219,7 @@ class _WhichMode extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RadioGroup<Mode>(
         // `Start` would default this — `UNATTENDED` with a prompt, `SHELL` without. Not relied
-        // on: F08 asks for work started *with* a mode, and a screen that picked one quietly
+        // on: work is started *with* a mode, and a screen that picked one quietly
         // would be deciding whether anybody is going to be there.
         groupValue: starting.mode,
         onChanged: (chosen) => chosen == null ? null : starting.chooseMode(chosen),

@@ -165,9 +165,9 @@ class Task {
   /// A caption somebody set, or empty.
   ///
   /// **Beside the identity, never instead of it.** Empty is the ordinary state — every task has
-  /// none until somebody types one — and a task with none shows its real name. Renaming was what
-  /// F09 asked for and not what anybody wanted: a rename would move a gate ref with unreviewed
-  /// pushes behind it.
+  /// none until somebody types one — and a task with none shows its real name. Renaming was asked
+  /// for and is not what anybody wanted: it would move a gate ref with unreviewed pushes behind
+  /// it.
   final String label;
 
   /// Project it belongs to, or empty when nothing recorded one.

@@ -24,7 +24,7 @@ import './step/the_operation_runs_out_of_time.dart';
 import './step/the_run_is_refused_before_it_begins.dart';
 
 void main() {
-  group('''F13 Operation Feedback And History''', () {
+  group('''Running long operations without blocking the frame''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

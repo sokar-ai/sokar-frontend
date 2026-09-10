@@ -17,7 +17,7 @@ import './step/importing_will_find_nothing.dart';
 import './step/importing_will_find_the_store_shut.dart';
 
 void main() {
-  group('''F14 Authentication Flows''', () {
+  group('''Which providers a machine is authenticated against''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

@@ -25,7 +25,7 @@ import './step/the_command_finder_does_not_name.dart';
 import './step/the_app_is_restarted.dart';
 
 void main() {
-  group('''F25 Task Templates''', () {
+  group('''Naming a job so it can be started again''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

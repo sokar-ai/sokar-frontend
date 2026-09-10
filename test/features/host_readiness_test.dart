@@ -16,7 +16,7 @@ import './step/the_machine_was_asked_twice_whether_it_can_run_anything.dart';
 import './step/the_machine_cannot_answer_whether_it_can_run_anything.dart';
 
 void main() {
-  group('''F19 Host Readiness''', () {
+  group('''Checking whether a machine can run work at all''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

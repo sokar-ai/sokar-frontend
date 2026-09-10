@@ -127,7 +127,7 @@ class ProjectsPane extends StatelessWidget {
           'Not connected, so what is here is unknown.\nThis is not an empty machine.',
         Reachability.incompatible => 'This backend speaks nothing this build understands.',
         // Projects are derived from the tasks that mention them, so a project that has never
-        // run anything cannot appear here at all. That is F02, and it needs a backend method.
+        // run anything cannot appear here at all. Listing those needs a backend method.
         Reachability.connected =>
           'No work has run on this machine, so no project names itself yet.',
       };

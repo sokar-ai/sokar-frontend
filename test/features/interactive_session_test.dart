@@ -40,7 +40,7 @@ import './step/i_leave_the_session.dart';
 import './step/no_session_is_open.dart';
 
 void main() {
-  group('''F12 Interactive Session Attach''', () {
+  group('''Working inside a container by hand, locally or over ssh''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

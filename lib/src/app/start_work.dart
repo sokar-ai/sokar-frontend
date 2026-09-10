@@ -11,7 +11,7 @@ import 'templates.dart';
 /// The mode is the part worth being careful about. It is not decoration on a start button — it
 /// says whether a person is going to be there. `Start` will default it (`UNATTENDED` when a
 /// prompt is given, `SHELL` otherwise), and the default is deliberately not relied on here,
-/// because F08 asks for work to be started *with* a mode and a screen that quietly picked one
+/// because work is started *with* a mode, and a screen that quietly picked one
 /// would be answering that for somebody.
 class StartWork extends ChangeNotifier {
   /// Which project the work starts in, or null when nothing is being started.

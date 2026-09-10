@@ -23,7 +23,8 @@ import './step/a_newer_build_is_installed_underneath.dart';
 import './step/it_says_a_newer_build_is_installed.dart';
 
 void main() {
-  group('''F21 Continuity And Updates''', () {
+  group('''Leaving and reopening the window without losing where you were''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

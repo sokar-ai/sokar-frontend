@@ -21,7 +21,7 @@ import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
 
 void main() {
-  group('''F03 Project Environment Preparation''', () {
+  group('''Building a project's environment, and watching it run''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

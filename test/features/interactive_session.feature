@@ -1,6 +1,6 @@
-# The requirement id belongs on the Feature line and nowhere else: it becomes the JUnit group,
-# which is what makes the CI report a traceability matrix.
-Feature: F12 Interactive Session Attach
+# The Feature line is the report row: one short sentence, 70 characters at most,
+# saying what this file tests. It is the group name in every surface CI renders.
+Feature: Working inside a container by hand, locally or over ssh
 
   Background:
     Given a backend with work on it
@@ -34,7 +34,7 @@ Feature: F12 Interactive Session Attach
     And I type {'ls -l'} into the session
     Then the session was sent {'ls -l'}
 
-  # The same work F17 refuses to widen, and deliberately so: the class governs egress — what
+  # The same work that may not be widened, and deliberately so: the class governs egress — what
   # resolves and what leaves — and a person typing is neither. Offline is precisely the project
   # where somebody has to work by hand, because the agent reaches nothing.
   Scenario: an offline project may be worked in by hand, though it may not be widened

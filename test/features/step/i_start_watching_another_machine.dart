@@ -9,7 +9,7 @@ Future<void> iStartWatchingAnotherMachine(WidgetTester tester) async {
   await World.settle(tester);
   await tester.tap(find.widgetWithText(MenuItemButton, 'Watch another machine…'));
   await World.settle(tester);
-  // The socket-somebody-else-forwarded kind, which is what F20 is about. Nothing is preselected
+  // The socket-somebody-else-forwarded kind. Nothing is preselected
   // in the dialog, deliberately: raising a forward starts a process and owns it, and that is a
   // different commitment from opening a path.
   await tester.tap(find.byKey(const Key('machine-already-forwarded')));

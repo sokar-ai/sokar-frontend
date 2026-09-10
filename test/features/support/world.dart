@@ -74,7 +74,7 @@ class FakeBackend implements FleetBackend {
   final List<bool> launched = <bool>[];
 
   /// Every launch, as it was asked for. What mode and prompt went down the socket is the whole
-  /// of F08 — a screen that offered one and sent another would be wrong invisibly.
+  /// of it — a screen that offered one and sent another would be wrong invisibly.
   final List<({String? task, String? project, String? agent, Mode? mode, String? prompt})>
       starts =
       <({String? task, String? project, String? agent, Mode? mode, String? prompt})>[];
@@ -1357,7 +1357,7 @@ class World {
     addTearDown(elsewhere.stop);
 
     // One machine to begin with, and a second only when a scenario asks. Reaching several is
-    // F20, and every scenario that does not care must not pay for it.
+    // only the machine scenarios, and every scenario that does not care must not pay for it.
     machines = Machines(
       settings,
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,

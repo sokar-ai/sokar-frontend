@@ -36,7 +36,7 @@ import './step/the_vault_is_locked.dart';
 import './step/the_agent_names_no_default_provider.dart';
 
 void main() {
-  group('''F08 Task Creation And Modes''', () {
+  group('''Starting work with an agent, a mode and a credential''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

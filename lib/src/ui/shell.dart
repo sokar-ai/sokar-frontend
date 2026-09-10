@@ -507,7 +507,7 @@ class _ShellState extends State<Shell> {
 
   /// Lets the selected work reach something it could not reach before.
   ///
-  /// A dialog over where the work is listed, because F17 asks for it *from* there: a person
+  /// A dialog over where the work is listed, because it is asked for *from* there: a person
   /// answering a refusal is looking at the task, not at a project file.
   /// Changes what running work does with a blocked connection.
   ///
@@ -668,9 +668,8 @@ class _ShellState extends State<Shell> {
   /// Runs the one long operation the frame has today, and opens it.
   ///
   /// A dry run on purpose: it does everything up to starting a container and then reports,
-  /// creating nothing. Starting work for real is
-  /// [F08](../../../requirements/F08-Task-Creation-And-Modes.md), which fills in the choosing
-  /// this deliberately does not do.
+  /// creating nothing. Starting work for real fills in the choosing this deliberately
+  /// does not do.
   void _checkWorkCanStart() {
     final project = _fleet.selectedProject?.project;
     if (project == null) return;

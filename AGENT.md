@@ -1938,8 +1938,16 @@ its `.feature` file. One parse, because a build that reports twice reports diffe
 
 - **The machine JSON, not the JUnit XML.** It is the source the XML is made from, and it carries
   the failure text and timings the XML flattens away.
-- **`classname` is the requirement.** `tojunit` grouped by file path and left the id an unread
-  prefix inside each test name — the id doing none of the work it is on the `Feature:` line for.
+- **`classname` is what the feature tests**, and the row shows the last two path segments. The
+  requirement ids are gone: every requirement file was finished and deleted, so a row headed
+  `F11` named a document nobody could open. `test/features_named_test.dart` fails on any id left
+  in `lib`, `test` or `tool`.
+- **The table is Sokar's, column for column**, so two reports of the same kind of run read alike.
+  Failure detail is in the annotation only — a summary that grows a stack trace stops being
+  scannable at the first red build.
+- **`--machine` reports `time` as milliseconds since the run began**, on `testStart` and
+  `testDone` alike. Read as a duration it makes each row the age of the run at that point; the
+  column summed to four times the wall clock before anybody looked.
 - **No action and no `permissions:` block.** The summary is a file the runner hands you and the
   annotations are stdout. A check run would want `checks: write`, which is a decision about a
   repository rather than a detail of a report.

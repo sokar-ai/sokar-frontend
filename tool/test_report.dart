@@ -33,9 +33,8 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final requirements = _requirementsOnDisk();
   await target.parent.create(recursive: true);
-  await target.writeAsString(_page(run, requirements));
+  await target.writeAsString(_page(run));
   await junit.parent.create(recursive: true);
   await junit.writeAsString(_junit(run));
 
@@ -44,8 +43,7 @@ Future<void> main(List<String> args) async {
   // terminal.
   final summaryFile = Platform.environment['GITHUB_STEP_SUMMARY'];
   if (summaryFile != null && summaryFile.isNotEmpty) {
-    await File(summaryFile)
-        .writeAsString(_summary(run, requirements), mode: FileMode.append);
+    await File(summaryFile).writeAsString(_summary(run), mode: FileMode.append);
   }
   if (Platform.environment['GITHUB_ACTIONS'] == 'true') {
     for (final line in _annotations(run)) {
@@ -56,7 +54,7 @@ Future<void> main(List<String> args) async {
   final failed = run.results.where((result) => !result.passed).length;
   print('${target.path}: ${run.results.length} tests, '
       '${failed == 0 ? 'all passed' : '$failed failed'}');
-  print('${junit.path}: grouped by requirement');
+  print('${junit.path}: grouped by feature');
   if (failed > 0) exitCode = 1;
 }
 
@@ -77,7 +75,14 @@ class Result {
   bool passed = true;
 
   /// How long it took.
+  ///
+  /// **Worked out, not read.** `--machine` reports `time` as milliseconds *since the run began*,
+  /// on both `testStart` and `testDone` — so taking `testDone.time` as a duration made each row
+  /// the age of the run at that point, and a column of them summed to four times the wall clock.
   Duration took = Duration.zero;
+
+  /// When it started, in run time, so [took] can be the difference.
+  Duration began = Duration.zero;
 
   /// Everything the run said about it going wrong.
   final List<String> problems = <String>[];
@@ -100,10 +105,21 @@ class Result {
     return said.join('\n').trim();
   }
 
-  /// The requirement it covers, or null when it covers none.
+  /// The `.feature` this came from, or null for a test that is not a scenario.
   ///
-  /// Read off the group, which is the `Feature:` line — the whole reason the id lives there.
-  String? get requirement => RegExp(r'^(F\d\d)\b').firstMatch(group)?.group(1);
+  /// Found by asking the filesystem rather than by reading the name: a scenario's group is its
+  /// `Feature:` line, which says what the file tests and nothing about where it lives.
+  String? get feature {
+    if (!suite.endsWith('_test.dart')) return null;
+    final path = '${suite.substring(0, suite.length - '_test.dart'.length)}.feature';
+    return File(path).existsSync() ? _relative(path) : null;
+  }
+
+  /// The last two segments of that path, which is what the table shows.
+  static String shorten(String path) {
+    final parts = path.split('/');
+    return parts.length <= 2 ? path : parts.sublist(parts.length - 2).join('/');
+  }
 
   /// The scenario without the feature in front of it.
   String get scenario =>
@@ -160,7 +176,7 @@ Run _read(File source) {
           name: '${test['name']}',
           suite: suites[test['suiteID'] as int] ?? '',
           group: named.isEmpty ? '' : named.last,
-        );
+        )..began = Duration(milliseconds: (decoded['time'] as num? ?? 0).toInt());
       case 'testDone':
         final result = open[decoded['testID'] as int];
         if (result == null) continue;
@@ -169,7 +185,8 @@ Run _read(File source) {
           continue;
         }
         result.passed = decoded['result'] == 'success';
-        result.took = Duration(milliseconds: (decoded['time'] as num? ?? 0).toInt());
+        final ended = Duration(milliseconds: (decoded['time'] as num? ?? 0).toInt());
+        result.took = ended > result.began ? ended - result.began : Duration.zero;
         run.results.add(result);
       case 'print':
         final result = open[decoded['testID'] as int];
@@ -185,126 +202,100 @@ Run _read(File source) {
   return run;
 }
 
-/// Requirement ids that exist, so the report can name the ones nothing covers.
-///
-/// A matrix that only lists what was tested cannot tell anybody what was not, which is the
-/// question somebody reads a traceability report to answer.
-Map<String, String> _requirementsOnDisk() {
-  final directory = Directory('requirements');
-  if (!directory.existsSync()) return const <String, String>{};
-  final found = <String, String>{};
-  for (final file in directory.listSync().whereType<File>()) {
-    final match =
-        RegExp(r'^(F\d\d)-(.+)\.md$').firstMatch(file.uri.pathSegments.last);
-    if (match == null) continue;
-    found[match.group(1)!] = match.group(2)!.replaceAll('-', ' ');
-  }
-  return found;
-}
-
 /// Says on the run's own page that nothing ran.
 ///
 /// **Silence covers three states**: no test step, a step that matched nothing, and a step whose
 /// run never produced output. A reporter that writes nothing when it has nothing to report cannot
-/// be told apart from one that never ran — Sokar's acceptance suite proved nothing for several
-/// merges that way.
+/// be told apart from one that never ran.
 Future<void> _sayNothingRan(String because) async {
   final summaryFile = Platform.environment['GITHUB_STEP_SUMMARY'];
   if (summaryFile == null || summaryFile.isEmpty) return;
   await File(summaryFile).writeAsString(
-      '## Requirements\n\n**No tests ran.** $because\n\n'
+      '## Scenarios\n\n**No tests ran.** $because\n\n'
       'Check that the test step ran, that it wrote the machine JSON, and that the path this was '
       'given is the one it wrote.\n\n',
       mode: FileMode.append);
 }
 
-/// Results by requirement id, and everything that covers none of them by suite.
+/// Scenarios by the `.feature` they came from, and everything else by suite.
 ///
-/// **One grouping, used by all three outputs.** Two would be two answers to *did F11 pass*.
-({Map<String, List<Result>> covered, Map<String, List<Result>> others}) _group(Run run) {
-  final covered = <String, List<Result>>{};
+/// **One grouping, used by every output.** Two would be two answers to one question.
+({Map<String, List<Result>> features, Map<String, List<Result>> others}) _group(Run run) {
+  final features = <String, List<Result>>{};
   final others = <String, List<Result>>{};
   for (final result in run.results) {
-    final requirement = result.requirement;
-    if (requirement != null) {
-      covered.putIfAbsent(requirement, () => <Result>[]).add(result);
+    final feature = result.feature;
+    if (feature != null) {
+      features.putIfAbsent(feature, () => <Result>[]).add(result);
     } else {
       others.putIfAbsent(result.suite, () => <Result>[]).add(result);
     }
   }
-  return (covered: covered, others: others);
+  return (features: features, others: others);
 }
 
-/// The run's page on GitHub: one row per requirement, and what failed under it.
+/// The run's page on GitHub: one row per feature, its scenarios folded into a ratio.
 ///
-/// **A summary nobody reads to the end is the same as no summary**, so the table is the whole
-/// run and the detail is folded away underneath it. A requirement is red when any scenario under
-/// it is, which is the only reading of a requirement that means anything.
-String _summary(Run run, Map<String, String> requirements) {
+/// **Sokar's table, column for column**, so two reports of the same kind of run read the same way.
+/// The path is the last two segments only: the table is scanned and the annotation is navigated,
+/// and a full path in every row crowds out the sentence that says what broke.
+///
+/// **No failure detail here.** It goes to the annotation, capped, and to the HTML report in full.
+/// A summary that carries a stack trace stops being a summary at the first red build.
+String _summary(Run run) {
   final grouped = _group(run);
-  final ids = grouped.covered.keys.toList()..sort();
-  final uncovered =
-      requirements.keys.where((id) => !grouped.covered.containsKey(id)).toList()..sort();
-  final failed = run.results.where((result) => !result.passed).length;
+  final paths = grouped.features.keys.toList()..sort();
+  final scenarios = grouped.features.values.expand((each) => each).toList();
+  final passed = scenarios.where((result) => result.passed).length;
 
   final out = StringBuffer()
-    ..writeln('## Requirements')
+    ..writeln('## Scenarios')
     ..writeln()
-    ..writeln(failed == 0
-        ? '**${run.results.length} tests, all passed** · ${_seconds(run.took)}'
-        : '**${run.results.length} tests, $failed failed** · ${_seconds(run.took)}')
-    ..writeln()
-    ..writeln('| | Requirement | Scenarios | |')
-    ..writeln('| --- | --- | --- | --- |');
+    ..writeln('Run against a fake backend, in a widget-test frame.')
+    ..writeln();
 
-  for (final id in ids) {
-    final scenarios = grouped.covered[id]!;
-    final broken = scenarios.where((result) => !result.passed).length;
-    out.writeln('| ${broken == 0 ? '✅' : '❌'} | `$id` ${_markdown(_title(scenarios, id))} '
-        '| ${scenarios.length} | ${broken == 0 ? '' : '$broken failed'} |');
+  if (scenarios.isEmpty) {
+    out
+      ..writeln('**No scenarios ran.** Nothing under `test/features` produced a result — check '
+          'that the generated tests are current.')
+      ..writeln();
+    return out.toString();
   }
 
-  // **What nothing covers is the question a matrix is read to answer.** A table of what ran can
-  // never say what did not.
-  for (final id in uncovered) {
-    out.writeln('| ⬜ | `$id` ${_markdown(requirements[id] ?? '')} | 0 | no scenario names it |');
+  out
+    ..writeln('| | What it tests | Feature | | Time |')
+    ..writeln('|---|---|---|---|---:|');
+  for (final path in paths) {
+    final under = grouped.features[path]!;
+    final ran = under.where((result) => result.passed).length;
+    // Any failure marks the whole row, with the ratio carrying the nuance.
+    final mark = ran == under.length ? ':white_check_mark:' : ':x:';
+    final took = under.fold(Duration.zero, (all, one) => all + one.took);
+    out.writeln('| $mark | ${_markdown(_titleOf(under))} | `${Result.shorten(path)}` '
+        '| $ran/${under.length} | ${_seconds(took)} |');
   }
+
+  out
+    ..writeln()
+    ..writeln('**$passed of ${scenarios.length} passed.**');
 
   final everythingElse = grouped.others.values.expand((tests) => tests).toList();
-  // Said only when there are any. "0 tests guard the client" beside a tick is a blank that looks
+  // Said only when there are any: "0 tests guard the client" beside a tick is a blank that looks
   // like an answer, and it is what a single-file run would print every time.
   if (everythingElse.isNotEmpty) {
     final elseBroken = everythingElse.where((test) => !test.passed).length;
     out
       ..writeln()
-      ..writeln('${elseBroken == 0 ? '✅' : '❌'} **${everythingElse.length}** tests guard the '
-          'client, the wire and the rules rather than a requirement directly'
-          '${elseBroken == 0 ? '.' : ', and $elseBroken failed.'}');
-  }
-
-  final broken = run.results.where((result) => !result.passed).toList();
-  if (broken.isNotEmpty) {
-    out
-      ..writeln()
-      ..writeln('<details open><summary>What failed</summary>')
-      ..writeln();
-    for (final result in broken) {
-      out
-        ..writeln('**${_markdown(result.requirement ?? _shorten(result.suite))}** — '
-            '${_markdown(result.scenario)}')
-        ..writeln()
-        ..writeln('```')
-        // The whole message here, capped only in the annotation: this is a page with room, and
-        // the truncation that matters is the one a reader cannot see.
-        ..writeln(result.detail)
-        ..writeln('```')
-        ..writeln();
-    }
-    out.writeln('</details>');
+      ..writeln('${elseBroken == 0 ? ':white_check_mark:' : ':x:'} '
+          '**${everythingElse.length}** tests guard the client, the wire and the rules rather '
+          'than a screen${elseBroken == 0 ? '.' : ', and $elseBroken failed.'}');
   }
   out.writeln();
   return out.toString();
 }
+
+/// What a feature says it tests, which is its `Feature:` line.
+String _titleOf(List<Result> scenarios) => scenarios.first.group;
 
 /// One `::error` per failing scenario, on its own line in its own `.feature` file.
 ///
@@ -336,11 +327,11 @@ List<String> _annotations(Run run) {
     var message = _worthAnnotating(result.detail);
     if (message.isEmpty) message = 'failed with nothing said';
     if (message.length > cap) {
-      message = '${message.substring(0, cap)}… (cut here; the whole of it is in the summary)';
+      message = '${message.substring(0, cap)}… (see the run log)';
     }
-    final title = result.requirement == null
+    final title = result.feature == null
         ? result.name
-        : '${result.requirement}: ${result.scenario}';
+        : '${result.group}: ${result.scenario}';
     final properties = <String>[
       if (where != null) 'file=${_property(where.file)}',
       if (where != null) 'line=${where.line}',
@@ -384,14 +375,13 @@ String _relative(String path) {
 
 /// JUnit, grouped by requirement.
 ///
-/// **`classname` is the requirement and `name` is the scenario**, which is what makes any reader
-/// of this file — a CI plugin, an IDE, a spreadsheet — group by the thing the id was put on the
-/// `Feature:` line for. Grouping by file path, which is what a generic converter does, leaves the
-/// id an unread prefix inside a test name.
+/// **`classname` is what the feature tests and `name` is the scenario**, so any reader of this
+/// file — a CI plugin, an IDE, a spreadsheet — groups the way the summary does.
 String _junit(Run run) {
   final grouped = _group(run);
   final suites = <String, List<Result>>{
-    for (final id in grouped.covered.keys.toList()..sort()) id: grouped.covered[id]!,
+    for (final path in grouped.features.keys.toList()..sort())
+      _titleOf(grouped.features[path]!): grouped.features[path]!,
     for (final suite in grouped.others.keys.toList()..sort())
       _shorten(suite): grouped.others[suite]!,
   };
@@ -409,7 +399,7 @@ String _junit(Run run) {
         'time="${_plainSeconds(results.fold(Duration.zero, (all, one) => all + one.took))}" '
         'timestamp="${run.at.toUtc().toIso8601String()}">');
     for (final result in results) {
-      final scenario = result.requirement == null ? result.name : result.scenario;
+      final scenario = result.feature == null ? result.name : result.scenario;
       out.write('    <testcase classname="${_xml(name)}" name="${_xml(scenario)}" '
           'time="${_plainSeconds(result.took)}"');
       if (result.passed) {
@@ -458,14 +448,12 @@ String _xml(String text) => text
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
-String _page(Run run, Map<String, String> requirements) {
+String _page(Run run) {
   final grouped = _group(run);
-  final covered = grouped.covered;
+  final covered = grouped.features;
   final others = grouped.others;
 
   final ids = covered.keys.toList()..sort();
-  final uncovered = requirements.keys.where((id) => !covered.containsKey(id)).toList()
-    ..sort();
   final failed = run.results.where((result) => !result.passed).length;
 
   final page = StringBuffer()
@@ -485,17 +473,18 @@ String _page(Run run, Map<String, String> requirements) {
 
   page
     ..writeln('<section>')
-    ..writeln('<h2>Requirements</h2>')
-    ..writeln('<p class="note">One row per requirement, from the <code>Feature:</code> line of '
-        'each <code>.feature</code> file. Passing is not the same as covered: a requirement with '
-        'one shallow scenario shows as green as one with twelve.</p>');
+    ..writeln('<h2>Scenarios</h2>')
+    ..writeln('<p class="note">One section per <code>.feature</code> file, named by what it says '
+        'it tests. Passing is not the same as covered: a file with one shallow scenario shows as '
+        'green as one with twelve.</p>');
 
-  for (final id in ids) {
-    final scenarios = covered[id]!;
+  for (final path in ids) {
+    final scenarios = covered[path]!;
     final broken = scenarios.where((result) => !result.passed).length;
     page
       ..writeln('<article class="${broken == 0 ? 'ok' : 'bad'}">')
-      ..writeln('<h3><span class="id">$id</span> ${_escape(_title(scenarios, id))}'
+      ..writeln('<h3>${_escape(_titleOf(scenarios))}'
+          '<span class="id">${_escape(Result.shorten(path))}</span>'
           '<span class="count">${scenarios.length} scenario'
           '${scenarios.length == 1 ? '' : 's'}'
           '${broken == 0 ? '' : ', $broken failed'}</span></h3>')
@@ -514,20 +503,6 @@ String _page(Run run, Map<String, String> requirements) {
       ..writeln('</article>');
   }
 
-  if (uncovered.isNotEmpty) {
-    page
-      ..writeln('<article class="none">')
-      ..writeln('<h3>No scenario names these yet'
-          '<span class="count">${uncovered.length}</span></h3>')
-      ..writeln('<ul>');
-    for (final id in uncovered) {
-      page.writeln('<li class="none"><span class="mark">·</span>'
-          '<span class="id">$id</span> ${_escape(requirements[id] ?? '')}</li>');
-    }
-    page
-      ..writeln('</ul>')
-      ..writeln('</article>');
-  }
   page.writeln('</section>');
 
   if (others.isNotEmpty) {
@@ -535,7 +510,7 @@ String _page(Run run, Map<String, String> requirements) {
       ..writeln('<section>')
       ..writeln('<h2>Everything else</h2>')
       ..writeln('<p class="note">Tests that guard the client, the wire and the rules, rather '
-          'than a requirement directly.</p>');
+          'than a screen.</p>');
     final suites = others.keys.toList()..sort();
     for (final suite in suites) {
       final tests = others[suite]!;
@@ -565,11 +540,6 @@ String _page(Run run, Map<String, String> requirements) {
 
   page.writeln('</body></html>');
   return page.toString();
-}
-
-String _title(List<Result> scenarios, String id) {
-  final group = scenarios.first.group;
-  return group.startsWith(id) ? group.substring(id.length).trim() : group;
 }
 
 String _shorten(String path) {

@@ -21,7 +21,7 @@ import './step/i_create_the_project.dart';
 import './step/creating_will_find_a_file_already_there.dart';
 
 void main() {
-  group('''F04 Guided Project Creation''', () {
+  group('''Creating a project, checked by the machine that will run it''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

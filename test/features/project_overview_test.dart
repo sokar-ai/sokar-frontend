@@ -23,7 +23,7 @@ import './step/the_project_records_nothing_about_its_image.dart';
 import './step/the_app_is_restarted.dart';
 
 void main() {
-  group('''F02 Project Overview''', () {
+  group('''What each project is, and how far behind it has fallen''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

@@ -12,6 +12,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   late Directory scratch;
 
+  /// What `live_logs.feature` says it tests — the group name, and the report's row.
+  const feature = "Reading a task's logs as they are written";
+
   /// One run of one feature with one failing scenario, in `flutter test --machine` shape.
   String machineJson({required String message}) {
     final suite = '${Directory.current.path}/test/features/live_logs_test.dart';
@@ -22,13 +25,13 @@ void main() {
       },
       <String, dynamic>{
         'type': 'group',
-        'group': <String, dynamic>{'id': 1, 'name': 'F11 Live Log Viewing'},
+        'group': <String, dynamic>{'id': 1, 'name': feature},
       },
       <String, dynamic>{
         'type': 'testStart',
         'test': <String, dynamic>{
           'id': 2,
-          'name': 'F11 Live Log Viewing only the logs the work actually has are offered',
+          'name': '$feature only the logs the work actually has are offered',
           'suiteID': 0,
           'groupIDs': <int>[1],
         },
@@ -104,29 +107,45 @@ void main() {
 
   test('what the framework printed is the failure, not its own generic sentence', () {
     final said = report(machineJson(message: 'Expected: one\nActual: none'));
+    final annotation =
+        said.out.split('\n').firstWhere((line) => line.startsWith('::error'));
 
     // A widget test's `error` says only "Test failed. See exception logs above." — the whole of
     // what went wrong is in the printed dump. A report built on `error` alone says nothing at
     // exactly the moment somebody needs it.
-    expect(said.summary, contains('Actual: none'));
-    expect(said.summary, isNot(contains('See exception logs above')));
+    expect(annotation, contains('Actual: none'));
+    expect(annotation, isNot(contains('See exception logs above')));
   });
 
-  test('the requirement is the group in the JUnit file, not the file path', () {
+  test('the summary carries no failure detail, which is what keeps it a summary', () {
+    final said = report(machineJson(message: 'Expected: one\nActual: none'));
+
+    // Sokar's rule and the reason for it: the detail is in the annotation, capped, and in the
+    // HTML report in full. A table that grows a stack trace stops being scannable at the first
+    // red build — which is the build somebody most needs to scan.
+    expect(said.summary, isNot(contains('Actual: none')));
+    expect(said.summary, isNot(contains('<details')));
+  });
+
+  test('what the feature tests is the group in the JUnit file, not the file path', () {
     final said = report(machineJson(message: 'Expected: one\nActual: none'));
 
     // The id on the `Feature:` line is the whole reason it is there. Grouping by path leaves it
     // an unread prefix inside a test name, which is what a generic converter does.
-    expect(said.junit, contains('classname="F11"'));
+    expect(said.junit, contains('classname="$feature"'));
     expect(said.junit, isNot(contains('sokar_frontend.test.features')));
     expect(said.junit, contains('<failure'));
   });
 
-  test('a requirement is red when any scenario under it is', () {
+  test('a feature is red when any scenario under it is, and shows its path', () {
     final said = report(machineJson(message: 'Expected: one\nActual: none'));
 
-    expect(said.summary, contains('| ❌ | `F11`'));
-    expect(said.summary, contains('1 failed'));
+    expect(said.summary, contains('| :x: | $feature |'));
+    // The last two segments only: the table is scanned, the annotation is navigated, and a full
+    // path in every row crowds out the sentence that says what broke.
+    expect(said.summary, contains('`features/live_logs.feature`'));
+    expect(said.summary, contains('0/1'));
+    expect(said.summary, contains('**0 of 1 passed.**'));
   });
 
   test('a run that produced nothing says so, rather than falling silent', () {

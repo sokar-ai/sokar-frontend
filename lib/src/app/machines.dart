@@ -20,8 +20,7 @@ class Machine {
   /// Constructor taking what to call it and where its socket is.
   ///
   /// [host] and [remoteSocket] are given only for a machine this interface reaches itself. With
-  /// no [host] it is a socket somebody else forwarded, which is the first half of
-  /// [F20](../../../requirements/F20-Access-From-Elsewhere.md) and stays untouched.
+  /// no [host] it is a socket somebody else forwarded, and stays untouched.
   const Machine({
     required this.name,
     required this.socketPath,

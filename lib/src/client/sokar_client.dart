@@ -335,7 +335,7 @@ class SokarClient {
   ///
   /// **Beside the identity, never instead of it.** The container name, the gate ref, the
   /// workspace and the log files do not move: renaming would move a ref that may have unreviewed
-  /// pushes behind it, which is what F09 asked for and not what anybody wanted.
+  /// pushes behind it, which is what was asked for and not what anybody wanted.
   ///
   /// An empty [label] clears it rather than storing spaces.
   Future<Labelled> label(String task, {String? label}) async =>

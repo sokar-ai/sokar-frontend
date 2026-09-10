@@ -18,7 +18,7 @@ import './step/the_work_is_not_shown_as.dart';
 import './step/the_backend_says_it_is_waiting_on.dart';
 
 void main() {
-  group('''F22 Task State Visibility''', () {
+  group('''What a piece of work is doing, and how long it has been''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

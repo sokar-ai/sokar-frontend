@@ -1579,8 +1579,8 @@ deleted file mode 100644
 
   static List<Map<String, dynamic>> _aMachineWithWorkOnIt() =>
       <Map<String, dynamic>>[
-        // One of each, because the difference between them is what F22 exists for and a
-        // machine with only working tasks on it proves nothing.
+        // One of each: telling the states apart is the point, and a machine with only
+        // working tasks on it proves nothing.
         _task('sokar-checkout-shell', 'checkout',
             activity: 'WAITING',
             waitingFor: 'api.example.test:443',

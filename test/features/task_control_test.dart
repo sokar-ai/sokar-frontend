@@ -38,7 +38,8 @@ import './step/the_launch_was_called.dart';
 import './step/nothing_was_started.dart';
 
 void main() {
-  group('''F09 Task Control''', () {
+  group('''Stopping, renaming and recreating work, and what that destroys''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

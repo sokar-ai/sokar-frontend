@@ -35,8 +35,7 @@ enum TunnelState {
 ///   terminal prompts, and this has no terminal. With batch mode `ssh` fails instead, saying why
 ///   — *"Permission denied (publickey)"*, *"Host key verification failed"* — and that sentence is
 ///   shown as it came. The way through is an agent or a key with no passphrase, and accepting a
-///   host key once in a shell. **Nothing here handles a passphrase**, which is the thing
-///   [F20](../../../requirements/F20-Access-From-Elsewhere.md) deliberately stayed out of.
+///   host key once in a shell. **Nothing here handles a passphrase**, deliberately.
 /// * **One process per host, not a shared `ControlMaster`.** A master would be shared with the
 ///   person's own sessions, and tearing ours down could take theirs with it — which is exactly
 ///   what *"a tunnel the interface did not raise is never torn down by it"* forbids.

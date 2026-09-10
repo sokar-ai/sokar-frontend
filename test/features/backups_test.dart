@@ -26,7 +26,8 @@ import './step/i_restore_from_it.dart';
 import './step/restoring_from_the_missing_backup_is_not_offered.dart';
 
 void main() {
-  group('''F06 Upstream Synchronisation And Backups''', () {
+  group('''Backups of a mirror: listing, removing, restoring, and upstream''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

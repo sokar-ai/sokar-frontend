@@ -35,7 +35,7 @@ import './step/it_was_forced.dart';
 import './step/the_command_is_offered.dart';
 
 void main() {
-  group('''F05 Project Configuration''', () {
+  group('''Changing what a project may reach, and removing a project''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

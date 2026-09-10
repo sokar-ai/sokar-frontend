@@ -28,7 +28,7 @@ import './step/no_machine_is_shown_as_the_same_node.dart';
 import './step/no_machine_can_say_which_node_it_is.dart';
 
 void main() {
-  group('''F20 Access From Elsewhere''', () {
+  group('''Watching several machines at once, and telling nodes apart''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

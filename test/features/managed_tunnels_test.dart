@@ -25,7 +25,7 @@ import './step/no_forward_this_interface_raised_is_still_running.dart';
 import './step/nothing_was_torn_down_for.dart';
 
 void main() {
-  group('''F27 Managed Tunnels''', () {
+  group('''Raising and dropping the forward that reaches a machine''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

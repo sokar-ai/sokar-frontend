@@ -30,7 +30,7 @@ import './step/the_window_is_pixels_wide.dart';
 import './step/the_work_pane_is_not_shown.dart';
 
 void main() {
-  group('''F01 Application Shell''', () {
+  group('''Moving around the frame by keyboard and by pointer''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

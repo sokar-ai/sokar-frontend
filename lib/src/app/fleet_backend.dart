@@ -50,9 +50,8 @@ abstract class FleetBackend {
   /// whatever records the result.
   ///
   /// With `dryRun` it does everything up to starting the container and then reports, creating
-  /// nothing. That is all the frame uses today — choosing a name, an agent and a mode is
-  /// [F08](../../../requirements/F08-Task-Creation-And-Modes.md), and it fills in the rest of
-  /// these parameters rather than replacing them.
+  /// nothing. That is all the frame uses today — the screen that chooses a name, an agent and a
+  /// mode fills in the rest of these parameters rather than replacing them.
   Stream<String> startTask({
     String? task,
     String? project,

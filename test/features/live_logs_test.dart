@@ -26,7 +26,7 @@ import './step/the_log_shows_no_escape_characters.dart';
 import './step/the_log_ends.dart';
 
 void main() {
-  group('''F11 Live Log Viewing''', () {
+  group('''Reading a task's logs as they are written''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

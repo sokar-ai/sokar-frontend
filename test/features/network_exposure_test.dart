@@ -49,7 +49,8 @@ import './step/the_work_was_set_to.dart';
 import './step/the_status_line_mentions.dart';
 
 void main() {
-  group('''F17 Network Exposure Control''', () {
+  group('''Answering blocked connections, and widening what work reaches''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

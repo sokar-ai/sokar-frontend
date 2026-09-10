@@ -22,7 +22,8 @@ import './step/i_ask_about_the_store_twice.dart';
 import './step/the_newer_answer_is_the_one_on_screen.dart';
 
 void main() {
-  group('''F15 Secret Store Control''', () {
+  group('''Seeing and shutting the secret store, without showing a value''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);

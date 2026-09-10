@@ -23,7 +23,7 @@ import './step/the_project_is_marked_as_silent.dart';
 import './step/work_in_is_blocked_reaching.dart';
 
 void main() {
-  group('''F23 Notifications''', () {
+  group('''Telling somebody who is not looking at the window''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
