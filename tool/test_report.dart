@@ -18,6 +18,7 @@ Future<void> main(List<String> args) async {
   final junit = File(args.length > 2 ? args[2] : 'build/test-results.xml');
 
   if (!source.existsSync()) {
+    await _sayNothingRan('There is no test output at `${source.path}`.');
     stderr.writeln('No test output at ${source.path}.');
     stderr.writeln('Run: flutter test --machine > ${source.path}');
     exitCode = 1;
@@ -26,6 +27,7 @@ Future<void> main(List<String> args) async {
 
   final run = _read(source);
   if (run.results.isEmpty) {
+    await _sayNothingRan('`${source.path}` holds no test results.');
     stderr.writeln('${source.path} contains no test results.');
     exitCode = 1;
     return;
@@ -198,6 +200,22 @@ Map<String, String> _requirementsOnDisk() {
     found[match.group(1)!] = match.group(2)!.replaceAll('-', ' ');
   }
   return found;
+}
+
+/// Says on the run's own page that nothing ran.
+///
+/// **Silence covers three states**: no test step, a step that matched nothing, and a step whose
+/// run never produced output. A reporter that writes nothing when it has nothing to report cannot
+/// be told apart from one that never ran — Sokar's acceptance suite proved nothing for several
+/// merges that way.
+Future<void> _sayNothingRan(String because) async {
+  final summaryFile = Platform.environment['GITHUB_STEP_SUMMARY'];
+  if (summaryFile == null || summaryFile.isEmpty) return;
+  await File(summaryFile).writeAsString(
+      '## Requirements\n\n**No tests ran.** $because\n\n'
+      'Check that the test step ran, that it wrote the machine JSON, and that the path this was '
+      'given is the one it wrote.\n\n',
+      mode: FileMode.append);
 }
 
 /// Results by requirement id, and everything that covers none of them by suite.

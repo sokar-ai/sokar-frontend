@@ -1956,3 +1956,9 @@ Two things only a deliberate failure showed, and both were invisible while every
 
 Sokar's rule, which found both: **make a scenario fail on purpose and read what comes out.** The
 happy path proves nothing about a failure report.
+
+And a third, from their side: **a reporter that writes nothing when it has nothing to report cannot
+be told apart from one that never ran.** Their acceptance suite proved nothing for several merges
+because a CI line named an aggregator, so the step passed in seconds and the absence of results read
+as a build with no test step. An empty run here writes *"No tests ran"* on the summary page and
+exits non-zero — the page makes the state visible, the exit code makes it unmergeable.

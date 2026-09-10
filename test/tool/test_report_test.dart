@@ -129,6 +129,50 @@ void main() {
     expect(said.summary, contains('1 failed'));
   });
 
+  test('a run that produced nothing says so, rather than falling silent', () {
+    final summary = File('${scratch.path}/summary.md');
+    final ran = Process.runSync(
+      'dart',
+      <String>[
+        'tool/test_report.dart',
+        '${scratch.path}/never-written.json',
+        '${scratch.path}/report.html',
+        '${scratch.path}/results.xml',
+      ],
+      environment: <String, String>{
+        'GITHUB_ACTIONS': 'true',
+        'GITHUB_STEP_SUMMARY': summary.path,
+      },
+    );
+
+    // **Silence covers three states**: no test step, a step that matched nothing, and a step whose
+    // run never produced output. A page that says nothing about a run that proved nothing reads
+    // exactly like a build that has no test step at all.
+    expect(ran.exitCode, isNot(0));
+    expect(summary.readAsStringSync(), contains('**No tests ran.**'));
+  });
+
+  test('an empty result set is reported, not skipped', () {
+    final source = File('${scratch.path}/results.json')..writeAsStringSync('');
+    final summary = File('${scratch.path}/summary.md');
+    final ran = Process.runSync(
+      'dart',
+      <String>[
+        'tool/test_report.dart',
+        source.path,
+        '${scratch.path}/report.html',
+        '${scratch.path}/results.xml',
+      ],
+      environment: <String, String>{
+        'GITHUB_ACTIONS': 'true',
+        'GITHUB_STEP_SUMMARY': summary.path,
+      },
+    );
+
+    expect(ran.exitCode, isNot(0));
+    expect(summary.readAsStringSync(), contains('**No tests ran.**'));
+  });
+
   test('nothing is written to a summary nobody asked for', () {
     final source = File('${scratch.path}/results.json')
       ..writeAsStringSync(machineJson(message: 'Expected: one\nActual: none'));
