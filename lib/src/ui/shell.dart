@@ -958,7 +958,6 @@ class _ShellState extends State<Shell> {
     final jobs = narrowed == null
         ? const <Template>[]
         : widget.templates.forProject(narrowed.name);
-    final text = Theme.of(context).textTheme;
     return Column(
       children: <Widget>[
         if (narrowed != null)
@@ -976,12 +975,6 @@ class _ShellState extends State<Shell> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  narrowed == null
-                      ? 'Running on ${machine.name}'
-                      : 'Work in ${narrowed.label}',
-                  style: text.labelLarge,
-                ),
                 if (projects.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: Space.small),
@@ -1028,22 +1021,13 @@ class _ShellState extends State<Shell> {
                             : null,
                         onShown: widget.shell.shown,
                       ),
-                    StartTile(
-                      projects: <String>[
-                        for (final project in projects)
-                          if (StartWork.whyNot(project.project) == null)
-                            project.name,
-                      ],
-                      inProject: narrowed?.name,
-                      unavailable: narrowed == null
-                          ? null
-                          : StartWork.whyNot(narrowed.project),
-                      highlighted: highlight == 'work.start',
-                      onStart: (project) {
-                        fleet.selectProject(project);
-                        unawaited(_startWork());
-                      },
-                    ),
+                    if (narrowed != null)
+                      StartTile(
+                        project: narrowed.label,
+                        unavailable: StartWork.whyNot(narrowed.project),
+                        highlighted: highlight == 'work.start',
+                        onStart: () => unawaited(_startWork()),
+                      ),
                     for (final job in jobs)
                       TemplateTile(
                         job: job,

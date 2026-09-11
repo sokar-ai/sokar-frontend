@@ -141,82 +141,55 @@ class MachineTitle extends StatelessWidget {
   }
 }
 
-/// Starts work: in the project the work is narrowed to, or in one chosen here.
+/// Starts work in the project being looked at: an empty tile with a plus, beside its work.
 class StartTile extends StatelessWidget {
-  /// Constructor taking where work can start and what starting does.
+  /// Constructor taking the project and what starting does.
   const StartTile({
-    required this.projects,
+    required this.project,
     required this.onStart,
-    this.inProject,
     this.unavailable,
     this.highlighted = false,
     super.key,
   });
 
-  /// The projects work can be started in.
-  final List<String> projects;
+  /// The project work would start in.
+  final String project;
 
-  /// The project the work is narrowed to, or null.
-  final String? inProject;
+  /// Starts work there.
+  final VoidCallback onStart;
 
-  /// Starts work in a project.
-  final void Function(String project) onStart;
-
-  /// Why nothing can start in [inProject], or null.
+  /// Why nothing can start there now, or null.
   final String? unavailable;
 
   /// Whether the finder went here.
   final bool highlighted;
 
   @override
-  Widget build(BuildContext context) {
-    final project = inProject;
-    final label = project == null ? 'Start work…' : 'Start work in $project…';
-    final Widget button = project != null
-        ? OutlinedButton.icon(
-            key: const Key('start-work'),
-            autofocus: highlighted,
-            onPressed: unavailable == null ? () => onStart(project) : null,
-            icon: const Icon(Icons.play_arrow_outlined, size: Sizes.rowIcon),
-            label: Text(label, overflow: TextOverflow.ellipsis),
-          )
-        : PopupMenuButton<String>(
-            key: const Key('start-work'),
-            tooltip: 'Choose the project to start work in',
-            enabled: projects.isNotEmpty,
-            onSelected: onStart,
-            itemBuilder: (context) => <PopupMenuEntry<String>>[
-              for (final each in projects)
-                PopupMenuItem<String>(
-                  value: each,
-                  key: ValueKey<String>('start in $each'),
-                  child: Text(each),
-                ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(Space.small),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Icon(Icons.play_arrow_outlined, size: Sizes.rowIcon),
-                  const SizedBox(width: Space.small),
-                  Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
-                ],
-              ),
+  Widget build(BuildContext context) => Highlight(
+    active: highlighted,
+    child: SizedBox(
+      width: 320,
+      height: 120,
+      child: Tooltip(
+        message: unavailable ?? 'Start work in $project',
+        child: OutlinedButton(
+          key: const Key('start-work'),
+          autofocus: highlighted,
+          style: OutlinedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Radii.medium),
             ),
-          );
-    return Highlight(
-      active: highlighted,
-      child: SizedBox(
-        width: 220,
-        height: 64,
-        child: Tooltip(
-          message: unavailable ?? '',
-          child: Center(child: button),
+          ),
+          onPressed: unavailable == null ? onStart : null,
+          child: Icon(
+            Icons.add,
+            size: 32,
+            semanticLabel: 'Start work in $project',
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// A job somebody named, started again from its own tile.
