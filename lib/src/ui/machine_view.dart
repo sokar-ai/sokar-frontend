@@ -141,38 +141,6 @@ class MachineTitle extends StatelessWidget {
   }
 }
 
-/// Describes a new project on this machine.
-class NewProjectCard extends StatelessWidget {
-  /// Constructor taking what it opens.
-  const NewProjectCard({
-    required this.onPressed,
-    this.highlighted = false,
-    super.key,
-  });
-
-  /// Opens the description of a new project.
-  final VoidCallback onPressed;
-
-  /// Whether the finder went here.
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) => Highlight(
-    active: highlighted,
-    child: SizedBox(
-      width: 180,
-      height: 64,
-      child: OutlinedButton.icon(
-        key: const Key('new-project'),
-        autofocus: highlighted,
-        onPressed: onPressed,
-        icon: const Icon(Icons.add, size: Sizes.rowIcon),
-        label: const Text('New project…'),
-      ),
-    ),
-  );
-}
-
 /// Starts work: in the project the work is narrowed to, or in one chosen here.
 class StartTile extends StatelessWidget {
   /// Constructor taking where work can start and what starting does.

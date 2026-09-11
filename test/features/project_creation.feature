@@ -69,3 +69,10 @@ Feature: Creating a project, checked by the machine that will run it
     And I create the project
     Then it says {'There is already a project file'}
     And it says {'Nothing was written'}
+
+  Scenario: a project made here is the one chosen once it is made
+    When I describe a new project
+    And I answer the project questions
+    And I create the project
+    And I am done with the new project
+    Then the project {'new-thing'} is selected

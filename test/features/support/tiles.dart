@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 Finder tileFor(String work) => find.byWidgetPredicate(
     (widget) => widget is Card && '${widget.key}'.contains("'tile ") && '${widget.key}'.endsWith(" $work'>]"));
 
-/// The card of one project on the machine being looked at.
+/// The entry of one project under the machine being looked at.
 Finder cardFor(String project) => find.byKey(ValueKey<String>('project $project'));
 
 /// The rail entry of one machine, by the badge every entry carries.

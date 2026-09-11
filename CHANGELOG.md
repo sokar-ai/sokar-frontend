@@ -50,10 +50,11 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Changed
 
-- **The frame is one rail and one place per machine.** The rail holds what needs you, every
-  machine with whether it answers, and a stop for every machine. A machine's place holds its title
-  with its emergency stop and menu, its projects as cards that narrow the work, its work as tiles
-  beside starting work and saved jobs, and a status line of what it ran. The menu bar holds
+- **The frame is a tree of machines and one place per machine.** The tree holds what needs you,
+  every machine with whether it answers — opening onto Running, New project and its projects — and
+  a stop for every machine. A machine's place holds its title with its emergency stop and menu,
+  the chosen project's header with its menu, the work as tiles beside starting work and saved
+  jobs, and a status line of what it ran. A new project is described there and chosen once made. The menu bar holds
   Machines, Options and About; the finder goes to where an action lives and marks it there.
 - **Stopping keeps the work and its workspace**; removing is its own action, and what the machine
   would do on "Start it again" is shown before anybody presses it, refusals included.

@@ -20,6 +20,8 @@ import './step/creating_it_is_offered.dart';
 import './step/i_leave_the_project_undescribed.dart';
 import './step/i_create_the_project.dart';
 import './step/creating_will_find_a_file_already_there.dart';
+import './step/i_am_done_with_the_new_project.dart';
+import './step/the_project_is_selected.dart';
 
 void main() {
   group('''Creating a project, checked by the machine that will run it''', () {
@@ -101,6 +103,15 @@ void main() {
       await iCreateTheProject(tester);
       await itSays(tester, 'There is already a project file');
       await itSays(tester, 'Nothing was written');
+    });
+    testWidgets('''a project made here is the one chosen once it is made''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iDescribeANewProject(tester);
+      await iAnswerTheProjectQuestions(tester);
+      await iCreateTheProject(tester);
+      await iAmDoneWithTheNewProject(tester);
+      await theProjectIsSelected(tester, 'new-thing');
     });
   });
 }

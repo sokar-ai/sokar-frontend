@@ -32,8 +32,11 @@ import './step/the_window_is_pixels_wide.dart';
 import './step/i_pick_in_the_finder.dart';
 import './step/the_menu_that_holds_is_open_with_it_marked.dart';
 import './step/the_menu_bar_offers.dart';
-import './step/i_tap_the_project.dart';
 import './step/the_work_is_no_longer_listed.dart';
+import './step/i_show_what_is_running.dart';
+import './step/the_work_is_dead.dart';
+import './step/i_hide_the_projects_of.dart';
+import './step/the_project_is_not_listed.dart';
 
 void main() {
   group('''Moving around the frame by keyboard and by pointer''', () {
@@ -133,13 +136,31 @@ void main() {
       await theMenuBarOffers(tester, 'Machines, Options, About');
     });
     testWidgets(
-        '''a project card narrows the work to it, and a second tap widens it back''',
+        '''a project shows its own work, and Running shows what runs in every project''',
         (tester) async {
       await bddSetUp(tester);
-      await iTapTheProject(tester, 'checkout');
+      await iSelectTheProject(tester, 'checkout');
       await theWorkIsNoLongerListed(tester, 'sokar-billing-shell');
-      await iTapTheProject(tester, 'checkout');
+      await iShowWhatIsRunning(tester);
       await theWorkIsListed(tester, 'sokar-billing-shell');
+    });
+    testWidgets('''Running shows only the work that is running''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkIsDead(tester, 'sokar-checkout-shell');
+      await iShowWhatIsRunning(tester);
+      await theWorkIsNoLongerListed(tester, 'sokar-checkout-shell');
+      await iSelectTheProject(tester, 'checkout');
+      await theWorkIsListed(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''a machine's projects can be hidden under it, and opening it shows them again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iHideTheProjectsOf(tester, 'this machine');
+      await theProjectIsNotListed(tester, 'checkout');
+      await iGoToTheWork(tester);
+      await theProjectIsListed(tester, 'checkout');
     });
   });
 }

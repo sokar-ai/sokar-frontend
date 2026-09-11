@@ -89,6 +89,12 @@ class AgentsOpened extends Opened {
   const AgentsOpened();
 }
 
+/// A new project being described, on the machine it will live on.
+class ProjectCreationOpened extends Opened {
+  /// Constructor.
+  const ProjectCreationOpened();
+}
+
 /// What this session ran on the machine.
 class OperationsOpened extends Opened {
   /// Constructor.
@@ -134,6 +140,7 @@ class ShellModel extends ChangeNotifier {
   Section _section = Section.attention;
   Opened _opened = const NothingOpened();
   String? _highlight;
+  final Set<String> _collapsed = <String>{};
 
   /// Where in the product you are.
   Section get section => _section;
@@ -149,6 +156,15 @@ class ShellModel extends ChangeNotifier {
 
   /// The command the finder went to, marked where it lives until something else happens.
   String? get highlight => _highlight;
+
+  /// Whether a machine's projects are shown under it on the left. Open until somebody closes it.
+  bool isExpanded(String machine) => !_collapsed.contains(machine);
+
+  /// Shows a machine's projects under it, or hides them.
+  void setExpanded(String machine, {required bool expanded}) {
+    final changed = expanded ? _collapsed.remove(machine) : _collapsed.add(machine);
+    if (changed) notifyListeners();
+  }
 
   /// Goes to a section, closing whatever was open over the one before.
   void goTo(Section section) {
@@ -179,6 +195,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens what one operation printed.
   void openOperation(String id) => _open(OperationOpened(id));
+
+  /// Opens the description of a new project.
+  void openProjectCreation() => _open(const ProjectCreationOpened());
 
   /// Opens what this session ran on the machine.
   void openOperations() => _open(const OperationsOpened());

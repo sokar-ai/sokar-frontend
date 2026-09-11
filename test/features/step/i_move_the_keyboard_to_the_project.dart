@@ -10,8 +10,12 @@ import '../support/world.dart';
 Future<void> iMoveTheKeyboardToTheProject(WidgetTester tester, String project) async {
   for (var press = 0; press < 80; press++) {
     final focused = FocusManager.instance.primaryFocus?.context;
-    final card = focused?.findAncestorWidgetOfExactType<Card>();
-    if (card?.key == ValueKey<String>('project $project')) return;
+    var there = false;
+    focused?.visitAncestorElements((element) {
+      there = element.widget.key == ValueKey<String>('project $project');
+      return !there;
+    });
+    if (there || focused?.widget.key == ValueKey<String>('project $project')) return;
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
   }

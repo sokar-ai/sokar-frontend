@@ -279,8 +279,9 @@ it has nothing to draw — which it did not, as a null check on the first frame.
 
 **Connected to every machine, acting on one.** `Machines` opens a `FleetModel` per configured
 host and keeps them all open, because a clearance prompt has a deadline and is never asked twice —
-a machine nobody is connected to is one whose blocked work expires unseen. The rail lists what
-needs a person, then every machine with its state, then the stop for every machine. Which machine
+a machine nobody is connected to is one whose blocked work expires unseen. The tree on the left
+lists what needs a person, then every machine with its state, opening like an accordion onto
+Running, New project and its projects, and the stop for every machine at its foot. Which machine
 an action lands on is the machine whose place is open, named in its title — never whichever host
 happens to be reachable. A tile on what needs a person selects its own machine before any of its
 actions runs.
@@ -291,18 +292,20 @@ only way in. Running `ssh` would not breach the no-shelling-out rule, which is a
 re-implementing the *domain* through the CLI; `ssh` is transport.
 
 **An action lives where it acts, and the finder goes there.** `Command.home` says where: the
-machine's title or its menu, a project card's menu, the new-project card, the start tile, a
-saved job's tile, a work tile's menu, or the machine's status line. The finder goes there, marks
+machine's title or its menu, the selected project's header menu, New project in the tree, the
+start tile, a saved job's tile, a work tile's menu, or the machine's status line. The finder goes there, marks
 it and gives it the keyboard, so the next time it is found without the finder; only an action
 with no single place runs from the finder at once. The menu bar holds what belongs to no machine —
 Machines, Options, About — and nothing else. Every one of them still reads `commands.dart`, so a
 shortcut cannot come to mean something other than the entry naming it.
 
 **A machine's place, top to bottom.** Its title — how it is reached, the daemon's version, its
-emergency stop and its menu. Its projects, as cards: tapping one narrows the work to it, and its
-menu holds what acts on the project. Its work as tiles, beside a tile that starts work and one per
-saved job. Its status line — the last thing said, and what this session ran there. Whatever opens
-does so over the middle, with the title and the status line staying put.
+emergency stop and its menu. Under Running, the work running in every project; under a project,
+that project's header — its state and its menu — and all of its work. Both end with a tile that
+starts work, and a project with one per saved job. Its status line — the last thing said, and what
+this session ran there. Opening a machine keeps the project chosen on it; Running is what widens
+back. A new project is described in the machine's place and is the one chosen once it is made.
+Whatever opens does so over the middle, with the title and the status line staying put.
 
 **Closing the window asks first.** There is no Quit: the window's own close asks the app, the app
 names what keeps running, and only then takes down the forwards it raised. Without that, `ssh`

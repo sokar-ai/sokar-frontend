@@ -69,8 +69,21 @@ Feature: Moving around the frame by keyboard and by pointer
   Scenario: the menu bar holds only what belongs to no machine
     Then the menu bar offers {'Machines, Options, About'}
 
-  Scenario: a project card narrows the work to it, and a second tap widens it back
-    When I tap the project {'checkout'}
+  Scenario: a project shows its own work, and Running shows what runs in every project
+    When I select the project {'checkout'}
     Then the work {'sokar-billing-shell'} is no longer listed
-    When I tap the project {'checkout'}
+    When I show what is running
     Then the work {'sokar-billing-shell'} is listed
+
+  Scenario: Running shows only the work that is running
+    Given the work {'sokar-checkout-shell'} is dead
+    When I show what is running
+    Then the work {'sokar-checkout-shell'} is no longer listed
+    When I select the project {'checkout'}
+    Then the work {'sokar-checkout-shell'} is listed
+
+  Scenario: a machine's projects can be hidden under it, and opening it shows them again
+    When I hide the projects of {'this machine'}
+    Then the project {'checkout'} is not listed
+    When I go to the work
+    Then the project {'checkout'} is listed

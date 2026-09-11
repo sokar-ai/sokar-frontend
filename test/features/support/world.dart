@@ -585,6 +585,22 @@ class FakeBackend implements FleetBackend {
       preview: dryRun == true,
     ));
     final blocked = theCreationProblems.any((problem) => problem.fatal);
+    // Acts, like every other stand-in here: a project made is listed afterwards.
+    if (dryRun != true && !blocked && theCreationAnswers == 'CREATED') {
+      theProjectsItHas = <Project>[
+        ...theProjectsItHas,
+        Project.from(<String, dynamic>{
+          'name': name,
+          'securityClass': securityClass,
+          'file': file,
+          'prepared': false,
+          'preparedState': 'ABSENT',
+          'behindReason': 'NEVER_CHECKED',
+          'tasks': 0,
+          'running': 0,
+        }),
+      ];
+    }
     return Created(
       outcome: blocked
           ? 'INVALID'

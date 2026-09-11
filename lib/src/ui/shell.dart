@@ -54,6 +54,7 @@ import 'host_readiness_view.dart';
 import 'leaving.dart';
 import 'log_view.dart';
 import 'machine_switcher.dart';
+import 'machine_tree.dart';
 import 'machine_view.dart';
 import 'narrowing_view.dart';
 import 'operations.dart';
@@ -409,7 +410,7 @@ class _ShellState extends State<Shell> {
     if (said.isNotEmpty) _fleet.say(said);
   }
 
-  /// Describes a project, checks every answer against the machine, and creates it.
+  /// Describes a project in the machine's place, checks every answer against it, and creates it.
   ///
   /// **Nothing is written until the last press**: every check runs with `dryRun`.
   Future<void> _describeAProject() async {
@@ -417,19 +418,22 @@ class _ShellState extends State<Shell> {
     // The sets this machine really has, rather than a list typed from memory.
     final (sets, _) = await _fleet.backend.egressSets();
     if (!mounted) return;
-    final made = await createAProject(
-      context,
-      creation: widget.creating,
-      setsHere: sets.map((set) => set.name).toList(),
-      onCheck: () => widget.creating.check(_fleet.backend),
-      onCreate: () async {
-        await widget.creating.create(_fleet.backend);
-        final said = widget.creating.words;
-        if (said.isNotEmpty) _fleet.say(said);
-      },
-    );
-    if (made) await _fleet.refresh();
+    _setsHere = sets.map((set) => set.name).toList();
+    widget.shell
+      ..goTo(Section.machine)
+      ..openProjectCreation();
+  }
+
+  List<String> _setsHere = const <String>[];
+
+  /// Puts the description away; a project that was made is then the one selected.
+  Future<void> _doneCreating(bool made) async {
+    final name = widget.creating.name;
+    widget.shell.close();
     widget.creating.letItBe();
+    if (!made) return;
+    await _fleet.refresh();
+    _fleet.selectProject(name);
   }
 
   /// Builds a project's environment without starting anything, at a depth somebody chooses.
@@ -817,7 +821,7 @@ class _ShellState extends State<Shell> {
                   Expanded(
                     child: Row(
                       children: <Widget>[
-                        _rail(size),
+                        _tree(size),
                         const VerticalDivider(width: 1),
                         Expanded(
                           child: switch (widget.shell.section) {
@@ -837,72 +841,51 @@ class _ShellState extends State<Shell> {
     );
   }
 
-  /// What needs a person, then every machine with how it is reached, then the stop for all.
-  ///
-  /// A count on anything waiting for a person: a question has a deadline and is never asked
-  /// twice, so "somebody must do something" cannot be found only by looking in the right place.
-  Widget _rail(WindowSize size) => ListenableBuilder(
+  /// What needs a person, then every machine with its projects under it, then the stop for all.
+  Widget _tree(WindowSize size) => ListenableBuilder(
     listenable: _attention,
-    builder: (context, _) {
-      final machines = widget.machines.all;
-      final needing = _attention.needingSomebody;
-      return NavigationRail(
-        extended: size.railShowsLabels,
-        minExtendedWidth: 220,
-        labelType: size.railShowsLabels
-            ? null
-            : NavigationRailLabelType.selected,
-        selectedIndex: widget.shell.section == Section.attention
-            ? 0
-            : 1 + machines.indexOf(widget.machines.current),
-        onDestinationSelected: (chosen) {
-          if (chosen == 0) {
-            widget.shell.goTo(Section.attention);
-            return;
-          }
-          widget.machines.select(machines[chosen - 1]);
-          widget.shell.goTo(Section.machine);
-        },
-        destinations: <NavigationRailDestination>[
-          NavigationRailDestination(
-            icon: Badge(
-              key: const Key('needing-count-badge'),
-              isLabelVisible: needing > 0,
-              label: Text('$needing'),
-              child: const Icon(Icons.notifications_active_outlined),
-            ),
-            selectedIcon: const Icon(Icons.notifications_active),
-            label: const Text('Needs you'),
-          ),
-          for (final machine in machines)
-            NavigationRailDestination(
-              icon: Badge(
-                key: ValueKey<String>('waiting-count ${machine.name}'),
-                isLabelVisible: widget.machines.of(machine).clearance.count > 0,
-                label: Text('${widget.machines.of(machine).clearance.count}'),
-                child: ReachIcon(
-                  name: machine.name,
-                  fleet: widget.machines.of(machine),
-                  tunnel: widget.machines.tunnels.of(machine),
-                ),
-              ),
-              label: Text(
-                machine.name,
-                key: ValueKey<String>('rail-machine ${machine.name}'),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-        ],
-        trailing: Padding(
-          padding: const EdgeInsets.only(top: Space.wide),
-          child: _StopEverywhere(
-            extended: size.railShowsLabels,
-            onPressed: _stopEverywhere,
-          ),
-        ),
-      );
-    },
+    builder: (context, _) => MachineTree(
+      machines: widget.machines,
+      shell: widget.shell,
+      needing: _attention.needingSomebody,
+      muted: widget.notifications.muted,
+      width: size.railShowsLabels ? 280 : 220,
+      onNeedsYou: () => widget.shell.goTo(Section.attention),
+      onMachine: _openMachine,
+      onToggle: (machine) => widget.shell.setExpanded(
+        machine.name,
+        expanded: !widget.shell.isExpanded(machine.name),
+      ),
+      onRunning: _showRunning,
+      onNewProject: (machine) {
+        widget.machines.select(machine);
+        unawaited(_describeAProject());
+      },
+      onProject: (machine, project) {
+        widget.machines.select(machine);
+        widget.machines.of(machine).selectProject(project);
+        widget.shell.goTo(Section.machine);
+      },
+      onStopEverywhere: _stopEverywhere,
+    ),
   );
+
+  /// Opens a machine under it and goes there, keeping whichever project was chosen on it.
+  void _openMachine(Machine machine) {
+    widget.machines.select(machine);
+    widget.shell
+      ..setExpanded(machine.name, expanded: true)
+      ..goTo(Section.machine);
+  }
+
+  /// Opens a machine under it and shows what runs there, on every project.
+  void _showRunning(Machine machine) {
+    widget.machines.select(machine);
+    widget.machines.of(machine).selectProject(null);
+    widget.shell
+      ..setExpanded(machine.name, expanded: true)
+      ..goTo(Section.machine);
+  }
 
   /// What needs a person. A tile leads to where its work lives.
   Widget _needsYou() {
@@ -960,133 +943,125 @@ class _ShellState extends State<Shell> {
     );
   }
 
+  /// Running work on every project, or the selected project with its work under its header.
   Widget _machineBody(Machine machine, FleetModel fleet, String? highlight) {
     final projects = fleet.projects;
     final narrowed = fleet.selectedProject;
     final selectedTask = fleet.selectedTask;
     final tiles = <Tile>[
       for (final tile in _attention.tilesOn(machine))
-        if (narrowed == null ||
-            tile.task == null ||
-            tile.task!.project == narrowed.name)
+        if (narrowed == null
+            ? tile.task == null || tile.task!.running
+            : tile.task != null && tile.task!.project == narrowed.name)
           tile,
     ];
-    final jobs = <Template>[
-      for (final project in projects)
-        if (narrowed == null || project.name == narrowed.name)
-          ...widget.templates.forProject(project.name),
-    ];
+    final jobs = narrowed == null
+        ? const <Template>[]
+        : widget.templates.forProject(narrowed.name);
     final text = Theme.of(context).textTheme;
-    return SingleChildScrollView(
-      key: const Key('machine-area'),
-      padding: const EdgeInsets.all(Space.normal),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text('Projects', style: text.labelLarge),
-          if (projects.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: Space.small),
-              child: Text(_noProjects(fleet), key: const Key('no-projects')),
-            ),
-          const SizedBox(height: Space.small),
-          Wrap(
-            spacing: Space.normal,
-            runSpacing: Space.normal,
-            children: <Widget>[
-              for (final project in projects)
-                ProjectCard(
-                  project: project,
-                  selected: narrowed?.name == project.name,
-                  muted: widget.notifications.muted.contains(project.name),
-                  onTap: () => fleet.selectProject(
-                    narrowed?.name == project.name ? null : project.name,
+    return Column(
+      children: <Widget>[
+        if (narrowed != null)
+          ProjectHeader(
+            project: narrowed,
+            muted: widget.notifications.muted.contains(narrowed.name),
+            menu: _projectMenu(narrowed),
+            highlight: highlight,
+            onShown: widget.shell.shown,
+          ),
+        Expanded(
+          child: SingleChildScrollView(
+            key: const Key('machine-area'),
+            padding: const EdgeInsets.all(Space.normal),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  narrowed == null
+                      ? 'Running on ${machine.name}'
+                      : 'Work in ${narrowed.label}',
+                  style: text.labelLarge,
+                ),
+                if (projects.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: Space.small),
+                    child: Text(
+                      _noProjects(fleet),
+                      key: const Key('no-projects'),
+                    ),
                   ),
-                  menu: _projectMenu(project),
-                  highlight: narrowed?.name == project.name ? highlight : null,
-                  onShown: widget.shell.shown,
-                ),
-              NewProjectCard(
-                onPressed: _describeAProject,
-                highlighted: highlight == 'project.create',
-              ),
-            ],
-          ),
-          const SizedBox(height: Space.wide),
-          Text(
-            narrowed == null ? 'Work' : 'Work in ${narrowed.label}',
-            style: text.labelLarge,
-          ),
-          const SizedBox(height: Space.small),
-          Wrap(
-            spacing: Space.normal,
-            runSpacing: Space.normal,
-            children: <Widget>[
-              for (final tile in tiles)
-                TaskTile(
-                  tile: tile,
-                  actions: tile.task == null
-                      ? const <Command>[]
-                      : _tileActions(tile),
-                  onDecide: (tile, prompt, {required allow}) => tile
-                      .fleet
-                      .clearance
-                      .decide(tile.fleet.backend, prompt, allow: allow),
-                  onReview: (tile) {
-                    _select(tile);
-                    unawaited(_openTheGate());
-                  },
-                  selected:
-                      tile.task != null &&
-                      selectedTask?.name == tile.task!.name,
-                  onSelect: tile.task == null
-                      ? null
-                      : () => fleet.selectTask(tile.task!.name),
-                  onOpen: tile.task == null
-                      ? null
-                      : () {
-                          fleet.selectTask(tile.task!.name);
-                          _openWork();
+                const SizedBox(height: Space.small),
+                Wrap(
+                  spacing: Space.normal,
+                  runSpacing: Space.normal,
+                  children: <Widget>[
+                    for (final tile in tiles)
+                      TaskTile(
+                        tile: tile,
+                        actions: tile.task == null
+                            ? const <Command>[]
+                            : _tileActions(tile),
+                        onDecide: (tile, prompt, {required allow}) => tile
+                            .fleet
+                            .clearance
+                            .decide(tile.fleet.backend, prompt, allow: allow),
+                        onReview: (tile) {
+                          _select(tile);
+                          unawaited(_openTheGate());
                         },
-                  highlight:
-                      selectedTask != null &&
-                          selectedTask.name == tile.task?.name
-                      ? highlight
-                      : null,
-                  onShown: widget.shell.shown,
+                        selected:
+                            tile.task != null &&
+                            selectedTask?.name == tile.task!.name,
+                        onSelect: tile.task == null
+                            ? null
+                            : () => fleet.selectTask(tile.task!.name),
+                        onOpen: tile.task == null
+                            ? null
+                            : () {
+                                fleet.selectTask(tile.task!.name);
+                                _openWork();
+                              },
+                        highlight:
+                            selectedTask != null &&
+                                selectedTask.name == tile.task?.name
+                            ? highlight
+                            : null,
+                        onShown: widget.shell.shown,
+                      ),
+                    StartTile(
+                      projects: <String>[
+                        for (final project in projects)
+                          if (StartWork.whyNot(project.project) == null)
+                            project.name,
+                      ],
+                      inProject: narrowed?.name,
+                      unavailable: narrowed == null
+                          ? null
+                          : StartWork.whyNot(narrowed.project),
+                      highlighted: highlight == 'work.start',
+                      onStart: (project) {
+                        fleet.selectProject(project);
+                        unawaited(_startWork());
+                      },
+                    ),
+                    for (final job in jobs)
+                      TemplateTile(
+                        job: job,
+                        highlighted:
+                            highlight ==
+                            'template.start/${job.project}/${job.name}',
+                        unavailable: job.startable
+                            ? null
+                            : 'this job is missing something it needs to run',
+                        onPressed: () => unawaited(_startFromTemplate(job)),
+                      ),
+                  ],
                 ),
-              StartTile(
-                projects: <String>[
-                  for (final project in projects)
-                    if (StartWork.whyNot(project.project) == null) project.name,
-                ],
-                inProject: narrowed?.name,
-                unavailable: narrowed == null
-                    ? null
-                    : StartWork.whyNot(narrowed.project),
-                highlighted: highlight == 'work.start',
-                onStart: (project) {
-                  fleet.selectProject(project);
-                  unawaited(_startWork());
-                },
-              ),
-              for (final job in jobs)
-                TemplateTile(
-                  job: job,
-                  highlighted:
-                      highlight == 'template.start/${job.project}/${job.name}',
-                  unavailable: job.startable
-                      ? null
-                      : 'this job is missing something it needs to run',
-                  onPressed: () {
-                    fleet.selectProject(job.project);
-                    unawaited(_startFromTemplate(job));
-                  },
-                ),
-            ],
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1201,6 +1176,18 @@ class _ShellState extends State<Shell> {
           logs: widget.logs,
           onClose: widget.shell.close,
         );
+      case ProjectCreationOpened():
+        return ProjectCreationPanel(
+          creation: widget.creating,
+          setsHere: _setsHere,
+          onCheck: () => widget.creating.check(_fleet.backend),
+          onCreate: () async {
+            await widget.creating.create(_fleet.backend);
+            final said = widget.creating.words;
+            if (said.isNotEmpty) _fleet.say(said);
+          },
+          onDone: (made) => unawaited(_doneCreating(made)),
+        );
       case OperationsOpened():
         return OperationsList(
           operations: widget.operations,
@@ -1256,36 +1243,6 @@ class _ShellState extends State<Shell> {
     _openedFocus.dispose();
     _frameFocus.dispose();
     super.dispose();
-  }
-}
-
-/// The stop for every machine at once, at the foot of the rail where it is always on screen.
-class _StopEverywhere extends StatelessWidget {
-  const _StopEverywhere({required this.extended, required this.onPressed});
-
-  final bool extended;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final red = Theme.of(context).colorScheme.error;
-    final icon = Icon(Icons.pan_tool_outlined, size: Sizes.rowIcon, color: red);
-    return Tooltip(
-      message:
-          'Stop everything on every machine\nWork is stopped, never removed.',
-      child: extended
-          ? TextButton.icon(
-              key: const Key('stop-everywhere'),
-              onPressed: onPressed,
-              icon: icon,
-              label: Text('Stop everything', style: TextStyle(color: red)),
-            )
-          : IconButton(
-              key: const Key('stop-everywhere'),
-              onPressed: onPressed,
-              icon: icon,
-            ),
-    );
   }
 }
 

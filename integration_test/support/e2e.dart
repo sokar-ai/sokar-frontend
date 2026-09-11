@@ -27,7 +27,7 @@ abstract final class E2e {
 Future<SokarApp> showTheInterface(WidgetTester tester) async {
   final interface = await app.sokar();
   await tester.pumpWidget(interface);
-  await pumpUntil(tester, () => find.byType(NavigationRail).evaluate().isNotEmpty);
+  await pumpUntil(tester, () => find.byKey(const Key('machine-tree')).evaluate().isNotEmpty);
   return interface;
 }
 
