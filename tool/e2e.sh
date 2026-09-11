@@ -15,6 +15,9 @@ set -euo pipefail
 here=$(mktemp -d)
 agent=''
 cleanup() {
+  # The app raises its forwards with ssh, and a test ending is not a window closing: nothing takes
+  # them down. Every one raised under this run's directory goes, even after a crash.
+  pkill -f -- "-L $here/run/" 2>/dev/null || true
   if [ -n "$agent" ]; then kill "$agent" 2>/dev/null || true; fi
   rm -rf "$here"
 }

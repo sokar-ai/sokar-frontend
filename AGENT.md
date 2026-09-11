@@ -1999,3 +1999,6 @@ left alone.
   and a guessed path looks like a machine that never answers.
 - **Its first find was real:** a forward whose far end has no socket resets the connection, and
   the failed write escaped unhandled because nothing waited on the socket's `done`.
+- **A test ending is not a window closing.** Nothing drops the forwards the app raised, and
+  eleven runs left eleven ssh sessions open to the VM. `tool/e2e.sh` now kills every forward
+  raised under its own directory when it exits.
