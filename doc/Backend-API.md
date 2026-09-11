@@ -119,6 +119,11 @@ Two things worth knowing before designing around them:
   happening, and firing within the interval when a project appeared and again when it went. Unlike
   `Watch` there is no age to exclude: `behindMeasured` moving *is* a change, because the age drawn
   beside the number resets with it.
+- **`Prompt` now says when it runs out.** `deadline` is ISO-8601 and `""` when there is none - and
+  `""` on a settled event too, because nothing is waiting on an answer that arrived. It is measured
+  from when the question was asked rather than from `at`: `at` is when the connection was blocked,
+  and a watcher that has fallen behind would otherwise send a deadline already past. `at` and
+  `prefix` were declared and not sent on an open question until 2026-09-11; all three travel now.
 - **`Prompts` streams the answer too.** A settled prompt arrives again with `verdict` set, and
   `"timeout"` is the only way a client learns one expired. Match it to the question by `task` and
   `key`; the other fields deliberately differ between the two events.
