@@ -15,6 +15,8 @@ distribution, so an entry below has reached an operator only if they follow that
 - **The window opens on what needs a person**, from every machine at once: open questions
   first, nearest deadline first with the time left, and answered on their tile, a machine that cannot be reached as a tile of its own, and
   a quiet task marked as a guess.
+- **Every tile carries its work's menu**, from its button or a right-click, acting on the tile's
+  own machine; the task's name on it can be selected and copied.
 - A window for Linux desktop that talks to `sokard` over a unix socket. Every action is reachable
   from the keyboard and from a pointer, and the selection survives a restart.
 - **Projects**: what each one is and how far behind it has fallen, guided creation checked by the
@@ -41,3 +43,8 @@ distribution, so an entry below has reached an operator only if they follow that
 - **Host readiness** and the **agent inventory**, each saying what it could not establish rather
   than reporting nothing wrong.
 - Debian and RPM packages, proven to install in a clean container on every build.
+
+### Fixed
+
+- Working in a task by hand is no longer offered for a machine reached through a socket something
+  else forwarded. It ran the local `sokar` against a task on another machine.

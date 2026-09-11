@@ -44,6 +44,10 @@ import './step/i_open_the_menu_of_the_tile.dart';
 import './step/the_menu_offers.dart';
 import './step/i_click_the_tile_with_the_right_button.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
+import './step/i_choose_from_the_menu_of_the_tile.dart';
+import './step/i_confirm.dart';
+import './step/was_stopped_on_the_machine.dart';
+import './step/nothing_was_stopped_on_this_machine.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -202,6 +206,16 @@ void main() {
       await iOpenTheMenuOfTheTile(tester, 'sokar-shared-shell');
       await theMenuOffersAsUnavailableBecause(
           tester, 'Work in it by hand', 'forwarded');
+    });
+    testWidgets('''stopping from another machine's tile stops it there''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Stop it and remove it', 'sokar-shared-shell');
+      await iConfirm(tester);
+      await wasStoppedOnTheMachine(tester, 'sokar-shared-shell', 'elsewhere');
+      await nothingWasStoppedOnThisMachine(tester);
     });
   });
 }

@@ -103,3 +103,11 @@ Feature: What needs a person on every machine, without going anywhere
     When I watch another machine called {'elsewhere'}
     And I open the menu of the tile {'sokar-shared-shell'}
     Then the menu offers {'Work in it by hand'} as unavailable because {'forwarded'}
+
+  # The menu's action goes to the tile's machine, not to the one the rail is acting on.
+  Scenario: stopping from another machine's tile stops it there
+    When I watch another machine called {'elsewhere'}
+    And I choose {'Stop it and remove it'} from the menu of the tile {'sokar-shared-shell'}
+    And I confirm
+    Then {'sokar-shared-shell'} was stopped on the machine {'elsewhere'}
+    And nothing was stopped on this machine
