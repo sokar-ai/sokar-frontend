@@ -65,6 +65,8 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Fixed
 
+- **The licence is the GPL 3, like the rest of Sokar**, and its text ships in every package. The
+  package metadata had said Apache-2.0.
 - Working in a task by hand is no longer offered for a machine reached through a socket something
   else forwarded. It ran the local `sokar` against a task on another machine.
 - A machine whose forward reaches no daemon now reads as not answering. The connection failed

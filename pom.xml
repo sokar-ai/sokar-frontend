@@ -13,6 +13,14 @@
     <name>sokar-frontend</name>
     <description>The Sokar interface. Maven drives Flutter so an end-to-end run can lease a machine.</description>
 
+    <!-- The same licence as the rest of Sokar; the text is in LICENSE. -->
+    <licenses>
+        <license>
+            <name>GPL-3.0-only</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+        </license>
+    </licenses>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Which device flutter builds for at "package". Override with -Dflutter.target. -->

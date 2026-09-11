@@ -14,7 +14,8 @@ description: |
   machine, and answers what it is refused while it runs.
 vendor: fuin.org
 homepage: https://github.com/sokar-ai/sokar-frontend
-license: Apache-2.0
+# The same licence as the rest of Sokar.
+license: GPL-3.0-only
 
 # Not `depends`. An interface pointed at a remote daemon over an SSH-forwarded socket is useful
 # with no local backend at all, so pulling the daemon in would be wrong for a real way people use
@@ -47,6 +48,16 @@ contents:
 
   - src: packaging/sokar-frontend.svg
     dst: /usr/share/icons/hicolor/scalable/apps/sokar-frontend.svg
+
+  # The licence text travels with the package, where each packaging system looks for it.
+  - src: LICENSE
+    dst: /usr/share/doc/sokar-frontend/copyright
+    packager: deb
+
+  - src: LICENSE
+    dst: /usr/share/licenses/sokar-frontend/LICENSE
+    type: license
+    packager: rpm
 
 # Nothing is listed as a config file, so nothing is left behind on removal. What a person chose
 # lives in their own ~/.config/sokar/frontend.json, which no package may touch: an upgrade must

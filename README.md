@@ -199,3 +199,8 @@ with twelve, and the report says so on its own face.
 It is not a wrapper around the CLI. The daemon serves the domain directly, and an interface that
 shelled out to `sokar` would be a second implementation of every refusal the product makes — the
 ones that stop work being destroyed.
+
+## Licence
+
+GNU General Public License, version 3 only (`GPL-3.0-only`), the same as the rest of Sokar. The
+full text is in [`LICENSE`](LICENSE), and every package installs it beside the program.
