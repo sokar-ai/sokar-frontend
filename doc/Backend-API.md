@@ -128,6 +128,10 @@ Two things worth knowing before designing around them:
   the same destination arrives again while one question is open - `at` moves with each event, the
   deadline does not. Proved against a real blocked connection on 2026-09-11: four events for one
   destination, one deadline, and `""` on the verdict that ended it.
+- **A destination is announced as open at most once.** The watcher sees every retry of a dropped
+  connection but does not publish a key it has already answered, so a settled question is never put
+  back on screen. Before 2026-09-11 it did: measured as `VERDICT` followed by the same key open
+  again twice.
 - **`Prompts` streams the answer too.** A settled prompt arrives again with `verdict` set, and
   `"timeout"` is the only way a client learns one expired. Match it to the question by `task` and
   `key`; the other fields deliberately differ between the two events.
