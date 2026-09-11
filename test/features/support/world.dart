@@ -275,8 +275,38 @@ class FakeBackend implements FleetBackend {
     return nextStop;
   }
 
+  /// Every task a resume was asked for.
+  final List<String> resumes = <String>[];
+
+  /// Acts like [stopTask]: a resumed task goes on listed as running, or a screen that
+  /// ignored the answer would pass.
   @override
-  Future<Resumed> resumeTask(String task) async => nextResume;
+  Future<Resumed> resumeTask(String task) async {
+    resumes.add(task);
+    if (nextResume.outcome == Outcome.resumed) {
+      _tasks = <Task>[
+        for (final each in _tasks)
+          if (each.name == task)
+            Task.from(<String, dynamic>{
+              'name': each.name,
+              'label': each.label,
+              'project': each.project,
+              'securityClass': each.securityClass,
+              'state': 'Up 1 second',
+              'running': true,
+              'helpers': nextResume.started,
+              'clearance': each.clearance,
+              'mode': each.mode.name,
+              'prompt': each.prompt,
+              'agent': each.agent,
+            })
+          else
+            each,
+      ];
+      _changes.add(_tasks);
+    }
+    return nextResume;
+  }
 
   /// What the next [tailLog] prints into, so the scenario decides when a line arrives.
   late StreamController<List<String>> tailing;

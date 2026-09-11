@@ -111,3 +111,21 @@ Feature: What needs a person on every machine, without going anywhere
     And I confirm
     Then {'sokar-shared-shell'} was stopped on the machine {'elsewhere'}
     And nothing was stopped on this machine
+
+  Scenario: every tile is headed by the machine its work is on
+    When I watch another machine called {'elsewhere'}
+    Then the tile {'sokar-shared-shell'} is headed {'elsewhere'}
+    And the tile {'sokar-checkout-shell'} is headed {'this machine'}
+
+  # The answer went only to the status line, and a start from a tile looked like nothing happened.
+  Scenario: work started again from its tile says what came of it, on the tile
+    Given the work {'sokar-checkout-shell'} has stopped
+    When I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
+    Then {'sokar-checkout-shell'} was started again
+    And the tile {'sokar-checkout-shell'} says {'is running again'}
+
+  Scenario: a start the machine could not carry out says so on the tile
+    Given the work {'sokar-checkout-shell'} has stopped
+    And starting it again finds no container
+    When I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
+    Then the tile {'sokar-checkout-shell'} says {'no container'}

@@ -48,6 +48,10 @@ import './step/i_choose_from_the_menu_of_the_tile.dart';
 import './step/i_confirm.dart';
 import './step/was_stopped_on_the_machine.dart';
 import './step/nothing_was_stopped_on_this_machine.dart';
+import './step/the_tile_is_headed.dart';
+import './step/the_work_has_stopped.dart';
+import './step/was_started_again.dart';
+import './step/starting_it_again_finds_no_container.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -216,6 +220,33 @@ void main() {
       await iConfirm(tester);
       await wasStoppedOnTheMachine(tester, 'sokar-shared-shell', 'elsewhere');
       await nothingWasStoppedOnThisMachine(tester);
+    });
+    testWidgets('''every tile is headed by the machine its work is on''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await theTileIsHeaded(tester, 'sokar-shared-shell', 'elsewhere');
+      await theTileIsHeaded(tester, 'sokar-checkout-shell', 'this machine');
+    });
+    testWidgets(
+        '''work started again from its tile says what came of it, on the tile''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Start it again', 'sokar-checkout-shell');
+      await wasStartedAgain(tester, 'sokar-checkout-shell');
+      await theTileSays(tester, 'sokar-checkout-shell', 'is running again');
+    });
+    testWidgets(
+        '''a start the machine could not carry out says so on the tile''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await startingItAgainFindsNoContainer(tester);
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Start it again', 'sokar-checkout-shell');
+      await theTileSays(tester, 'sokar-checkout-shell', 'no container');
     });
   });
 }

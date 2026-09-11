@@ -17,6 +17,8 @@ distribution, so an entry below has reached an operator only if they follow that
   a quiet task marked as a guess.
 - **Every tile carries its work's menu**, from its button or a right-click, acting on the tile's
   own machine; the task's name on it can be selected and copied.
+- **Every tile is headed by its machine's name**, and what an action from the tile came to is
+  said on the tile, not only in the status line.
 - A window for Linux desktop that talks to `sokard` over a unix socket. Every action is reachable
   from the keyboard and from a pointer, and the selection survives a restart.
 - **Projects**: what each one is and how far behind it has fallen, guided creation checked by the

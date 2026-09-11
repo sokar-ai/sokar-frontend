@@ -118,12 +118,16 @@ class FleetModel extends ChangeNotifier {
   String? _selectedProject;
   String? _selectedTask;
   Refusal? _refusal;
+  final Map<String, String> _said = <String, String>{};
 
   /// Whether the backend is answering.
   Reachability get reachability => _reachability;
 
   /// The last thing that happened, in words, for the status line.
   String get status => _status;
+
+  /// The last thing an action on [task] came to, in words, or null when nothing was done to it.
+  String? saidAbout(String task) => _said[task];
 
   /// Whether something is running now. Deliberately separate from [status], which has to stay
   /// readable while it does.
@@ -264,7 +268,7 @@ class FleetModel extends ChangeNotifier {
     bool rescue = false,
     bool force = false,
   }) async {
-    await _acting(() async {
+    await _acting(about: task, () async {
       final result = await backend.stopTask(
         task,
         purge: purge ? true : null,
@@ -299,7 +303,7 @@ class FleetModel extends ChangeNotifier {
 
   /// Starts a stopped task's container again.
   Future<void> resumeWork(String task) async {
-    await _acting(() async {
+    await _acting(about: task, () async {
       _say(resumeWords(task, await backend.resumeTask(task)));
       await _readOnce();
     });
@@ -313,7 +317,9 @@ class FleetModel extends ChangeNotifier {
   }
 
   /// Runs one action, keeping the interface honest about what happened either way.
-  Future<void> _acting(Future<void> Function() action) async {
+  ///
+  /// [about] keeps the outcome with that task too, for a view that shows no status line.
+  Future<void> _acting(Future<void> Function() action, {String? about}) async {
     _busy = true;
     _notify();
     try {
@@ -326,6 +332,7 @@ class FleetModel extends ChangeNotifier {
     } on FeatureNotSupported catch (ex) {
       _say('$ex');
     } finally {
+      if (about != null) _said[about] = _status;
       _busy = false;
       _notify();
     }

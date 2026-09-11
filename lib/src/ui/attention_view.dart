@@ -154,6 +154,10 @@ class _TileCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              // Two machines can serve the same socket path, and only the name tells them apart.
+              Text(tile.machine.name,
+                  key: const Key('tile-machine'),
+                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -187,6 +191,10 @@ class _TileCard extends StatelessWidget {
               if (task != null && task.label.isNotEmpty)
                 SelectableText(task.name, key: const Key('tile-name'), style: text.bodySmall),
               Text(_where(tile), key: const Key('tile-where'), style: text.bodySmall),
+              // Said here as well: the status line is easy to miss from a tile.
+              if (task != null && tile.fleet.saidAbout(task.name) != null)
+                Text(tile.fleet.saidAbout(task.name)!,
+                    key: const Key('tile-said'), style: text.bodySmall),
               if (first != null ||
                   (session?.available ?? false) ||
                   (task?.hasWorkWaiting ?? false)) ...<Widget>[
@@ -276,7 +284,7 @@ class _TileCard extends StatelessWidget {
   static String _where(Tile tile) {
     final task = tile.task;
     return <String>[
-      tile.machine.name,
+      if (tile.machine.host.isNotEmpty) tile.machine.host,
       if (task != null && task.project.isNotEmpty) task.project,
       if (task != null && task.agent.isNotEmpty) task.agent,
       if (tile.demand == Demand.unreachable && tile.fleet.status.isNotEmpty) tile.fleet.status,
