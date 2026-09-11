@@ -35,6 +35,13 @@ jobs:
           flutter-version-file: pubspec.yaml
           cache: true
 
+      # Maven drives the build, so the runner needs a JDK as well as Flutter.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
       # GTK and the toolchain, which the runner has by default in neither case. The third-party
       # lists go first: `apt-get update` exits 100 when any index fails, and everything installed
       # here is Ubuntu's own. Chrome's cost run 93144262860.
@@ -49,9 +56,6 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyse
-        run: dart analyze --fatal-infos
-
       # Generated tests are committed, so CI proves they are current rather than trusting that
       # somebody ran the generator. A diff here means a .feature was edited and not regenerated.
       - name: Prove the generated tests are current
@@ -62,15 +66,16 @@ jobs:
             exit 1
           }
 
-      # One parse, four surfaces, all grouped by the requirement on each `Feature:` line. `set +e`
-      # so a red run still reports: the tool's own exit code fails the job.
-      - name: Test
+      # Maven runs pub get, analyze, the tests and the release build. `set +e` so a red run still
+      # reports; the report's exit code and Maven's both fail the job.
+      - name: Build and test
         run: |
-          mkdir -p build
           set +e
-          flutter test --machine > build/test-results.json
+          ./mvnw -B verify
+          built=$?
           set -e
           dart tool/test_report.dart
+          exit $built
 
       - name: Package
         run: |
