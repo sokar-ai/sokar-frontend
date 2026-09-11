@@ -45,13 +45,14 @@ import './step/the_menu_offers.dart';
 import './step/i_click_the_tile_with_the_right_button.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
 import './step/i_choose_from_the_menu_of_the_tile.dart';
-import './step/i_confirm.dart';
 import './step/was_stopped_on_the_machine.dart';
 import './step/nothing_was_stopped_on_this_machine.dart';
 import './step/the_tile_is_headed.dart';
 import './step/the_work_has_stopped.dart';
 import './step/was_started_again.dart';
-import './step/starting_it_again_finds_no_container.dart';
+import './step/starting_it_again_will_be_refused_because_the_vault_is_locked.dart';
+import './step/the_machine_says_starting_needs_the_vault_unlocked.dart';
+import './step/the_machine_says_has_a_name_from_before_one_container_per_task.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -216,8 +217,7 @@ void main() {
       await bddSetUp(tester);
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
       await iChooseFromTheMenuOfTheTile(
-          tester, 'Stop it and remove it', 'sokar-shared-shell');
-      await iConfirm(tester);
+          tester, 'Stop it, keeping its workspace', 'sokar-shared-shell');
       await wasStoppedOnTheMachine(tester, 'sokar-shared-shell', 'elsewhere');
       await nothingWasStoppedOnThisMachine(tester);
     });
@@ -239,14 +239,36 @@ void main() {
       await theTileSays(tester, 'sokar-checkout-shell', 'is running again');
     });
     testWidgets(
-        '''a start the machine could not carry out says so on the tile''',
+        '''a start the machine refused when pressed says so on the tile''',
         (tester) async {
       await bddSetUp(tester);
       await theWorkHasStopped(tester, 'sokar-checkout-shell');
-      await startingItAgainFindsNoContainer(tester);
+      await startingItAgainWillBeRefusedBecauseTheVaultIsLocked(tester);
       await iChooseFromTheMenuOfTheTile(
           tester, 'Start it again', 'sokar-checkout-shell');
-      await theTileSays(tester, 'sokar-checkout-shell', 'no container');
+      await theTileSays(tester, 'sokar-checkout-shell', 'the vault is locked');
+    });
+    testWidgets(
+        '''a start the machine would refuse is unavailable on the tile, with its reason''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await theMachineSaysStartingNeedsTheVaultUnlocked(
+          tester, 'sokar-checkout-shell');
+      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
+      await theMenuOffersAsUnavailableBecause(
+          tester, 'Start it again', 'vault is locked');
+    });
+    testWidgets(
+        '''a container named from before one per task can only be removed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await theMachineSaysHasANameFromBeforeOneContainerPerTask(
+          tester, 'sokar-checkout-shell');
+      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
+      await theMenuOffersAsUnavailableBecause(
+          tester, 'Start it again', 'can only be removed');
     });
   });
 }

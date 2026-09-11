@@ -188,7 +188,8 @@ class SokarClient {
     bool? noGate,
     bool? dryRun,
     String? clearance,
-    bool? keep,
+    bool? detach,
+    bool? rm,
     Mode? mode,
     String? prompt,
     String? model,
@@ -208,7 +209,8 @@ class SokarClient {
       'noGate': ?noGate,
       'dryRun': ?dryRun,
       'clearance': ?clearance,
-      'keep': ?keep,
+      'detach': ?detach,
+      'rm': ?rm,
       'mode': ?mode?.name,
       'prompt': ?prompt,
       'model': ?model,
@@ -218,23 +220,20 @@ class SokarClient {
     return _callMore('Start', parameters).map(StartProgress.from);
   }
 
-  /// Stops a task and removes what is left of it.
+  /// Stops a task, keeping it: its container is its workspace. Removing is [remove].
+  Future<Stopped> stop(String task) async =>
+      Stopped.from(await _call('Stop', {'task': task}));
+
+  /// Removes a task, or refuses rather than destroys.
   ///
-  /// Refuses rather than destroys: a task holding commits that never reached the gate comes back
-  /// as [Outcome.holdsWork], untouched. That refusal needs a real place in the interface - it is
-  /// the product working, not an error.
-  Future<Stopped> stop(String task,
-          {bool? purge, bool? rescue, bool? force}) async =>
-      Stopped.from(await _call('Stop', {
+  /// A task holding commits that never reached the gate comes back as [Outcome.holdsWork],
+  /// untouched. That refusal needs a real place in the interface - it is the product working.
+  Future<Removed> remove(String task, {bool? rescue, bool? force}) async =>
+      Removed.from(await _call('Remove', {
         'task': task,
-        'purge': ?purge,
         'rescue': ?rescue,
         'force': ?force,
       }));
-
-  /// Starts a stopped task again, with the helpers it is recorded as having had.
-  Future<Resumed> resume(String task) async =>
-      Resumed.from(await _call('Resume', {'task': task}));
 
   /// Every project on the machine.
   ///
@@ -707,23 +706,57 @@ class StartProgress {
   /// What the launch returned; zero is success. Set on the final reply.
   final int? exitCode;
 
+  /// What Start did, or the refusal it answered with. Set on the final reply.
+  final StartAction? action;
+
+  /// Helpers started and recorded, for a task brought back. Null for one just created.
+  final int? helpersStarted;
+
+  /// How many helpers the task is recorded as having had.
+  final int? helpersRecorded;
+
+  /// What went wrong, per helper that did not come back.
+  final List<String> problems;
+
+  /// Set when the image the container was built from has changed since.
+  final String imageDrift;
+
   /// Constructor taking every field.
-  const StartProgress({this.line, this.container, this.exitCode});
+  const StartProgress({
+    this.line,
+    this.container,
+    this.exitCode,
+    this.action,
+    this.helpersStarted,
+    this.helpersRecorded,
+    this.problems = const <String>[],
+    this.imageDrift = '',
+  });
 
   /// Reads one from a reply.
   factory StartProgress.from(Map<String, dynamic> map) {
     final line = map['line'];
     final container = map['container'];
     final exitCode = map['exitCode'];
+    final action = map['action'];
+    final started = map['helpersStarted'];
+    final recorded = map['helpersRecorded'];
+    final problems = map['problems'];
+    final drift = map['imageDrift'];
     return StartProgress(
       line: line is String ? line : null,
       container: container is String ? container : null,
       exitCode: exitCode is num ? exitCode.toInt() : null,
+      action: action is String ? StartAction(action) : null,
+      helpersStarted: started is num ? started.toInt() : null,
+      helpersRecorded: recorded is num ? recorded.toInt() : null,
+      problems: problems is List ? problems.whereType<String>().toList() : const <String>[],
+      imageDrift: drift is String ? drift : '',
     );
   }
 
   /// Whether this is the last reply, carrying the result rather than output.
-  bool get isResult => container != null || exitCode != null;
+  bool get isResult => container != null || exitCode != null || action != null;
 }
 
 /// One reply from a build: a line it printed, or the result.

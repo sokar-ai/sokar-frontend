@@ -46,7 +46,7 @@ void main() {
         'Credentials',
         'Start',
         'Stop',
-        'Resume',
+        'Remove',
         'Tail',
         'Pending',
         'Review',

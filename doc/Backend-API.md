@@ -100,7 +100,7 @@ Read the IDL for the detail — it carries a comment per method and per field. T
 | | |
 |---|---|
 | **What exists** | `List`, `Watch` (streams), `Projects`, `WatchProjects` (streams), `Agents`, `Credentials` |
-| **Running tasks** | `Start` (streams the build), `Stop`, `Resume`, `Tail` (follows a log) |
+| **Running tasks** | `Start` (creates or brings back; streams the build), `Stop` (keeps it), `Remove`, `Tail` (follows a log) |
 | **The gate** | `Pending`, `Review`, `Approve`, `Reject` |
 | **Clearance** | `Prompts` (streams, and only streams), `Decide` |
 

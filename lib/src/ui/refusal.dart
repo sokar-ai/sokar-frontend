@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/fleet_model.dart';
 import 'tokens.dart';
 
-/// What `Stop` refused to do, and the choice about it.
+/// What `Remove` refused to do, and the choice about it.
 ///
 /// A pane rather than a toast or a dialog, and it takes the place of whatever was open: the
 /// refusal *is* the product working, and it is the most important thing on the screen until
@@ -49,8 +49,10 @@ class RefusalView extends StatelessWidget {
             refusal.holdsWork
                 ? 'It holds work that never reached the gate. It has been left exactly as it '
                     'was, and nothing has been discarded.'
-                : 'Nothing could say whether it holds any work, so it has been left exactly as '
-                    'it was.',
+                : refusal.stillRunning
+                    ? 'It is still running, and a running task is not removed.'
+                    : 'Nothing could say whether it holds any work, so it has been left exactly '
+                        'as it was.',
           ),
           if (refusal.result.work.isNotEmpty) ...<Widget>[
             const SizedBox(height: Space.normal),
@@ -81,18 +83,23 @@ class RefusalView extends StatelessWidget {
               ),
               if (refusal.holdsWork)
                 OutlinedButton(
-                  onPressed: () => fleet.stopWork(task, rescue: true),
+                  onPressed: () => fleet.removeWork(task, rescue: true),
                   child: const Text('Push what it holds to the mirror, then remove it'),
                 ),
               if (refusal.holdsWork)
                 OutlinedButton(
-                  onPressed: () => fleet.stopWork(task, purge: true),
+                  onPressed: () => fleet.removeWork(task, force: true),
                   child: const Text('Discard what it holds and remove it'),
                 ),
               if (refusal.nothingKnows)
                 OutlinedButton(
-                  onPressed: () => fleet.stopWork(task, force: true),
+                  onPressed: () => fleet.removeWork(task, force: true),
                   child: const Text('Remove it anyway, without knowing'),
+                ),
+              if (refusal.stillRunning)
+                OutlinedButton(
+                  onPressed: () => fleet.stopAndRemove(task),
+                  child: const Text('Stop it, then remove it'),
                 ),
             ],
           ),
@@ -102,27 +109,25 @@ class RefusalView extends StatelessWidget {
   }
 }
 
-/// Asks before stopping, naming what goes with it.
+/// Asks before removing, naming what goes with it.
 ///
-/// What is named here is only what this side knows: the container and the helpers beside it. What
-/// the task *holds* is the daemon's answer, and it arrives as a refusal rather than as a guess
-/// made in a dialog.
-Future<bool> confirmStop(
+/// What is named here is only what this side knows. What the task *holds* is the daemon's answer,
+/// and it arrives as a refusal rather than as a guess made in a dialog.
+Future<bool> confirmRemove(
   BuildContext context, {
   required String task,
-  required int helpers,
+  required bool running,
 }) async =>
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Stop $task and remove it?'),
+        title: Text('Remove $task?'),
         content: Text(
-          'The container goes, and so do the '
-          '${helpers == 1 ? 'helper' : '$helpers helpers'} beside it. '
-          'Whatever the agent installed inside it — packages, caches, anything it built — goes '
-          'with it and exists nowhere else.\n\n'
+          '${running ? 'It is running, so it is stopped first. ' : ''}'
+          'Its container is its workspace, so it goes, and whatever the agent installed inside '
+          'it — packages, caches, anything it built — goes with it and exists nowhere else.\n\n'
           'Work it holds that never reached the gate will stop this, and say so, rather than '
-          'being destroyed.',
+          'being destroyed. To keep it and start it again later, stop it instead.',
         ),
         actions: <Widget>[
           TextButton(
@@ -131,7 +136,7 @@ Future<bool> confirmStop(
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Stop and remove'),
+            child: const Text('Remove it'),
           ),
         ],
       ),
@@ -142,9 +147,9 @@ Future<bool> confirmStop(
 ///
 /// **Recreating exists for one reason and the dialog says it**: a task keeps the image it started
 /// with, so work that should pick up a newly built environment has to be created again rather than
-/// resumed. Somebody reaching for this has usually just rebuilt something.
+/// started again. Somebody reaching for this has usually just rebuilt something.
 ///
-/// It is the same destruction a stop is, and the same refusal protects it — work that never
+/// It is the same destruction a removal is, and the same refusal protects it — work that never
 /// reached the gate stops this and says so.
 Future<bool> confirmRecreate(
   BuildContext context, {
@@ -157,12 +162,12 @@ Future<bool> confirmRecreate(
         title: Text('Recreate $task from scratch?'),
         content: Text(
           'A task keeps the image it started with, so this is how it picks up a newly built '
-          'environment: it is stopped and created again rather than resumed.\n\n'
+          'environment: it is removed and created again rather than started again.\n\n'
           'The container goes and so ${helpers == 1 ? 'does the helper' : 'do the $helpers '
               'helpers'} beside it. Whatever the agent installed inside — packages, caches, '
           'anything it built — goes with it and exists nowhere else.\n\n'
           'Work it holds that never reached the gate will stop this, and say so, rather than '
-          'being destroyed. Nothing is started again until the stop has gone through.',
+          'being destroyed. Nothing is started again until the removal has gone through.',
         ),
         actions: <Widget>[
           TextButton(
@@ -172,7 +177,7 @@ Future<bool> confirmRecreate(
           FilledButton(
             key: const Key('recreate-it'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Stop it and build it again'),
+            child: const Text('Remove it and build it again'),
           ),
         ],
       ),

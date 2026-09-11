@@ -36,16 +36,15 @@ class _Wedged implements FleetBackend {
       const Stream<String>.empty();
 
   @override
-  Future<Stopped> stopTask(
-    String task, {
-    bool? purge,
-    bool? rescue,
-    bool? force,
-  }) async =>
+  Future<Stopped> stopTask(String task) async =>
       throw const VarlinkDisconnected('nothing there');
 
   @override
-  Future<Resumed> resumeTask(String task) async =>
+  Future<Removed> removeTask(String task, {bool? rescue, bool? force}) async =>
+      throw const VarlinkDisconnected('nothing there');
+
+  @override
+  Future<StartProgress> startAgain(String task) async =>
       throw const VarlinkDisconnected('nothing there');
 
   @override
@@ -271,12 +270,14 @@ class _Machine implements FleetBackend {
       const Stream<String>.empty();
 
   @override
-  Future<Stopped> stopTask(String task,
-          {bool? purge, bool? rescue, bool? force}) async =>
+  Future<Stopped> stopTask(String task) async => throw UnimplementedError();
+
+  @override
+  Future<Removed> removeTask(String task, {bool? rescue, bool? force}) async =>
       throw UnimplementedError();
 
   @override
-  Future<Resumed> resumeTask(String task) async => throw UnimplementedError();
+  Future<StartProgress> startAgain(String task) async => throw UnimplementedError();
 
   @override
   Future<List<Log>> logsOf(String task) async => const <Log>[];

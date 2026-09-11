@@ -9,17 +9,23 @@ import './step/the_app_is_running.dart';
 import './step/i_go_to_the_work.dart';
 import './step/i_select_the_project.dart';
 import './step/i_select_the_work.dart';
-import './step/stopping_will_refuse_because_the_work_is_held.dart';
-import './step/i_ask_to_stop_the_selected_work.dart';
+import './step/removing_will_refuse_because_the_work_is_held.dart';
+import './step/i_ask_to_remove_the_selected_work.dart';
 import './step/i_confirm.dart';
 import './step/what_is_held_is_shown.dart';
 import './step/the_status_line_mentions.dart';
 import './step/i_choose.dart';
 import './step/the_work_is_listed.dart';
-import './step/the_stop_asked_to_rescue_what_was_held.dart';
-import './step/the_stop_asked_to_discard_what_was_held.dart';
+import './step/the_removal_asked_to_rescue_what_was_held.dart';
+import './step/the_removal_asked_to_discard_what_was_held.dart';
 import './step/nothing_more_was_asked_of_the_backend.dart';
+import './step/the_stop_asked_for.dart';
+import './step/the_removal_asked_for.dart';
 import './step/the_work_is_no_longer_listed.dart';
+import './step/the_work_has_stopped.dart';
+import './step/removing_will_refuse_because_the_work_still_runs.dart';
+import './step/i_stop_the_selected_work.dart';
+import './step/the_work_was_not_removed.dart';
 import './step/the_confirmation_says.dart';
 import './step/i_open_the_actions_for.dart';
 import './step/the_action_is_offered_as_unavailable.dart';
@@ -34,12 +40,12 @@ import './step/i_ask_what_this_work_should_read_as.dart';
 import './step/it_says.dart';
 import './step/i_ask_to_recreate_the_selected_work.dart';
 import './step/i_agree_to_recreate_it.dart';
-import './step/the_stop_asked_for.dart';
 import './step/the_launch_was_called.dart';
 import './step/nothing_was_started.dart';
 
 void main() {
-  group('''Stopping, renaming and recreating work, and what that destroys''',
+  group(
+      '''Stopping, removing, renaming and recreating work, and what it costs''',
       () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
@@ -53,8 +59,8 @@ void main() {
         '''work holding commits that never reached the gate is refused, not removed''',
         (tester) async {
       await bddSetUp(tester);
-      await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iAskToStopTheSelectedWork(tester);
+      await removingWillRefuseBecauseTheWorkIsHeld(tester);
+      await iAskToRemoveTheSelectedWork(tester);
       await iConfirm(tester);
       await whatIsHeldIsShown(tester);
       await theStatusLineMentions(
@@ -66,47 +72,70 @@ void main() {
         '''what is held can be pushed to the mirror before it is removed''',
         (tester) async {
       await bddSetUp(tester);
-      await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iAskToStopTheSelectedWork(tester);
+      await removingWillRefuseBecauseTheWorkIsHeld(tester);
+      await iAskToRemoveTheSelectedWork(tester);
       await iConfirm(tester);
       await iChoose(tester, 'Push what it holds to the mirror, then remove it');
-      await theStopAskedToRescueWhatWasHeld(tester);
+      await theRemovalAskedToRescueWhatWasHeld(tester);
     });
     testWidgets(
         '''what is held is discarded only when that is chosen in those words''',
         (tester) async {
       await bddSetUp(tester);
-      await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iAskToStopTheSelectedWork(tester);
+      await removingWillRefuseBecauseTheWorkIsHeld(tester);
+      await iAskToRemoveTheSelectedWork(tester);
       await iConfirm(tester);
       await iChoose(tester, 'Discard what it holds and remove it');
-      await theStopAskedToDiscardWhatWasHeld(tester);
+      await theRemovalAskedToDiscardWhatWasHeld(tester);
     });
     testWidgets('''leaving a refusal alone touches nothing''', (tester) async {
       await bddSetUp(tester);
-      await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
-      await iAskToStopTheSelectedWork(tester);
+      await removingWillRefuseBecauseTheWorkIsHeld(tester);
+      await iAskToRemoveTheSelectedWork(tester);
       await iConfirm(tester);
       await iChoose(tester, 'Leave it alone');
       await nothingMoreWasAskedOfTheBackend(tester);
       await theWorkIsListed(tester, 'sokar-checkout-shell');
       await theStatusLineMentions(tester, 'nothing was touched');
     });
-    testWidgets('''work with nothing held is stopped, and stops being listed''',
+    testWidgets(
+        '''running work is stopped before it is removed, and stops being listed''',
         (tester) async {
       await bddSetUp(tester);
-      await iAskToStopTheSelectedWork(tester);
+      await iAskToRemoveTheSelectedWork(tester);
       await iConfirm(tester);
-      await theStatusLineMentions(tester, 'was stopped and removed');
-      await theStatusLineMentions(
-          tester, '128 paths it had added went with it');
+      await theStopAskedFor(tester, 'sokar-checkout-shell');
+      await theRemovalAskedFor(tester, 'sokar-checkout-shell');
+      await theStatusLineMentions(tester, 'was removed');
+      await theStatusLineMentions(tester, '3.0 MB of workspace went with it');
       await theWorkIsNoLongerListed(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''a removal refused because the work still runs offers to stop it first''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await removingWillRefuseBecauseTheWorkStillRuns(tester);
+      await iAskToRemoveTheSelectedWork(tester);
+      await iConfirm(tester);
+      await iChoose(tester, 'Stop it, then remove it');
+      await theStopAskedFor(tester, 'sokar-checkout-shell');
+      await theRemovalAskedFor(tester, 'sokar-checkout-shell');
+    });
+    testWidgets('''stopping keeps the work, to be started again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStopTheSelectedWork(tester);
+      await theStopAskedFor(tester, 'sokar-checkout-shell');
+      await theWorkWasNotRemoved(tester);
+      await theStatusLineMentions(tester, 'It is kept, workspace and all');
+      await theWorkIsListed(tester, 'sokar-checkout-shell');
     });
     testWidgets(
         '''the confirmation names what is destroyed along with the work''',
         (tester) async {
       await bddSetUp(tester);
-      await iAskToStopTheSelectedWork(tester);
+      await iAskToRemoveTheSelectedWork(tester);
       await theConfirmationSays(tester, 'exists nowhere else');
     });
     testWidgets(
@@ -159,19 +188,19 @@ void main() {
       await itSays(tester, 'picks up a newly built environment');
       await itSays(tester, 'goes with it and exists nowhere else');
     });
-    testWidgets('''recreating stops it and starts the same work again''',
+    testWidgets('''recreating takes it down and starts the same work again''',
         (tester) async {
       await bddSetUp(tester);
       await iAskToRecreateTheSelectedWork(tester);
       await iAgreeToRecreateIt(tester);
-      await theStopAskedFor(tester, 'sokar-checkout-shell');
+      await theRemovalAskedFor(tester, 'sokar-checkout-shell');
       await theLaunchWasCalled(tester, 'sokar-checkout-shell');
     });
     testWidgets(
         '''work that holds unpushed commits stops the recreation, and says so''',
         (tester) async {
       await bddSetUp(tester);
-      await stoppingWillRefuseBecauseTheWorkIsHeld(tester);
+      await removingWillRefuseBecauseTheWorkIsHeld(tester);
       await iAskToRecreateTheSelectedWork(tester);
       await iAgreeToRecreateIt(tester);
       await whatIsHeldIsShown(tester);

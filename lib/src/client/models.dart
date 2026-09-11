@@ -1,4 +1,4 @@
-/// What became of a stop or a resume.
+/// What became of a stop or a removal.
 ///
 /// **Not an enum, deliberately.** The contract says adding a value is not a breaking change and
 /// that a client must render one it does not recognize rather than fail on it. A Dart enum with
@@ -21,17 +21,14 @@ class Outcome {
   static const rescueNeedsItRunning = Outcome('RESCUE_NEEDS_IT_RUNNING');
   static const rescueFailed = Outcome('RESCUE_FAILED');
 
-  // Resume.
-  static const resumed = Outcome('RESUMED');
-  static const alreadyRunning = Outcome('ALREADY_RUNNING');
-  static const noContainer = Outcome('NO_CONTAINER');
-  static const noHelpersRecorded = Outcome('NO_HELPERS_RECORDED');
+  // Remove.
+  static const removed = Outcome('REMOVED');
+  static const stillRunning = Outcome('STILL_RUNNING');
 
   /// Every value this build was written against.
   static const known = <Outcome>[
     notATask, nothingToStop, stopped, holdsWork, nothingKnows,
-    rescueNeedsItRunning, rescueFailed,
-    resumed, alreadyRunning, noContainer, noHelpersRecorded,
+    rescueNeedsItRunning, rescueFailed, removed, stillRunning,
   ];
 
   /// Whether this build knows what this value means.
@@ -46,6 +43,61 @@ class Outcome {
 
   @override
   bool operator ==(Object other) => other is Outcome && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// What `Start` would do to one task, answered before anybody presses it.
+///
+/// Not an enum, by the rule [Outcome] states: the contract says this set will grow.
+class StartAction {
+  /// The name exactly as the backend sent it; empty from a daemon too old to say.
+  final String name;
+
+  /// Constructor with the wire value.
+  const StartAction(this.name);
+
+  /// Nothing exists under this name, and Start creates it.
+  static const create = StartAction('CREATE');
+
+  /// It is stopped, and Start brings it back with its workspace.
+  static const resume = StartAction('RESUME');
+
+  /// It is already running, and Start refuses.
+  static const running = StartAction('RUNNING');
+
+  /// It would come back, but the vault holding its gate token is locked.
+  static const needsVault = StartAction('NEEDS_VAULT');
+
+  /// Its name is from before one container per task, so it only removes.
+  static const supersededName = StartAction('SUPERSEDED_NAME');
+
+  /// Something not specific to this task is in the way; `startDetail` says what.
+  static const notReady = StartAction('NOT_READY');
+
+  /// Every value this build was written against.
+  static const known = <StartAction>[
+    create, resume, running, needsVault, supersededName, notReady,
+  ];
+
+  /// Whether this build knows what this value means.
+  bool get isKnown => known.contains(this);
+
+  /// Whether the daemon said anything at all.
+  bool get said => name.isNotEmpty;
+
+  /// Whether Start would do something rather than refuse.
+  bool get starts => this == create || this == resume;
+
+  /// The value as a phrase, for a person.
+  String get label => name.toLowerCase().replaceAll('_', ' ');
+
+  @override
+  bool operator ==(Object other) => other is StartAction && other.name == name;
 
   @override
   int get hashCode => name.hashCode;
@@ -158,7 +210,7 @@ class Mode {
 class Task {
   /// Container name, which every other call takes.
   ///
-  /// **The identity.** It is what `Resume`, `Stop`, `Tail` and every other call are given, and
+  /// **The identity.** It is what `Start`, `Stop`, `Tail` and every other call are given, and
   /// what the gate ref, the workspace and the log files are built from. Nothing moves it.
   final String name;
 
@@ -242,6 +294,16 @@ class Task {
   /// Whether this task's own work is waiting for somebody to review it.
   bool get hasWorkWaiting => waiting > 0;
 
+  /// What `Start` would do to it, without doing it. Empty from a daemon too old to say.
+  final StartAction startAction;
+
+  /// Which refusal, when [startAction] is one: what is not ready, or the task an old name
+  /// belonged to. Empty otherwise.
+  final String startDetail;
+
+  /// What it is doing that takes minutes and shows nowhere else, such as `building`. Free text.
+  final String phase;
+
   /// What to say about this task's own work at the gate.
   ///
   /// Three answers, not two. **An `online` task has no gate at all** — its ref is
@@ -274,6 +336,9 @@ class Task {
     this.waitingFor = '',
     this.clearance = '',
     this.waiting = 0,
+    this.startAction = const StartAction(''),
+    this.startDetail = '',
+    this.phase = '',
   });
 
   /// Reads one from a reply.
@@ -296,6 +361,9 @@ class Task {
         waitingFor: _string(map, 'waitingFor'),
         clearance: _string(map, 'clearance'),
         waiting: _int(map, 'waiting'),
+        startAction: StartAction(_string(map, 'startAction')),
+        startDetail: _string(map, 'startDetail'),
+        phase: _string(map, 'phase'),
       );
 }
 
@@ -2213,8 +2281,30 @@ class Prompt {
   String get identity => '$task/$key';
 }
 
-/// What a stop did, or refused to do.
+/// What a stop did. A stop keeps the task: its container is its workspace.
 class Stopped {
+  /// What became of it.
+  final Outcome outcome;
+
+  /// How many helpers were stopped.
+  final int helpers;
+
+  /// Helpers that outlived the stop and have to be killed by hand. Empty is the normal case.
+  final List<String> surviving;
+
+  /// Constructor taking every field.
+  const Stopped({required this.outcome, required this.helpers, required this.surviving});
+
+  /// Reads one from a reply.
+  factory Stopped.from(Map<String, dynamic> map) => Stopped(
+        outcome: Outcome(_string(map, 'outcome')),
+        helpers: _int(map, 'helpers'),
+        surviving: _strings(map, 'surviving'),
+      );
+}
+
+/// What a removal did, or refused to do.
+class Removed {
   /// What became of it.
   final Outcome outcome;
 
@@ -2227,82 +2317,25 @@ class Stopped {
   /// Whether the container was removed.
   final bool removed;
 
-  /// How many helpers were stopped.
-  final int helpers;
-
-  /// How many helpers are still alive. Not zero is worth showing.
-  final int surviving;
-
-  /// Why, in words, for an outcome that needs one.
-  final String detail;
-
-  /// How many paths the container had that its image did not.
-  ///
-  /// What the agent installed *inside* it — packages, caches, a built toolchain — which goes with
-  /// the container and has nowhere to arrive, unlike the workspace the gate holds. A count and not
-  /// a list: a container that ran at all reports `/etc` and `/var` as changed, so only added paths
-  /// are counted and there is nothing behind it to enumerate. Zero unless [removed].
+  /// Bytes the workspace held, for saying what was discarded. Zero when unknown.
   final int discarded;
 
   /// Constructor taking every field.
-  const Stopped({
+  const Removed({
     required this.outcome,
     required this.work,
     required this.rescuedRef,
     required this.removed,
-    required this.helpers,
-    required this.surviving,
-    required this.detail,
     required this.discarded,
   });
 
   /// Reads one from a reply.
-  factory Stopped.from(Map<String, dynamic> map) => Stopped(
+  factory Removed.from(Map<String, dynamic> map) => Removed(
         outcome: Outcome(_string(map, 'outcome')),
         work: _string(map, 'work'),
         rescuedRef: _string(map, 'rescuedRef'),
         removed: map['removed'] == true,
-        helpers: _int(map, 'helpers'),
-        surviving: _int(map, 'surviving'),
-        detail: _string(map, 'detail'),
         discarded: _int(map, 'discarded'),
-      );
-}
-
-/// What a resume did.
-class Resumed {
-  /// What became of it.
-  final Outcome outcome;
-
-  /// How many helpers were started.
-  final int started;
-
-  /// How many the task is recorded as having had. Fewer started than recorded is a partial
-  /// resume, and worth saying so.
-  final int recorded;
-
-  /// Set when the image the container was built from has changed since.
-  final String imageDrift;
-
-  /// What went wrong, per helper that did not come back.
-  final List<String> problems;
-
-  /// Constructor taking every field.
-  const Resumed({
-    required this.outcome,
-    required this.started,
-    required this.recorded,
-    required this.imageDrift,
-    required this.problems,
-  });
-
-  /// Reads one from a reply.
-  factory Resumed.from(Map<String, dynamic> map) => Resumed(
-        outcome: Outcome(_string(map, 'outcome')),
-        started: _int(map, 'started'),
-        recorded: _int(map, 'recorded'),
-        imageDrift: _string(map, 'imageDrift'),
-        problems: _strings(map, 'problems'),
       );
 }
 

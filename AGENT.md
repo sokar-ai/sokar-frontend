@@ -99,6 +99,19 @@ in full at the top of the IDL:
 
 The build version from `GetInfo` is for display and bug reports. Never gate a feature on it.
 
+## Stop keeps, Remove destroys, Start decides
+
+Agreed with the Sokar side on 2026-09-11, as one cut on both sides with no shim between.
+
+- **`Stop` keeps the task**: its container is its workspace. `Remove` destroys it and inherits
+  the refusals (`HOLDS_WORK`, `NOTHING_KNOWS`, and `STILL_RUNNING` for a running one).
+- **`Start` creates or brings back**, decided by the task's state; `Resume` is gone.
+- **What `Start` would do is on the task in `List`/`Watch`** (`startAction`), so a refusal is
+  offered as unavailable with its reason and never found by pressing. An empty value is a daemon
+  too old to say, and the runtime's `running` decides.
+- **A refused `Start` is an ordinary final reply** with `action` set, and must not read as a start
+  that worked.
+
 **Until the first release the IDL's compatibility rules are not in force** (the operator's ruling,
 2026-09-11). A method may be renamed, removed or given a new meaning in place, but only after both
 sides agree on the channel, and both change together. The three rules above for reading a reply
@@ -412,7 +425,7 @@ succeed".** Measured on the Sokar side: the packet that was dropped is gone, add
 affects the next attempt, and whether the work retries is the work's business. A widening by name
 costs one dropped packet even when it is granted.
 
-**A clearance decision is remembered per address, not per name, and survives a resume.** One fixed
+**A clearance decision is remembered per address, not per name, and survives the task being started again.** One fixed
 address is asked about once for the whole run; a CDN or anything round-robin asks again for each
 address it resolves to. The interface says so when it happens, because otherwise somebody
 reasonably concludes their last answer was ignored.
@@ -495,7 +508,7 @@ menu bar's entries from one list, so neither can offer what the other forgot.
 
 **`Projects` lists every project, not only the busy ones**, and gives both `tasks` and `running`
 rather than leaving one to be inferred. A project with nothing running is the ordinary case —
-between tasks, or after one was stopped and can still be resumed, which keeps its workspace. A
+between tasks, or after one was stopped and can still be started again, which keeps its workspace. A
 list of only active projects would be empty on a machine with a dozen projects on it. Filtering to
 a busy view is this end's job and must never be assumed of the other; the counts on a row are the
 daemon's, because it assembles them from the gate mirrors, the tasks that exist and the recorded
@@ -673,7 +686,7 @@ somebody. They look alike and three things separate them, all of them load-beari
 - **`scope` is required and the daemon will not pick one.** Omitting it answers `ScopeRequired`.
   "This run needs it" and "this project needs it" are different intentions, so the screen offers
   them as two choices with **nothing preselected** — a default here would make somebody's decision
-  for them. `Scope.run` does not survive a `Resume`: a resumed container rebuilds its ruleset and
+  for them. `Scope.run` does not survive a stop: a container started again rebuilds its ruleset and
   its resolver from what is on disk, and a run-only grant is not on disk.
 - **`NO_PROJECT_FILE` is a partial success, not a failure.** The run *was* widened; only the file
   was not written, because nothing knows where the file is. Rendering it as an error tells
@@ -1053,7 +1066,7 @@ person to look at permissions, and it gets written down.
 ## Panic stops and never removes
 
 `Panic` stops every running task and its helpers at once. **Nothing is removed** — every
-workspace, log and commit that never reached the gate survives, and `Resume` brings a task back
+workspace, log and commit that never reached the gate survives, and `Start` brings a task back
 with the work it had. An interface that presented this as a cleanup would send somebody looking
 for work that is exactly where they left it, on the worst afternoon of their week.
 
@@ -1074,7 +1087,7 @@ than they need to know what it costs.
 - **A dry run's empty `surviving` means nothing was attempted**, not that nothing would survive.
   Rendering it as *"everything will stop cleanly"* would be a promise made out of an absence of
   evidence.
-- **`PanickedTask.name` is what `Resume` takes**, so the row that says what was stopped is also
+- **`PanickedTask.name` is what `Start` takes**, so the row that says what was stopped is also
   the row that says how to bring it back.
 
 ## Whether work can start is asked, never worked out
@@ -1147,7 +1160,7 @@ than trusted to review.
 
 ## A caption is not a name
 
-`Task.name` is the identity: what `Resume`, `Stop` and `Tail` are given, and what the gate ref, the
+`Task.name` is the identity: what `Start`, `Stop`, `Remove` and `Tail` are given, and what the gate ref, the
 workspace and the log files are built from. `Task.label` is a caption somebody set, and **empty is
 the ordinary state** — every task has none until a person types one.
 
@@ -1196,7 +1209,7 @@ usage:
 
 Recreating work is `Stop` then `Start` — no method missing. It exists for one reason and the dialog
 says it: **a task keeps the image it started with**, so picking up a newly built environment means
-being created again rather than resumed.
+being created again rather than started again.
 
 **Nothing is started after a refused stop.** `Stop` answers `HOLDS_WORK` for a task holding commits
 that never reached the gate, and starting anyway would leave two containers and lose the reason

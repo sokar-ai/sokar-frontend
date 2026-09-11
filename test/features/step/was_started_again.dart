@@ -4,5 +4,5 @@ import '../support/world.dart';
 
 /// Usage: {'sokar-checkout-shell'} was started again
 Future<void> wasStartedAgain(WidgetTester tester, String work) async {
-  expect(World.backend.resumes, <String>[work]);
+  expect(World.backend.startedAgain, <String>[work]);
 }

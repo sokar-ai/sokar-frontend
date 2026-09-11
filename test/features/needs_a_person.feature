@@ -107,8 +107,7 @@ Feature: What needs a person on every machine, without going anywhere
   # The menu's action goes to the tile's machine, not to the one the rail is acting on.
   Scenario: stopping from another machine's tile stops it there
     When I watch another machine called {'elsewhere'}
-    And I choose {'Stop it and remove it'} from the menu of the tile {'sokar-shared-shell'}
-    And I confirm
+    And I choose {'Stop it, keeping its workspace'} from the menu of the tile {'sokar-shared-shell'}
     Then {'sokar-shared-shell'} was stopped on the machine {'elsewhere'}
     And nothing was stopped on this machine
 
@@ -124,8 +123,21 @@ Feature: What needs a person on every machine, without going anywhere
     Then {'sokar-checkout-shell'} was started again
     And the tile {'sokar-checkout-shell'} says {'is running again'}
 
-  Scenario: a start the machine could not carry out says so on the tile
+  Scenario: a start the machine refused when pressed says so on the tile
     Given the work {'sokar-checkout-shell'} has stopped
-    And starting it again finds no container
+    And starting it again will be refused because the vault is locked
     When I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
-    Then the tile {'sokar-checkout-shell'} says {'no container'}
+    Then the tile {'sokar-checkout-shell'} says {'the vault is locked'}
+
+  # The machine says beforehand what Start would do, so nobody finds a refusal by pressing.
+  Scenario: a start the machine would refuse is unavailable on the tile, with its reason
+    Given the work {'sokar-checkout-shell'} has stopped
+    And the machine says starting {'sokar-checkout-shell'} needs the vault unlocked
+    When I open the menu of the tile {'sokar-checkout-shell'}
+    Then the menu offers {'Start it again'} as unavailable because {'vault is locked'}
+
+  Scenario: a container named from before one per task can only be removed
+    Given the work {'sokar-checkout-shell'} has stopped
+    And the machine says {'sokar-checkout-shell'} has a name from before one container per task
+    When I open the menu of the tile {'sokar-checkout-shell'}
+    Then the menu offers {'Start it again'} as unavailable because {'can only be removed'}

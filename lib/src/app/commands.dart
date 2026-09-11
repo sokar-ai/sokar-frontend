@@ -71,7 +71,7 @@ List<Command> workCommands({
   required Task? task,
   required FleetModel fleet,
   required Machine machine,
-  required void Function(Task task) askToStop,
+  required void Function(Task task) askToRemove,
   required void Function(Task task) askWhichLog,
   required void Function(Task task) openSession,
 }) {
@@ -79,20 +79,28 @@ List<Command> workCommands({
   return <Command>[
     Command(
       id: 'work.resume',
-      label: 'Start it again',
+      label: task?.startAction == StartAction.create ? 'Start it' : 'Start it again',
       group: 'Work',
-      run: () => fleet.resumeWork(task!.name),
-      unavailable: task == null
-          ? nothingSelected
-          : task.running
-              ? 'it is already running'
-              : null,
+      run: () => fleet.startAgain(task!.name),
+      // The machine says beforehand what Start would do, so a refusal is never found by pressing.
+      unavailable: task == null ? nothingSelected : whyNotStart(task),
     ),
     Command(
       id: 'work.stop',
-      label: 'Stop it and remove it',
+      label: 'Stop it, keeping its workspace',
       group: 'Work',
-      run: () => askToStop(task!),
+      run: () => fleet.stopWork(task!.name),
+      unavailable: task == null
+          ? nothingSelected
+          : task.running
+              ? null
+              : 'it is not running',
+    ),
+    Command(
+      id: 'work.remove',
+      label: 'Remove it',
+      group: 'Work',
+      run: () => askToRemove(task!),
       unavailable: task == null ? nothingSelected : null,
     ),
     Command(
@@ -132,6 +140,22 @@ List<Command> workCommands({
   ];
 }
 
+/// Why `Start` would refuse [task], in words, or null when it would start it.
+String? whyNotStart(Task task) {
+  final detail = task.startDetail;
+  return switch (task.startAction) {
+    StartAction.create || StartAction.resume => null,
+    StartAction.running => 'it is already running',
+    StartAction.needsVault => 'the vault is locked; unlock it and this can start',
+    StartAction.supersededName => 'its name is from before one container per task, so it can '
+        'only be removed${detail.isEmpty ? '' : ' (it belonged to $detail)'}',
+    StartAction.notReady =>
+      detail.isEmpty ? 'its project is not ready' : 'its project is not ready: $detail',
+    // A daemon too old to say, or a value this build does not know: the runtime's answer decides.
+    _ => task.running ? 'it is already running' : null,
+  };
+}
+
 List<Command> commandsFor({
   required FleetModel fleet,
   required Machine machine,
@@ -142,7 +166,7 @@ List<Command> commandsFor({
   required Templates templates,
   required VoidCallback openFinder,
   required VoidCallback checkWorkCanStart,
-  required void Function(Task task) askToStop,
+  required void Function(Task task) askToRemove,
   required void Function(Task task) askWhichLog,
   required void Function(Task task) openSession,
   required VoidCallback openTheGate,
@@ -215,7 +239,7 @@ List<Command> commandsFor({
       task: selectedTask,
       fleet: fleet,
       machine: machine,
-      askToStop: askToStop,
+      askToRemove: askToRemove,
       askWhichLog: askWhichLog,
       openSession: openSession,
     ),

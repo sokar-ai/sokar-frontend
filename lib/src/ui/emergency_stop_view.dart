@@ -123,7 +123,7 @@ class EmergencyStopDialog extends StatelessWidget {
                       Text('What was stopped',
                           style: Theme.of(context).textTheme.labelLarge),
                       const SizedBox(height: Space.tight),
-                      // Named, because the name is what `Resume` takes: the row that says what
+                      // Named, because the name is what `Start` takes: the row that says what
                       // was stopped is the row that says how to bring it back.
                       for (final task in done.tasks)
                         Padding(

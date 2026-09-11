@@ -11,7 +11,7 @@ import 'fleet_backend.dart';
 /// from the keyboard.
 ///
 /// And it **stops without removing**. Every workspace, log and unpushed commit survives, and
-/// `Resume` brings a task back with the work it had. What this reports is therefore *what
+/// `Start` brings a task back with the work it had. What this reports is therefore *what
 /// survived*, never what was cleared away: somebody who read it as a cleanup would spend an
 /// afternoon looking for work that is exactly where they left it.
 class EmergencyStop extends ChangeNotifier {
@@ -72,7 +72,7 @@ class EmergencyStop extends ChangeNotifier {
 
   /// The way back, named rather than left to be worked out.
   ///
-  /// Recovery is `Resume`, and it is possible precisely because nothing was removed. The steps are
+  /// Recovery is `Start`, and it is possible precisely because nothing was removed. The steps are
   /// named because somebody reading this has just had a bad minute.
   List<String> get howToRecover => const <String>[
         'Find what went wrong. Every log is where it was.',

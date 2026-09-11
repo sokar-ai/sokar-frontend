@@ -24,7 +24,7 @@ class MockMachine {
   }) {
     tasks = situation == 'empty' ? <Map<String, dynamic>>[] : _aMachineWithWorkOnIt();
     daemon.version = '0.1.0+mock';
-    daemon.method('List', (_) => <String, dynamic>{'tasks': tasks});
+    daemon.method('List', (_) => <String, dynamic>{'tasks': _listing});
     daemon.method('Agents', (_) => <String, dynamic>{
           'agents': situation == 'no-agent'
               ? <Map<String, dynamic>>[]
@@ -95,7 +95,7 @@ class MockMachine {
     // pushes, not stream: Watch never ends, and a held-back stream would deliver every change one
     // change late.
     daemon.pushes('Watch', (_) async* {
-      yield <String, dynamic>{'tasks': tasks};
+      yield <String, dynamic>{'tasks': _listing};
       yield* _changes.stream;
     });
     daemon.stream('Start', _launch);
@@ -127,7 +127,7 @@ class MockMachine {
       yield* _asking.stream;
     });
     daemon.method('Decide', _decide);
-    daemon.method('Resume', _resume);
+    daemon.method('Remove', _remove);
     daemon.method('Panic', _panic);
     daemon.method('DeleteProject', _deleteProject);
     daemon.method('Doctor', _doctor);
@@ -197,7 +197,7 @@ class MockMachine {
   /// Adds a task and tells every open `Watch` about it.
   void addTask(String name, String project) {
     tasks = <Map<String, dynamic>>[...tasks, _task(name, project)];
-    _changes.add(<String, dynamic>{'tasks': tasks});
+    _changes.add(<String, dynamic>{'tasks': _listing});
   }
 
   /// Stops answering.
@@ -453,7 +453,7 @@ class MockMachine {
         else
           each,
     ];
-    _changes.add(<String, dynamic>{'tasks': tasks});
+    _changes.add(<String, dynamic>{'tasks': _listing});
     return <String, dynamic>{
       'outcome': caption.isEmpty ? 'CLEARED' : 'LABELLED',
       'label': caption,
@@ -605,7 +605,7 @@ class MockMachine {
       // Gone from the listing as well as from the task list: a project still on screen after it
       // was removed is the one reading that would send somebody looking for what is left of it.
       _removedProjects.add(name);
-      _changes.add(<String, dynamic>{'tasks': tasks});
+      _changes.add(<String, dynamic>{'tasks': _listing});
     }
 
     return <String, dynamic>{
@@ -636,13 +636,13 @@ class MockMachine {
               ...task,
               'running': false,
               // Stopped, not removed: the state directory, the workspace and the logs are all
-              // still there, which is what makes Resume possible.
+              // still there, which is what makes Start bring it back.
               'state': 'Exited (143) 0 seconds ago',
               'activity': 'DEAD',
               'helpers': 0,
             },
       ];
-      _changes.add(<String, dynamic>{'tasks': tasks});
+      _changes.add(<String, dynamic>{'tasks': _listing});
     }
 
     return <String, dynamic>{
@@ -847,7 +847,7 @@ class MockMachine {
     if (preview) return _clearance('PREVIEWED', was: was, now: mode);
 
     tasks[at] = <String, dynamic>{...tasks[at], 'clearance': mode};
-    _changes.add(<String, dynamic>{'tasks': tasks});
+    _changes.add(<String, dynamic>{'tasks': _listing});
     return _clearance('CHANGED', was: was, now: mode);
   }
 
@@ -1369,57 +1369,116 @@ class MockMachine {
     }
   }
 
+  /// The tasks as listed, with what Start would do to each worked out from its state.
+  List<Map<String, dynamic>> get _listing => <Map<String, dynamic>>[
+        for (final task in tasks)
+          <String, dynamic>{
+            'startAction': task['running'] == true
+                ? 'RUNNING'
+                : situation == 'vault-locked'
+                    ? 'NEEDS_VAULT'
+                    : 'RESUME',
+            'startDetail': '',
+            'phase': '',
+            ...task,
+          },
+      ];
+
+  /// Stops a task and keeps it: its container is its workspace.
   Map<String, dynamic> _stop(Map<String, dynamic> parameters) {
-    final answer = <String, dynamic>{
-      'outcome': switch (situation) {
-        'holds-work' => 'HOLDS_WORK',
-        'nothing-knows' => 'NOTHING_KNOWS',
-        'newer-outcome' => 'QUARANTINED',
-        _ => 'STOPPED',
-      },
-      'work':
-          situation == 'holds-work' ? '2 commits on refs/heads/fix-rounding' : '',
-      'rescuedRef': '',
-      'removed': situation != 'holds-work' && situation != 'nothing-knows',
-      'helpers': 0,
-      'surviving': situation == 'holds-work' ? 2 : 0,
-      'detail': '',
-      // Counted only when it was removed, and nothing else ever records that any of it existed.
-      'discarded': 0,
-    };
-    // Purge and rescue are the caller having decided about what is held, so they get through.
-    final insisted = parameters['purge'] == true ||
-        parameters['rescue'] == true ||
-        parameters['force'] == true;
-    if (answer['removed'] == true || insisted) {
-      answer['removed'] = true;
-      answer['discarded'] = 128;
-      if (insisted) answer['outcome'] = 'STOPPED';
-      tasks = tasks.where((task) => task['name'] != parameters['task']).toList();
-      _changes.add(<String, dynamic>{'tasks': tasks});
+    final name = parameters['task'];
+    final running = tasks.any((task) => task['name'] == name && task['running'] == true);
+    if (running) {
+      tasks = <Map<String, dynamic>>[
+        for (final task in tasks)
+          task['name'] != name
+              ? task
+              : <String, dynamic>{
+                  ...task,
+                  'running': false,
+                  'state': 'Exited (143) 0 seconds ago',
+                  'activity': 'DEAD',
+                  'helpers': 0,
+                },
+      ];
+      _changes.add(<String, dynamic>{'tasks': _listing});
     }
-    return answer;
+    return <String, dynamic>{
+      'outcome': situation == 'newer-outcome'
+          ? 'QUARANTINED'
+          : running
+              ? 'STOPPED'
+              : 'NOTHING_TO_STOP',
+      'helpers': running ? 2 : 0,
+      'surviving': <String>[],
+    };
   }
 
-  Map<String, dynamic> _resume(Map<String, dynamic> parameters) {
-    tasks = tasks
-        .map((task) => task['name'] != parameters['task']
+  /// Removes a task, or refuses rather than destroys.
+  Map<String, dynamic> _remove(Map<String, dynamic> parameters) {
+    final name = parameters['task'];
+    final force = parameters['force'] == true;
+    final rescue = parameters['rescue'] == true;
+    final running = tasks.any((task) => task['name'] == name && task['running'] == true);
+    final refusal = force
+        ? null
+        : running
+            ? 'STILL_RUNNING'
+            : rescue
+                ? null
+                : switch (situation) {
+                    'holds-work' => 'HOLDS_WORK',
+                    'nothing-knows' => 'NOTHING_KNOWS',
+                    _ => null,
+                  };
+    if (refusal != null) {
+      return <String, dynamic>{
+        'outcome': refusal,
+        'work': refusal == 'HOLDS_WORK' ? '2 commits on refs/heads/fix-rounding' : '',
+        'rescuedRef': '',
+        'removed': false,
+        'discarded': 0,
+      };
+    }
+    tasks = tasks.where((task) => task['name'] != name).toList();
+    _changes.add(<String, dynamic>{'tasks': _listing});
+    return <String, dynamic>{
+      'outcome': situation == 'newer-outcome' ? 'QUARANTINED' : 'REMOVED',
+      'work': '',
+      'rescuedRef': rescue ? 'refs/sokar/rescued/$name' : '',
+      'removed': true,
+      // Counted only when it was removed, and nothing else ever records that any of it existed.
+      'discarded': 3 * 1024 * 1024,
+    };
+  }
+
+  /// Starts a listed task again: refused while it runs or while the vault is locked.
+  Map<String, dynamic> _startAgain(String name) {
+    final running = tasks.any((task) => task['name'] == name && task['running'] == true);
+    if (running) return <String, dynamic>{'action': 'RUNNING'};
+    if (situation == 'vault-locked') return <String, dynamic>{'action': 'NEEDS_VAULT'};
+    tasks = <Map<String, dynamic>>[
+      for (final task in tasks)
+        task['name'] != name
             ? task
             : <String, dynamic>{
                 ...task,
                 'running': true,
                 'state': 'Up 1 second',
+                'activity': 'WORKING',
                 'helpers': 1,
-              })
-        .toList();
-    _changes.add(<String, dynamic>{'tasks': tasks});
+              },
+    ];
+    _changes.add(<String, dynamic>{'tasks': _listing});
     return <String, dynamic>{
-      'outcome': situation == 'newer-outcome' ? 'QUARANTINED' : 'RESUMED',
-      'started': 1,
-      // Fewer started than recorded on purpose: a partial resume is worth seeing said out loud.
-      'recorded': 2,
-      'imageDrift': 'the image was rebuilt 20 minutes ago',
+      'action': 'RESUME',
+      'container': name,
+      'exitCode': 0,
+      'helpersStarted': 1,
+      // Fewer started than recorded on purpose: a partial start is worth seeing said out loud.
+      'helpersRecorded': 2,
       'problems': <String>['gate helper did not come back'],
+      'imageDrift': 'the image was rebuilt 20 minutes ago',
     };
   }
 
@@ -1468,6 +1527,12 @@ class MockMachine {
   }
 
   Stream<Map<String, dynamic>> _launch(Map<String, dynamic> parameters) async* {
+    // A listed task is started again rather than built beside itself.
+    final existing = parameters['task'] as String?;
+    if (parameters['detach'] == true && tasks.any((task) => task['name'] == existing)) {
+      yield _startAgain(existing!);
+      return;
+    }
     const steps = <String>[
       'Resolving project.yml',
       'Reading the agent manifest',
@@ -1537,7 +1602,7 @@ class MockMachine {
           agent: parameters['agent'] as String? ?? 'an-agent',
           prompt: prompt),
     ];
-    _changes.add(<String, dynamic>{'tasks': tasks});
+    _changes.add(<String, dynamic>{'tasks': _listing});
     yield <String, dynamic>{'container': container, 'exitCode': 0};
   }
 

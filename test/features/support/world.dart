@@ -229,31 +229,38 @@ class FakeBackend implements FleetBackend {
     return launch.stream;
   }
 
-  /// What the next [stopTask] answers. Set by the scenario, so a refusal can be produced without
+  /// Every stop asked for, by task.
+  final List<String> stops = <String>[];
+
+  /// Keeps the task listed, stopped: a stop keeps the workspace.
+  @override
+  Future<Stopped> stopTask(String task) async {
+    stops.add(task);
+    _tasks = <Task>[
+      for (final each in _tasks)
+        each.name == task ? _with(each, running: false, startAction: 'RESUME') : each,
+    ];
+    _changes.add(_tasks);
+    return Stopped.from(const <String, dynamic>{
+      'outcome': 'STOPPED',
+      'helpers': 2,
+      'surviving': <String>[],
+    });
+  }
+
+  /// What the next [removeTask] answers. Set by the scenario, so a refusal can be produced without
   /// contriving a task that genuinely holds commits.
-  Stopped nextStop = Stopped.from(const <String, dynamic>{
-    'outcome': 'STOPPED',
+  Removed nextRemove = Removed.from(const <String, dynamic>{
+    'outcome': 'REMOVED',
     'work': '',
     'rescuedRef': '',
     'removed': true,
-    'helpers': 0,
-    'surviving': 0,
-    'detail': '',
-    'discarded': 128,
+    'discarded': 3 * 1024 * 1024,
   });
 
-  /// What the next [resumeTask] answers.
-  Resumed nextResume = Resumed.from(const <String, dynamic>{
-    'outcome': 'RESUMED',
-    'started': 2,
-    'recorded': 2,
-    'imageDrift': '',
-    'problems': <String>[],
-  });
-
-  /// Every stop asked for, and how it was asked.
-  final List<({String task, bool? purge, bool? rescue, bool? force})> stops =
-      <({String task, bool? purge, bool? rescue, bool? force})>[];
+  /// Every removal asked for, and how it was asked.
+  final List<({String task, bool? rescue, bool? force})> removals =
+      <({String task, bool? rescue, bool? force})>[];
 
   /// Acts on the machine, rather than only answering about it.
   ///
@@ -261,52 +268,51 @@ class FakeBackend implements FleetBackend {
   /// look like one where nothing happens. That was found by hand, against the other stand-in,
   /// with every test green — so both of them act now, and a scenario holds this one to it.
   @override
-  Future<Stopped> stopTask(
-    String task, {
-    bool? purge,
-    bool? rescue,
-    bool? force,
-  }) async {
-    stops.add((task: task, purge: purge, rescue: rescue, force: force));
-    if (nextStop.removed) {
+  Future<Removed> removeTask(String task, {bool? rescue, bool? force}) async {
+    removals.add((task: task, rescue: rescue, force: force));
+    if (nextRemove.removed) {
       _tasks = _tasks.where((each) => each.name != task).toList();
       _changes.add(_tasks);
     }
-    return nextStop;
+    return nextRemove;
   }
 
-  /// Every task a resume was asked for.
-  final List<String> resumes = <String>[];
+  /// What the next [startAgain] answers.
+  StartProgress nextStart = const StartProgress(
+    action: StartAction.resume,
+    exitCode: 0,
+    helpersStarted: 2,
+    helpersRecorded: 2,
+  );
 
-  /// Acts like [stopTask]: a resumed task goes on listed as running, or a screen that
+  /// Every task started again.
+  final List<String> startedAgain = <String>[];
+
+  /// Acts like [removeTask]: a task started again goes on listed as running, or a screen that
   /// ignored the answer would pass.
   @override
-  Future<Resumed> resumeTask(String task) async {
-    resumes.add(task);
-    if (nextResume.outcome == Outcome.resumed) {
+  Future<StartProgress> startAgain(String task) async {
+    startedAgain.add(task);
+    if (nextStart.action == StartAction.resume) {
       _tasks = <Task>[
         for (final each in _tasks)
-          if (each.name == task)
-            Task.from(<String, dynamic>{
-              'name': each.name,
-              'label': each.label,
-              'project': each.project,
-              'securityClass': each.securityClass,
-              'state': 'Up 1 second',
-              'running': true,
-              'helpers': nextResume.started,
-              'clearance': each.clearance,
-              'mode': each.mode.name,
-              'prompt': each.prompt,
-              'agent': each.agent,
-            })
-          else
-            each,
+          each.name == task ? _with(each, running: true, startAction: 'RUNNING') : each,
       ];
       _changes.add(_tasks);
     }
-    return nextResume;
+    return nextStart;
   }
+
+  /// [task] with its running state, and what Start would do to it, changed.
+  static Task _with(Task task, {required bool running, required String startAction}) =>
+      Task.from(<String, dynamic>{
+        ...wire(task),
+        'state': running ? 'Up 1 second' : 'Exited (143) 0 seconds ago',
+        'running': running,
+        'helpers': running ? 2 : 0,
+        'activity': running ? 'WORKING' : 'DEAD',
+        'startAction': startAction,
+      });
 
   /// What the next [tailLog] prints into, so the scenario decides when a line arrives.
   late StreamController<List<String>> tailing;
@@ -1312,6 +1318,7 @@ class World {
             'securityClass': was.securityClass,
             'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
             'running': running,
+            'startAction': running ? 'RUNNING' : 'RESUME',
             'helpers': was.helpers,
             'agent': 'an-agent',
             'mode': 'UNATTENDED',
@@ -1319,6 +1326,21 @@ class World {
             'since': since,
             'activity': activity,
             'waitingFor': waitingFor,
+          }),
+    ]);
+  }
+
+  /// Makes the machine say [action] is what Start would do to [name], and why.
+  static void theStartWouldBe(String name, String action, {String detail = ''}) {
+    backend.publish(<Task>[
+      for (final task in backend.tasksNow)
+        if (task.name != name)
+          task
+        else
+          Task.from(<String, dynamic>{
+            ...wire(task),
+            'startAction': action,
+            'startDetail': detail,
           }),
     ]);
   }
@@ -1680,3 +1702,25 @@ class FakeTunnels extends Tunnels {
   }
 }
 
+/// [task] as the machine would send it.
+Map<String, dynamic> wire(Task task) => <String, dynamic>{
+      'name': task.name,
+      'label': task.label,
+      'project': task.project,
+      'securityClass': task.securityClass,
+      'state': task.state,
+      'running': task.running,
+      'helpers': task.helpers,
+      'agent': task.agent,
+      'mode': task.mode.name,
+      'prompt': task.prompt,
+      'branch': task.branch,
+      'since': task.since,
+      'activity': task.activity.name,
+      'waitingFor': task.waitingFor,
+      'clearance': task.clearance,
+      'waiting': task.waiting,
+      'startAction': task.startAction.name,
+      'startDetail': task.startDetail,
+      'phase': task.phase,
+    };

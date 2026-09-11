@@ -46,6 +46,11 @@ distribution, so an entry below has reached an operator only if they follow that
   than reporting nothing wrong.
 - Debian and RPM packages, proven to install in a clean container on every build.
 
+### Changed
+
+- **Stopping keeps the work and its workspace**; removing is its own action, and what the machine
+  would do on "Start it again" is shown before anybody presses it, refusals included.
+
 ### Fixed
 
 - Working in a task by hand is no longer offered for a machine reached through a socket something

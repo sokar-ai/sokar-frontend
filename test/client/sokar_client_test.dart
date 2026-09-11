@@ -43,7 +43,7 @@ void main() {
     test('a refusal arrives as an outcome, not as a failure', () async {
       // HOLDS_WORK is the gate working. A client that treated it as an error would show the one
       // answer that matters most as a generic failure.
-      daemon.method('Stop', (_) => {
+      daemon.method('Remove', (_) => {
             'outcome': 'HOLDS_WORK',
             'work': '2 commits on main',
             'rescuedRef': '',
@@ -52,7 +52,7 @@ void main() {
             'surviving': 4,
             'detail': '',
           });
-      final stopped = await (await connect()).stop('sokar-demo-shell-1');
+      final stopped = await (await connect()).remove('sokar-demo-shell-1');
       expect(stopped.outcome, Outcome.holdsWork);
       expect(stopped.removed, isFalse);
       expect(stopped.work, '2 commits on main');
@@ -62,8 +62,8 @@ void main() {
       // The agent's own installs go with the container and have nowhere to arrive, unlike the
       // workspace. Nothing else records that any of it existed, so a removal that does not
       // mention it is the last chance to know, gone.
-      daemon.method('Stop', (_) => {
-            'outcome': 'STOPPED',
+      daemon.method('Remove', (_) => {
+            'outcome': 'REMOVED',
             'work': '',
             'rescuedRef': '',
             'removed': true,
@@ -73,7 +73,7 @@ void main() {
             'discarded': 1284,
           });
 
-      final stopped = await (await connect()).stop('sokar-demo-shell-1');
+      final stopped = await (await connect()).remove('sokar-demo-shell-1');
 
       expect(stopped.discarded, 1284);
     });
@@ -81,8 +81,8 @@ void main() {
     test('a reply from a daemon too old to count it reads as none', () async {
       // Additive: a backend that has not gained the field yet simply does not send it, and that
       // has to read as zero rather than as a client that cannot talk to it.
-      daemon.method('Stop', (_) => {
-            'outcome': 'STOPPED',
+      daemon.method('Remove', (_) => {
+            'outcome': 'REMOVED',
             'work': '',
             'rescuedRef': '',
             'removed': true,
@@ -91,7 +91,7 @@ void main() {
             'detail': '',
           });
 
-      final stopped = await (await connect()).stop('sokar-demo-shell-1');
+      final stopped = await (await connect()).remove('sokar-demo-shell-1');
 
       expect(stopped.discarded, 0);
       expect(stopped.removed, isTrue);

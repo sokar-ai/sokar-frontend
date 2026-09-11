@@ -7,6 +7,6 @@ import '../support/world.dart';
 Future<void> iConfirm(WidgetTester tester) async {
   // Separate from asking on purpose: removing work is not something that happens because one
   // entry was chosen from a list.
-  await tester.tap(find.widgetWithText(FilledButton, 'Stop and remove'));
+  await tester.tap(find.widgetWithText(FilledButton, 'Remove it'));
   await World.settle(tester);
 }

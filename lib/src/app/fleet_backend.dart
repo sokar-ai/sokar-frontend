@@ -64,19 +64,17 @@ abstract class FleetBackend {
     int? minutes,
   });
 
-  /// Stops a task and removes what is left of it, or refuses and says why.
+  /// Stops a task, keeping it and its workspace.
+  Future<Stopped> stopTask(String task);
+
+  /// Removes a task, or refuses and says why.
   ///
   /// Refusing is the interesting answer: a task holding commits that never reached the gate comes
   /// back as `HOLDS_WORK`, untouched, and the caller decides what that work is worth.
-  Future<Stopped> stopTask(
-    String task, {
-    bool? purge,
-    bool? rescue,
-    bool? force,
-  });
+  Future<Removed> removeTask(String task, {bool? rescue, bool? force});
 
-  /// Starts a stopped task's container again, with the helpers it is recorded as having had.
-  Future<Resumed> resumeTask(String task);
+  /// Starts a task that is listed, and answers what Start did. Detached: a build is read with `Tail`.
+  Future<StartProgress> startAgain(String task);
 
   /// Sets or clears the caption a task reads by. **Nothing about its identity moves.**
   Future<Labelled> labelTask(String task, {String? label});
@@ -287,6 +285,7 @@ class SokarBackend implements FleetBackend {
     // Streaming, so every line arrives as `line`; the contract's `output` list is for a caller
     // that did not ask to stream and is empty here.
     var exitCode = 0;
+    StartAction? action;
     await for (final progress in _opened().start(
       task: task,
       project: project,
@@ -301,21 +300,28 @@ class SokarBackend implements FleetBackend {
       final line = progress.line;
       if (line != null) yield line;
       if (progress.exitCode != null) exitCode = progress.exitCode!;
+      if (progress.action != null) action = progress.action;
     }
+    // A refusal is an ordinary final reply, and must not read as a start that worked.
+    if (action != null && action.isKnown && !action.starts) throw StartRefused(action);
     if (exitCode != 0) throw OperationFailed(exitCode);
   }
 
   @override
-  Future<Stopped> stopTask(
-    String task, {
-    bool? purge,
-    bool? rescue,
-    bool? force,
-  }) =>
-      _opened().stop(task, purge: purge, rescue: rescue, force: force);
+  Future<Stopped> stopTask(String task) => _opened().stop(task);
 
   @override
-  Future<Resumed> resumeTask(String task) => _opened().resume(task);
+  Future<Removed> removeTask(String task, {bool? rescue, bool? force}) =>
+      _opened().remove(task, rescue: rescue, force: force);
+
+  @override
+  Future<StartProgress> startAgain(String task) async {
+    var last = const StartProgress();
+    await for (final progress in _opened().start(task: task, detach: true)) {
+      last = progress;
+    }
+    return last;
+  }
 
   @override
   Future<Labelled> labelTask(String task, {String? label}) =>
@@ -529,6 +535,25 @@ class PreparationFailed implements Exception {
 
   @override
   String toString() => step;
+}
+
+/// A `Start` the machine refused, by name.
+class StartRefused implements Exception {
+  /// Constructor taking the refusal.
+  const StartRefused(this.action);
+
+  /// What Start answered instead of starting.
+  final StartAction action;
+
+  @override
+  String toString() => switch (action) {
+        StartAction.running => 'It is already running, so nothing was started.',
+        StartAction.needsVault => 'The vault is locked. Unlock it, then start again.',
+        StartAction.supersededName =>
+          'It is from before one container per task, and can only be removed.',
+        StartAction.notReady => 'This project is not ready to start work.',
+        _ => 'Refused: ${action.label}.',
+      };
 }
 
 class OperationFailed implements Exception {

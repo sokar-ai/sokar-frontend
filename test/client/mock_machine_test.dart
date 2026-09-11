@@ -29,60 +29,91 @@ void main() {
     });
   }
 
-  test('a task that is stopped stops being listed', () async {
+  test('a stopped task is kept, and listed as one Start brings back', () async {
     await machineIn('work');
     final client = await connect();
-    expect(await client.tasks(), hasLength(6));
 
-    final stopped = await client.stop('sokar-checkout-migrate');
+    final stopped = await client.stop('sokar-checkout-shell');
 
     expect(stopped.outcome, Outcome.stopped);
-    expect(stopped.removed, isTrue);
+    final task =
+        (await client.tasks()).firstWhere((task) => task.name == 'sokar-checkout-shell');
+    expect(task.running, isFalse);
+    expect(task.startAction, StartAction.resume);
+  });
+
+  test('a running task is not removed, and says so', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final refused = await client.remove('sokar-checkout-shell');
+
+    expect(refused.outcome, Outcome.stillRunning);
+    expect(refused.removed, isFalse);
+    expect((await client.tasks()).map((task) => task.name), contains('sokar-checkout-shell'));
+  });
+
+  test('a removed task stops being listed', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final removed = await client.remove('sokar-checkout-migrate');
+
+    expect(removed.outcome, Outcome.removed);
+    expect(removed.removed, isTrue);
     expect(
       (await client.tasks()).map((task) => task.name),
       isNot(contains('sokar-checkout-migrate')),
     );
   });
 
-  test('a refused stop changes nothing at all', () async {
+  test('a refused removal changes nothing at all', () async {
     await machineIn('holds-work');
     final client = await connect();
 
-    final refused = await client.stop('sokar-checkout-shell');
+    final refused = await client.remove('sokar-checkout-migrate');
 
     expect(refused.outcome, Outcome.holdsWork);
     expect(refused.removed, isFalse);
     expect(refused.work, isNotEmpty);
-    expect(
-      (await client.tasks()).map((task) => task.name),
-      contains('sokar-checkout-shell'),
-    );
+    expect((await client.tasks()).map((task) => task.name), contains('sokar-checkout-migrate'));
   });
 
-  test('asking again with purge gets through, because that is the point of asking', () async {
+  test('asking again with force gets through, because that is the point of asking', () async {
     await machineIn('holds-work');
     final client = await connect();
-    await client.stop('sokar-checkout-shell');
+    await client.remove('sokar-checkout-migrate');
 
-    final purged = await client.stop('sokar-checkout-shell', purge: true);
+    final forced = await client.remove('sokar-checkout-migrate', force: true);
 
-    expect(purged.removed, isTrue);
+    expect(forced.removed, isTrue);
     expect(
       (await client.tasks()).map((task) => task.name),
-      isNot(contains('sokar-checkout-shell')),
+      isNot(contains('sokar-checkout-migrate')),
     );
   });
 
-  test('a resumed task is listed as running', () async {
+  test('a stopped task started again is listed as running', () async {
     await machineIn('work');
     final client = await connect();
 
-    final resumed = await client.resume('sokar-checkout-migrate');
+    final started = await client.start(task: 'sokar-checkout-migrate', detach: true).last;
 
-    expect(resumed.outcome, Outcome.resumed);
-    final task = (await client.tasks())
-        .firstWhere((task) => task.name == 'sokar-checkout-migrate');
+    expect(started.action, StartAction.resume);
+    expect(started.helpersStarted, lessThan(started.helpersRecorded!));
+    final task =
+        (await client.tasks()).firstWhere((task) => task.name == 'sokar-checkout-migrate');
     expect(task.running, isTrue);
+    expect(task.startAction, StartAction.running);
+  });
+
+  test('a running task is refused a second start', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final refused = await client.start(task: 'sokar-checkout-shell', detach: true).last;
+
+    expect(refused.action, StartAction.running);
   });
 
   test('a change reaches a watcher without it asking again', () async {
@@ -100,7 +131,7 @@ void main() {
     });
 
     await first.future;
-    await client.stop('sokar-checkout-migrate');
+    await client.remove('sokar-checkout-migrate');
     await second.future;
 
     expect(seen.first, 6);

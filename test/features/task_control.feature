@@ -1,6 +1,6 @@
 # The Feature line is the report row: one short sentence, 70 characters at most,
 # saying what this file tests. It is the group name in every surface CI renders.
-Feature: Stopping, renaming and recreating work, and what that destroys
+Feature: Stopping, removing, renaming and recreating work, and what it costs
 
   Background:
     Given a backend with work on it
@@ -10,8 +10,8 @@ Feature: Stopping, renaming and recreating work, and what that destroys
     And I select the work {'sokar-checkout-shell'}
 
   Scenario: work holding commits that never reached the gate is refused, not removed
-    Given stopping will refuse because the work is held
-    When I ask to stop the selected work
+    Given removing will refuse because the work is held
+    When I ask to remove the selected work
     And I confirm
     Then what is held is shown
     And the status line mentions {'holds work that never reached the gate'}
@@ -19,37 +19,56 @@ Feature: Stopping, renaming and recreating work, and what that destroys
     Then the work {'sokar-checkout-shell'} is listed
 
   Scenario: what is held can be pushed to the mirror before it is removed
-    Given stopping will refuse because the work is held
-    When I ask to stop the selected work
+    Given removing will refuse because the work is held
+    When I ask to remove the selected work
     And I confirm
     And I choose {'Push what it holds to the mirror, then remove it'}
-    Then the stop asked to rescue what was held
+    Then the removal asked to rescue what was held
 
   Scenario: what is held is discarded only when that is chosen in those words
-    Given stopping will refuse because the work is held
-    When I ask to stop the selected work
+    Given removing will refuse because the work is held
+    When I ask to remove the selected work
     And I confirm
     And I choose {'Discard what it holds and remove it'}
-    Then the stop asked to discard what was held
+    Then the removal asked to discard what was held
 
   Scenario: leaving a refusal alone touches nothing
-    Given stopping will refuse because the work is held
-    When I ask to stop the selected work
+    Given removing will refuse because the work is held
+    When I ask to remove the selected work
     And I confirm
     And I choose {'Leave it alone'}
     Then nothing more was asked of the backend
     And the work {'sokar-checkout-shell'} is listed
     And the status line mentions {'nothing was touched'}
 
-  Scenario: work with nothing held is stopped, and stops being listed
-    When I ask to stop the selected work
+  Scenario: running work is stopped before it is removed, and stops being listed
+    When I ask to remove the selected work
     And I confirm
-    Then the status line mentions {'was stopped and removed'}
-    And the status line mentions {'128 paths it had added went with it'}
+    Then the stop asked for {'sokar-checkout-shell'}
+    And the removal asked for {'sokar-checkout-shell'}
+    And the status line mentions {'was removed'}
+    And the status line mentions {'3.0 MB of workspace went with it'}
     And the work {'sokar-checkout-shell'} is no longer listed
 
+  # A task listed as stopped can be running again by the time the removal arrives.
+  Scenario: a removal refused because the work still runs offers to stop it first
+    Given the work {'sokar-checkout-shell'} has stopped
+    And removing will refuse because the work still runs
+    When I ask to remove the selected work
+    And I confirm
+    And I choose {'Stop it, then remove it'}
+    Then the stop asked for {'sokar-checkout-shell'}
+    And the removal asked for {'sokar-checkout-shell'}
+
+  Scenario: stopping keeps the work, to be started again
+    When I stop the selected work
+    Then the stop asked for {'sokar-checkout-shell'}
+    And the work was not removed
+    And the status line mentions {'It is kept, workspace and all'}
+    And the work {'sokar-checkout-shell'} is listed
+
   Scenario: the confirmation names what is destroyed along with the work
-    When I ask to stop the selected work
+    When I ask to remove the selected work
     Then the confirmation says {'exists nowhere else'}
 
   Scenario: an action the state does not allow is offered as unavailable, not hidden
@@ -85,14 +104,14 @@ Feature: Stopping, renaming and recreating work, and what that destroys
     Then it says {'picks up a newly built environment'}
     And it says {'goes with it and exists nowhere else'}
 
-  Scenario: recreating stops it and starts the same work again
+  Scenario: recreating takes it down and starts the same work again
     When I ask to recreate the selected work
     And I agree to recreate it
-    Then the stop asked for {'sokar-checkout-shell'}
+    Then the removal asked for {'sokar-checkout-shell'}
     And the launch was called {'sokar-checkout-shell'}
 
   Scenario: work that holds unpushed commits stops the recreation, and says so
-    Given stopping will refuse because the work is held
+    Given removing will refuse because the work is held
     When I ask to recreate the selected work
     And I agree to recreate it
     Then what is held is shown

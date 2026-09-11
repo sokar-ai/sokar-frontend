@@ -209,7 +209,7 @@ class _ShellState extends State<Shell> {
         templates: widget.templates,
         openFinder: _openFinder,
         checkWorkCanStart: _checkWorkCanStart,
-        askToStop: _askToStop,
+        askToRemove: _askToRemove,
         askWhichLog: _askWhichLog,
         openSession: _openSession,
         openTheGate: _openTheGate,
@@ -610,22 +610,18 @@ class _ShellState extends State<Shell> {
     widget.shell.openLog(task.name, log);
   }
 
-  /// Asks before stopping, then stops. The refusal, if there is one, arrives on its own.
-  Future<void> _askToStop(Task task) async {
-    final agreed = await confirmStop(
-      context,
-      task: task.name,
-      helpers: task.helpers,
-    );
+  /// Asks before removing, then removes. The refusal, if there is one, arrives on its own.
+  Future<void> _askToRemove(Task task) async {
+    final agreed = await confirmRemove(context, task: task.name, running: task.running);
     if (!agreed) return;
-    await _fleet.stopWork(task.name);
+    await (task.running ? _fleet.stopAndRemove(task.name) : _fleet.removeWork(task.name));
   }
 
   /// Stops a piece of work and starts it again from scratch.
   ///
-  /// Two calls, and the first can refuse: `Stop` answers `HOLDS_WORK` for work holding commits
-  /// that never reached the gate. **Nothing is started after a refused stop** — that would leave
-  /// two containers and lose the reason.
+  /// Taken down and started again, and the removal can refuse: `Remove` answers `HOLDS_WORK` for
+  /// work holding commits that never reached the gate. **Nothing is started after a refused
+  /// removal** — that would lose the reason.
   Future<void> _recreate(Task task) async {
     final agreed = await confirmRecreate(
       context,
@@ -1028,7 +1024,7 @@ class _ShellState extends State<Shell> {
         task: task,
         fleet: _fleet,
         machine: widget.machines.current,
-        askToStop: _askToStop,
+        askToRemove: _askToRemove,
         askWhichLog: _askWhichLog,
         openSession: _openSession,
       );
@@ -1039,7 +1035,7 @@ class _ShellState extends State<Shell> {
           task: tile.task,
           fleet: tile.fleet,
           machine: tile.machine,
-          askToStop: _askToStop,
+          askToRemove: _askToRemove,
           askWhichLog: _askWhichLog,
           openSession: _openSession,
         ))

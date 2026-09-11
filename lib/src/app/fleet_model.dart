@@ -70,14 +70,17 @@ class Refusal {
   /// The task that was left exactly as it was.
   final String task;
 
-  /// What `Stop` answered, including what the task holds.
-  final Stopped result;
+  /// What `Remove` answered, including what the task holds.
+  final Removed result;
 
   /// Whether the task holds commits that never reached the gate.
   bool get holdsWork => result.outcome == Outcome.holdsWork;
 
   /// Whether nothing could say what it holds.
   bool get nothingKnows => result.outcome == Outcome.nothingKnows;
+
+  /// Whether it is still running, which a removal needs it not to be.
+  bool get stillRunning => result.outcome == Outcome.stillRunning;
 }
 
 /// What the interface knows about one backend, and the selections made over it.
@@ -257,54 +260,63 @@ class FleetModel extends ChangeNotifier {
   /// A `Stop` that refused, until it is answered or dismissed.
   Refusal? get refusal => _refusal;
 
-  /// Stops a task and removes what is left of it.
-  ///
-  /// [purge] discards work that never reached the gate; [rescue] pushes it into the mirror
-  /// first; [force] removes it when nothing can say what it holds. None of them is a default,
-  /// and each is a separate thing to have decided.
-  Future<void> stopWork(
-    String task, {
-    bool purge = false,
-    bool rescue = false,
-    bool force = false,
-  }) async {
+  /// Stops a task, keeping it: its container is its workspace, and removing is [removeWork].
+  Future<void> stopWork(String task) async {
     await _acting(about: task, () async {
-      final result = await backend.stopTask(
+      _say(stopWords(task, await backend.stopTask(task)));
+      await _readOnce();
+    });
+  }
+
+  /// Removes a task, or takes the refusal and keeps it for somebody to decide about.
+  ///
+  /// [rescue] pushes what it holds into the mirror first; [force] stops it if it runs and
+  /// discards what never reached the gate. Neither is a default.
+  Future<void> removeWork(String task, {bool rescue = false, bool force = false}) async {
+    await _acting(about: task, () async {
+      final result = await backend.removeTask(
         task,
-        purge: purge ? true : null,
         rescue: rescue ? true : null,
         force: force ? true : null,
       );
-      _say(stopWords(task, result));
+      _say(removeWords(task, result));
       _refusal = result.removed ? null : Refusal(task: task, result: result);
       await _readOnce();
     });
   }
 
-  /// Stops a piece of work so it can be started again from scratch.
+  /// Stops a task and then removes it: the answer to a removal refused because it still runs.
+  Future<void> stopAndRemove(String task) async {
+    await stopWork(task);
+    await removeWork(task);
+  }
+
+  /// Takes a task down so it can be created again from scratch. Answers whether the way is clear.
   ///
-  /// **The stop can refuse, and then nothing is started.** `Stop` answers `HOLDS_WORK` for a task
-  /// with commits that never reached the gate; that refusal is the product working, and starting
-  /// after it would leave two containers and lose the reason. Answers whether the way is clear.
+  /// **The removal can refuse, and then nothing is started.** `Remove` answers `HOLDS_WORK` for a
+  /// task with commits that never reached the gate; starting after it would lose the reason.
   ///
   /// The point of recreating is a **newly built environment**: a task keeps the image it started
-  /// with, so picking up a new one means being created again rather than resumed.
+  /// with, so picking up a new one means being created again rather than started again.
   Future<bool> clearTheWayToRecreate(String task) async {
     var cleared = false;
-    await _acting(() async {
-      final stopped = await backend.stopTask(task);
-      _say(stopWords(task, stopped));
-      _refusal = stopped.removed ? null : Refusal(task: task, result: stopped);
-      cleared = stopped.removed;
+    await _acting(about: task, () async {
+      if (_tasks.any((each) => each.name == task && each.running)) {
+        _say(stopWords(task, await backend.stopTask(task)));
+      }
+      final removed = await backend.removeTask(task);
+      _say(removeWords(task, removed));
+      _refusal = removed.removed ? null : Refusal(task: task, result: removed);
+      cleared = removed.removed;
       await _readOnce();
     });
     return cleared && _refusal == null;
   }
 
-  /// Starts a stopped task's container again.
-  Future<void> resumeWork(String task) async {
+  /// Starts a listed task: Start decides by its state, and what it did is said.
+  Future<void> startAgain(String task) async {
     await _acting(about: task, () async {
-      _say(resumeWords(task, await backend.resumeTask(task)));
+      _say(startWords(task, await backend.startAgain(task)));
       await _readOnce();
     });
   }
