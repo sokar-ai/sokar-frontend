@@ -99,7 +99,7 @@ Read the IDL for the detail — it carries a comment per method and per field. T
 
 | | |
 |---|---|
-| **What exists** | `List`, `Watch` (streams), `Agents`, `Credentials` |
+| **What exists** | `List`, `Watch` (streams), `Projects`, `WatchProjects` (streams), `Agents`, `Credentials` |
 | **Running tasks** | `Start` (streams the build), `Stop`, `Resume`, `Tail` (follows a log) |
 | **The gate** | `Pending`, `Review`, `Approve`, `Reject` |
 | **Clearance** | `Prompts` (streams, and only streams), `Decide` |
@@ -112,6 +112,13 @@ Two things worth knowing before designing around them:
 - **`Prompts` has a deadline.** A task is *blocked* while a clearance prompt is unanswered and
   the watcher gives up after its own timeout. This is the one place where interface latency costs
   something real, which is why it is a stream and not a poll.
+- **`WatchProjects` is slower than `Watch`, on purpose.** A project scan runs the container
+  runtime and reads the gate's refs for every project, and what it answers changes on human
+  timescales - a project created, a push arriving at the gate, an environment prepared. It sends
+  the whole list on change and nothing in between; measured quiet for twelve seconds with nothing
+  happening, and firing within the interval when a project appeared and again when it went. Unlike
+  `Watch` there is no age to exclude: `behindMeasured` moving *is* a change, because the age drawn
+  beside the number resets with it.
 - **`Prompts` streams the answer too.** A settled prompt arrives again with `verdict` set, and
   `"timeout"` is the only way a client learns one expired. Match it to the question by `task` and
   `key`; the other fields deliberately differ between the two events.
