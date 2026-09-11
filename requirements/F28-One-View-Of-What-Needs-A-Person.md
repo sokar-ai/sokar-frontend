@@ -83,13 +83,23 @@ something an interface inferred.**
   row says what a project **is** - prepared, how far behind, how much work - and this view is the
   only place that says what **demands** somebody.
 
-## What the backend is short of
+## What the backend is short of, and what it is not
 
-**There is no `WatchProjects`.** F02 taught this the hard way: its work pane updated on a `Watch`
-push while the row above it kept stale counts, because nothing re-asked. This view is made
-entirely of such rows, across several machines, so without a stream covering what a card shows it
-would display stale numbers confidently - which is worse than not showing them. Raised against
-Sokar rather than worked around here.
+**Nothing here blocks the view.** What the card is *for* already streams: `Prompts` carries a
+clearance question and its deadline, `Watch` carries the state. The contract says why that is the
+right half to have - *"this is the one place where interface latency costs something real, which is
+why it is a stream and not a poll"*. Build against those two.
+
+**What is missing is a push for what `Pending` answers** - how much work waits at the gate.
+`Pending` is a call, so the number ages between asks. F02 taught this the hard way: its work pane
+updated on a `Watch` push while the row above it kept stale counts, because nothing re-asked.
+
+**Until that stream exists, take F02's own answer** - ask on a cadence and show the age of the
+measurement in the same sentence, because a number without one has to be drawn as though it were
+current. That is honest, and it is not a workaround: it is the rule this project already applies
+to the same kind of number.
+
+Raised against Sokar as `WatchProjects`; a field getting fresher, not a precondition.
 
 ## To be checked
 
