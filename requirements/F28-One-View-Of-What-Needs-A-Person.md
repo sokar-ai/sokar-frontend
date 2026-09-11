@@ -58,6 +58,26 @@ separate price, recorded under *What was settled* and in
 [B06](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B06-Remote-Access.md). Nothing
 in this requirement needs either.
 
+## On the look, which is the frontend's to decide
+
+**The operator named a reference and likes it**: AI Beacon's dashboard, a wall of tiles, one per
+session. Its assets are readable at `<base-path>/ai-beacon/docs/assets` - `demo.gif` shows the
+thing in motion. That is a preference worth knowing, not a specification, and how it is drawn in
+Flutter is yours.
+
+What is worth taking from the shape, because it is functional rather than decorative:
+
+- **One item, one tile, and the state legible without opening it.** The reason to look at this view
+  is to not have to go anywhere; a row that requires a click to reveal whether it needs you has
+  given that back.
+- **The tile carries its own actions.** Answering the question is the point of seeing it.
+- **Grouping by machine is a property of the tile, not a mode of the window.** A view that shows
+  one machine at a time is the rail again with extra steps.
+
+What is deliberately *not* taken: AI Beacon's tiles lead with model, context and cost. Those are
+facts about a session's spending. This view leads with whether somebody is needed and how long
+they have - which is the only reason it exists.
+
 ## What must be true
 
 **Opening the window answers "does anything need me", for every connected machine at once, without
