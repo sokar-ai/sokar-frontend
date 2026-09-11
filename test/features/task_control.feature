@@ -50,13 +50,20 @@ Feature: Stopping, removing, renaming and recreating work, and what it costs
     And the status line mentions {'3.0 MB of workspace went with it'}
     And the work {'sokar-checkout-shell'} is no longer listed
 
+  # Asked while it still runs: rescue needs the container up, so stopping first would lose it.
+  Scenario: running work that holds commits is asked about before anything stops it
+    Given removing will refuse because the work is held
+    When I ask to remove the selected work
+    And I confirm
+    Then what is held is shown
+    And the work was never stopped
+
   # A task listed as stopped can be running again by the time the removal arrives.
-  Scenario: a removal refused because the work still runs offers to stop it first
+  Scenario: a removal the machine says still runs is stopped, then removed
     Given the work {'sokar-checkout-shell'} has stopped
     And removing will refuse because the work still runs
     When I ask to remove the selected work
     And I confirm
-    And I choose {'Stop it, then remove it'}
     Then the stop asked for {'sokar-checkout-shell'}
     And the removal asked for {'sokar-checkout-shell'}
 

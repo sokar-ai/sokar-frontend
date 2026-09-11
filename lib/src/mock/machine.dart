@@ -1556,17 +1556,18 @@ class MockMachine {
     final running = tasks.any(
       (task) => task['name'] == name && task['running'] == true,
     );
+    final held = switch (situation) {
+      'holds-work' => 'HOLDS_WORK',
+      'nothing-knows' => 'NOTHING_KNOWS',
+      _ => null,
+    };
+    // The daemon's order: held work first, while the container is up to rescue from; rescue needs
+    // it up; and "still running" only for a task that holds nothing.
     final refusal = force
         ? null
-        : running
-        ? 'STILL_RUNNING'
         : rescue
-        ? null
-        : switch (situation) {
-            'holds-work' => 'HOLDS_WORK',
-            'nothing-knows' => 'NOTHING_KNOWS',
-            _ => null,
-          };
+            ? (running ? null : 'RESCUE_NEEDS_IT_RUNNING')
+            : held ?? (running ? 'STILL_RUNNING' : null);
     if (refusal != null) {
       return <String, dynamic>{
         'outcome': refusal,

@@ -123,7 +123,7 @@ Future<bool> confirmRemove(
       builder: (context) => AlertDialog(
         title: Text('Remove $task?'),
         content: Text(
-          '${running ? 'It is running, so it is stopped first. ' : ''}'
+          '${running ? 'It is running: if it holds nothing, it is stopped first. ' : ''}'
           'Its container is its workspace, so it goes, and whatever the agent installed inside '
           'it — packages, caches, anything it built — goes with it and exists nowhere else.\n\n'
           'Work it holds that never reached the gate will stop this, and say so, rather than '

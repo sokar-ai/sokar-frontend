@@ -285,6 +285,19 @@ class FleetModel extends ChangeNotifier {
     });
   }
 
+  /// Removes a task, stopping it first only once the machine has said it holds nothing.
+  ///
+  /// **Asked while it still runs.** A running task that holds work answers `HOLDS_WORK`, and the
+  /// rescue that offers needs the container up; stopping first would leave nothing to rescue from.
+  /// `STILL_RUNNING` means it holds nothing, so it is stopped and removed.
+  Future<void> removeEvenIfRunning(String task) async {
+    await removeWork(task);
+    if (_refusal?.stillRunning ?? false) {
+      _refusal = null;
+      await stopAndRemove(task);
+    }
+  }
+
   /// Stops a task and then removes it: the answer to a removal refused because it still runs.
   Future<void> stopAndRemove(String task) async {
     await stopWork(task);

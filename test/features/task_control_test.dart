@@ -22,6 +22,7 @@ import './step/nothing_more_was_asked_of_the_backend.dart';
 import './step/the_stop_asked_for.dart';
 import './step/the_removal_asked_for.dart';
 import './step/the_work_is_no_longer_listed.dart';
+import './step/the_work_was_never_stopped.dart';
 import './step/the_work_has_stopped.dart';
 import './step/removing_will_refuse_because_the_work_still_runs.dart';
 import './step/i_stop_the_selected_work.dart';
@@ -111,14 +112,23 @@ void main() {
       await theWorkIsNoLongerListed(tester, 'sokar-checkout-shell');
     });
     testWidgets(
-        '''a removal refused because the work still runs offers to stop it first''',
+        '''running work that holds commits is asked about before anything stops it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await removingWillRefuseBecauseTheWorkIsHeld(tester);
+      await iAskToRemoveTheSelectedWork(tester);
+      await iConfirm(tester);
+      await whatIsHeldIsShown(tester);
+      await theWorkWasNeverStopped(tester);
+    });
+    testWidgets(
+        '''a removal the machine says still runs is stopped, then removed''',
         (tester) async {
       await bddSetUp(tester);
       await theWorkHasStopped(tester, 'sokar-checkout-shell');
       await removingWillRefuseBecauseTheWorkStillRuns(tester);
       await iAskToRemoveTheSelectedWork(tester);
       await iConfirm(tester);
-      await iChoose(tester, 'Stop it, then remove it');
       await theStopAskedFor(tester, 'sokar-checkout-shell');
       await theRemovalAskedFor(tester, 'sokar-checkout-shell');
     });

@@ -270,6 +270,17 @@ class FakeBackend implements FleetBackend {
   @override
   Future<Removed> removeTask(String task, {bool? rescue, bool? force}) async {
     removals.add((task: task, rescue: rescue, force: force));
+    // Held work is said first; a running task that holds nothing is refused as still running.
+    final running = _tasks.any((each) => each.name == task && each.running);
+    if (running && nextRemove.removed && rescue != true && force != true) {
+      return Removed.from(const <String, dynamic>{
+        'outcome': 'STILL_RUNNING',
+        'work': '',
+        'rescuedRef': '',
+        'removed': false,
+        'discarded': 0,
+      });
+    }
     if (nextRemove.removed) {
       _tasks = _tasks.where((each) => each.name != task).toList();
       _changes.add(_tasks);

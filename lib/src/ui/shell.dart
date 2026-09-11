@@ -705,9 +705,7 @@ class _ShellState extends State<Shell> {
       running: task.running,
     );
     if (!agreed) return;
-    await (task.running
-        ? _fleet.stopAndRemove(task.name)
-        : _fleet.removeWork(task.name));
+    await _fleet.removeEvenIfRunning(task.name);
   }
 
   /// Takes a piece of work down and starts it again from scratch. **Nothing is started after a
