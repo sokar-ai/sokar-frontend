@@ -110,16 +110,22 @@ clearance question and its deadline, `Watch` carries the state. The contract say
 right half to have - *"this is the one place where interface latency costs something real, which is
 why it is a stream and not a poll"*. Build against those two.
 
-**What is missing is a push for what `Pending` answers** - how much work waits at the gate.
-`Pending` is a call, so the number ages between asks. F02 taught this the hard way: its work pane
-updated on a `Watch` push while the row above it kept stale counts, because nothing re-asked.
+**The gate half needs nothing either, which I had wrong when this file was written.** I said the
+card's gate count wanted a push because `Pending` is a call that ages between asks. The frontend
+agent checked the IDL instead of taking it: `Task.waiting` is already on the `Task` type - *1 when
+its ref is waiting for review* - and arrives on every `Watch` push, per task, as fresh as the row.
+That is the card's question. `Pending` counts a **project's** pushes, which is the project row's
+number and not this one's, so the stale-count problem F02 met does not arise on a task tile.
 
-**Until that stream exists, take F02's own answer** - ask on a cadence and show the age of the
-measurement in the same sentence, because a number without one has to be drawn as though it were
-current. That is honest, and it is not a workaround: it is the rule this project already applies
-to the same kind of number.
+`WatchProjects` was built anyway and is right for the project row, where F02 actually met that
+defect. It is not something this view waits on, and it never was.
 
-Raised against Sokar as `WatchProjects`; a field getting fresher, not a precondition.
+**What is genuinely missing is one field: a clearance question's deadline.** `Prompt` carries `at`,
+when it was blocked, and the IDL says only that *"the watcher gives up after its own timeout"* -
+so time remaining cannot be computed on this side. Until the wire carries it, the tile says
+**"blocked for two minutes"**, which is true, rather than *"three minutes left"*, which would be a
+number an interface invented. That is the one acceptance line below which cannot be met yet, and it
+is Sokar's to close.
 
 ## To be checked
 
