@@ -56,3 +56,14 @@ Feature: What needs a person on every machine, without going anywhere
     When I watch another machine called {'elsewhere'}
     And the same question arrives through both
     Then {1} tile asks to reach {'api.example.test'}
+
+  Scenario: work is opened by hand from its tile, and putting it away comes back here
+    When I work in {'sokar-checkout-shell'} by hand from its tile
+    Then the session runs {'sokar task attach sokar-checkout-shell'}
+    When I put the session away
+    Then the view shown is what needs a person
+
+  Scenario: work waiting at the gate is reviewed from its tile, over the view
+    When I review the work {'sokar-checkout-migrate'} from its tile
+    And I open the waiting push
+    Then the review shows the file {'lib/money.dart'}

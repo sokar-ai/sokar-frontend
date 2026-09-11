@@ -28,6 +28,12 @@ import './step/the_command_finder_is_open.dart';
 import './step/the_machine_is_the_same_node.dart';
 import './step/the_same_question_arrives_through_both.dart';
 import './step/tile_asks_to_reach.dart';
+import './step/i_work_in_by_hand_from_its_tile.dart';
+import './step/the_session_runs.dart';
+import './step/i_put_the_session_away.dart';
+import './step/i_review_the_work_from_its_tile.dart';
+import './step/i_open_the_waiting_push.dart';
+import './step/the_review_shows_the_file.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -110,6 +116,23 @@ void main() {
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
       await theSameQuestionArrivesThroughBoth(tester);
       await tileAsksToReach(tester, 1, 'api.example.test');
+    });
+    testWidgets(
+        '''work is opened by hand from its tile, and putting it away comes back here''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWorkInByHandFromItsTile(tester, 'sokar-checkout-shell');
+      await theSessionRuns(tester, 'sokar task attach sokar-checkout-shell');
+      await iPutTheSessionAway(tester);
+      await theViewShownIsWhatNeedsAPerson(tester);
+    });
+    testWidgets(
+        '''work waiting at the gate is reviewed from its tile, over the view''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iReviewTheWorkFromItsTile(tester, 'sokar-checkout-migrate');
+      await iOpenTheWaitingPush(tester);
+      await theReviewShowsTheFile(tester, 'lib/money.dart');
     });
   });
 }
