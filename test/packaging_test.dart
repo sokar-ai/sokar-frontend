@@ -129,7 +129,8 @@ void main() {
       // slipped to a newer runner would produce a package that installs nowhere older, and
       // nothing about the run would say so.
       expect(workflow.contains('runs-on: ubuntu-latest'), isFalse);
-      expect('runs-on: ubuntu-22.04'.allMatches(workflow).length, 3);
+      expect('runs-on: ubuntu-22.04'.allMatches(workflow).length,
+          'runs-on:'.allMatches(workflow).length);
     });
 
     test('the publish is not believed until the index carries it', () {
