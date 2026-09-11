@@ -285,18 +285,18 @@ class FakeBackend implements FleetBackend {
     helpersRecorded: 2,
   );
 
-  /// Every task started again.
-  final List<String> startedAgain = <String>[];
+  /// Every start of a listed task, by the project file and the name within it that were sent.
+  final List<({String project, String task})> startedAgain = <({String project, String task})>[];
 
   /// Acts like [removeTask]: a task started again goes on listed as running, or a screen that
   /// ignored the answer would pass.
   @override
-  Future<StartProgress> startAgain(String task) async {
-    startedAgain.add(task);
+  Future<StartProgress> startAgain({required String project, required String task}) async {
+    startedAgain.add((project: project, task: task));
     if (nextStart.action == StartAction.resume) {
       _tasks = <Task>[
         for (final each in _tasks)
-          each.name == task ? _with(each, running: true, startAction: 'RUNNING') : each,
+          each.task == task ? _with(each, running: true, startAction: 'RUNNING') : each,
       ];
       _changes.add(_tasks);
     }
@@ -363,6 +363,7 @@ class FakeBackend implements FleetBackend {
         if (each.name == task)
           Task.from(<String, dynamic>{
             'name': each.name,
+            'task': each.task,
             'label': caption,
             'project': each.project,
             'securityClass': each.securityClass,
@@ -1251,6 +1252,8 @@ class World {
   }) =>
       Task.from(<String, dynamic>{
         'name': name,
+        // The stand-in's own naming rule; the interface never derives this.
+        'task': name.replaceFirst('sokar-$project-', ''),
         'project': project,
         'securityClass': securityClass,
         'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
@@ -1314,6 +1317,7 @@ class World {
         else
           Task.from(<String, dynamic>{
             'name': was.name,
+            'task': was.task,
             'project': was.project,
             'securityClass': was.securityClass,
             'state': running ? 'Up 4 minutes' : 'Exited (0) 12 minutes ago',
@@ -1705,6 +1709,7 @@ class FakeTunnels extends Tunnels {
 /// [task] as the machine would send it.
 Map<String, dynamic> wire(Task task) => <String, dynamic>{
       'name': task.name,
+      'task': task.task,
       'label': task.label,
       'project': task.project,
       'securityClass': task.securityClass,

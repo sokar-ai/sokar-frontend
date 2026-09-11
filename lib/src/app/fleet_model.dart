@@ -314,12 +314,20 @@ class FleetModel extends ChangeNotifier {
   }
 
   /// Starts a listed task: Start decides by its state, and what it did is said.
-  Future<void> startAgain(String task) async {
-    await _acting(about: task, () async {
-      _say(startWords(task, await backend.startAgain(task)));
+  Future<void> startAgain(Task task) async {
+    final file = projectFileOf(task);
+    if (file == null || task.task.isEmpty) return;
+    await _acting(about: task.name, () async {
+      _say(startWords(task.name, await backend.startAgain(project: file, task: task.task)));
       await _readOnce();
     });
   }
+
+  /// The file of the project [task] belongs to, or null when nothing here knows it.
+  String? projectFileOf(Task task) => projects
+      .where((each) => each.name == task.project && each.project.file.isNotEmpty)
+      .map((each) => each.project.file)
+      .firstOrNull;
 
   /// Puts a refusal away without acting on it, leaving the task exactly as it is.
   void letItBe() {

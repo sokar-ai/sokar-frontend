@@ -108,7 +108,7 @@ Feature: Stopping, removing, renaming and recreating work, and what it costs
     When I ask to recreate the selected work
     And I agree to recreate it
     Then the removal asked for {'sokar-checkout-shell'}
-    And the launch was called {'sokar-checkout-shell'}
+    And the launch was called {'shell'}
 
   Scenario: work that holds unpushed commits stops the recreation, and says so
     Given removing will refuse because the work is held

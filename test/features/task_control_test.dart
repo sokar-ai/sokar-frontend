@@ -194,7 +194,7 @@ void main() {
       await iAskToRecreateTheSelectedWork(tester);
       await iAgreeToRecreateIt(tester);
       await theRemovalAskedFor(tester, 'sokar-checkout-shell');
-      await theLaunchWasCalled(tester, 'sokar-checkout-shell');
+      await theLaunchWasCalled(tester, 'shell');
     });
     testWidgets(
         '''work that holds unpushed commits stops the recreation, and says so''',

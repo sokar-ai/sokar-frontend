@@ -22,76 +22,81 @@ class MockMachine {
     this.situation = 'work',
     this.pace = const Duration(milliseconds: 400),
   }) {
-    tasks = situation == 'empty' ? <Map<String, dynamic>>[] : _aMachineWithWorkOnIt();
+    tasks = situation == 'empty'
+        ? <Map<String, dynamic>>[]
+        : _aMachineWithWorkOnIt();
     daemon.version = '0.1.0+mock';
     daemon.method('List', (_) => <String, dynamic>{'tasks': _listing});
-    daemon.method('Agents', (_) => <String, dynamic>{
-          'agents': situation == 'no-agent'
-              ? <Map<String, dynamic>>[]
-              : <Map<String, dynamic>>[
-                  <String, dynamic>{
-                    'name': 'an-agent',
-                    'label': 'An Agent',
-                    'binary': '/usr/bin/an-agent',
-                    'version': '2.4.0',
-                    'from': '/usr/share/sokar/agents/an-agent.yml',
-                    'allowedDomains': <String>['api.anthropic.com'],
-                    'refusedDomains': <String>['telemetry.example.test'],
-                    // What its commits are attributed to, which is what tells somebody looking at
-                    // one whether an agent or a person wrote it.
-                    'commitsAs': <String, dynamic>{
-                      'name': 'An Agent',
-                      'email': 'an-agent@sokar.invalid',
+    daemon.method(
+      'Agents',
+      (_) => <String, dynamic>{
+        'agents': situation == 'no-agent'
+            ? <Map<String, dynamic>>[]
+            : <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'name': 'an-agent',
+                  'label': 'An Agent',
+                  'binary': '/usr/bin/an-agent',
+                  'version': '2.4.0',
+                  'from': '/usr/share/sokar/agents/an-agent.yml',
+                  'allowedDomains': <String>['api.anthropic.com'],
+                  'refusedDomains': <String>['telemetry.example.test'],
+                  // What its commits are attributed to, which is what tells somebody looking at
+                  // one whether an agent or a person wrote it.
+                  'commitsAs': <String, dynamic>{
+                    'name': 'An Agent',
+                    'email': 'an-agent@sokar.invalid',
+                  },
+                  'artifacts': <Map<String, dynamic>>[
+                    <String, dynamic>{
+                      'url': 'https://example.test/an-agent-2.4.0.tar.gz',
+                      'sha256': '3b1f8e2a9c4d5067a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718',
+                      'target': '/opt/an-agent',
+                      'unverified': false,
+                      'reason': '',
                     },
-                    'artifacts': <Map<String, dynamic>>[
-                      <String, dynamic>{
-                        'url': 'https://example.test/an-agent-2.4.0.tar.gz',
-                        'sha256':
-                            '3b1f8e2a9c4d5067a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718',
-                        'target': '/opt/an-agent',
-                        'unverified': false,
-                        'reason': '',
-                      },
-                    ],
-                  },
-                  <String, dynamic>{
-                    'name': 'other-agent',
-                    'label': 'Another Agent',
-                    'binary': '/usr/bin/other-agent',
-                    'version': '',
-                    'from': '/etc/sokar/agents/other-agent.yml',
-                    'allowedDomains': <String>['api.example.test'],
-                    'refusedDomains': <String>[],
-                    // Installed by a Sokar older than the field: absent, which is a state to
-                    // render rather than a blank to fill in.
-                    // Knowingly unverified, with the reason that makes it a decision rather than
-                    // an oversight. The daemon refuses to build one with neither.
-                    'artifacts': <Map<String, dynamic>>[
-                      <String, dynamic>{
-                        'url': 'https://example.test/other-agent-latest.tar.gz',
-                        'sha256': '',
-                        'target': '/opt/other-agent',
-                        'unverified': true,
-                        'reason': 'upstream publishes no digest for the rolling build',
-                      },
-                    ],
-                  },
-                ],
-          // One that could not be read. Shown rather than dropped: missing from a list looks
-          // exactly like never installed, and only one of those is worth fixing.
-          'failures': <String, dynamic>{
-            'broken-agent': 'its manifest could not be parsed',
+                  ],
+                },
+                <String, dynamic>{
+                  'name': 'other-agent',
+                  'label': 'Another Agent',
+                  'binary': '/usr/bin/other-agent',
+                  'version': '',
+                  'from': '/etc/sokar/agents/other-agent.yml',
+                  'allowedDomains': <String>['api.example.test'],
+                  'refusedDomains': <String>[],
+                  // Installed by a Sokar older than the field: absent, which is a state to
+                  // render rather than a blank to fill in.
+                  // Knowingly unverified, with the reason that makes it a decision rather than
+                  // an oversight. The daemon refuses to build one with neither.
+                  'artifacts': <Map<String, dynamic>>[
+                    <String, dynamic>{
+                      'url': 'https://example.test/other-agent-latest.tar.gz',
+                      'sha256': '',
+                      'target': '/opt/other-agent',
+                      'unverified': true,
+                      'reason':
+                          'upstream publishes no digest for the rolling build',
+                    },
+                  ],
+                },
+              ],
+        // One that could not be read. Shown rather than dropped: missing from a list looks
+        // exactly like never installed, and only one of those is worth fixing.
+        'failures': <String, dynamic>{
+          'broken-agent': 'its manifest could not be parsed',
+        },
+        // Installed and never started, because a copy in a more specific directory wins. Nothing
+        // else in the product surfaces this, and a packaged agent hidden by a hand-placed copy
+        // was found on a real machine the day the field landed.
+        'shadowed': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'path': '/usr/libexec/sokar/agents/an-agent',
+            'usedInstead': '/home/somebody/.local/share/sokar/agents/an-agent',
           },
-          // Installed and never started, because a copy in a more specific directory wins. Nothing
-          // else in the product surfaces this, and a packaged agent hidden by a hand-placed copy
-          // was found on a real machine the day the field landed.
-          'shadowed': <Map<String, dynamic>>[
-            <String, dynamic>{
-              'path': '/usr/libexec/sokar/agents/an-agent',
-              'usedInstead': '/home/somebody/.local/share/sokar/agents/an-agent',
-            },
-          ],
-        });
+        ],
+      },
+    );
     // pushes, not stream: Watch never ends, and a held-back stream would deliver every change one
     // change late.
     daemon.pushes('Watch', (_) async* {
@@ -168,16 +173,24 @@ class MockMachine {
     'work': 'two projects, one of them with work stopped',
     'empty': 'a machine nothing has ever run on',
     'no-watch': 'a backend too old to have Watch, so nothing arrives by itself',
-    'holds-work': 'a task that refuses to be removed because it holds unpushed commits',
-    'nothing-knows': 'a task nothing can say anything about, which is refused too',
+    'holds-work':
+        'a task that refuses to be removed because it holds unpushed commits',
+    'nothing-knows':
+        'a task nothing can say anything about, which is refused too',
     'newer-outcome': 'an Outcome value added after this build shipped',
-    'newer-interface': 'a backend serving Tasks2 beside the Tasks1 this build understands',
-    'failing-start': 'a launch that prints for a while and then comes back non-zero',
-    'out-of-time': 'an unattended run killed by its own time limit, with its log kept',
+    'newer-interface':
+        'a backend serving Tasks2 beside the Tasks1 this build understands',
+    'failing-start':
+        'a launch that prints for a while and then comes back non-zero',
+    'out-of-time':
+        'an unattended run killed by its own time limit, with its log kept',
     'no-agent': 'a run asked for when no agent is installed, which is a refusal not a failure',
-    'helper-survives': 'an emergency stop that leaves a helper running, to be killed by hand',
-    'vault-locked': 'a vault nothing can read, so nothing can say what it holds',
-    'no-credential': 'a vault with no credential for the provider a run would use',
+    'helper-survives':
+        'an emergency stop that leaves a helper running, to be killed by hand',
+    'vault-locked':
+        'a vault nothing can read, so nothing can say what it holds',
+    'no-credential':
+        'a vault with no credential for the provider a run would use',
   };
 
   /// The daemon answering for this machine.
@@ -238,7 +251,10 @@ class MockMachine {
   /// Raises a blocked connection, and gives back the question so it can be answered or expired.
   ///
   /// Driven by whoever is testing, never by a clock — the same rule the automated tests follow.
-  Map<String, dynamic> blocks(String destination, {String task = 'sokar-checkout-shell'}) {
+  Map<String, dynamic> blocks(
+    String destination, {
+    String task = 'sokar-checkout-shell',
+  }) {
     final parts = destination.split(':');
     final asked = <String, dynamic>{
       'task': task,
@@ -248,7 +264,10 @@ class MockMachine {
       'port': int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
       'at': DateTime.now().toUtc().toIso8601String(),
       'prefix': 'egress/deny',
-      'deadline': DateTime.now().add(const Duration(minutes: 3)).toUtc().toIso8601String(),
+      'deadline': DateTime.now()
+          .add(const Duration(minutes: 3))
+          .toUtc()
+          .toIso8601String(),
     };
     _raise(asked);
     return asked;
@@ -256,12 +275,12 @@ class MockMachine {
 
   /// Lets a question run out, which is the one case nothing asks about again.
   void expires(Map<String, dynamic> asked) => _raise(<String, dynamic>{
-        ...asked,
-        'at': DateTime.now().toUtc().toIso8601String(),
-        'prefix': '',
-        'deadline': '',
-        'verdict': 'timeout',
-      });
+    ...asked,
+    'at': DateTime.now().toUtc().toIso8601String(),
+    'prefix': '',
+    'deadline': '',
+    'verdict': 'timeout',
+  });
 
   Map<String, dynamic> _decide(Map<String, dynamic> parameters) {
     // The answer comes back on the same stream, which is also how a client sees the echo of its
@@ -289,22 +308,23 @@ class MockMachine {
   /// `migrate` belongs to a task on this machine and `drop-dead-code` does not, deliberately:
   /// several containers over time share one ref, so a ref whose container is gone is an ordinary
   /// state rather than a broken one.
-  final Map<String, Map<String, dynamic>> _waiting = <String, Map<String, dynamic>>{
-    'migrate': <String, dynamic>{
-      'name': 'migrate',
-      'commit': '9a3c1f2',
-      'subject': 'Round to the nearest penny, not away from zero',
-      'waiting': '4 minutes',
-      'at': '2026-09-07T14:12:00Z',
-    },
-    'drop-dead-code': <String, dynamic>{
-      'name': 'drop-dead-code',
-      'commit': '7f21b0e',
-      'subject': 'Delete the retry loop nothing calls any more',
-      'waiting': '26 minutes',
-      'at': '2026-09-07T13:50:00Z',
-    },
-  };
+  final Map<String, Map<String, dynamic>> _waiting =
+      <String, Map<String, dynamic>>{
+        'migrate': <String, dynamic>{
+          'name': 'migrate',
+          'commit': '9a3c1f2',
+          'subject': 'Round to the nearest penny, not away from zero',
+          'waiting': '4 minutes',
+          'at': '2026-09-07T14:12:00Z',
+        },
+        'drop-dead-code': <String, dynamic>{
+          'name': 'drop-dead-code',
+          'commit': '7f21b0e',
+          'subject': 'Delete the retry loop nothing calls any more',
+          'waiting': '26 minutes',
+          'at': '2026-09-07T13:50:00Z',
+        },
+      };
 
   /// What was forwarded, and onto which branch, so a manual run can see it happened.
   final List<String> forwarded = <String>[];
@@ -321,7 +341,8 @@ class MockMachine {
     final oneFile = parameters['name'] == 'refs/sokar/incoming/drop-dead-code';
     return <String, dynamic>{
       'diff': oneFile ? _deletionDiff : _changeDiff,
-      'log': 'commit ${oneFile ? '7f21b0e' : '9a3c1f2'}\n'
+      'log':
+          'commit ${oneFile ? '7f21b0e' : '9a3c1f2'}\n'
           'Author: an agent <agent@sokar>\n\n'
           '    ${_waiting[parameters['name']]?['subject'] ?? ''}',
     };
@@ -368,16 +389,22 @@ class MockMachine {
     },
   ];
 
-  Map<String, dynamic> _sets(Map<String, dynamic> parameters) => <String, dynamic>{
-        'sets': _installed,
-        'locations': <String>['/etc/sokar/egress.d', '/usr/share/sokar/egress.d'],
-      };
+  Map<String, dynamic> _sets(
+    Map<String, dynamic> parameters,
+  ) => <String, dynamic>{
+    'sets': _installed,
+    'locations': <String>['/etc/sokar/egress.d', '/usr/share/sokar/egress.d'],
+  };
 
-  Map<String, dynamic> _egress(Map<String, dynamic> parameters) => <String, dynamic>{
+  Map<String, dynamic> _egress(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
         // In the order the sources granted them. The first grant wins, so this order is the
         // answer to "where did this host come from" and must not be sorted.
         'hosts': <Map<String, dynamic>>[
-          <String, dynamic>{'host': 'api.anthropic.com', 'origin': 'agent an-agent'},
+          <String, dynamic>{
+            'host': 'api.anthropic.com',
+            'origin': 'agent an-agent',
+          },
           <String, dynamic>{'host': 'github.com', 'origin': 'upstream'},
           for (final name in _using)
             for (final host in _domainsOf(name))
@@ -387,8 +414,10 @@ class MockMachine {
       };
 
   Map<String, dynamic> _setEgress(Map<String, dynamic> parameters) {
-    final adding = (parameters['addSets'] as List?)?.cast<String>() ?? <String>[];
-    final removing = (parameters['removeSets'] as List?)?.cast<String>() ?? <String>[];
+    final adding =
+        (parameters['addSets'] as List?)?.cast<String>() ?? <String>[];
+    final removing =
+        (parameters['removeSets'] as List?)?.cast<String>() ?? <String>[];
     final preview = parameters['dryRun'] == true;
 
     for (final name in <String>[...adding, ...removing]) {
@@ -426,7 +455,7 @@ class MockMachine {
       // repeated on a later edit.
       'cost': adding.contains('forges')
           ? 'the gate now rests on the container holding no credential rather than on the '
-              'host being unreachable'
+                'host being unreachable'
           : '',
       'detail': '',
     };
@@ -441,8 +470,10 @@ class MockMachine {
   Map<String, dynamic> _label(Map<String, dynamic> parameters) {
     final name = parameters['task'] as String? ?? '';
     final caption = (parameters['label'] as String? ?? '').trim();
-    final task = tasks.firstWhere((each) => each['name'] == name,
-        orElse: () => const <String, dynamic>{});
+    final task = tasks.firstWhere(
+      (each) => each['name'] == name,
+      orElse: () => const <String, dynamic>{},
+    );
     if (task.isEmpty) {
       return <String, dynamic>{'outcome': 'NOT_A_TASK', 'label': ''};
     }
@@ -465,7 +496,8 @@ class MockMachine {
   /// this screen exists to draw.
   bool _open = true;
 
-  Map<String, dynamic> _credentials(Map<String, dynamic> parameters) => <String, dynamic>{
+  Map<String, dynamic> _credentials(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
         'vault': '/home/somebody/.local/share/sokar/vault.bin',
         'exists': true,
         // Names, kinds and lengths. **Never a value.**
@@ -501,29 +533,44 @@ class MockMachine {
   Map<String, dynamic> _canStart(Map<String, dynamic> parameters) {
     final agent = parameters['agent'] as String? ?? '';
     if (situation == 'no-agent') {
-      return _readiness('NO_AGENT', detail: 'nothing is installed here to run work with');
+      return _readiness(
+        'NO_AGENT',
+        detail: 'nothing is installed here to run work with',
+      );
     }
     if (situation == 'vault-locked' || !_open) {
-      return _readiness('VAULT_LOCKED',
-          agent: agent, detail: 'the vault is locked, so nothing can say what it holds');
+      return _readiness(
+        'VAULT_LOCKED',
+        agent: agent,
+        detail: 'the vault is locked, so nothing can say what it holds',
+      );
     }
     if (situation == 'no-credential') {
-      return _readiness('CREDENTIAL_MISSING',
-          agent: agent,
-          provider: 'a-provider',
-          // The provider's name, which is what is actually looked up — an older vault answers
-          // under the agent's own name, and naming the wrong one reports a key missing from a
-          // vault that has it.
-          credential: 'a-provider',
-          detail: "the vault holds no credential for 'a-provider'");
+      return _readiness(
+        'CREDENTIAL_MISSING',
+        agent: agent,
+        provider: 'a-provider',
+        // The provider's name, which is what is actually looked up — an older vault answers
+        // under the agent's own name, and naming the wrong one reports a key missing from a
+        // vault that has it.
+        credential: 'a-provider',
+        detail: "the vault holds no credential for 'a-provider'",
+      );
     }
     if (agent == 'other-agent') {
-      return _readiness('NO_PROVIDER_CHOSEN',
-          agent: agent, detail: 'names no default provider, so one has to be chosen');
+      return _readiness(
+        'NO_PROVIDER_CHOSEN',
+        agent: agent,
+        detail: 'names no default provider, so one has to be chosen',
+      );
     }
-    return _readiness('READY',
-        ready: true, agent: agent.isEmpty ? 'an-agent' : agent, provider: 'a-provider',
-        credential: 'a-provider');
+    return _readiness(
+      'READY',
+      ready: true,
+      agent: agent.isEmpty ? 'an-agent' : agent,
+      provider: 'a-provider',
+      credential: 'a-provider',
+    );
   }
 
   static Map<String, dynamic> _readiness(
@@ -533,15 +580,14 @@ class MockMachine {
     String provider = '',
     String credential = '',
     String detail = '',
-  }) =>
-      <String, dynamic>{
-        'ready': ready,
-        'outcome': outcome,
-        'agent': agent,
-        'provider': provider,
-        'credential': credential,
-        'detail': detail,
-      };
+  }) => <String, dynamic>{
+    'ready': ready,
+    'outcome': outcome,
+    'agent': agent,
+    'provider': provider,
+    'credential': credential,
+    'detail': detail,
+  };
 
   /// Stops every running task at once, and never removes anything.
   ///
@@ -653,7 +699,8 @@ class MockMachine {
             'helpers': task['helpers'],
             // A dry run attempts nothing, so nothing can have survived it — which is not the
             // same as nothing surviving, and must never be drawn as though it were.
-            'surviving': situation == 'helper-survives' &&
+            'surviving':
+                situation == 'helper-survives' &&
                     !preview &&
                     task['name'] == 'sokar-checkout-shell'
                 ? <String>['sokar-checkout-shell-gate (pid 4711)']
@@ -695,26 +742,44 @@ class MockMachine {
 
     final problems = <Map<String, dynamic>>[
       if (!RegExp(r'^[a-z0-9][a-z0-9-]*$').hasMatch(name))
-        _problem('name', 'a project name becomes an image tag and an nftables set name, so it '
-            'may hold only lower-case letters, digits and dashes', fatal: true),
+        _problem(
+          'name',
+          'a project name becomes an image tag and an nftables set name, so it '
+              'may hold only lower-case letters, digits and dashes',
+          fatal: true,
+        ),
       if (!const <String>['offline', 'guarded', 'online'].contains(klass))
-        _problem('securityClass', '"$klass" is not a class this machine knows', fatal: true),
+        _problem(
+          'securityClass',
+          '"$klass" is not a class this machine knows',
+          fatal: true,
+        ),
       if (klass == 'online' && upstream.isEmpty)
-        _problem('upstream', 'an online project pushes to its upstream directly, so it needs one',
-            fatal: true),
+        _problem(
+          'upstream',
+          'an online project pushes to its upstream directly, so it needs one',
+          fatal: true,
+        ),
       for (final set in sets)
         if (!_knownSets.contains(set))
-          _problem('sets', 'no egress set called "$set" is installed on this machine',
-              fatal: true),
+          _problem(
+            'sets',
+            'no egress set called "$set" is installed on this machine',
+            fatal: true,
+          ),
       // Worth showing and not worth blocking on: it will simply be pulled.
       if (baseImage.isNotEmpty && !baseImage.startsWith('ubuntu:'))
-        _problem('baseImage', 'not on this machine yet, so the first build will pull it',
-            fatal: false),
+        _problem(
+          'baseImage',
+          'not on this machine yet, so the first build will pull it',
+          fatal: false,
+        ),
     ];
     final blocked = problems.any((each) => each['fatal'] == true);
 
     // A refusal and never an overwrite: the file may be somebody's whole configuration.
-    final exists = _createdProjects.contains(file) ||
+    final exists =
+        _createdProjects.contains(file) ||
         _everyProject.any((each) => each['file'] == file);
 
     // Filled even on a refusal — seeing what was rejected is most of understanding why.
@@ -741,10 +806,10 @@ class MockMachine {
       'outcome': blocked
           ? 'INVALID'
           : exists
-              ? 'ALREADY_EXISTS'
-              : preview
-                  ? 'PREVIEWED'
-                  : 'CREATED',
+          ? 'ALREADY_EXISTS'
+          : preview
+          ? 'PREVIEWED'
+          : 'CREATED',
       'file': file,
       'content': content.toString(),
       'problems': problems,
@@ -752,8 +817,11 @@ class MockMachine {
     };
   }
 
-  static Map<String, dynamic> _problem(String field, String what, {required bool fatal}) =>
-      <String, dynamic>{'field': field, 'what': what, 'fatal': fatal};
+  static Map<String, dynamic> _problem(
+    String field,
+    String what, {
+    required bool fatal,
+  }) => <String, dynamic>{'field': field, 'what': what, 'fatal': fatal};
 
   /// The egress sets this machine has, by name, for checking answers against.
   static const _knownSets = <String>['dart-packages', 'containers', 'forges'];
@@ -769,43 +837,63 @@ class MockMachine {
   /// against a real reply.
   Map<String, dynamic> _narrowTask(Map<String, dynamic> parameters) {
     final name = parameters['task'] as String? ?? '';
-    final asked = (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
+    final asked =
+        (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
     final scope = parameters['scope'] as String? ?? '';
     final preview = parameters['dryRun'] == true;
 
-    if (scope.isEmpty) throw const MockRefusal('org.fuin.sokar.Tasks1.ScopeRequired');
+    if (scope.isEmpty) {
+      throw const MockRefusal('org.fuin.sokar.Tasks1.ScopeRequired');
+    }
 
     final task = tasks.firstWhere(
       (each) => each['name'] == name,
       orElse: () => const <String, dynamic>{},
     );
     if (task.isEmpty || task['running'] != true) {
-      return _narrowed('NOT_RUNNING', detail: 'there is no running container called $name');
+      return _narrowed(
+        'NOT_RUNNING',
+        detail: 'there is no running container called $name',
+      );
     }
 
     // Anything not granted to this run is ignored rather than an error.
     final already = _granted[name] ?? const <String>{};
-    final closes = <String>[for (final host in asked) if (already.contains(host)) host];
+    final closes = <String>[
+      for (final host in asked)
+        if (already.contains(host)) host,
+    ];
     if (closes.isEmpty) {
-      return _narrowed('NO_CHANGE', detail: 'none of those is granted to this run');
+      return _narrowed(
+        'NO_CHANGE',
+        detail: 'none of those is granted to this run',
+      );
     }
     if (preview) {
-      return _narrowed('PREVIEWED', closes: closes, addresses: closes.length * 2);
+      return _narrowed(
+        'PREVIEWED',
+        closes: closes,
+        addresses: closes.length * 2,
+      );
     }
 
     _granted[name]?.removeAll(closes);
 
     final file = _fileOf(task['project'] as String? ?? '');
     if (scope == 'RUN_AND_PROJECT' && file.isEmpty) {
-      return _narrowed('NO_PROJECT_FILE',
-          closes: closes,
-          addresses: closes.length * 2,
-          detail: 'taken back from the run; no project file is recorded, so nothing was written');
-    }
-    return _narrowed('NARROWED',
+      return _narrowed(
+        'NO_PROJECT_FILE',
         closes: closes,
         addresses: closes.length * 2,
-        persisted: scope == 'RUN_AND_PROJECT');
+        detail: 'taken back from the run; no project file is recorded, so nothing was written',
+      );
+    }
+    return _narrowed(
+      'NARROWED',
+      closes: closes,
+      addresses: closes.length * 2,
+      persisted: scope == 'RUN_AND_PROJECT',
+    );
   }
 
   static Map<String, dynamic> _narrowed(
@@ -814,14 +902,13 @@ class MockMachine {
     int addresses = 0,
     bool persisted = false,
     String detail = '',
-  }) =>
-      <String, dynamic>{
-        'outcome': outcome,
-        'closes': closes,
-        'addresses': addresses,
-        'persisted': persisted,
-        'detail': detail,
-      };
+  }) => <String, dynamic>{
+    'outcome': outcome,
+    'closes': closes,
+    'addresses': addresses,
+    'persisted': persisted,
+    'detail': detail,
+  };
 
   /// Turns enforcement on or off on a task that is already running.
   ///
@@ -833,10 +920,15 @@ class MockMachine {
     final preview = parameters['dryRun'] == true;
 
     if (!const <String>['prompt', 'allow', 'deny', 'off'].contains(mode)) {
-      return _clearance('UNKNOWN_MODE', detail: '"$mode" is not a mode this machine knows');
+      return _clearance(
+        'UNKNOWN_MODE',
+        detail: '"$mode" is not a mode this machine knows',
+      );
     }
     final at = tasks.indexWhere((each) => each['name'] == name);
-    if (at < 0) return _clearance('NO_SUCH_TASK', detail: 'nothing here knows $name');
+    if (at < 0) {
+      return _clearance('NO_SUCH_TASK', detail: 'nothing here knows $name');
+    }
     if (tasks[at]['running'] != true) {
       return _clearance('NOT_RUNNING', detail: '$name is not up');
     }
@@ -856,40 +948,50 @@ class MockMachine {
     String was = '',
     String now = '',
     String detail = '',
-  }) =>
-      <String, dynamic>{
-        'outcome': outcome,
-        'was': was,
-        // Empty when nothing changed, exactly as the contract says.
-        'now': now,
-        'detail': detail,
-      };
+  }) => <String, dynamic>{
+    'outcome': outcome,
+    'was': was,
+    // Empty when nothing changed, exactly as the contract says.
+    'now': now,
+    'detail': detail,
+  };
 
   Map<String, dynamic> _widenTask(Map<String, dynamic> parameters) {
     final name = parameters['task'] as String? ?? '';
-    final asked = (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
+    final asked =
+        (parameters['domains'] as List?)?.cast<String>() ?? <String>[];
     final scope = parameters['scope'] as String? ?? '';
     final preview = parameters['dryRun'] == true;
 
     // No default, and the daemon will not invent one: this run and this project are different
     // intentions and choosing between them is not the daemon's to do.
-    if (scope.isEmpty) throw const MockRefusal('org.fuin.sokar.Tasks1.ScopeRequired');
+    if (scope.isEmpty) {
+      throw const MockRefusal('org.fuin.sokar.Tasks1.ScopeRequired');
+    }
 
     final task = tasks.firstWhere(
       (each) => each['name'] == name,
       orElse: () => const <String, dynamic>{},
     );
     if (task.isEmpty || task['running'] != true) {
-      return _widened('NOT_RUNNING', detail: 'there is no running container called $name');
+      return _widened(
+        'NOT_RUNNING',
+        detail: 'there is no running container called $name',
+      );
     }
     if (task['securityClass'] == 'offline') {
-      return _widened('REFUSED_BY_CLASS',
-          detail: "an offline project's tasks reach nothing");
+      return _widened(
+        'REFUSED_BY_CLASS',
+        detail: "an offline project's tasks reach nothing",
+      );
     }
 
     // In the order asked for, and only what it does not have already.
     final already = _granted[name] ?? const <String>{};
-    final opens = <String>[for (final host in asked) if (!already.contains(host)) host];
+    final opens = <String>[
+      for (final host in asked)
+        if (!already.contains(host)) host,
+    ];
     if (opens.isEmpty) {
       return _widened('NO_CHANGE', detail: 'it can reach all of that already');
     }
@@ -901,12 +1003,17 @@ class MockMachine {
     // project whose file has moved is the case where the two answers differ.
     final file = _fileOf(task['project'] as String? ?? '');
     if (scope == 'RUN_AND_PROJECT' && file.isEmpty) {
-      return _widened('NO_PROJECT_FILE',
-          opens: opens,
-          detail: 'the run can reach it; no project file is recorded, so nothing was written');
+      return _widened(
+        'NO_PROJECT_FILE',
+        opens: opens,
+        detail: 'the run can reach it; no project file is recorded, so nothing was written',
+      );
     }
-    return _widened('WIDENED',
-        opens: opens, persisted: scope == 'RUN_AND_PROJECT');
+    return _widened(
+      'WIDENED',
+      opens: opens,
+      persisted: scope == 'RUN_AND_PROJECT',
+    );
   }
 
   static Map<String, dynamic> _widened(
@@ -914,29 +1021,32 @@ class MockMachine {
     List<String> opens = const <String>[],
     bool persisted = false,
     String detail = '',
-  }) =>
-      <String, dynamic>{
-        'outcome': outcome,
-        'opens': opens,
-        'persisted': persisted,
-        'detail': detail,
-      };
+  }) => <String, dynamic>{
+    'outcome': outcome,
+    'opens': opens,
+    'persisted': persisted,
+    'detail': detail,
+  };
 
   String _fileOf(String project) {
-    final projects = (_projects(const <String, dynamic>{})['projects']!
-        as List<Map<String, dynamic>>);
+    final projects =
+        (_projects(const <String, dynamic>{})['projects']!
+            as List<Map<String, dynamic>>);
     return projects.firstWhere(
-          (each) => each['name'] == project,
-          orElse: () => const <String, dynamic>{'file': ''},
-        )['file'] as String? ??
+              (each) => each['name'] == project,
+              orElse: () => const <String, dynamic>{'file': ''},
+            )['file']
+            as String? ??
         '';
   }
 
   static List<String> _domainsOf(String name) => <String>[
-        ...(_installed.firstWhere((set) => set['name'] == name,
-                orElse: () => const <String, dynamic>{'domains': <String>[]})['domains']
-            as List<String>),
-      ];
+    ...(_installed.firstWhere(
+          (set) => set['name'] == name,
+          orElse: () => const <String, dynamic>{'domains': <String>[]},
+        )['domains']
+        as List<String>),
+  ];
 
   /// Every project on the machine, assembled the way the daemon assembles it.
   ///
@@ -953,10 +1063,13 @@ class MockMachine {
         'probes': <Map<String, dynamic>>[
           _probe('podman', 'OK', '5.2.1', ''),
           _probe('hook registration', 'OK', 'registered for this user', ''),
-          _probe('rootless network backend', 'DEGRADED',
-              'slirp4netns rather than pasta: the git gate binds every interface and is '
-                  'reachable from this machine\u0027s network',
-              'install pasta (passt) and restart the daemon'),
+          _probe(
+            'rootless network backend',
+            'DEGRADED',
+            'slirp4netns rather than pasta: the git gate binds every interface and is '
+                'reachable from this machine\u0027s network',
+            'install pasta (passt) and restart the daemon',
+          ),
           _probe('dnsmasq nftset', 'OK', 'built with nftset support', ''),
           _probe('nft', 'OK', 'v1.0.9', ''),
           _probe('git', 'OK', '2.45.2', ''),
@@ -969,13 +1082,16 @@ class MockMachine {
       };
 
   static Map<String, dynamic> _probe(
-          String name, String state, String detail, String action) =>
-      <String, dynamic>{
-        'name': name,
-        'state': state,
-        'detail': detail,
-        'action': action,
-      };
+    String name,
+    String state,
+    String detail,
+    String action,
+  ) => <String, dynamic>{
+    'name': name,
+    'state': state,
+    'detail': detail,
+    'action': action,
+  };
 
   /// Which providers this machine has.
   Map<String, dynamic> _providers(Map<String, dynamic> parameters) =>
@@ -1036,31 +1152,31 @@ class MockMachine {
   /// is written wherever an operator names it, so nothing could work this out afterwards.
   final Map<String, List<Map<String, dynamic>>> _backupRecords =
       <String, List<Map<String, dynamic>>>{
-    'checkout': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'taken': DateTime.now()
-            .toUtc()
-            .subtract(const Duration(hours: 3))
-            .toIso8601String(),
-        'bundle': '/srv/checkout/backups/before-sync.bundle',
-        'refs': 2,
-        'present': true,
-        'bytes': 4823 * 1024,
-      },
-      // A bundle somebody moved. Listed, because it was taken — dropping it would say the backup
-      // was never made, which is a different and worse statement.
-      <String, dynamic>{
-        'taken': DateTime.now()
-            .toUtc()
-            .subtract(const Duration(days: 2))
-            .toIso8601String(),
-        'bundle': '/srv/checkout/backups/last-week.bundle',
-        'refs': 5,
-        'present': false,
-        'bytes': 0,
-      },
-    ],
-  };
+        'checkout': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'taken': DateTime.now()
+                .toUtc()
+                .subtract(const Duration(hours: 3))
+                .toIso8601String(),
+            'bundle': '/srv/checkout/backups/before-sync.bundle',
+            'refs': 2,
+            'present': true,
+            'bytes': 4823 * 1024,
+          },
+          // A bundle somebody moved. Listed, because it was taken — dropping it would say the backup
+          // was never made, which is a different and worse statement.
+          <String, dynamic>{
+            'taken': DateTime.now()
+                .toUtc()
+                .subtract(const Duration(days: 2))
+                .toIso8601String(),
+            'bundle': '/srv/checkout/backups/last-week.bundle',
+            'refs': 5,
+            'present': false,
+            'bytes': 0,
+          },
+        ],
+      };
 
   /// What a task holds that never reached the gate.
   ///
@@ -1108,7 +1224,8 @@ class MockMachine {
   Map<String, dynamic> _backups(Map<String, dynamic> parameters) =>
       <String, dynamic>{
         // Newest first, and empty is ordinary: a project nobody has backed up.
-        'backups': _backupRecords[parameters['project']] ?? <Map<String, dynamic>>[],
+        'backups':
+            _backupRecords[parameters['project']] ?? <Map<String, dynamic>>[],
       };
 
   Map<String, dynamic> _deleteBackup(Map<String, dynamic> parameters) {
@@ -1129,8 +1246,9 @@ class MockMachine {
     }
     final record = known.first;
     if (!preview) {
-      _backupRecords[project] =
-          records.where((each) => each['bundle'] != bundle).toList();
+      _backupRecords[project] = records
+          .where((each) => each['bundle'] != bundle)
+          .toList();
     }
     return <String, dynamic>{
       'outcome': preview ? 'PREVIEWED' : 'DELETED',
@@ -1158,14 +1276,16 @@ class MockMachine {
     }
     // The checkout gate holds unreviewed work, so restoring over it destroys the only copy
     // there has ever been. That is the refusal worth having.
-    final unreviewed = project == 'checkout' ? _waiting.keys.toList() : <String>[];
+    final unreviewed = project == 'checkout'
+        ? _waiting.keys.toList()
+        : <String>[];
     final refused = unreviewed.isNotEmpty && !preview && !force;
     return <String, dynamic>{
       'outcome': preview
           ? 'PREVIEWED'
           : refused
-              ? 'HOLDS_WORK'
-              : 'RESTORED',
+          ? 'HOLDS_WORK'
+          : 'RESTORED',
       'mirror': '/srv/$project/.sokar/mirror',
       // Filled under force too: it is what force destroyed, and that belongs in the record
       // afterwards rather than only in the warning.
@@ -1220,84 +1340,92 @@ class MockMachine {
       };
 
   List<Map<String, dynamic>> get _everyProject => <Map<String, dynamic>>[
-          <String, dynamic>{
-            'name': 'checkout',
-            'securityClass': 'guarded',
-            'file': '/srv/checkout/project.yml',
-            'mirror': '/srv/checkout/.sokar/mirror',
-            'prepared': true,
-            'preparedState': 'READY',
-            'behind': 3,
-            'behindMeasured': DateTime.now()
-                .toUtc()
-                .subtract(const Duration(minutes: 20))
-                .toIso8601String(),
-            'behindReason': 'MEASURED',
-            'behindDetail': '',
-            'pending': _waiting.length,
-            'tasks': tasks.where((task) => task['project'] == 'checkout').length,
-            'running': tasks
-                .where((task) => task['project'] == 'checkout' && task['running'] == true)
-                .length,
-          },
-          <String, dynamic>{
-            'name': 'billing',
-            'securityClass': 'offline',
-            'file': '/srv/billing/project.yml',
-            'mirror': '',
-            'prepared': true,
-            'preparedState': 'STALE',
-            'behind': 0,
-            'behindMeasured': '',
-            // An offline project reaches nothing, so nothing was tried. Distinct from zero.
-            'behindReason': 'OFFLINE',
-            'behindDetail': '',
-            'pending': 0,
-            'tasks': tasks.where((task) => task['project'] == 'billing').length,
-            'running': tasks
-                .where((task) => task['project'] == 'billing' && task['running'] == true)
-                .length,
-          },
-          <String, dynamic>{
-            'name': 'never-run',
-            'securityClass': '',
-            'file': '/srv/never-run/project.yml',
-            'mirror': '',
-            // Nothing has run here, so no image was ever built.
-            'prepared': false,
-            'preparedState': 'ABSENT',
-            'behind': 0,
-            'behindMeasured': '',
-            'behindReason': 'NEVER_CHECKED',
-            'behindDetail': '',
-            'pending': 0,
-            'tasks': 0,
-            'running': 0,
-          },
-          <String, dynamic>{
-            'name': 'moved-away',
-            'securityClass': 'guarded',
-            'file': '',
-            'mirror': '/srv/moved/.sokar/mirror',
-            'prepared': true,
-            'preparedState': 'UNKNOWN',
-            'behind': 0,
-            'behindMeasured': DateTime.now()
-                .toUtc()
-                .subtract(const Duration(hours: 3))
-                .toIso8601String(),
-            'behindReason': 'FAILED',
-            'behindDetail': 'the upstream refused the connection',
-            'pending': 1,
-            'tasks': tasks.where((task) => task['project'] == 'moved-away').length,
-            'running': tasks
-                .where((task) => task['project'] == 'moved-away' && task['running'] == true)
-                .length,
-          },
-      ];
+    <String, dynamic>{
+      'name': 'checkout',
+      'securityClass': 'guarded',
+      'file': '/srv/checkout/project.yml',
+      'mirror': '/srv/checkout/.sokar/mirror',
+      'prepared': true,
+      'preparedState': 'READY',
+      'behind': 3,
+      'behindMeasured': DateTime.now()
+          .toUtc()
+          .subtract(const Duration(minutes: 20))
+          .toIso8601String(),
+      'behindReason': 'MEASURED',
+      'behindDetail': '',
+      'pending': _waiting.length,
+      'tasks': tasks.where((task) => task['project'] == 'checkout').length,
+      'running': tasks
+          .where(
+            (task) => task['project'] == 'checkout' && task['running'] == true,
+          )
+          .length,
+    },
+    <String, dynamic>{
+      'name': 'billing',
+      'securityClass': 'offline',
+      'file': '/srv/billing/project.yml',
+      'mirror': '',
+      'prepared': true,
+      'preparedState': 'STALE',
+      'behind': 0,
+      'behindMeasured': '',
+      // An offline project reaches nothing, so nothing was tried. Distinct from zero.
+      'behindReason': 'OFFLINE',
+      'behindDetail': '',
+      'pending': 0,
+      'tasks': tasks.where((task) => task['project'] == 'billing').length,
+      'running': tasks
+          .where(
+            (task) => task['project'] == 'billing' && task['running'] == true,
+          )
+          .length,
+    },
+    <String, dynamic>{
+      'name': 'never-run',
+      'securityClass': '',
+      'file': '/srv/never-run/project.yml',
+      'mirror': '',
+      // Nothing has run here, so no image was ever built.
+      'prepared': false,
+      'preparedState': 'ABSENT',
+      'behind': 0,
+      'behindMeasured': '',
+      'behindReason': 'NEVER_CHECKED',
+      'behindDetail': '',
+      'pending': 0,
+      'tasks': 0,
+      'running': 0,
+    },
+    <String, dynamic>{
+      'name': 'moved-away',
+      'securityClass': 'guarded',
+      'file': '',
+      'mirror': '/srv/moved/.sokar/mirror',
+      'prepared': true,
+      'preparedState': 'UNKNOWN',
+      'behind': 0,
+      'behindMeasured': DateTime.now()
+          .toUtc()
+          .subtract(const Duration(hours: 3))
+          .toIso8601String(),
+      'behindReason': 'FAILED',
+      'behindDetail': 'the upstream refused the connection',
+      'pending': 1,
+      'tasks': tasks.where((task) => task['project'] == 'moved-away').length,
+      'running': tasks
+          .where(
+            (task) =>
+                task['project'] == 'moved-away' && task['running'] == true,
+          )
+          .length,
+    },
+  ];
 
   /// Which logs a task has. A task that was purged has none, and that is a normal answer.
-  Map<String, dynamic> _logs(Map<String, dynamic> parameters) => <String, dynamic>{
+  Map<String, dynamic> _logs(Map<String, dynamic> parameters) =>
+      <String, dynamic>{
         'logs': <Map<String, dynamic>>[
           for (final name in logs)
             <String, dynamic>{
@@ -1316,9 +1444,11 @@ class MockMachine {
   /// **The daemon's sentence, not this end's.** It is here because the mock stands in for the
   /// daemon; the interface composes none of it and shows nothing where there is nothing.
   static const _what = <String, String>{
-    'events.jsonl': 'What the firewall blocked. Read this when a task starts and then does '
+    'events.jsonl':
+        'What the firewall blocked. Read this when a task starts and then does '
         'nothing.',
-    'reader.err': 'Standard error of the reader hook, which writes events.jsonl. Empty is normal; '
+    'reader.err':
+        'Standard error of the reader hook, which writes events.jsonl. Empty is normal; '
         'anything here means the record of blocks may be incomplete.',
   };
 
@@ -1341,25 +1471,27 @@ class MockMachine {
     const plain = '\u001B[0m';
     final lines = switch (log) {
       'gate.log' => <String>[
-          'gate: mirror at refs/sokar/incoming',
-          'gate: waiting for a decision',
-          '${green}gate: 2 commits accepted$plain',
-        ],
+        'gate: mirror at refs/sokar/incoming',
+        'gate: waiting for a decision',
+        '${green}gate: 2 commits accepted$plain',
+      ],
       // What the firewall blocked. Not a line format this end may parse — it is shown as written,
       // like every other log.
       'events.jsonl' => <String>[
-          '{"at":"2026-09-07T14:11:58Z","action":"deny","host":"registry.example.com:443"}',
-          '{"at":"2026-09-07T14:12:01Z","action":"allow","host":"github.com:443"}',
-        ],
+        '{"at":"2026-09-07T14:11:58Z","action":"deny","host":"registry.example.com:443"}',
+        '{"at":"2026-09-07T14:12:01Z","action":"allow","host":"github.com:443"}',
+      ],
       // The reader hook's standard error. Empty is the normal case, which is why the listing
       // gives it zero bytes: anything in it means the record of blocks may be incomplete.
-      'reader.err' => <String>['reader: NFLOG group 5 already bound, 3 events may be missing'],
+      'reader.err' => <String>[
+        'reader: NFLOG group 5 already bound, 3 events may be missing',
+      ],
       _ => <String>[
-          'agent: reading the prompt',
-          'agent: running the tests',
-          '${red}agent: 1 test failed$plain',
-          'agent: waiting',
-        ],
+        'agent: reading the prompt',
+        'agent: running the tests',
+        '${red}agent: 1 test failed$plain',
+        'agent: waiting',
+      ],
     };
     for (final line in lines) {
       if (pace > Duration.zero) await Future<void>.delayed(pace);
@@ -1371,23 +1503,25 @@ class MockMachine {
 
   /// The tasks as listed, with what Start would do to each worked out from its state.
   List<Map<String, dynamic>> get _listing => <Map<String, dynamic>>[
-        for (final task in tasks)
-          <String, dynamic>{
-            'startAction': task['running'] == true
-                ? 'RUNNING'
-                : situation == 'vault-locked'
-                    ? 'NEEDS_VAULT'
-                    : 'RESUME',
-            'startDetail': '',
-            'phase': '',
-            ...task,
-          },
-      ];
+    for (final task in tasks)
+      <String, dynamic>{
+        'startAction': task['running'] == true
+            ? 'RUNNING'
+            : situation == 'vault-locked'
+            ? 'NEEDS_VAULT'
+            : 'RESUME',
+        'startDetail': '',
+        'phase': '',
+        ...task,
+      },
+  ];
 
   /// Stops a task and keeps it: its container is its workspace.
   Map<String, dynamic> _stop(Map<String, dynamic> parameters) {
     final name = parameters['task'];
-    final running = tasks.any((task) => task['name'] == name && task['running'] == true);
+    final running = tasks.any(
+      (task) => task['name'] == name && task['running'] == true,
+    );
     if (running) {
       tasks = <Map<String, dynamic>>[
         for (final task in tasks)
@@ -1407,8 +1541,8 @@ class MockMachine {
       'outcome': situation == 'newer-outcome'
           ? 'QUARANTINED'
           : running
-              ? 'STOPPED'
-              : 'NOTHING_TO_STOP',
+          ? 'STOPPED'
+          : 'NOTHING_TO_STOP',
       'helpers': running ? 2 : 0,
       'surviving': <String>[],
     };
@@ -1419,22 +1553,26 @@ class MockMachine {
     final name = parameters['task'];
     final force = parameters['force'] == true;
     final rescue = parameters['rescue'] == true;
-    final running = tasks.any((task) => task['name'] == name && task['running'] == true);
+    final running = tasks.any(
+      (task) => task['name'] == name && task['running'] == true,
+    );
     final refusal = force
         ? null
         : running
-            ? 'STILL_RUNNING'
-            : rescue
-                ? null
-                : switch (situation) {
-                    'holds-work' => 'HOLDS_WORK',
-                    'nothing-knows' => 'NOTHING_KNOWS',
-                    _ => null,
-                  };
+        ? 'STILL_RUNNING'
+        : rescue
+        ? null
+        : switch (situation) {
+            'holds-work' => 'HOLDS_WORK',
+            'nothing-knows' => 'NOTHING_KNOWS',
+            _ => null,
+          };
     if (refusal != null) {
       return <String, dynamic>{
         'outcome': refusal,
-        'work': refusal == 'HOLDS_WORK' ? '2 commits on refs/heads/fix-rounding' : '',
+        'work': refusal == 'HOLDS_WORK'
+            ? '2 commits on refs/heads/fix-rounding'
+            : '',
         'rescuedRef': '',
         'removed': false,
         'discarded': 0,
@@ -1454,9 +1592,13 @@ class MockMachine {
 
   /// Starts a listed task again: refused while it runs or while the vault is locked.
   Map<String, dynamic> _startAgain(String name) {
-    final running = tasks.any((task) => task['name'] == name && task['running'] == true);
+    final running = tasks.any(
+      (task) => task['name'] == name && task['running'] == true,
+    );
     if (running) return <String, dynamic>{'action': 'RUNNING'};
-    if (situation == 'vault-locked') return <String, dynamic>{'action': 'NEEDS_VAULT'};
+    if (situation == 'vault-locked') {
+      return <String, dynamic>{'action': 'NEEDS_VAULT'};
+    }
     tasks = <Map<String, dynamic>>[
       for (final task in tasks)
         task['name'] != name
@@ -1492,7 +1634,9 @@ class MockMachine {
   /// **Streamed, because a build takes minutes** and showing nothing for that long is
   /// indistinguishable from having hung. The depth decides how much of it runs — which is the
   /// whole reason three depths exist rather than one button.
-  Stream<Map<String, dynamic>> _prepare(Map<String, dynamic> parameters) async* {
+  Stream<Map<String, dynamic>> _prepare(
+    Map<String, dynamic> parameters,
+  ) async* {
     final depth = parameters['rebuild'] as String? ?? 'CACHED';
     final steps = <String>[
       'STEP 1/6: FROM ubuntu:24.04',
@@ -1527,10 +1671,17 @@ class MockMachine {
   }
 
   Stream<Map<String, dynamic>> _launch(Map<String, dynamic> parameters) async* {
-    // A listed task is started again rather than built beside itself.
-    final existing = parameters['task'] as String?;
-    if (parameters['detach'] == true && tasks.any((task) => task['name'] == existing)) {
-      yield _startAgain(existing!);
+    // A listed task is started again rather than built beside itself: same project, same name.
+    final existing = tasks
+        .where(
+          (task) =>
+              task['task'] == parameters['task'] &&
+              parameters['project'] == '/srv/${task['project']}/project.yml',
+        )
+        .map((task) => task['name'] as String)
+        .firstOrNull;
+    if (existing != null) {
+      yield _startAgain(existing);
       return;
     }
     const steps = <String>[
@@ -1547,14 +1698,17 @@ class MockMachine {
     final prompt = parameters['prompt'] as String? ?? '';
     // The backend's own rule, not this one's: a prompt means UNATTENDED unless something else was
     // asked for, and nothing without a prompt is unattended.
-    final mode = parameters['mode'] as String? ??
+    final mode =
+        parameters['mode'] as String? ??
         (prompt.isEmpty ? 'SHELL' : 'UNATTENDED');
 
     for (final step in steps) {
       if (pace > Duration.zero) await Future<void>.delayed(pace);
       yield <String, dynamic>{'line': step};
     }
-    if (failing) yield <String, dynamic>{'line': 'could not reach the registry'};
+    if (failing) {
+      yield <String, dynamic>{'line': 'could not reach the registry'};
+    }
     if (failing || prompt.isEmpty) {
       yield <String, dynamic>{
         'container': 'sokar-checkout-shell',
@@ -1592,15 +1746,18 @@ class MockMachine {
     // it with a new prompt reads back.
     tasks = <Map<String, dynamic>>[
       ...tasks,
-      _task(container, (parameters['project'] as String? ?? '').contains('billing')
-              ? 'billing'
-              : 'checkout',
-          running: false,
-          helpers: 0,
-          activity: 'DEAD',
-          mode: mode,
-          agent: parameters['agent'] as String? ?? 'an-agent',
-          prompt: prompt),
+      _task(
+        container,
+        (parameters['project'] as String? ?? '').contains('billing')
+            ? 'billing'
+            : 'checkout',
+        running: false,
+        helpers: 0,
+        activity: 'DEAD',
+        mode: mode,
+        agent: parameters['agent'] as String? ?? 'an-agent',
+        prompt: prompt,
+      ),
     ];
     _changes.add(<String, dynamic>{'tasks': _listing});
     yield <String, dynamic>{'container': container, 'exitCode': 0};
@@ -1649,30 +1806,44 @@ deleted file mode 100644
       <Map<String, dynamic>>[
         // One of each: telling the states apart is the point, and a machine with only
         // working tasks on it proves nothing.
-        _task('sokar-checkout-shell', 'checkout',
-            activity: 'WAITING',
-            waitingFor: 'api.example.test:443',
-            minutesAgo: 6),
+        _task(
+          'sokar-checkout-shell',
+          'checkout',
+          activity: 'WAITING',
+          waitingFor: 'api.example.test:443',
+          minutesAgo: 6,
+        ),
         // Its own ref is waiting at the gate, which is what `waiting` says and what nothing
         // could be joined to work out.
-        _task('sokar-checkout-migrate', 'checkout',
-            running: false, helpers: 0, waiting: 1),
-        _task('sokar-billing-shell', 'billing',
-            securityClass: 'offline',
-            helpers: 1,
-            activity: 'IDLE',
-            mode: 'SHELL',
-            minutesAgo: 47),
+        _task(
+          'sokar-checkout-migrate',
+          'checkout',
+          running: false,
+          helpers: 0,
+          waiting: 1,
+        ),
+        _task(
+          'sokar-billing-shell',
+          'billing',
+          securityClass: 'offline',
+          helpers: 1,
+          activity: 'IDLE',
+          mode: 'SHELL',
+          minutesAgo: 47,
+        ),
         // A container up with no helpers has lost its gate or its clearance watcher, which the
         // detail calls out. Worth having on screen while the frame is being looked at.
         // A terminal is attached to this one, so nothing on this side can see what it is doing.
         // Started with enforcement off: nothing will ever be asked about what it reaches, which
         // is a choice somebody made and the interface has to show.
-        _task('sokar-billing-audit', 'billing',
-            helpers: 0,
-            activity: 'UNKNOWN',
-            mode: 'AGENT',
-            clearance: 'off'),
+        _task(
+          'sokar-billing-audit',
+          'billing',
+          helpers: 0,
+          activity: 'UNKNOWN',
+          mode: 'AGENT',
+          clearance: 'off',
+        ),
         // A failed run is no longer swept away: a non-zero exit stops the container and leaves it
         // in place, workspace and logs intact, because the run worth looking at is the one that
         // went wrong. So a list has more exited tasks on it than it used to.
@@ -1697,31 +1868,33 @@ deleted file mode 100644
     String clearance = 'prompt',
     String? prompt,
     int waiting = 0,
-  }) =>
-      <String, dynamic>{
-        'name': name,
-        'label': '',
-        'project': project,
-        'securityClass': securityClass,
-        'state': running ? 'Up $minutesAgo minutes' : 'Exited (1) 12 minutes ago',
-        'running': running,
-        'helpers': helpers,
-        'agent': agent,
-        'mode': mode,
-        'prompt': prompt ??
-            (mode == 'UNATTENDED'
-                ? 'Fix the rounding in Money.pennies and add a test for it'
-                : ''),
-        // The ref carries the *task* name, which is the container name without the project
-        // prefix — not the container name itself, which has the run in it.
-        'branch': 'refs/sokar/incoming/${name.replaceFirst('sokar-$project-', '')}',
-        'since': DateTime.now()
-            .toUtc()
-            .subtract(Duration(minutes: minutesAgo))
-            .toIso8601String(),
-        'activity': running ? activity : 'DEAD',
-        'waitingFor': waitingFor,
-        'clearance': clearance,
-        'waiting': waiting,
-      };
+  }) => <String, dynamic>{
+    'name': name,
+    // The stand-in's own naming rule; a client never derives this.
+    'task': name.replaceFirst('sokar-$project-', ''),
+    'label': '',
+    'project': project,
+    'securityClass': securityClass,
+    'state': running ? 'Up $minutesAgo minutes' : 'Exited (1) 12 minutes ago',
+    'running': running,
+    'helpers': helpers,
+    'agent': agent,
+    'mode': mode,
+    'prompt':
+        prompt ??
+        (mode == 'UNATTENDED'
+            ? 'Fix the rounding in Money.pennies and add a test for it'
+            : ''),
+    // The ref carries the *task* name, which is the container name without the project
+    // prefix — not the container name itself, which has the run in it.
+    'branch': 'refs/sokar/incoming/${name.replaceFirst('sokar-$project-', '')}',
+    'since': DateTime.now()
+        .toUtc()
+        .subtract(Duration(minutes: minutesAgo))
+        .toIso8601String(),
+    'activity': running ? activity : 'DEAD',
+    'waitingFor': waitingFor,
+    'clearance': clearance,
+    'waiting': waiting,
+  };
 }

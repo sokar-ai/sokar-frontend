@@ -81,9 +81,16 @@ List<Command> workCommands({
       id: 'work.resume',
       label: task?.startAction == StartAction.create ? 'Start it' : 'Start it again',
       group: 'Work',
-      run: () => fleet.startAgain(task!.name),
+      run: () => fleet.startAgain(task!),
       // The machine says beforehand what Start would do, so a refusal is never found by pressing.
-      unavailable: task == null ? nothingSelected : whyNotStart(task),
+      unavailable: task == null
+          ? nothingSelected
+          : whyNotStart(task) ??
+              (task.task.isEmpty
+                  ? 'the machine does not say its name within the project'
+                  : fleet.projectFileOf(task) == null
+                      ? 'nothing here knows where its project file is'
+                      : null),
     ),
     Command(
       id: 'work.stop',

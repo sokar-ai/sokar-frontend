@@ -111,6 +111,9 @@ Agreed with the Sokar side on 2026-09-11, as one cut on both sides with no shim 
   too old to say, and the runtime's `running` decides.
 - **A refused `Start` is an ordinary final reply** with `action` set, and must not read as a start
   that worked.
+- **`Start` takes the project file and the name within the project** (`Task.task`), never the
+  container name, because `CREATE` has no container yet. That name is carried, never cut from
+  `Task.name`. `now` returns without waiting for a build; over varlink nothing attaches.
 
 **Until the first release the IDL's compatibility rules are not in force** (the operator's ruling,
 2026-09-11). A method may be renamed, removed or given a new meaning in place, but only after both

@@ -44,7 +44,7 @@ class _Wedged implements FleetBackend {
       throw const VarlinkDisconnected('nothing there');
 
   @override
-  Future<StartProgress> startAgain(String task) async =>
+  Future<StartProgress> startAgain({required String project, required String task}) async =>
       throw const VarlinkDisconnected('nothing there');
 
   @override
@@ -277,7 +277,8 @@ class _Machine implements FleetBackend {
       throw UnimplementedError();
 
   @override
-  Future<StartProgress> startAgain(String task) async => throw UnimplementedError();
+  Future<StartProgress> startAgain({required String project, required String task}) async =>
+      throw UnimplementedError();
 
   @override
   Future<List<Log>> logsOf(String task) async => const <Log>[];

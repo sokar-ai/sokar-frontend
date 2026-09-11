@@ -642,7 +642,7 @@ class _ShellState extends State<Shell> {
       // beside it — and the same agent, mode and prompt, because recreating is meant to change
       // the environment and nothing else.
       output: _fleet.backend.startTask(
-        task: task.name,
+        task: task.task,
         project: project,
         agent: task.agent.isEmpty ? null : task.agent,
         mode: task.mode.recognized ? task.mode : null,

@@ -73,8 +73,9 @@ abstract class FleetBackend {
   /// back as `HOLDS_WORK`, untouched, and the caller decides what that work is worth.
   Future<Removed> removeTask(String task, {bool? rescue, bool? force});
 
-  /// Starts a task that is listed, and answers what Start did. Detached: a build is read with `Tail`.
-  Future<StartProgress> startAgain(String task);
+  /// Starts a listed task by its project file and its name within the project, and answers what
+  /// Start did. Without waiting for a build, which `Tail` reads.
+  Future<StartProgress> startAgain({required String project, required String task});
 
   /// Sets or clears the caption a task reads by. **Nothing about its identity moves.**
   Future<Labelled> labelTask(String task, {String? label});
@@ -315,9 +316,9 @@ class SokarBackend implements FleetBackend {
       _opened().remove(task, rescue: rescue, force: force);
 
   @override
-  Future<StartProgress> startAgain(String task) async {
+  Future<StartProgress> startAgain({required String project, required String task}) async {
     var last = const StartProgress();
-    await for (final progress in _opened().start(task: task, detach: true)) {
+    await for (final progress in _opened().start(project: project, task: task, now: true)) {
       last = progress;
     }
     return last;

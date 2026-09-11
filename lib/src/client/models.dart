@@ -214,6 +214,11 @@ class Task {
   /// what the gate ref, the workspace and the log files are built from. Nothing moves it.
   final String name;
 
+  /// Its name within the project, which is what `Start` takes; [name] is the container it made.
+  ///
+  /// **Carried, never cut from [name]**: the two are related by a rule Sokar owns and changes.
+  final String task;
+
   /// A caption somebody set, or empty.
   ///
   /// **Beside the identity, never instead of it.** Empty is the ordinary state — every task has
@@ -336,6 +341,7 @@ class Task {
     this.waitingFor = '',
     this.clearance = '',
     this.waiting = 0,
+    this.task = '',
     this.startAction = const StartAction(''),
     this.startDetail = '',
     this.phase = '',
@@ -361,6 +367,7 @@ class Task {
         waitingFor: _string(map, 'waitingFor'),
         clearance: _string(map, 'clearance'),
         waiting: _int(map, 'waiting'),
+        task: _string(map, 'task'),
         startAction: StartAction(_string(map, 'startAction')),
         startDetail: _string(map, 'startDetail'),
         phase: _string(map, 'phase'),
