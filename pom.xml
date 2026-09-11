@@ -20,6 +20,8 @@
         <!-- Declared so -DskipTests resolves here as it does for surefire. -->
         <skipTests>false</skipTests>
         <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
+        <!-- Sokar's BOM names every tool's version; this is the one to bump. -->
+        <sokar.version>0.1.0-SNAPSHOT</sokar.version>
     </properties>
 
     <build>
@@ -147,6 +149,92 @@
                                     <arguments>
                                         <argument>-c</argument>
                                         <argument>exit "$(cat build/e2e.status)"</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- A machine leased for the run and swept after it, whether the tests passed or not. With
+             e2e: ./mvnw verify -Pe2e,hetzner, HETZNER_API set, and the key as HETZNER_SSH (CI) or a
+             file named by HETZNER_KEY (a person). Only here, so no other build fetches the tool. -->
+        <profile>
+            <id>hetzner</id>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.fuin.sokar</groupId>
+                        <artifactId>sokar-bom</artifactId>
+                        <version>${sokar.version}</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            <dependencies>
+                <dependency>
+                    <groupId>org.fuin.sokar</groupId>
+                    <artifactId>sokar-machines</artifactId>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec-maven-plugin.version}</version>
+                        <executions>
+                            <!-- Its own JVM, so the tool's exit cannot take Maven down with it. The
+                                 classpath arrives as $0; with HETZNER_SSH set the tool needs no key file. -->
+                            <execution>
+                                <id>hetzner-lease</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>test -z "$HETZNER_KEY" || set -- --key "$HETZNER_KEY"; exec java -classpath "$0" org.fuin.sokar.machines.Main lease --os ubuntu "$@" --write build/leased.properties</argument>
+                                        <classpath/>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>hetzner-sweep</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>java</executable>
+                                    <arguments>
+                                        <argument>-classpath</argument>
+                                        <classpath/>
+                                        <argument>org.fuin.sokar.machines.Main</argument>
+                                        <argument>sweep</argument>
+                                        <argument>--from</argument>
+                                        <argument>build/leased.properties</argument>
+                                        <argument>--now</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- Only once the sweep has worked: a failed sweep leaves the file for a
+                                 person, and a swept one must not be read as a machine still there. -->
+                            <execution>
+                                <id>hetzner-done</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>mv -f build/leased.properties build/leased.swept</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

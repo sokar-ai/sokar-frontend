@@ -9,6 +9,20 @@
 # The app gets a config and runtime directory of its own and ssh a private agent holding only that
 # key, so a running interface, its settings and the person's ssh setup are all left alone.
 set -euo pipefail
+
+# A machine leased by the build (-Phetzner) names itself in this file; otherwise the caller does.
+leased=build/leased.properties
+forget_host=''
+if [ -z "${SOKAR_E2E_HOST:-}" ] && [ -f "$leased" ]; then
+  value() { grep "^$1=" "$leased" | cut -d= -f2-; }
+  address=$(value address)
+  export SOKAR_E2E_HOST="$(value user)@$address" SOKAR_E2E_REMOTE_SOCKET="$(value socket)"
+  export SOKAR_E2E_KEY="${SOKAR_E2E_KEY:-${HETZNER_KEY:-}}"
+  # A fresh machine's host key is unknown, and the interface never accepts one on its own.
+  mkdir -p ~/.ssh
+  ssh-keyscan -H "$address" >> ~/.ssh/known_hosts 2>/dev/null
+  forget_host=$address
+fi
 : "${SOKAR_E2E_HOST:?name the machine as ssh would, e.g. user@host}"
 : "${SOKAR_E2E_REMOTE_SOCKET:?the daemon socket on that machine}"
 
@@ -19,16 +33,22 @@ cleanup() {
   # them down. Every one raised under this run's directory goes, even after a crash.
   pkill -f -- "-L $here/run/" 2>/dev/null || true
   if [ -n "$agent" ]; then kill "$agent" 2>/dev/null || true; fi
+  if [ -n "$forget_host" ]; then ssh-keygen -R "$forget_host" >/dev/null 2>&1 || true; fi
   rm -rf "$here"
 }
 trap cleanup EXIT
 mkdir -p "$here/run" "$here/config"
 chmod 700 "$here/run"
 
-if [ -n "${SOKAR_E2E_KEY:-}" ]; then
+if [ -n "${SOKAR_E2E_KEY:-}" ] || [ -n "${HETZNER_SSH:-}" ]; then
   eval "$(ssh-agent -s -a "$here/agent.sock")" >/dev/null
   agent=$SSH_AGENT_PID
-  ssh-add -q "${SOKAR_E2E_KEY/#\~/$HOME}"
+  if [ -n "${SOKAR_E2E_KEY:-}" ]; then
+    ssh-add -q "${SOKAR_E2E_KEY/#\~/$HOME}"
+  else
+    # CI hands the key over as material, and a secret is never written to a file: a pipe it is.
+    printf '%s\n' "$HETZNER_SSH" | ssh-add -q -
+  fi
 fi
 
 # Headless only: a test window on somebody's desktop takes their keyboard mid-sentence.

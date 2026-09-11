@@ -2002,3 +2002,13 @@ left alone.
 - **A test ending is not a window closing.** Nothing drops the forwards the app raised, and
   eleven runs left eleven ssh sessions open to the VM. `tool/e2e.sh` now kills every forward
   raised under its own directory when it exits.
+- **Maven rents the machine.** `./mvnw verify -Pe2e,hetzner` leases one with Sokar's
+  `sokar-machines` in `pre-integration-test`, and `tool/e2e.sh` reads `build/leased.properties`.
+  The run never fails its own phase: it leaves its status in `build/e2e.status` and `verify` fails
+  from it, so the sweep in `post-integration-test` runs on a red test too. Maven would otherwise
+  stop at the failing phase and leave the server billing.
+- **The key is material in CI, a file for a person.** CI sets `HETZNER_SSH` and passes no
+  `--key`; the secret is never written to disk, and `tool/e2e.sh` pipes it into its agent. A
+  person sets `HETZNER_KEY` to the file. `HETZNER_API` is the token in both.
+- **The snapshot repository is in `settings.xml`**, not in the pom, and every CI call passes
+  `-s settings.xml`, as the agent repositories do.
