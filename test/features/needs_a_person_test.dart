@@ -34,6 +34,11 @@ import './step/i_put_the_session_away.dart';
 import './step/i_review_the_work_from_its_tile.dart';
 import './step/i_open_the_waiting_push.dart';
 import './step/the_review_shows_the_file.dart';
+import './step/work_is_blocked_reaching_with_minutes_left.dart';
+import './step/work_is_blocked_reaching_with_no_deadline.dart';
+import './step/work_is_blocked_reaching_past_its_deadline.dart';
+import './step/the_tile_does_not_say.dart';
+import './step/other_work_is_blocked_reaching_with_minutes_left.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -133,6 +138,38 @@ void main() {
       await iReviewTheWorkFromItsTile(tester, 'sokar-checkout-migrate');
       await iOpenTheWaitingPush(tester);
       await theReviewShowsTheFile(tester, 'lib/money.dart');
+    });
+    testWidgets('''a question with a deadline says how long is left''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReachingWithMinutesLeft(
+          tester, 'api.example.test:443', 3);
+      await theTileSays(tester, 'sokar-checkout-shell', '3 minutes left');
+    });
+    testWidgets(
+        '''a question that never runs out says so, rather than counting down''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReachingWithNoDeadline(tester, 'api.example.test:443');
+      await theTileSays(tester, 'sokar-checkout-shell', 'does not run out');
+    });
+    testWidgets(
+        '''a question past its deadline says its time is up, not how long is left''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReachingPastItsDeadline(
+          tester, 'api.example.test:443');
+      await theTileSays(tester, 'sokar-checkout-shell', 'out of time');
+      await theTileDoesNotSay(tester, 'sokar-checkout-shell', 'left');
+    });
+    testWidgets('''the question nearest its deadline comes first''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReachingWithMinutesLeft(
+          tester, 'api.example.test:443', 2);
+      await otherWorkIsBlockedReachingWithMinutesLeft(
+          tester, 'files.example.test:22', 10);
+      await theFirstTileIs(tester, 'sokar-checkout-shell');
     });
   });
 }

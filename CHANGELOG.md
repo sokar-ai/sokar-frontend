@@ -13,7 +13,7 @@ distribution, so an entry below has reached an operator only if they follow that
 ### Added
 
 - **The window opens on what needs a person**, from every machine at once: open questions
-  first and answered on their tile, a machine that cannot be reached as a tile of its own, and
+  first, nearest deadline first with the time left, and answered on their tile, a machine that cannot be reached as a tile of its own, and
   a quiet task marked as a guess.
 - A window for Linux desktop that talks to `sokard` over a unix socket. Every action is reachable
   from the keyboard and from a pointer, and the selection survives a restart.

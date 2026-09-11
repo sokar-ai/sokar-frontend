@@ -2151,6 +2151,10 @@ class Prompt {
   /// and a closed Dart enum is exactly how the tolerance rule gets broken.
   final String? verdict;
 
+  /// When it runs out, ISO-8601, measured from when it was asked. `""` is one that never runs out;
+  /// null is a daemon older than the field, which says nothing either way.
+  final String? deadline;
+
   /// Constructor taking every field.
   const Prompt({
     required this.task,
@@ -2161,6 +2165,7 @@ class Prompt {
     required this.at,
     required this.prefix,
     this.verdict,
+    this.deadline,
   });
 
   /// Reads one from a reply.
@@ -2175,7 +2180,16 @@ class Prompt {
         // Genuinely absent rather than empty, which is the difference between an open question
         // and one that was settled by something this build has never heard of.
         verdict: map['verdict'] is String ? map['verdict'] as String : null,
+        // Not `_optional`: absent and empty are different answers here.
+        deadline: map['deadline'] is String ? map['deadline'] as String : null,
       );
+
+  /// When it runs out, or null when nothing says or it never does.
+  DateTime? get expiresAt =>
+      deadline == null || deadline!.isEmpty ? null : DateTime.tryParse(deadline!);
+
+  /// Whether the daemon said this one never runs out, as opposed to saying nothing.
+  bool get neverRunsOut => deadline != null && deadline!.isEmpty;
 
   /// Destination as it should be shown: with the port, unless there is none.
   String get shown => port == 0 ? destination : '$destination:$port';

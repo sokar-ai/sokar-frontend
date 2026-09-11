@@ -248,6 +248,7 @@ class MockMachine {
       'port': int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
       'at': DateTime.now().toUtc().toIso8601String(),
       'prefix': 'egress/deny',
+      'deadline': DateTime.now().add(const Duration(minutes: 3)).toUtc().toIso8601String(),
     };
     _raise(asked);
     return asked;
@@ -258,6 +259,7 @@ class MockMachine {
         ...asked,
         'at': DateTime.now().toUtc().toIso8601String(),
         'prefix': '',
+        'deadline': '',
         'verdict': 'timeout',
       });
 
@@ -272,6 +274,7 @@ class MockMachine {
       'port': 0,
       'at': DateTime.now().toUtc().toIso8601String(),
       'prefix': '',
+      'deadline': '',
       'verdict': parameters['allow'] == true ? 'allow' : 'deny',
     });
     return <String, dynamic>{'ok': true};

@@ -1982,5 +1982,6 @@ showed the current machine only, and another machine's question reached nobody b
   opens the command finder straight after launch.
 - **Work is a precondition, and the scenarios say so.** Every Background has *"And I go to the
   work"*, and so does every scenario after a restart, which lands on this view again.
-- **A deadline is not shown as time remaining.** `Prompt` carries when it was blocked, not when it
-  expires; the tile says how long it has been blocked and that the machine does not say when.
+- **A deadline is time left, and absent is not empty.** No `deadline` is a daemon older than the
+  field (*"does not say when"*); `""` is a question that never runs out. The tile ticks while one is
+  on screen: a countdown that does not move overstates the time left.

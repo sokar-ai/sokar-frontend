@@ -98,6 +98,9 @@ class Attention extends ChangeNotifier {
       for (final prompt in fleet.clearance.waiting) {
         asked.putIfAbsent(prompt.task, () => <Prompt>[]).add(prompt);
       }
+      for (final questions in asked.values) {
+        questions.sort(_nearestFirst);
+      }
       for (final task in fleet.tasks) {
         final questions = asked.remove(task.name) ?? const <Prompt>[];
         out.add(Tile(
@@ -141,12 +144,24 @@ class Attention extends ChangeNotifier {
   static int _byDemand(Tile a, Tile b) {
     final byDemand = a.demand.index.compareTo(b.demand.index);
     if (byDemand != 0) return byDemand;
-    // Oldest question first: it is the one nearest its machine giving up.
+    final byDeadline = _endOf(a).compareTo(_endOf(b));
+    if (byDeadline != 0) return byDeadline;
+    // Then the oldest question: without a deadline, it is the likeliest to be given up on first.
     final byAge = _oldest(a).compareTo(_oldest(b));
     if (byAge != 0) return byAge;
     final byMachine = a.machine.name.compareTo(b.machine.name);
     if (byMachine != 0) return byMachine;
     return (a.task?.name ?? '').compareTo(b.task?.name ?? '');
+  }
+
+  static final _never = DateTime.utc(9999);
+
+  static DateTime _endOf(Tile tile) =>
+      tile.questions.isEmpty ? _never : tile.questions.first.expiresAt ?? _never;
+
+  static int _nearestFirst(Prompt a, Prompt b) {
+    final byEnd = (a.expiresAt ?? _never).compareTo(b.expiresAt ?? _never);
+    return byEnd != 0 ? byEnd : a.at.compareTo(b.at);
   }
 
   static String _oldest(Tile tile) => tile.questions.isNotEmpty

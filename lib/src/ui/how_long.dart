@@ -27,3 +27,7 @@ String? howLongSince(DateTime? began, {DateTime? now}) {
   if (elapsed.inDays == 1) return '1 day';
   return '${elapsed.inDays} days';
 }
+
+/// How long until something, in words, or null when nothing can say or it has passed.
+String? howLongUntil(DateTime? end, {DateTime? now}) =>
+    end == null ? null : howLongSince(now ?? DateTime.now(), now: end);

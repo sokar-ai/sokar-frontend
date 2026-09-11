@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
@@ -11,7 +13,7 @@ import 'tokens.dart';
 ///
 /// **A landing surface, not a second view.** The rail is for going somewhere to change something;
 /// this is for finding out whether anything needs you, and answering it where it is.
-class AttentionView extends StatelessWidget {
+class AttentionView extends StatefulWidget {
   /// Constructor taking what to show and what the tiles can do.
   const AttentionView({
     required this.attention,
@@ -34,11 +36,38 @@ class AttentionView extends StatelessWidget {
   final void Function(Tile tile) onReview;
 
   @override
+  State<AttentionView> createState() => _AttentionViewState();
+}
+
+class _AttentionViewState extends State<AttentionView> {
+  // A countdown that does not move overstates the time left, so it ticks while one is on screen.
+  Timer? _ticker;
+
+  void _keepTicking(bool wanted) {
+    if (wanted && _ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!wanted && _ticker != null) {
+      _ticker!.cancel();
+      _ticker = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: attention,
+        animation: widget.attention,
         builder: (context, _) {
-          final tiles = attention.tiles;
-          final needing = attention.needingSomebody;
+          final tiles = widget.attention.tiles;
+          final needing = widget.attention.needingSomebody;
+          _keepTicking(
+              tiles.any((tile) => tile.questions.any((question) => question.expiresAt != null)));
           return Column(
             children: <Widget>[
               PaneHeader(
@@ -67,9 +96,9 @@ class AttentionView extends StatelessWidget {
                             for (final tile in tiles)
                               _TileCard(
                                 tile: tile,
-                                onDecide: onDecide,
-                                onAttach: onAttach,
-                                onReview: onReview,
+                                onDecide: widget.onDecide,
+                                onAttach: widget.onAttach,
+                                onReview: widget.onReview,
                               ),
                           ],
                         ),
@@ -103,6 +132,7 @@ class _TileCard extends StatelessWidget {
     final urgent = tile.demand == Demand.question || tile.demand == Demand.unreachable;
     final first = tile.questions.isEmpty ? null : tile.questions.first;
     final answering = first != null && tile.fleet.clearance.answering(first);
+    final aboutTheDeadline = first == null ? null : _deadlineLine(first);
 
     return SizedBox(
       width: 320,
@@ -121,13 +151,8 @@ class _TileCard extends StatelessWidget {
                   key: const Key('tile-inferred'),
                   style: text.labelSmall?.copyWith(fontStyle: FontStyle.italic),
                 ),
-              if (first != null)
-                // Time remaining needs a deadline, and the machine does not send one.
-                Text(
-                  'The machine gives up on its own timeout, and does not say when.',
-                  key: const Key('tile-deadline'),
-                  style: text.bodySmall,
-                ),
+              if (aboutTheDeadline != null)
+                Text(aboutTheDeadline, key: const Key('tile-deadline'), style: text.bodySmall),
               const SizedBox(height: Space.small),
               if (task != null || first != null)
                 Text(
@@ -197,13 +222,27 @@ class _TileCard extends StatelessWidget {
     };
   }
 
+  /// Time left when the machine says when it runs out; how long it has waited when it does not.
   static String _question(List<Prompt> questions) {
     final first = questions.first;
     final more = questions.length - 1;
+    final ends = first.expiresAt;
+    final left = howLongUntil(ends);
     final since = howLongSince(DateTime.tryParse(first.at));
-    return 'Asks to reach ${first.destination}:${first.port}'
-        '${more > 0 ? ' and $more more' : ''}'
-        '${since == null ? '' : ' · blocked for $since'}';
+    final when = ends != null
+        ? (left == null ? ' · out of time' : ' · $left left')
+        : (since == null ? '' : ' · blocked for $since');
+    return 'Asks to reach ${first.shown}${more > 0 ? ' and $more more' : ''}$when';
+  }
+
+  /// What to say about when it runs out, or null when the headline already says how long is left.
+  static String? _deadlineLine(Prompt question) {
+    if (question.neverRunsOut) return 'This one does not run out.';
+    final ends = question.expiresAt;
+    if (ends == null) return 'The machine gives up on its own timeout, and does not say when.';
+    return howLongUntil(ends) == null
+        ? 'Its time is up; the machine may already have given up on it.'
+        : null;
   }
 
   static String _where(Tile tile) {

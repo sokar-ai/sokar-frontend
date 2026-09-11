@@ -1231,7 +1231,8 @@ class World {
   ///
   /// Wire-shaped, and driven by the scenario rather than by a clock: this is the one event with a
   /// deadline, and a flaky test of it is a flaky test of the thing that matters most.
-  static Prompt blocked(String destination, {String task = 'sokar-checkout-shell'}) {
+  static Prompt blocked(String destination,
+      {String task = 'sokar-checkout-shell', String? deadline}) {
     final parts = destination.split(':');
     return Prompt.from(<String, dynamic>{
       'task': task,
@@ -1241,6 +1242,7 @@ class World {
       'port': int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
       'at': '2026-09-07T15:00:00Z',
       'prefix': 'egress/deny',
+      'deadline': ?deadline,
     });
   }
 

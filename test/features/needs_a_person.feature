@@ -67,3 +67,22 @@ Feature: What needs a person on every machine, without going anywhere
     When I review the work {'sokar-checkout-migrate'} from its tile
     And I open the waiting push
     Then the review shows the file {'lib/money.dart'}
+
+  Scenario: a question with a deadline says how long is left
+    When work is blocked reaching {'api.example.test:443'} with {3} minutes left
+    Then the tile {'sokar-checkout-shell'} says {'3 minutes left'}
+
+  Scenario: a question that never runs out says so, rather than counting down
+    When work is blocked reaching {'api.example.test:443'} with no deadline
+    Then the tile {'sokar-checkout-shell'} says {'does not run out'}
+
+  Scenario: a question past its deadline says its time is up, not how long is left
+    When work is blocked reaching {'api.example.test:443'} past its deadline
+    Then the tile {'sokar-checkout-shell'} says {'out of time'}
+    And the tile {'sokar-checkout-shell'} does not say {'left'}
+
+  # Alphabetical order would put billing first; only the deadline puts checkout there.
+  Scenario: the question nearest its deadline comes first
+    When work is blocked reaching {'api.example.test:443'} with {2} minutes left
+    And other work is blocked reaching {'files.example.test:22'} with {10} minutes left
+    Then the first tile is {'sokar-checkout-shell'}
