@@ -201,6 +201,7 @@ class _ShellState extends State<Shell> {
 
   List<Command> _commands() => commandsFor(
         fleet: _fleet,
+        machine: widget.machines.current,
         shell: widget.shell,
         settings: widget.settings,
         operations: widget.operations,
@@ -823,10 +824,7 @@ class _ShellState extends State<Shell> {
       attention: _attention,
       onDecide: (tile, prompt, {required allow}) =>
           tile.fleet.clearance.decide(tile.fleet.backend, prompt, allow: allow),
-      onAttach: (tile) {
-        widget.machines.select(tile.machine);
-        _openSession(tile.task!);
-      },
+      actionsFor: _tileActions,
       onReview: (tile) {
         widget.machines.select(tile.machine);
         tile.fleet.selectProject(tile.task!.project);
@@ -1029,10 +1027,34 @@ class _ShellState extends State<Shell> {
   List<Command> _workActions(Task task) => workCommands(
         task: task,
         fleet: _fleet,
+        machine: widget.machines.current,
         askToStop: _askToStop,
         askWhichLog: _askWhichLog,
         openSession: _openSession,
       );
+
+  /// A tile's actions, judged and run on the tile's own machine, which each one selects first.
+  List<Command> _tileActions(Tile tile) => <Command>[
+        for (final command in workCommands(
+          task: tile.task,
+          fleet: tile.fleet,
+          machine: tile.machine,
+          askToStop: _askToStop,
+          askWhichLog: _askWhichLog,
+          openSession: _openSession,
+        ))
+          Command(
+            id: command.id,
+            label: command.label,
+            group: command.group,
+            shortcut: command.shortcut,
+            unavailable: command.unavailable,
+            run: () {
+              widget.machines.select(tile.machine);
+              command.run();
+            },
+          ),
+      ];
 
   /// Opens a shell inside running work, or goes back to the one that is already open.
   ///

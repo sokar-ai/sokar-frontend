@@ -86,3 +86,20 @@ Feature: What needs a person on every machine, without going anywhere
     When work is blocked reaching {'api.example.test:443'} with {2} minutes left
     And other work is blocked reaching {'files.example.test:22'} with {10} minutes left
     Then the first tile is {'sokar-checkout-shell'}
+
+  Scenario: the name on a tile can be selected and copied
+    Then the name on the tile {'sokar-checkout-shell'} can be copied
+
+  Scenario: a tile offers what its work can be told to do, from its menu
+    When I open the menu of the tile {'sokar-checkout-shell'}
+    Then the menu offers {'Work in it by hand'}
+
+  Scenario: clicking a tile with the right button opens the same menu
+    When I click the tile {'sokar-checkout-shell'} with the right button
+    Then the menu offers {'Work in it by hand'}
+
+  # A local command reaches only this machine's daemon, and the task is on the other one.
+  Scenario: work reached through a forwarded socket offers no session, and says why
+    When I watch another machine called {'elsewhere'}
+    And I open the menu of the tile {'sokar-shared-shell'}
+    Then the menu offers {'Work in it by hand'} as unavailable because {'forwarded'}

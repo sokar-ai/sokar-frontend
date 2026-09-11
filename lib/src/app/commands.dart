@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
+import 'machines.dart';
 import 'narrowing.dart';
 import 'notifications.dart';
 import 'operations.dart';
@@ -69,6 +70,7 @@ class Command {
 List<Command> workCommands({
   required Task? task,
   required FleetModel fleet,
+  required Machine machine,
   required void Function(Task task) askToStop,
   required void Function(Task task) askWhichLog,
   required void Function(Task task) openSession,
@@ -102,7 +104,7 @@ List<Command> workCommands({
       // with the reason rather than offered and refused. Sokar refuses the same two cases with
       // exit 69, and finding that out by pressing something is the worse way to learn it.
       unavailable:
-          task == null ? nothingSelected : Sessions.whyNot(task)?.words,
+          task == null ? nothingSelected : Sessions.whyNot(task, machine)?.words,
     ),
     Command(
       id: 'work.log',
@@ -132,6 +134,7 @@ List<Command> workCommands({
 
 List<Command> commandsFor({
   required FleetModel fleet,
+  required Machine machine,
   required ShellModel shell,
   required Settings settings,
   required Operations operations,
@@ -211,6 +214,7 @@ List<Command> commandsFor({
     ...workCommands(
       task: selectedTask,
       fleet: fleet,
+      machine: machine,
       askToStop: askToStop,
       askWhichLog: askWhichLog,
       openSession: openSession,

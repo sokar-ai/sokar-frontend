@@ -39,6 +39,11 @@ import './step/work_is_blocked_reaching_with_no_deadline.dart';
 import './step/work_is_blocked_reaching_past_its_deadline.dart';
 import './step/the_tile_does_not_say.dart';
 import './step/other_work_is_blocked_reaching_with_minutes_left.dart';
+import './step/the_name_on_the_tile_can_be_copied.dart';
+import './step/i_open_the_menu_of_the_tile.dart';
+import './step/the_menu_offers.dart';
+import './step/i_click_the_tile_with_the_right_button.dart';
+import './step/the_menu_offers_as_unavailable_because.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -170,6 +175,33 @@ void main() {
       await otherWorkIsBlockedReachingWithMinutesLeft(
           tester, 'files.example.test:22', 10);
       await theFirstTileIs(tester, 'sokar-checkout-shell');
+    });
+    testWidgets('''the name on a tile can be selected and copied''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theNameOnTheTileCanBeCopied(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''a tile offers what its work can be told to do, from its menu''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
+      await theMenuOffers(tester, 'Work in it by hand');
+    });
+    testWidgets('''clicking a tile with the right button opens the same menu''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iClickTheTileWithTheRightButton(tester, 'sokar-checkout-shell');
+      await theMenuOffers(tester, 'Work in it by hand');
+    });
+    testWidgets(
+        '''work reached through a forwarded socket offers no session, and says why''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iOpenTheMenuOfTheTile(tester, 'sokar-shared-shell');
+      await theMenuOffersAsUnavailableBecause(
+          tester, 'Work in it by hand', 'forwarded');
     });
   });
 }

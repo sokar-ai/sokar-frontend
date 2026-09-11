@@ -24,13 +24,19 @@ typedef OpenTerminal = SessionChannel Function(
 /// that fails after somebody presses it.
 enum WhyNot {
   /// It is not up. The way back is starting it again, which keeps the workspace it had.
-  notRunning;
+  notRunning,
+
+  /// Reached through a socket something else forwarded, so nothing here can run a shell there.
+  noAddress;
 
   /// What to say, in a sentence somebody can act on.
   String get words => switch (this) {
         WhyNot.notRunning =>
           'This is not running. Starting it again brings back the workspace, the branch and the '
               'commits it had — and a session with it.',
+        WhyNot.noAddress =>
+          'This machine is reached through a socket something else forwarded, so a session has '
+              'nowhere to run. Add it with "Raise the forward for me" and its address.',
       };
 }
 
@@ -228,7 +234,7 @@ class Sessions extends ChangeNotifier {
 
   /// Why [task] cannot be worked in by hand, or null when it can.
   ///
-  /// **Only one reason, and the mode is not it.** This end refused `AGENT` and `UNATTENDED` until
+  /// **The mode is not a reason.** This end refused `AGENT` and `UNATTENDED` until
   /// 2026-09-08, on the strength of *"the agent is the main process, so there is no session to
   /// attach to"*. That was wrong, and the Sokar side said so: **`AGENT` and `SHELL` are the same
   /// task** — same container, same egress, same gate, same credential — and `--attach agent` only
@@ -239,7 +245,14 @@ class Sessions extends ChangeNotifier {
   /// that was not true. An `UNATTENDED` run is the one where nobody is expected to be watching —
   /// which is a thing to know, not a thing to forbid, and the log is a suggestion rather than a
   /// substitute.
-  static WhyNot? whyNot(Task task) => task.running ? null : WhyNot.notRunning;
+  static WhyNot? whyNot(Task task, Machine machine) {
+    if (!task.running) return WhyNot.notRunning;
+    // A local command reaches only this machine's daemon; a forwarded socket's tasks are elsewhere.
+    if (machine.host.isEmpty && machine.socketPath != Backend.local().socketPath) {
+      return WhyNot.noAddress;
+    }
+    return null;
+  }
 
   /// The session against [task] on [machine], opening one if there is none.
   ///

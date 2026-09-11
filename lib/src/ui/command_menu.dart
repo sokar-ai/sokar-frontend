@@ -22,20 +22,34 @@ class CommandMenu extends StatelessWidget {
         tooltip: tooltip,
         icon: const Icon(Icons.more_vert, size: 18),
         onSelected: (command) => command.run(),
-        itemBuilder: (context) => <PopupMenuEntry<Command>>[
-          for (final command in commands)
-            PopupMenuItem<Command>(
-              value: command,
-              enabled: command.available,
-              child: ListTile(
-                dense: true,
-                enabled: command.available,
-                contentPadding: EdgeInsets.zero,
-                title: Text(command.label),
-                subtitle:
-                    command.available ? null : Text('Unavailable: ${command.unavailable}'),
-              ),
-            ),
-        ],
+        itemBuilder: (context) => commandMenuEntries(commands),
       );
+}
+
+/// The entries of a command menu, so a button and a right-click offer the same list.
+List<PopupMenuEntry<Command>> commandMenuEntries(List<Command> commands) =>
+    <PopupMenuEntry<Command>>[
+      for (final command in commands)
+        PopupMenuItem<Command>(
+          value: command,
+          enabled: command.available,
+          child: ListTile(
+            dense: true,
+            enabled: command.available,
+            contentPadding: EdgeInsets.zero,
+            title: Text(command.label),
+            subtitle: command.available ? null : Text('Unavailable: ${command.unavailable}'),
+          ),
+        ),
+    ];
+
+/// Opens a command menu where the pointer is, and runs what is chosen.
+Future<void> showCommandMenu(BuildContext context, Offset at, List<Command> commands) async {
+  final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+  final chosen = await showMenu<Command>(
+    context: context,
+    position: RelativeRect.fromRect(at & const Size(1, 1), Offset.zero & overlay.size),
+    items: commandMenuEntries(commands),
+  );
+  chosen?.run();
 }

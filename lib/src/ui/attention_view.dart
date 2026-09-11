@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import '../app/attention.dart';
+import '../app/commands.dart';
 import '../app/fleet_model.dart';
+import 'command_menu.dart';
 import 'how_long.dart';
 import 'panes.dart';
 import 'tokens.dart';
@@ -18,7 +20,7 @@ class AttentionView extends StatefulWidget {
   const AttentionView({
     required this.attention,
     required this.onDecide,
-    required this.onAttach,
+    required this.actionsFor,
     required this.onReview,
     super.key,
   });
@@ -29,8 +31,8 @@ class AttentionView extends StatefulWidget {
   /// Answers a question, on the machine that asked it.
   final void Function(Tile tile, Prompt prompt, {required bool allow}) onDecide;
 
-  /// Opens a session in the work.
-  final void Function(Tile tile) onAttach;
+  /// What the work on a tile can be told to do, on the tile's own machine.
+  final List<Command> Function(Tile tile) actionsFor;
 
   /// Opens the gate for the work's project.
   final void Function(Tile tile) onReview;
@@ -96,8 +98,10 @@ class _AttentionViewState extends State<AttentionView> {
                             for (final tile in tiles)
                               _TileCard(
                                 tile: tile,
+                                actions: tile.task == null
+                                    ? const <Command>[]
+                                    : widget.actionsFor(tile),
                                 onDecide: widget.onDecide,
-                                onAttach: widget.onAttach,
                                 onReview: widget.onReview,
                               ),
                           ],
@@ -114,14 +118,14 @@ class _AttentionViewState extends State<AttentionView> {
 class _TileCard extends StatelessWidget {
   const _TileCard({
     required this.tile,
+    required this.actions,
     required this.onDecide,
-    required this.onAttach,
     required this.onReview,
   });
 
   final Tile tile;
+  final List<Command> actions;
   final void Function(Tile tile, Prompt prompt, {required bool allow}) onDecide;
-  final void Function(Tile tile) onAttach;
   final void Function(Tile tile) onReview;
 
   @override
@@ -133,10 +137,16 @@ class _TileCard extends StatelessWidget {
     final first = tile.questions.isEmpty ? null : tile.questions.first;
     final answering = first != null && tile.fleet.clearance.answering(first);
     final aboutTheDeadline = first == null ? null : _deadlineLine(first);
+    // The tile's button and its menu run the same command, so they cannot disagree about it.
+    final session = actions.where((command) => command.id == 'work.session').firstOrNull;
 
     return SizedBox(
       width: 320,
-      child: Card(
+      child: GestureDetector(
+        onSecondaryTapDown: actions.isEmpty
+            ? null
+            : (details) => showCommandMenu(context, details.globalPosition, actions),
+        child: Card(
         key: ValueKey<String>('tile ${tile.machine.name} ${task?.name ?? first?.task ?? ''}'),
         color: urgent ? scheme.errorContainer : null,
         child: Padding(
@@ -144,7 +154,21 @@ class _TileCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(_headline(tile), key: const Key('tile-headline'), style: text.titleSmall),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: Text(_headline(tile),
+                        key: const Key('tile-headline'), style: text.titleSmall),
+                  ),
+                  if (actions.isNotEmpty)
+                    CommandMenu(
+                      key: const Key('tile-menu'),
+                      commands: actions,
+                      tooltip: 'What ${task?.name ?? 'this'} can be told to do',
+                    ),
+                ],
+              ),
               if (tile.inferred)
                 Text(
                   'a guess, not a question',
@@ -154,14 +178,17 @@ class _TileCard extends StatelessWidget {
               if (aboutTheDeadline != null)
                 Text(aboutTheDeadline, key: const Key('tile-deadline'), style: text.bodySmall),
               const SizedBox(height: Space.small),
+              // Selectable, because the name is what somebody types into `sokar` on the machine.
               if (task != null || first != null)
-                Text(
+                SelectableText(
                   task == null ? first!.task : (task.label.isEmpty ? task.name : task.label),
                   key: const Key('tile-what'),
                 ),
+              if (task != null && task.label.isNotEmpty)
+                SelectableText(task.name, key: const Key('tile-name'), style: text.bodySmall),
               Text(_where(tile), key: const Key('tile-where'), style: text.bodySmall),
               if (first != null ||
-                  (task?.running ?? false) ||
+                  (session?.available ?? false) ||
                   (task?.hasWorkWaiting ?? false)) ...<Widget>[
                 const SizedBox(height: Space.small),
                 Wrap(
@@ -179,11 +206,11 @@ class _TileCard extends StatelessWidget {
                         child: const Text('Keep it blocked'),
                       ),
                     ],
-                    if (task?.running ?? false)
+                    if (session != null && session.available)
                       TextButton(
                         key: const Key('tile-attach'),
-                        onPressed: () => onAttach(tile),
-                        child: const Text('Work in it by hand'),
+                        onPressed: session.run,
+                        child: Text(session.label),
                       ),
                     if (task?.hasWorkWaiting ?? false)
                       TextButton(
@@ -197,6 +224,7 @@ class _TileCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
