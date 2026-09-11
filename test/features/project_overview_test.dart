@@ -22,6 +22,12 @@ import './step/the_project_is_marked_as_stale.dart';
 import './step/the_project_is_not_marked_as_stale.dart';
 import './step/the_project_records_nothing_about_its_image.dart';
 import './step/the_app_is_restarted.dart';
+import './step/the_project_is_removed_at_the_machine.dart';
+import './step/i_refresh_every_machine.dart';
+import './step/the_project_is_not_listed.dart';
+import './step/i_choose_to_refresh_automatically.dart';
+import './step/seconds_pass.dart';
+import './step/refreshing_automatically_is_off.dart';
 
 void main() {
   group('''What each project is, and how far behind it has fallen''', () {
@@ -111,6 +117,34 @@ void main() {
       await theAppIsRestarted(tester);
       await iGoToTheWork(tester);
       await theProjectIsNotMarkedAsStale(tester, 'checkout');
+    });
+    testWidgets(
+        '''a project removed at the machine goes when every machine is asked again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectIsRemovedAtTheMachine(tester, 'unrecorded');
+      await iRefreshEveryMachine(tester);
+      await theProjectIsNotListed(tester, 'unrecorded');
+    });
+    testWidgets(
+        '''every machine is asked again on its own, as often as chosen''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectIsRemovedAtTheMachine(tester, 'unrecorded');
+      await iChooseToRefreshAutomatically(tester, 'every 30 seconds');
+      await secondsPass(tester, 31);
+      await theProjectIsNotListed(tester, 'unrecorded');
+    });
+    testWidgets(
+        '''asking again on its own can be turned off, and that survives a restart''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectIsRemovedAtTheMachine(tester, 'unrecorded');
+      await iChooseToRefreshAutomatically(tester, 'off');
+      await secondsPass(tester, 120);
+      await theProjectIsListed(tester, 'unrecorded');
+      await theAppIsRestarted(tester);
+      await refreshingAutomaticallyIsOff(tester);
     });
   });
 }

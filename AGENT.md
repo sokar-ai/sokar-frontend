@@ -308,6 +308,14 @@ this session ran there. Opening a machine keeps the project chosen on it; Runnin
 back. A new project is described in the machine's place and is the one chosen once it is made.
 Whatever opens does so over the middle, with the title and the status line staying put.
 
+**The project list is asked again, because nothing pushes it.** `Watch` carries the tasks; a
+project removed at the machine would stay on screen. Every answering machine is asked again quietly
+as often as Options says — every minute unless changed, never when off — and *Refresh* above the
+stop asks all of them at once, with only the open one saying so.
+
+**A silent machine can be marked as seen.** Its notice leaves what needs a person and stops counting,
+and stays gone across a restart — until the machine answers again, so its next silence is said.
+
 **Closing the window asks first.** There is no Quit: the window's own close asks the app, the app
 names what keeps running, and only then takes down the forwards it raised. Without that, `ssh`
 children outlive the window.

@@ -63,6 +63,7 @@ class Command {
     this.shortcut,
     this.unavailable,
     this.home = Home.none,
+    this.checked,
   });
 
   /// Stable identifier, used to route a keystroke to this command.
@@ -89,8 +90,25 @@ class Command {
   /// Where it lives on screen.
   final Home home;
 
+  /// For one of several choices, whether it is the one made; null for an action.
+  final bool? checked;
+
   /// Whether it can be run now.
   bool get available => unavailable == null;
+
+  /// The same command, unavailable for [reason] unless it already is for another.
+  Command unless(String? reason) => reason == null || unavailable != null
+      ? this
+      : Command(
+          id: id,
+          label: label,
+          group: group,
+          shortcut: shortcut,
+          unavailable: reason,
+          home: home,
+          checked: checked,
+          run: run,
+        );
 
   /// The same command, doing [first] before it runs.
   Command after(VoidCallback first) => Command(
@@ -100,6 +118,7 @@ class Command {
     shortcut: shortcut,
     unavailable: unavailable,
     home: home,
+    checked: checked,
     run: () {
       first();
       run();
@@ -133,6 +152,7 @@ List<Command> workCommands({
   required void Function(Task task) narrowTheWork,
 }) {
   const nothingSelected = 'no work is selected';
+  final offline = notAnswering(fleet);
   return <Command>[
     Command(
       id: 'work.resume',
@@ -257,8 +277,12 @@ List<Command> workCommands({
       run: () {},
       unavailable: 'the backend has no method for renaming work',
     ),
-  ];
+  ].map((command) => command.unless(offline)).toList();
 }
+
+/// Why nothing that needs [fleet]'s machine can be done now, or null while it answers.
+String? notAnswering(FleetModel fleet) =>
+    fleet.reachability == Reachability.connected ? null : 'the machine is not answering';
 
 /// Why `Start` would refuse [task], in words, or null when it would start it.
 String? whyNotStart(Task task) {
@@ -358,7 +382,7 @@ List<Command> projectCommands({
       home: Home.projectMenu,
       run: checkWorkCanStart,
       unavailable: fleet.reachability != Reachability.connected
-          ? 'not connected to a backend'
+          ? 'the machine is not answering'
           : noFile,
     ),
     Command(
@@ -383,7 +407,7 @@ List<Command> projectCommands({
       // **Takes the name, not the file**, so a project whose file is gone can still be cleared.
       unavailable: project == null ? nothing : null,
     ),
-  ];
+  ].map((command) => command.unless(notAnswering(fleet))).toList();
 }
 
 /// What one machine can be told to do, from the menu in its title.
@@ -398,7 +422,7 @@ List<Command> machineCommands({
 }) {
   final notConnected = fleet.reachability == Reachability.connected
       ? null
-      : 'not connected to a backend';
+      : 'the machine is not answering';
   return <Command>[
     Command(
       id: 'machine.doctor',
@@ -406,6 +430,7 @@ List<Command> machineCommands({
       group: 'Machine',
       home: Home.machineMenu,
       run: checkTheMachine,
+      unavailable: notConnected,
     ),
     Command(
       id: 'machine.providers',
@@ -413,6 +438,7 @@ List<Command> machineCommands({
       group: 'Machine',
       home: Home.machineMenu,
       run: showTheProviders,
+      unavailable: notConnected,
     ),
     Command(
       id: 'vault.show',
@@ -497,6 +523,8 @@ List<Command> commandsFor({
   required VoidCallback watchAnotherMachine,
   required VoidCallback forget,
   required VoidCallback showAbout,
+  required VoidCallback refreshAll,
+  required bool anyAnswering,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
@@ -516,6 +544,7 @@ List<Command> commandsFor({
       label: 'Appearance: light',
       group: 'Options',
       home: Home.appBar,
+      checked: settings.appearance == ThemeMode.light,
       run: () => settings.setAppearance(ThemeMode.light),
     ),
     Command(
@@ -523,6 +552,7 @@ List<Command> commandsFor({
       label: 'Appearance: dark',
       group: 'Options',
       home: Home.appBar,
+      checked: settings.appearance == ThemeMode.dark,
       run: () => settings.setAppearance(ThemeMode.dark),
     ),
     Command(
@@ -530,7 +560,28 @@ List<Command> commandsFor({
       label: 'Appearance: follow the desktop',
       group: 'Options',
       home: Home.appBar,
+      checked: settings.appearance == ThemeMode.system,
       run: () => settings.setAppearance(ThemeMode.system),
+    ),
+    for (final (seconds, words) in const <(int, String)>[
+      (0, 'off'),
+      (30, 'every 30 seconds'),
+      (60, 'every minute'),
+      (300, 'every 5 minutes'),
+    ])
+      Command(
+        id: 'refresh.every/$seconds',
+        label: 'Refresh automatically: $words',
+        group: 'Options',
+        home: Home.appBar,
+        checked: settings.refreshSeconds == seconds,
+        run: () => settings.setRefreshSeconds(seconds),
+      ),
+    Command(
+      id: 'refresh.all',
+      label: 'Refresh every machine now',
+      group: 'Machines',
+      run: refreshAll,
     ),
     Command(
       id: 'about.show',
@@ -544,6 +595,7 @@ List<Command> commandsFor({
       label: 'Stop everything on every machine',
       group: 'Machines',
       run: stopEverywhere,
+      unavailable: anyAnswering ? null : 'no machine is answering',
     ),
     Command(
       id: 'machine.panic',
@@ -559,7 +611,7 @@ List<Command> commandsFor({
       run: stopEverything,
       unavailable: fleet.reachability == Reachability.connected
           ? null
-          : 'not connected to a backend',
+          : 'the machine is not answering',
     ),
     ...machineCommands(
       fleet: fleet,
@@ -576,6 +628,7 @@ List<Command> commandsFor({
       group: 'Project',
       home: Home.newProject,
       run: describeAProject,
+      unavailable: notAnswering(fleet),
     ),
     ...projectCommands(
       project: selectedProject,
@@ -596,7 +649,7 @@ List<Command> commandsFor({
       home: Home.startTile,
       shortcut: const SingleActivator(LogicalKeyboardKey.keyN, control: true),
       run: startWork,
-      unavailable: StartWork.whyNot(selectedProject?.project),
+      unavailable: StartWork.whyNot(selectedProject?.project) ?? notAnswering(fleet),
     ),
     // One command per named job, so a template turns up in the finder like any other action.
     for (final job

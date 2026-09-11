@@ -28,6 +28,7 @@ class MachineTree extends StatelessWidget {
     required this.onNewProject,
     required this.onProject,
     required this.onStopEverywhere,
+    required this.onRefresh,
     super.key,
   });
 
@@ -66,6 +67,9 @@ class MachineTree extends StatelessWidget {
 
   /// Asks before stopping everything on every machine.
   final VoidCallback onStopEverywhere;
+
+  /// Asks every machine again, now.
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +113,27 @@ class MachineTree extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(Space.small),
-            child: _StopEverywhere(onPressed: onStopEverywhere),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Tooltip(
+                  message: 'Ask every machine again, now',
+                  child: TextButton.icon(
+                    key: const Key('refresh-all'),
+                    onPressed: onRefresh,
+                    icon: const Icon(Icons.refresh, size: Sizes.rowIcon),
+                    label: const Text('Refresh'),
+                  ),
+                ),
+                _StopEverywhere(
+                  onPressed: machines.all.any(
+                    (each) => machines.of(each).reachability == Reachability.connected,
+                  )
+                      ? onStopEverywhere
+                      : null,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -127,6 +151,7 @@ class MachineTree extends StatelessWidget {
     final highlight = here ? shell.highlight : null;
     final narrowed = fleet.selectedProject?.name;
     final running = fleet.tasks.where((task) => task.running).length;
+    final answering = fleet.reachability == Reachability.connected;
     return <Widget>[
       ListTile(
         key: ValueKey<String>('tree-machine ${machine.name}'),
@@ -170,7 +195,9 @@ class MachineTree extends StatelessWidget {
         ),
         Highlight(
           active: highlight == 'project.create',
-          child: _Entry(
+          child: Tooltip(
+            message: answering ? '' : 'Not answering, so nothing can be created there',
+            child: _Entry(
             key: here
                 ? const Key('new-project')
                 : ValueKey<String>('new-project ${machine.name}'),
@@ -179,6 +206,8 @@ class MachineTree extends StatelessWidget {
             selected: here && creating,
             autofocus: highlight == 'project.create',
             onTap: () => onNewProject(machine),
+            enabled: answering,
+          ),
           ),
         ),
         for (final project in fleet.projects)
@@ -294,6 +323,7 @@ class _Entry extends StatelessWidget {
     required this.onTap,
     this.trailing,
     this.autofocus = false,
+    this.enabled = true,
     super.key,
   });
 
@@ -303,12 +333,14 @@ class _Entry extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? trailing;
   final bool autofocus;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => ListTile(
     dense: true,
     autofocus: autofocus,
     contentPadding: const EdgeInsets.only(left: Space.wide, right: Space.small),
+    enabled: enabled,
     selected: selected,
     leading: Icon(icon, size: Sizes.rowIcon),
     title: Text(title, overflow: TextOverflow.ellipsis),
@@ -321,7 +353,7 @@ class _Entry extends StatelessWidget {
 class _StopEverywhere extends StatelessWidget {
   const _StopEverywhere({required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

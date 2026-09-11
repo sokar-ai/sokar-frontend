@@ -233,9 +233,15 @@ class FleetModel extends ChangeNotifier {
   }
 
   /// Asks again now, for a backend that cannot tell us by itself.
-  Future<void> refresh() async {
+  ///
+  /// [quietly] is for asking again in the background: nothing said, nothing drawn as busy.
+  Future<void> refresh({bool quietly = false}) async {
     if (_info == null) {
       await connect();
+      return;
+    }
+    if (quietly) {
+      await _readOnce();
       return;
     }
     _busy = true;

@@ -83,10 +83,26 @@ class Settings extends ChangeNotifier {
   /// Light, dark, or whatever the desktop says.
   ThemeMode get appearance => _appearance;
 
+  /// How often every machine is asked again on its own, in seconds. Zero asks only when told.
+  ///
+  /// A push covers the tasks; nothing pushes the project list, so a project removed at the
+  /// machine would otherwise stay on screen until something here changed it.
+  int get refreshSeconds => _refreshSeconds;
+  int _refreshSeconds = 60;
+
+  /// Sets how often every machine is asked again, and keeps it for the next run.
+  Future<void> setRefreshSeconds(int seconds) async {
+    _refreshSeconds = seconds;
+    notifyListeners();
+    await _write();
+  }
+
   /// Reads what an earlier run stored. Safe to call before the first frame.
   Future<void> load() async {
     final stored = await _store.read();
     _appearance = _appearanceNamed(stored['appearance']);
+    final every = stored['refreshSeconds'];
+    if (every is int && every >= 0) _refreshSeconds = every;
     final place = stored['place'];
     if (place is Map) {
       _place = <String, String>{
@@ -94,6 +110,8 @@ class Settings extends ChangeNotifier {
           if (entry.value is String) '${entry.key}': entry.value as String,
       };
     }
+    final seen = stored['seenSilent'];
+    if (seen is List) _seenSilent = seen.whereType<String>().toList();
     final muted = stored['muted'];
     if (muted is List) _muted = muted.whereType<String>().toList();
     final templates = stored['templates'];
@@ -167,6 +185,17 @@ class Settings extends ChangeNotifier {
 
   List<String> _muted = const <String>[];
 
+  /// Machines whose silence somebody has seen, until they answer again.
+  Set<String> get seenSilent => Set<String>.unmodifiable(_seenSilent);
+  List<String> _seenSilent = const <String>[];
+
+  /// Keeps which silent machines somebody has seen.
+  Future<void> setSeenSilent(Set<String> machines) async {
+    _seenSilent = machines.toList()..sort();
+    notifyListeners();
+    await _write();
+  }
+
   /// Remembers which machines to open next time.
   Future<void> rememberMachines(List<Machine> machines) async {
     _machines = <Map<String, Object?>>[
@@ -204,9 +233,11 @@ class Settings extends ChangeNotifier {
   List<Map<String, Object?>> _templates = const <Map<String, Object?>>[];
 
   Future<void> _write() => _store.write(<String, Object?>{
+        'refreshSeconds': _refreshSeconds,
         'appearance': _appearance.name,
         'machines': _machines,
         'muted': _muted,
+        'seenSilent': _seenSilent,
         'place': _place,
         'templates': _templates,
       });

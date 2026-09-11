@@ -54,6 +54,8 @@ import './step/was_started_again.dart';
 import './step/starting_it_again_will_be_refused_because_the_vault_is_locked.dart';
 import './step/the_machine_says_starting_needs_the_vault_unlocked.dart';
 import './step/the_machine_says_has_a_name_from_before_one_container_per_task.dart';
+import './step/i_mark_the_notice_about_as_seen.dart';
+import './step/nothing_needs_me.dart';
 
 void main() {
   group('''What needs a person on every machine, without going anywhere''', () {
@@ -271,6 +273,20 @@ void main() {
       await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
       await theMenuOffersAsUnavailableBecause(
           tester, 'Start it again', 'can only be removed');
+    });
+    testWidgets(
+        '''a silent machine can be marked as seen, until it has answered again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theTunnelDrops(tester);
+      await iMarkTheNoticeAboutAsSeen(tester, 'this machine');
+      await noMachineNoticeSays(tester, 'cannot be reached');
+      await nothingNeedsMe(tester);
+      await enoughTimePassesForAnotherTry(tester);
+      await theTunnelDrops(tester);
+      await aMachineNoticeSays(tester, 'cannot be reached');
+      await enoughTimePassesForAnotherTry(tester);
+      await noMachineNoticeSays(tester, 'cannot be reached');
     });
   });
 }

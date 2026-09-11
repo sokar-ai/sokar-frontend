@@ -109,9 +109,10 @@ class _AttentionViewState extends State<AttentionView> {
                       children: <Widget>[
                         for (final machine in silent)
                           _MachineNotice(
-                            machine: machine,
-                            fleet: widget.attention.fleetOf(machine),
-                          ),
+                                machine: machine,
+                                fleet: widget.attention.fleetOf(machine),
+                                onSeen: () => widget.attention.markSeen(machine),
+                              ),
                         if (silent.isNotEmpty)
                           const SizedBox(height: Space.small),
                         Wrap(
@@ -144,10 +145,13 @@ class _AttentionViewState extends State<AttentionView> {
 
 /// A machine that is not answering, said about the machine: it is not work, so it is not a tile.
 class _MachineNotice extends StatelessWidget {
-  const _MachineNotice({required this.machine, required this.fleet});
+  const _MachineNotice({required this.machine, required this.fleet, required this.onSeen});
 
   final Machine machine;
   final FleetModel fleet;
+
+  /// Marks it seen, so it goes from what needs a person until the machine answers again.
+  final VoidCallback onSeen;
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +197,11 @@ class _MachineNotice extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+          TextButton(
+            key: ValueKey<String>('notice-seen ${machine.name}'),
+            onPressed: onSeen,
+            child: const Text('Seen'),
           ),
         ],
       ),
@@ -251,6 +260,8 @@ class TaskTile extends StatelessWidget {
     final urgent = tile.demand == Demand.question;
     final first = tile.questions.isEmpty ? null : tile.questions.first;
     final answering = first != null && tile.fleet.clearance.answering(first);
+    // Nothing on a machine that is not answering can be told anything.
+    final answers = tile.fleet.reachability == Reachability.connected;
     final aboutTheDeadline = first == null ? null : _deadlineLine(first);
     // The tile's button and its menu run the same command, so they cannot disagree about it.
     final session = actions
@@ -432,16 +443,12 @@ class TaskTile extends StatelessWidget {
                         if (first != null) ...<Widget>[
                           TextButton(
                             key: const Key('tile-let-through'),
-                            onPressed: answering
-                                ? null
-                                : () => onDecide(tile, first, allow: true),
+                            onPressed: answering || !answers ? null : () => onDecide(tile, first, allow: true),
                             child: const Text('Let it through'),
                           ),
                           TextButton(
                             key: const Key('tile-keep-blocked'),
-                            onPressed: answering
-                                ? null
-                                : () => onDecide(tile, first, allow: false),
+                            onPressed: answering || !answers ? null : () => onDecide(tile, first, allow: false),
                             child: const Text('Keep it blocked'),
                           ),
                         ],
@@ -454,7 +461,7 @@ class TaskTile extends StatelessWidget {
                         if (task?.hasWorkWaiting ?? false)
                           TextButton(
                             key: const Key('tile-review'),
-                            onPressed: () => onReview(tile),
+                            onPressed: answers ? () => onReview(tile) : null,
                             child: const Text('Review at the gate'),
                           ),
                       ],

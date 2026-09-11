@@ -39,6 +39,12 @@ import './step/the_work_is_no_longer_listed.dart';
 import './step/i_show_what_is_running.dart';
 import './step/the_work_is_dead.dart';
 import './step/i_hide_the_projects_of.dart';
+import './step/the_tunnel_drops.dart';
+import './step/the_command_is_unavailable_because.dart';
+import './step/enough_time_passes_for_another_try.dart';
+import './step/creating_a_project_on_this_machine_is_not_offered.dart';
+import './step/stopping_everything_everywhere_is_not_offered.dart';
+import './step/stopping_everything_everywhere_is_offered.dart';
 
 void main() {
   group('''Moving around the frame by keyboard and by pointer''', () {
@@ -172,6 +178,32 @@ void main() {
       await theProjectIsNotListed(tester, 'checkout');
       await iGoToTheWork(tester);
       await theProjectIsListed(tester, 'checkout');
+    });
+    testWidgets(
+        '''a machine that does not answer offers nothing that needs it, and says why''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await theTunnelDrops(tester);
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsUnavailableBecause(
+          tester, 'Describe a new project', 'not answering');
+      await theCommandIsUnavailableBecause(
+          tester, 'Build the environment for this project', 'not answering');
+      await theCommandIsUnavailableBecause(tester,
+          'Check whether this machine can run anything', 'not answering');
+      await iCloseWhatIsOpen(tester);
+      await enoughTimePassesForAnotherTry(tester);
+    });
+    testWidgets(
+        '''a new project and the stop for every machine wait for a machine that answers''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theTunnelDrops(tester);
+      await creatingAProjectOnThisMachineIsNotOffered(tester);
+      await stoppingEverythingEverywhereIsNotOffered(tester);
+      await enoughTimePassesForAnotherTry(tester);
+      await stoppingEverythingEverywhereIsOffered(tester);
     });
   });
 }

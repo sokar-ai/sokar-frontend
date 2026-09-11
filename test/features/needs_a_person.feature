@@ -143,3 +143,15 @@ Feature: What needs a person on every machine, without going anywhere
     And the machine says {'sokar-checkout-shell'} has a name from before one container per task
     When I open the menu of the tile {'sokar-checkout-shell'}
     Then the menu offers {'Start it again'} as unavailable because {'can only be removed'}
+
+  # Seen means seen for now: a machine that answers and later falls silent again says so again.
+  Scenario: a silent machine can be marked as seen, until it has answered again
+    When the tunnel drops
+    And I mark the notice about {'this machine'} as seen
+    Then no machine notice says {'cannot be reached'}
+    And nothing needs me
+    When enough time passes for another try
+    And the tunnel drops
+    Then a machine notice says {'cannot be reached'}
+    When enough time passes for another try
+    Then no machine notice says {'cannot be reached'}

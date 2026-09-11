@@ -56,7 +56,10 @@ distribution, so an entry below has reached an operator only if they follow that
   the chosen project's header with its menu, the work as tiles beside starting work and saved
   jobs, and a status line of what it ran. A new project is described there and chosen once made.
   The title bar says where you are and holds the finder, another machine, Options and About; the
-  tree waits behind the menu button on a narrow window. The look is melkheftken's. The finder goes to where an action lives and marks it there.
+  tree waits behind the menu button on a narrow window. The look is melkheftken's.
+- **Every machine is asked again**, on its own as often as Options says and by hand with Refresh,
+  so a project removed at the machine does not stay on screen.
+- **A machine that cannot be reached can be marked as seen**, until it answers again. The finder goes to where an action lives and marks it there.
 - **Stopping keeps the work and its workspace**; removing is its own action, and what the machine
   would do on "Start it again" is shown before anybody presses it, refusals included.
 

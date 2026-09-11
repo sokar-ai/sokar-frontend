@@ -57,3 +57,23 @@ Feature: What each project is, and how far behind it has fallen
     When the app is restarted
     And I go to the work
     Then the project {'checkout'} is not marked as stale
+
+  # Nothing pushes the project list, so it is asked again: by hand, or on its own as often as set.
+  Scenario: a project removed at the machine goes when every machine is asked again
+    Given the project {'unrecorded'} is removed at the machine
+    When I refresh every machine
+    Then the project {'unrecorded'} is not listed
+
+  Scenario: every machine is asked again on its own, as often as chosen
+    Given the project {'unrecorded'} is removed at the machine
+    When I choose to refresh automatically {'every 30 seconds'}
+    And {31} seconds pass
+    Then the project {'unrecorded'} is not listed
+
+  Scenario: asking again on its own can be turned off, and that survives a restart
+    Given the project {'unrecorded'} is removed at the machine
+    When I choose to refresh automatically {'off'}
+    And {120} seconds pass
+    Then the project {'unrecorded'} is listed
+    When the app is restarted
+    Then refreshing automatically is off

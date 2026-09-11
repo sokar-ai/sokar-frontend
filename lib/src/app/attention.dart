@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
 import 'machines.dart';
+import 'settings.dart';
 
 /// Why a tile sits where it does. Earlier is more urgent.
 enum Demand {
@@ -67,19 +70,23 @@ class Tile {
 /// here would be two answers to one question.
 class Attention extends ChangeNotifier {
   /// Constructor taking the machines to read across.
-  Attention(this._machines) {
+  Attention(this._machines, [this._settings]) {
     _machines.addListener(_follow);
+    _settings?.addListener(notifyListeners);
     _follow();
   }
 
   final Machines _machines;
+  final Settings? _settings;
   final Set<Listenable> _following = <Listenable>{};
 
   /// Every machine that is not answering. Said about the machine, above the tiles, never as one:
   /// a machine is not work, and its silence may be hiding a question.
   List<Machine> get silent => <Machine>[
         for (final machine in _counted)
-          if (_machines.of(machine).reachability != Reachability.connected) machine,
+          if (_machines.of(machine).reachability != Reachability.connected &&
+            !(_settings?.seenSilent.contains(machine.name) ?? false))
+          machine,
       ];
 
   /// Every machine once: one node reached two ways would deliver every question twice.
@@ -93,6 +100,30 @@ class Attention extends ChangeNotifier {
         }))
           machines[i],
     ];
+  }
+
+  /// Stops saying that [machine] is silent, until it has answered again.
+  Future<void> markSeen(Machine machine) async {
+    final settings = _settings;
+    if (settings == null) return;
+    await settings.setSeenSilent(<String>{...settings.seenSilent, machine.name});
+  }
+
+  /// A machine that answers again is forgotten as seen, so its next silence is said.
+  void _changed() {
+    final settings = _settings;
+    if (settings != null) {
+      final answering = <String>{
+        for (final machine in _machines.all)
+          if (_machines.of(machine).reachability == Reachability.connected) machine.name,
+      };
+      final stillSilent = settings.seenSilent.difference(answering);
+      if (stillSilent.length != settings.seenSilent.length) {
+        // Not now: this runs while the frame is being drawn, and settings changing would redraw it.
+        scheduleMicrotask(() => settings.setSeenSilent(stillSilent));
+      }
+    }
+    notifyListeners();
   }
 
   /// The model of one machine.
@@ -196,10 +227,10 @@ class Attention extends ChangeNotifier {
       ],
     };
     for (final gone in _following.difference(wanted)) {
-      gone.removeListener(notifyListeners);
+      gone.removeListener(_changed);
     }
     for (final added in wanted.difference(_following)) {
-      added.addListener(notifyListeners);
+      added.addListener(_changed);
     }
     _following
       ..clear()
@@ -210,8 +241,9 @@ class Attention extends ChangeNotifier {
   @override
   void dispose() {
     _machines.removeListener(_follow);
+    _settings?.removeListener(notifyListeners);
     for (final each in _following) {
-      each.removeListener(notifyListeners);
+      each.removeListener(_changed);
     }
     super.dispose();
   }

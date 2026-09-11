@@ -126,7 +126,9 @@ class MachineTitle extends StatelessWidget {
           ),
           Highlight(
             active: highlight == 'machine.panic',
-            child: EmergencyStopButton(onPressed: onStop),
+            child: EmergencyStopButton(
+              onPressed: fleet.reachability == Reachability.connected ? onStop : null,
+            ),
           ),
           CommandMenu(
             key: const Key('machine-menu'),

@@ -193,10 +193,35 @@ class _ShellState extends State<Shell> {
   @override
   void initState() {
     super.initState();
-    _attention = Attention(widget.machines);
+    _attention = Attention(widget.machines, widget.settings);
     // Closing the window is how the interface ends, so the forwards it raised end with it.
     _leaving = AppLifecycleListener(onExitRequested: _letGo);
     widget.shell.addListener(_moveKeyboard);
+    widget.settings.addListener(_keepRefreshing);
+    _keepRefreshing();
+  }
+
+  Timer? _refreshing;
+  int _refreshingEvery = -1;
+
+  /// Asks every machine again on its own, as often as the settings say; never when set to zero.
+  void _keepRefreshing() {
+    final every = widget.settings.refreshSeconds;
+    if (every == _refreshingEvery) return;
+    _refreshingEvery = every;
+    _refreshing?.cancel();
+    _refreshing = every <= 0
+        ? null
+        : Timer.periodic(Duration(seconds: every), (_) => unawaited(_refreshAll(quietly: true)));
+  }
+
+  /// Asks every answering machine again. Only the one open says so, and only when asked by hand.
+  Future<void> _refreshAll({bool quietly = false}) async {
+    for (final machine in widget.machines.all) {
+      final fleet = widget.machines.of(machine);
+      if (fleet.reachability != Reachability.connected) continue;
+      await fleet.refresh(quietly: quietly || fleet != _fleet);
+    }
   }
 
   /// Asks before the window closes, naming what carries on without it, then lets go of the
@@ -273,6 +298,9 @@ class _ShellState extends State<Shell> {
     watchAnotherMachine: _addAMachine,
     forget: _forget,
     showAbout: _showAbout,
+        refreshAll: () => unawaited(_refreshAll()),
+        anyAnswering: widget.machines.all
+            .any((each) => widget.machines.of(each).reachability == Reachability.connected),
   );
 
   /// The menu in the machine's title, for the machine being acted on.
@@ -853,7 +881,10 @@ class _ShellState extends State<Shell> {
             key: const Key('stop-everywhere-bar'),
             tooltip: 'Stop everything on every machine',
             icon: Icon(Icons.pan_tool_outlined, color: Theme.of(context).colorScheme.error),
-            onPressed: _stopEverywhere,
+            onPressed: widget.machines.all
+                  .any((each) => widget.machines.of(each).reachability == Reachability.connected)
+              ? _stopEverywhere
+              : null,
           ),
         IconButton(
           tooltip: 'Find a command (Ctrl+K)',
@@ -878,7 +909,11 @@ class _ShellState extends State<Shell> {
           itemBuilder: (context) => <PopupMenuEntry<String>>[
             for (final command in commands)
               if (command.home == Home.appBar && command.group == 'Options')
-                PopupMenuItem<String>(value: command.id, child: Text(command.label)),
+                CheckedPopupMenuItem<String>(
+                  value: command.id,
+                  checked: command.checked ?? false,
+                  child: Text(command.label),
+                ),
           ],
         ),
         IconButton(
@@ -934,6 +969,7 @@ class _ShellState extends State<Shell> {
         widget.shell.goTo(Section.machine);
       },
       onStopEverywhere: _stopEverywhere,
+          onRefresh: () => unawaited(_refreshAll()),
     ),
   );
 
@@ -1091,7 +1127,7 @@ class _ShellState extends State<Shell> {
                     if (narrowed != null)
                       StartTile(
                         project: narrowed.label,
-                        unavailable: StartWork.whyNot(narrowed.project),
+                        unavailable: StartWork.whyNot(narrowed.project) ?? notAnswering(fleet),
                         highlighted: highlight == 'work.start',
                         onStart: () => unawaited(_startWork()),
                       ),
@@ -1102,7 +1138,7 @@ class _ShellState extends State<Shell> {
                             highlight ==
                             'template.start/${job.project}/${job.name}',
                         unavailable: job.startable
-                            ? null
+                            ? notAnswering(fleet)
                             : 'this job is missing something it needs to run',
                         onPressed: () => unawaited(_startFromTemplate(job)),
                       ),
@@ -1289,6 +1325,8 @@ class _ShellState extends State<Shell> {
   @override
   void dispose() {
     widget.shell.removeListener(_moveKeyboard);
+    widget.settings.removeListener(_keepRefreshing);
+    _refreshing?.cancel();
     _leaving.dispose();
     _attention.dispose();
     _openedFocus.dispose();

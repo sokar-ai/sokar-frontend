@@ -17,7 +17,7 @@ class EmergencyStopButton extends StatelessWidget {
 
   /// Opens the confirmation. **Never stops anything by itself** — one press away from stopping a
   /// machine is not a design, it is an accident waiting for a stray click.
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
