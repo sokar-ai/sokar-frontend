@@ -32,7 +32,7 @@ SOKAR_SOCKET=<that socket> flutter run -d linux
 ```
 
 `SOKAR_SOCKET` names the machine the interface starts with, which is how the mock is opened;
-more machines are added from the switcher above the rail.
+more machines are added from the menu bar, under Machines.
 
 ## The one architectural rule
 

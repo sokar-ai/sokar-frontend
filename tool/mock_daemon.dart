@@ -6,8 +6,8 @@
 //   dart tool/mock_daemon.dart
 //   SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
 //
-// A second one, to try reaching several machines at once — the interface watches all of them and
-// acts on the one named above the rail:
+// A second one, to try reaching several machines at once — the interface watches all of them,
+// lists each on the rail, and acts on the one whose place is open:
 //
 //   dart tool/mock_daemon.dart work /tmp/sokar-elsewhere.sock
 //
