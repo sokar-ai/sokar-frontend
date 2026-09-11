@@ -91,9 +91,8 @@ dart tool/mock_daemon.dart work /tmp/sokar-elsewhere.sock
 
 then in the interface: the switcher above the rail → *Watch another machine…*
 
-`SOKAR_SOCKET` is how the interface is pointed at anything but the local daemon — the mock, or a
-socket forwarded from another machine. It is a stopgap until
-[F20](requirements/F20-Access-From-Elsewhere.md) gives a person a way to choose.
+`SOKAR_SOCKET` names the machine the interface starts with — the mock, or a socket forwarded from
+another machine. Others are added from the switcher above the rail.
 
 ### Launching it twice
 

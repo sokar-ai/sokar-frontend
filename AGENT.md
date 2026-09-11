@@ -12,9 +12,9 @@ The frame and the client exist; the rest of the product does not. In order:
 
 1. **[Backend API](doc/Backend-API.md)** — how to talk to the daemon, and the compatibility
    rules. Do not write a call before reading it.
-2. **[What the contract does not yet cover](doc/Contract-Gaps.md)** — roughly half the
-   requirements have no backend method behind them. Which half is not obvious. Read it before
-   picking a requirement, not after designing a screen for one.
+2. **[What the contract does not yet cover](doc/Contract-Gaps.md)** — the short list of what the
+   backend has no method or field for yet. Read it before picking a requirement, not after
+   designing a screen for one.
 3. **[Design](requirements/design.md)** — what this is made of and why: Flutter, testing, the
    mock, packaging.
 4. **[Requirements](requirements/README.md)** — the work, ordered, with a **Backend** column
@@ -23,7 +23,7 @@ The frame and the client exist; the rest of the product does not. In order:
 Green means `dart analyze` at "No issues found!", `flutter test` passing, and
 `flutter build linux --release` producing a bundle — measured 2026-09-07 at 13 s and 23 MB.
 
-[F01](requirements/F01-Application-Shell.md) is built: `lib/src/app/` is the state the frame is
+The frame is built: `lib/src/app/` is the state the frame is
 drawn from, `lib/src/ui/` the frame itself. To open it against no daemon at all:
 
 ```
@@ -31,16 +31,15 @@ dart tool/mock_daemon.dart          # prints the socket, and a situation to choo
 SOKAR_SOCKET=<that socket> flutter run -d linux
 ```
 
-`SOKAR_SOCKET` is the only way to point the interface anywhere but the local daemon today.
-[F20](requirements/F20-Access-From-Elsewhere.md) replaces it with something a person can choose;
-until then it is what the mock and a forwarded socket both use.
+`SOKAR_SOCKET` names the machine the interface starts with, which is how the mock is opened;
+more machines are added from the switcher above the rail.
 
 ## The one architectural rule
 
 **Everything goes through the varlink contract. Nothing shells out to `sokar`.**
 
 **And a method existing is not the requirement being covered.** Four requirements sat in the
-*ready* column of [Contract-Gaps](doc/Contract-Gaps.md) because the obvious method existed;
+old *ready* column of [Contract-Gaps](doc/Contract-Gaps.md) because the obvious method existed;
 walking them against the IDL parameter by parameter on 2026-09-07 found `Start` has no `mode` and
 no `prompt`, `Stop` has no rename beside it, `Tail` has nothing that lists the logs, and every
 gate method wants a **project file path** that nothing on this side can produce. Check the
@@ -266,7 +265,7 @@ a collapsible ancestor in a tree scrolls out of view, leaving a row that does no
 machine it is on, and that is how somebody stops a task on the wrong one.
 
 A host is a name and a socket path, and raising the forward is somebody else's job —
-[F27](requirements/F27-Managed-Tunnels.md) is the interface doing it, and it must never become the
+the managed tunnel is the interface doing it, and it must never become the
 only way in. Running `ssh` would not breach the no-shelling-out rule, which is about never
 re-implementing the *domain* through the CLI; `ssh` is transport.
 
@@ -276,7 +275,7 @@ says *what you can do*, the command finder is *how you find one fast*. All three
 mean something other than the entry naming it. None of the three is redundant: they answer
 different questions.
 
-**A pointer must be sufficient, not merely optional.** F01 says "every action is reachable from
+**A pointer must be sufficient, not merely optional.** The rule was "every action is reachable from
 the keyboard alone; a pointer is optional everywhere, never required" — and the first build of the
 shell inverted it. Appearance, reconnect and quit were reachable *only* through the finder, so the
 pointer was the impossible half. The menu bar is the fix, and the scenario *every action is
@@ -302,8 +301,8 @@ are already four things that open.
 
 **A long operation is owned by `Operations`, never by the view showing it.** The subscription
 lives in the session record, so closing the window onto a build does not stop the build and
-arriving late does not mean having missed the output. That is the whole class: F13 is the
-machinery, and F03, F06 and F08 are the things that will use it.
+arriving late does not mean having missed the output. That is the whole class: the operation record is the
+machinery, and preparing an environment, backups and starting work are what use it.
 
 **Derive nothing at this end that the far end already knows.** A task's logs are asked for, never
 held as a set of names: which files exist depends on what the task started, so a client that knew
@@ -323,7 +322,7 @@ never the reading, so the lines keep accumulating and resuming shows what arrive
 gap. A view that stopped following because somebody scrolled up would be the same as having no
 switch at all.
 
-**The egress editor, when F05 and F17 are built** — `Egress` and `SetEgress` landed 2026-09-07 and
+**The egress editor** — `Egress` and `SetEgress` landed 2026-09-07 and
 carry five rules that are easy to get wrong and expensive to get wrong:
 
 - **Preview, then write, and show the preview.** `dryRun: true` answers `PREVIEWED` with exactly
@@ -484,7 +483,7 @@ one of them destroys work, which is why the guard on them reads what went down t
 than what the screen said.
 
 **An action with no method behind it stays in the menu, named and unavailable, with the reason.**
-Renaming work and recreating it from scratch are both F09 criteria with nothing behind them. An
+Renaming work and recreating it from scratch both started out with nothing behind them. An
 action that simply is not there reads as one nobody thought of; one that says *"the backend has no
 method for renaming work"* reads as what it is. `workCommands` builds the row's own menu and the
 menu bar's entries from one list, so neither can offer what the other forgot.
@@ -749,8 +748,8 @@ the Sokar side after being measured against running code rather than recalled.
 - **Which credential a run needs is a function of four things**, not of the agent: the agent's
   declaration, the installed providers, the run's `provider` override, and *what the vault already
   holds* — an older vault answers under the agent's name rather than the provider's. So a client
-  cannot assemble the answer from parts it has, and F08's sixth criterion waits for a method that
-  answers the whole question.
+  cannot assemble the answer from parts it has, which is why a method answers the whole
+  question.
 
 ## An explicit list of egress sets is a guarantee, not a missing feature
 
@@ -780,9 +779,9 @@ until it was measured.
 A requirement is covered when every acceptance criterion has something behind it, not when the
 obvious method exists. This has now been got wrong twice on the same map:
 
-- **F08**, because `Start` exists and starting is one call. The call had no parameter for two
+- **Starting work**, because `Start` exists and starting is one call. The call had no parameter for two
   thirds of what the requirement asked for.
-- **F24**, because `Agents` exists and answers a list. Two of its four criteria — the pinned build
+- **The agent inventory**, because `Agents` exists and answers a list. Two of its four criteria — the pinned build
   and its digest, and which copy of a shadowed name is in use — have no field behind them.
 - **F15**, because `Lock` landed and the row was changed to *"nothing missing"* on the strength of
   it. `Lock` answers half of one criterion out of seven: there is no `Unlock` (by design), nothing
@@ -808,9 +807,9 @@ job unstartable rather than starting something nobody here can describe.
 The project's own security class is out of reach for a different reason and a better one: `Start`
 has no parameter that sets it. That half of the requirement is answered by the contract.
 
-**Templates follow the person, not the project.** F25 asks for them shared with the project, and
-nothing in the contract writes to a project file except `SetEgress`, so they live in this
-interface's settings. That is a shortfall recorded in the requirement, not a design.
+**Templates follow the person, not the project.** A project file describes constraints, not
+instructions, so they live in this interface's settings — the operator's answer when sharing them
+with the project was asked for.
 
 ## A fixture edited to fit a feature will hide the feature being wrong
 
@@ -921,7 +920,7 @@ too weak"* but *"is my check reading the thing, or reading something the thing s
 itself"*.
 
 **And a scenario can pass for the wrong reason**, which is the other half of the same lesson.
-F12's *"work that is not running has no session"* was written against a stopped **unattended** run
+The scenario *"work that is not running has no session"* was written against a stopped **unattended** run
 — so the agent rule took the action away, and deleting the running check changed nothing. The
 mutation survived and the scenario looked fine. Two fixes, both worth copying: measure a rule
 against work where **nothing else can produce the same outcome**, and assert **which** reason was
@@ -1101,7 +1100,7 @@ kept, so what is left is a container and a workspace to clear up by hand.
 
 ## A range replace between two anchors deletes everything in between
 
-`doc/Contract-Gaps.md` lost five requirements' worth of reasoning — F08, F09, F10, F11 and F25 —
+`doc/Contract-Gaps.md` lost five requirements' worth of reasoning
 to one edit meant to replace a single bullet. The shape was `text[:start] + new + text[end:]` with
 `end` found by searching for the *next* heading, and everything between the two anchors went with
 it. Nothing failed, nothing was reported, and it was found a day later while trying to edit a
@@ -1147,7 +1146,7 @@ than trusted to review.
 workspace and the log files are built from. `Task.label` is a caption somebody set, and **empty is
 the ordinary state** — every task has none until a person types one.
 
-F09 asked for work to be *renamed*. Renaming would move a gate ref with unreviewed pushes behind
+Task control asked for work to be *renamed*. Renaming would move a gate ref with unreviewed pushes behind
 it, which is nobody's intention when they rename a row in a list of forty. `Label` is what it
 wanted:
 
@@ -1398,8 +1397,8 @@ invariant stays absolute instead of becoming something every future code path mu
 
 **The command is handed over, never composed here.** A credential's key is the provider's name,
 falling back to the agent's for older vaults, so a client lining two lists up would report one
-missing from exactly the vault that has it. **Third time this shape has appeared** — F08's
-credential rule, F10's gate join, and now this. When a client *can* compute an answer from two
+missing from exactly the vault that has it. **Third time this shape has appeared** — the
+credential rule for starting work, the gate join, and now this. When a client *can* compute an answer from two
 lists, that is not evidence it should.
 
 ## Verify a forward by connecting through it, never by an exit code
@@ -1415,7 +1414,7 @@ keep: **a forward is proven by something coming back through it.**
 
 Also measured there, and useful if a second forward is ever needed: `ssh -S <ctl> -O forward -L …`
 adds one to a connection already held, and `-O cancel` removes it, both without reconnecting. That
-needs a control socket, which F27 deliberately does without — but re-read, **that decision forbids
+needs a control socket, which the managed tunnel deliberately does without — but re-read, **that decision forbids
 sharing the person's own master, not having a private one.**
 
 ## A secret may be transferred; it must never be stored
@@ -1448,7 +1447,7 @@ expires — the route is the smaller problem.
 
 ## Ask before building a view for a relation
 
-F16 asked which keys reach which project, in both directions, editable in place. **The relation
+Key routing asked which keys reach which project, in both directions, editable in place. **The relation
 does not exist**: a credential is keyed by the provider's name, falling back to the agent's, and no
 project file names a key. Restated correctly it is *"which agents may this project use"* — the
 roster, already settled as never.
@@ -1590,7 +1589,7 @@ credential missing from precisely the vault that has one**, because the fallback
 from outside.
 
 So `credentialName` is read and `storeCommand` is rendered verbatim. **Fourth time this shape has
-come up** — F08's credential rule, F10's gate join, F16's key routing, and now this. The pattern is
+come up** — the credential rule, the gate join, key routing, and now this. The pattern is
 always the same: a client *can* compute an answer from two lists, and that is not evidence it
 should.
 
@@ -1674,7 +1673,7 @@ workspace, the image and the container.
 
 Nothing here changed, but what the field *means* did: `AGENT` is now evidence rather than a
 recorded intention. **`SHELL` still needs no agent** — working inside the container by hand is
-exactly what it is for, which is why F12 offers a session for it.
+exactly what it is for, which is why a session is offered for it.
 
 ## Three different things get called "login"
 
@@ -1939,9 +1938,9 @@ its `.feature` file. One parse, because a build that reports twice reports diffe
 - **The machine JSON, not the JUnit XML.** It is the source the XML is made from, and it carries
   the failure text and timings the XML flattens away.
 - **`classname` is what the feature tests**, and the row shows the last two path segments. The
-  requirement ids are gone: every requirement file was finished and deleted, so a row headed
-  `F11` named a document nobody could open. `test/features_named_test.dart` fails on any id left
-  in `lib`, `test` or `tool`.
+  requirement ids are gone: a finished requirement's file is deleted, so a row headed by an
+  id named a document nobody could open. `test/features_named_test.dart` fails on any id left
+  in `lib`, `test` or `tool`; `test/docs_test.dart` fails on one in the docs, and on a dead link.
 - **The table is Sokar's, column for column**, so two reports of the same kind of run read alike.
   Failure detail is in the annotation only — a summary that grows a stack trace stops being
   scannable at the first red build.

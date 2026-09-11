@@ -363,7 +363,7 @@ class FleetModel extends ChangeNotifier {
 
   Future<void> _readOnce() async {
     try {
-      // Nothing refreshes the project list on its own — there is no `WatchProjects` — so it is
+      // Nothing refreshes the project list on its own — `WatchProjects` is not used yet — so it is
       // asked for again beside the tasks, after anything that would have changed it.
       _known = await backend.projects();
       _adopt(await backend.tasks());
@@ -379,7 +379,7 @@ class FleetModel extends ChangeNotifier {
         _live = true;
         _adopt(tasks);
         // A project's counts — how much work, how much of it running, how much waiting at the
-        // gate — are the daemon's, and there is no `WatchProjects`. `Watch` is the only signal
+        // gate — are the daemon's, and `WatchProjects` is not used yet. `Watch` is the only signal
         // that work moved, so it is also the signal that those counts are stale. Without this the
         // work pane updated and the row above it did not.
         unawaited(_readProjectsAgain());

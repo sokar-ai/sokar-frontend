@@ -6,12 +6,12 @@ That reading is right about the shape and it is worth being precise about why.
 
 ## What is wrong with the frame today
 
-The window is built around [F01](README.md)'s rail — *a rail saying where you are*. Navigation
+The window is built around its rail — *a rail saying where you are*. Navigation
 first: you go to Projects, or to a machine, or to a task, and then you find out how it is. That is
 the right frame for **changing** something, and the wrong one for the question an operator actually
 opens the window with, which is **does anything need me right now**.
 
-[F20](README.md) already connects every configured machine at once, and its own justification is
+The interface already connects every configured machine at once, and its own justification is
 this question: *a clearance question has a deadline and a machine nobody watches is one whose work
 expires unseen.* So the data arrives from every machine already. What is missing is that nothing
 puts it in front of a person in one place.
@@ -30,7 +30,7 @@ Nothing here is a new signal. All of it is already streamed or already on a row:
 |---|---|---|
 | a clearance question waits, since when, with its deadline | `Prompts`, streaming | **known** |
 | working / idle / waiting / dead, and *"idle for forty minutes"* | `Watch`, from [B11](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md) | known, with B11's own limits |
-| work waiting at the gate | today on [F02](README.md)'s project row | known |
+| work waiting at the gate | `Task.waiting`, on `Watch` | known |
 | which machine, which project, which agent, which mode, which class | `List` / `Watch` | known |
 
 **Order is by demand, not by name.** What needs a person is above what is merely running, and what
@@ -99,7 +99,7 @@ something an interface inferred.**
   product exists to prevent.
 - Counts on a row are as fresh as the row claims, or say when they were taken. See the backend gap
   below - this criterion cannot be met without it.
-- Nothing here duplicates [F02](README.md)'s answer to the same question: after this, the project
+- Nothing here duplicates the project overview's answer to the same question: after this, the project
   row says what a project **is** - prepared, how far behind, how much work - and this view is the
   only place that says what **demands** somebody.
 
@@ -115,9 +115,9 @@ card's gate count wanted a push because `Pending` is a call that ages between as
 agent checked the IDL instead of taking it: `Task.waiting` is already on the `Task` type - *1 when
 its ref is waiting for review* - and arrives on every `Watch` push, per task, as fresh as the row.
 That is the card's question. `Pending` counts a **project's** pushes, which is the project row's
-number and not this one's, so the stale-count problem F02 met does not arise on a task tile.
+number and not this one's, so the stale-count problem the project row met does not arise on a task tile.
 
-`WatchProjects` was built anyway and is right for the project row, where F02 actually met that
+`WatchProjects` was built anyway and is right for the project row, which actually met that
 defect. It is not something this view waits on, and it never was.
 
 **What is genuinely missing is one field: a clearance question's deadline.** `Prompt` carries `at`,

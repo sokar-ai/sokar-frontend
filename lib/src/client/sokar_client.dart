@@ -238,7 +238,7 @@ class SokarClient {
 
   /// Every project on the machine.
   ///
-  /// Nothing refreshes this: there is no `WatchProjects`, so it is asked again after anything
+  /// Nothing refreshes this: `WatchProjects` is not used yet, so it is asked again after anything
   /// that would change it — a task started or removed, a push approved.
   Future<List<Project>> projects() async {
     final reply = await _call('Projects');

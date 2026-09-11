@@ -50,7 +50,7 @@ for the agent packages and applies unchanged: a dependency between packages does
 when they are split across configured sources.
 
 **`Recommends`, not `Depends`.** An interface pointed at a remote daemon over SSH is useful with
-no local backend at all ([F20](F20-Access-From-Elsewhere.md)), so pulling `sokar` in as a hard
+no local backend at all, so pulling `sokar` in as a hard
 dependency would be wrong for a real way people will use this.
 
 **The build machine sets the floor.** The backend's rule - build on Ubuntu, never Fedora,
@@ -58,8 +58,8 @@ because a native image links glibc dynamically - applies here too, and Flutter a
 the CLI never had: the bundle links the GTK3 stack as well, so the GTK on the build machine is
 the oldest GTK the package can run against.
 
-Updating is [F21](F21-Continuity-And-Updates.md)'s subject; this is only how the new version
-arrives.
+What the running interface does about an update is a different subject; this is only how the
+new version arrives.
 
 ## Settled, 2026-09-07
 

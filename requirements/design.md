@@ -11,7 +11,7 @@ without one gets re-argued every time somebody new reads it.
 - **UI:** Flutter, one codebase for desktop and tablet. **Linux desktop is the only target that
   works today** — the backend is a unix socket, so a client has to be able to open one, and a
   phone cannot without a tunnel it has no way to raise. Phone is not designed out; it is simply
-  not reachable until [F20](F20-Access-From-Elsewhere.md) says how a device without a shell gets
+  not reachable until there is a way for a device without a shell to get
   a socket. Do not build layouts that assume it will never arrive.
 - **Contract:** the Sokar backend and its API contract — the varlink interface
   `org.fuin.sokar.Tasks1`, over one unix socket. **No REST, no HTTP, no shared code with the
@@ -83,28 +83,21 @@ the features.
   own reporters — `flutter_gherkin` contains no `testWidgets` and no `group` anywhere — so its
   scenarios never become `package:test` events, never reach JUnit XML, and never appear
   individually on a build server. That single fact decided this.
-- **Results on the build server:** `flutter test --machine | tojunit`, from `junitreport`
-  (228k downloads). Verified end to end — a two-scenario feature produced:
-
-  ```xml
-  <testcase name="F09 Task Control a task holding unpushed work is refused" .../>
-  <testcase name="F09 Task Control a task with nothing held is stopped" .../>
-  ```
-
-  Because the feature name carries the requirement id, **the CI test report is a requirements
-  traceability matrix** — per-requirement pass and fail, with no extra tooling.
-- **The requirement id goes in the `Feature` line, never in a scenario name.** Reworded criteria
-  then do not churn ids, and a requirement's scenarios stay collected under one heading.
+- **Results on the build server:** `tool/test_report.dart` reads `flutter test --machine` once and
+  writes the HTML page, JUnit XML grouped by feature, a table on the run's summary page, and an
+  `::error` on the line of each failing scenario. Why each is shaped that way is in
+  [AGENT.md](../AGENT.md), under *What the build reports*.
+- **The `Feature` line says what the file tests**, in one short sentence of 70 characters at most.
+  It is the group name in every report, so a reworded scenario never moves a row.
 - **Steps are shared by name.** `Given the app is running` resolves to
-  `test/step/the_app_is_running.dart` across every feature that uses it, and the generator
+  `test/features/step/the_app_is_running.dart` across every feature that uses it, and the generator
   scaffolds the file the first time. So step wording *is* the API: phrase a step the way you
   want to reuse it, and vary the data rather than the sentence.
-- **Binding is checked, not maintained.** A test asserts every requirement file has at least one
-  feature naming it, and that no feature names one that no longer exists. Bind at requirement
-  level, never at bullet level — acceptance bullets get reworded constantly. A table nobody
-  checks is a table that lies; the same trick keeps the backend's IDL honest.
+- **Names are checked, not maintained.** `test/features_named_test.dart` holds every `Feature`
+  line to one short sentence, unique, with no requirement id in it, and `test/docs_test.dart`
+  holds these documents to files that exist. A table nobody checks is a table that lies.
 
-Traceability is not completeness: a requirement with one shallow scenario shows as green as one
+A green row is not completeness: a feature with one shallow scenario shows as green as one
 with twelve. Only reading the scenarios fixes that, and no framework changes it.
 
 ### To be checked
