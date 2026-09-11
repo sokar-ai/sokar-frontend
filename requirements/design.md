@@ -25,9 +25,24 @@ without one gets re-argued every time somebody new reads it.
   who may connect and there is nothing to log in to. A remote backend is an SSH forward, so its
   authentication is SSH's. If a design here starts needing a token, a session or a login screen,
   something has gone wrong upstream of it — say so rather than building one.
-- **Build:** `flutter build` and nothing else. This repository is not in the backend's Maven
-  reactor and must never need it: the point of the split is that the interface builds, tests and
-  releases on its own, on a machine with no JDK on it.
+- **Build:** **Maven drives Flutter here**, decided by the operator on 2026-09-11. A `pom.xml` in
+  this repository calls `flutter` through `exec-maven-plugin` — `pub get` in `generate-sources`,
+  analyze and the tests in theirs, `flutter build` in `package` — following the pattern this house
+  already runs in `melkheftken/frontend/flutter`, including the profile keyed on `env.FLUTTER_ROOT`
+  so a machine without Flutter still builds.
+
+  **What this gives up, said out loud because it was the rule until today.** The previous rule was
+  *"`flutter build` and nothing else … on a machine with no JDK on it"*, and the reason was that the
+  interface builds, tests and releases on its own. **It still does — but it now needs a JDK to do
+  it.** That is the price, and it was paid for one thing: an end-to-end test that drives this
+  interface against a real machine has to lease one, and leasing is
+  `org.fuin.sokar.machines`, which is Java. With Maven here it is a library call; without it, a
+  downloaded jar and a command.
+
+  **This repository is still not in the backend's reactor.** It resolves `sokar-machines` as a
+  published artifact like any other dependency. The split that matters — that the interface
+  releases on its own schedule, against a published contract rather than a checkout of the
+  backend — is unchanged. What changed is the tool that runs the build, not who owns it.
 - **Test:** `flutter test` per package. **`dart analyze` must stay at "No issues found!"** — and
   it is `dart analyze`, not `flutter analyze`: the latter has been seen to rewrite
   `analysis_options.yaml` with an exclude block nobody wrote, which silences findings instead of
@@ -167,10 +182,12 @@ Delivered as a `.deb` and an `.rpm`, from the same repository as the `sokar` pac
   `dpkg-shlibdeps` and rpm's ELF scanner both work that out themselves. A hand-written list is a
   list that goes stale between Flutter releases.
 - **Tool:** [nfpm](https://nfpm.goreleaser.com/) — one static binary, one YAML, both formats.
-  **Not `rpm-maven-plugin` and jdeb**, which is what the backend uses: adopting them would put a
-  JDK back into a build that deliberately has none, and would need `rpmbuild` on a Debian
-  runner. What must match the rest of Sokar is the package a person installs, not the tool that
-  wrote it.
+  **Not `rpm-maven-plugin` and jdeb**, which is what the backend uses. One of the two reasons for
+  that is gone as of 2026-09-11 — there is a JDK here now — and **the other still stands on its
+  own**: those plugins need `rpmbuild` on a Debian runner, where nfpm writes both formats from one
+  binary. What must match the rest of Sokar is the package a person installs, not the tool that
+  wrote it. So packaging stays with nfpm until somebody has a reason that is not *"we have Maven
+  anyway"*.
 - **Relationship to the backend:** `Recommends: sokar`, not `Depends:`. An interface talking to
   a remote daemon over SSH is useful with no local backend, and a hard dependency would be wrong
   for that.
