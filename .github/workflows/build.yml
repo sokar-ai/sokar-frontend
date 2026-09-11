@@ -57,7 +57,7 @@ jobs:
       - name: Prove the generated tests are current
         run: |
           dart run build_runner build
-          git diff --exit-code test/features || {
+          git diff --exit-code test/features integration_test || {
             echo "::error::a .feature changed without build_runner being run" >&2
             exit 1
           }

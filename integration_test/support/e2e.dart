@@ -1,0 +1,64 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sokar_frontend/main.dart' as app;
+import 'package:sokar_frontend/src/app/sokar_app.dart';
+
+/// The machine these tests run against, as `tool/e2e.sh` names it.
+abstract final class E2e {
+  /// What the dialog is told to call it.
+  static const name = 'e2e machine';
+
+  /// Where it is, as ssh would be given it.
+  static String get host => _required('SOKAR_E2E_HOST');
+
+  /// Its daemon's socket, on that machine. Asked of the machine, never guessed: the uid differs.
+  static String get remoteSocket => _required('SOKAR_E2E_REMOTE_SOCKET');
+
+  static String _required(String variable) {
+    final value = Platform.environment[variable] ?? '';
+    if (value.isEmpty) throw StateError('$variable is not set: run these through tool/e2e.sh');
+    return value;
+  }
+}
+
+/// Shows the interface, composed once for the whole run and shown again for each scenario.
+Future<SokarApp> showTheInterface(WidgetTester tester) async {
+  final interface = await app.sokar();
+  await tester.pumpWidget(interface);
+  await pumpUntil(tester, () => find.byKey(const Key('machine-switcher')).evaluate().isNotEmpty);
+  return interface;
+}
+
+/// Real time, not fake: the machine is real, and only waiting lets its answers arrive.
+Future<void> pumpFor(WidgetTester tester, [Duration wait = const Duration(milliseconds: 300)]) async {
+  await Future<void>.delayed(wait);
+  await tester.pump();
+}
+
+/// Pumps until [done] holds, and fails naming [what] when it never does.
+Future<void> pumpUntil(
+  WidgetTester tester,
+  bool Function() done, {
+  Duration timeout = const Duration(seconds: 15),
+  String what = 'the window',
+}) async {
+  final by = DateTime.now().add(timeout);
+  while (!done()) {
+    if (DateTime.now().isAfter(by)) fail('waited ${timeout.inSeconds}s for $what');
+    await pumpFor(tester, const Duration(milliseconds: 200));
+  }
+}
+
+/// Makes [name] the machine acted on, through the switcher a person would use.
+Future<void> switchTo(WidgetTester tester, String name) async {
+  // Already acted on after an earlier scenario, and the switcher lists that one differently.
+  if ((await app.sokar()).machines.current.name == name) return;
+  await tester.tap(find.byKey(const Key('machine-switcher')));
+  await pumpFor(tester);
+  final entry =
+      find.byWidgetPredicate((widget) => widget is Text && (widget.data ?? '').startsWith(name));
+  await tester.tap(find.ancestor(of: entry.first, matching: find.byType(MenuItemButton)).first);
+  await pumpFor(tester);
+}

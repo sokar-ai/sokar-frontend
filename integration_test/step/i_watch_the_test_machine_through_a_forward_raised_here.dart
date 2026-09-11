@@ -1,0 +1,20 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../support/e2e.dart';
+
+/// Usage: I watch the test machine through a forward raised here
+Future<void> iWatchTheTestMachineThroughAForwardRaisedHere(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('machine-switcher')));
+  await pumpFor(tester);
+  await tester.tap(find.widgetWithText(MenuItemButton, 'Watch another machine…'));
+  await pumpFor(tester);
+  await tester.enterText(find.byType(TextField).first, E2e.name);
+  await tester.tap(find.byKey(const Key('machine-raise-it')));
+  await pumpFor(tester);
+  await tester.enterText(find.byKey(const Key('machine-host')), E2e.host);
+  await tester.enterText(find.byKey(const Key('machine-remote-socket')), E2e.remoteSocket);
+  await pumpFor(tester);
+  await tester.tap(find.byKey(const Key('watch-it')));
+  await pumpFor(tester);
+}

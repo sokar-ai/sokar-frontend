@@ -17,6 +17,9 @@ class VarlinkConnection {
 
   VarlinkConnection._(this._socket) {
     final buffer = BytesBuilder();
+    // A write to a peer that has gone fails here, not where it was written, and a failure nobody
+    // waits for escapes unhandled. It is the same lost connection as a read error.
+    unawaited(_socket.done.catchError((Object error) => _lost(error)));
     _socket.listen(
       (chunk) {
         for (final byte in chunk) {
@@ -28,10 +31,14 @@ class VarlinkConnection {
           _replies.add(jsonDecode(text) as Map<String, dynamic>);
         }
       },
-      onError: (Object error) => _replies.addError(VarlinkDisconnected('$error')),
+      onError: _lost,
       onDone: _replies.close,
       cancelOnError: true,
     );
+  }
+
+  void _lost(Object error) {
+    if (!_replies.isClosed) _replies.addError(VarlinkDisconnected('$error'));
   }
 
   /// Opens a connection to the service listening on [socketPath].

@@ -12,7 +12,20 @@
 import 'dart:convert';
 import 'dart:io';
 
-Future<void> main(List<String> args) async {
+/// The summary's heading, and what the run was against: `--heading=` and `--against=`.
+String _heading = 'Scenarios';
+String _against = 'a fake backend, in a widget-test frame';
+
+Future<void> main(List<String> arguments) async {
+  final args = <String>[
+    for (final argument in arguments)
+      if (argument.startsWith('--heading='))
+        ...(() { _heading = argument.substring('--heading='.length); return <String>[]; })()
+      else if (argument.startsWith('--against='))
+        ...(() { _against = argument.substring('--against='.length); return <String>[]; })()
+      else
+        argument,
+  ];
   final source = File(args.isNotEmpty ? args[0] : 'build/test-results.json');
   final target = File(args.length > 1 ? args[1] : 'build/test-report.html');
   final junit = File(args.length > 2 ? args[2] : 'build/test-results.xml');
@@ -211,7 +224,7 @@ Future<void> _sayNothingRan(String because) async {
   final summaryFile = Platform.environment['GITHUB_STEP_SUMMARY'];
   if (summaryFile == null || summaryFile.isEmpty) return;
   await File(summaryFile).writeAsString(
-      '## Scenarios\n\n**No tests ran.** $because\n\n'
+      '## $_heading\n\n**No tests ran.** $because\n\n'
       'Check that the test step ran, that it wrote the machine JSON, and that the path this was '
       'given is the one it wrote.\n\n',
       mode: FileMode.append);
@@ -249,9 +262,9 @@ String _summary(Run run) {
   final passed = scenarios.where((result) => result.passed).length;
 
   final out = StringBuffer()
-    ..writeln('## Scenarios')
+    ..writeln('## $_heading')
     ..writeln()
-    ..writeln('Run against a fake backend, in a widget-test frame.')
+    ..writeln('Run against $_against.')
     ..writeln();
 
   if (scenarios.isEmpty) {

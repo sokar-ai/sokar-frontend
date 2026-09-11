@@ -32,7 +32,17 @@ import 'src/app/sokar_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  runApp(await sokar());
+}
 
+/// The interface, composed once per process and handed back again on every later call.
+///
+/// An integration test shows it anew for each scenario, because the test framework clears the
+/// widget tree between them; composing it again would find its own instance lock and leave.
+Future<SokarApp> sokar() => _composed ??= _compose();
+Future<SokarApp>? _composed;
+
+Future<SokarApp> _compose() async {
   final settings = Settings(FileSettingsStore());
   await settings.load();
 
@@ -62,7 +72,7 @@ Future<void> main() async {
   final notifications = Notifications(DesktopNotifier(), settings)
     ..watchOperations(operations, open: (_) {});
   await notifications.load();
-  runApp(SokarApp(
+  final app = SokarApp(
     machines: machines,
     shell: shell,
     settings: settings,
@@ -86,12 +96,12 @@ Future<void> main() async {
     backups: Backups(),
     narrowing: Narrowing(),
     held: WorkHeld(),
-  ));
+  );
 
   // Deliberately after the first frame: the window opens and says it is connecting, rather
   // than staying blank until a socket answers or does not. Every machine at once, because a
   // clearance prompt has a deadline and one nobody is connected to expires unseen.
-  unawaited(machines.load().then((_) async {
+  WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(machines.load().then((_) async {
     await whereYouWere.restore();
     // Clearance is per machine: a question knows its task, and only that machine's fleet can say
     // which project the task belongs to.
@@ -106,5 +116,6 @@ Future<void> main() async {
         open: (_) => shell.goTo(Section.clearance),
       );
     }
-  }));
+  })));
+  return app;
 }

@@ -1984,3 +1984,18 @@ showed the current machine only, and another machine's question reached nobody b
 - **A deadline is time left, and absent is not empty.** No `deadline` is a daemon older than the
   field (*"does not say when"*); `""` is a question that never runs out. The tile ticks while one is
   on screen: a countdown that does not move overstates the time left.
+
+## Integration tests against a real machine
+
+`tool/e2e.sh` runs the features in `integration_test/` against the machine named by
+`SOKAR_E2E_HOST`, `SOKAR_E2E_REMOTE_SOCKET` and `SOKAR_E2E_KEY`. The app gets its own config and
+runtime directory and ssh a private agent, so a running interface and the person's ssh setup are
+left alone.
+
+- **Headless only, under xvfb.** A test window on somebody's desktop takes their keyboard.
+- **Composed once per process.** The framework clears the widget tree between scenarios, so each
+  shows `sokar()` again; composing twice would find its own instance lock and exit.
+- **The remote socket is asked of the machine, never guessed.** The uid differs between machines,
+  and a guessed path looks like a machine that never answers.
+- **Its first find was real:** a forward whose far end has no socket resets the connection, and
+  the failed write escaped unhandled because nothing waited on the socket's `done`.

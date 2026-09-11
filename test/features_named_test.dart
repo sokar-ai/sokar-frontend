@@ -9,11 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// `F11` named a document nobody could open. What the row says now is what the file tests, in one
 /// short sentence — the only description of it that survives the requirement it came from.
 void main() {
-  final features = Directory('test/features')
-      .listSync(recursive: true)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.feature'))
-      .toList();
+  final features = <File>[
+    for (final root in <String>['test/features', 'integration_test'])
+      if (Directory(root).existsSync())
+        ...Directory(root)
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.feature')),
+  ];
 
   test('the feature directory was found at all', () {
     // Without this every test below passes by examining nothing.
@@ -57,7 +60,7 @@ void main() {
     // cannot be opened, which is worse than no reference: it reads as one that can.
     final id = RegExp(r'\bF\d\d\b');
     final offending = <String>[];
-    for (final directory in <String>['lib', 'test', 'tool']) {
+    for (final directory in <String>['lib', 'test', 'tool', 'integration_test']) {
       for (final file in Directory(directory).listSync(recursive: true).whereType<File>()) {
         if (!file.path.endsWith('.dart') && !file.path.endsWith('.feature')) continue;
         if (file.path == 'test/features_named_test.dart') continue;
