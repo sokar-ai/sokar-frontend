@@ -54,10 +54,12 @@ Feature: Moving around the frame by keyboard and by pointer
     When the app is restarted
     Then the appearance is {'dark'}
 
-  Scenario: a narrow window keeps the rail and the machine it is on
+  Scenario: a narrow window keeps the machines behind the menu button
     When the window is {420} pixels wide
+    Then the work pane is shown
+    And the project {'checkout'} is not listed
+    When I open the machines
     Then the project {'checkout'} is listed
-    And the work pane is shown
 
   # The finder teaches where things are: it goes there and marks the action, rather than running it
   # from nowhere.
@@ -66,8 +68,13 @@ Feature: Moving around the frame by keyboard and by pointer
     And I pick {'Check whether this machine can run anything'} in the finder
     Then the menu that holds {'Check whether this machine can run anything'} is open with it marked
 
-  Scenario: the menu bar holds only what belongs to no machine
-    Then the menu bar offers {'Machines, Options, About'}
+  Scenario: the title bar holds only what belongs to no machine
+    Then the title bar offers {'Find a command (Ctrl+K), Watch another machine…, Options, About Sokar'}
+
+  Scenario: the title says where you are
+    Then the title is {'this machine › Running'}
+    When I select the project {'checkout'}
+    Then the title is {'this machine › checkout'}
 
   Scenario: a project shows its own work, and Running shows what runs in every project
     When I select the project {'checkout'}

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../ui/theme.dart';
+
 import '../ui/shell.dart';
 import 'egress.dart';
 import 'agent_inventory.dart';
@@ -132,8 +134,8 @@ class SokarApp extends StatelessWidget {
         builder: (context, _) => MaterialApp(
           title: 'Sokar',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(colorSchemeSeed: Colors.teal),
-          darkTheme: ThemeData(colorSchemeSeed: Colors.teal, brightness: Brightness.dark),
+          theme: SokarTheme.light,
+          darkTheme: SokarTheme.dark,
           themeMode: settings.appearance,
           home: ListenableBuilder(
             listenable:

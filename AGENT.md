@@ -32,7 +32,7 @@ SOKAR_SOCKET=<that socket> flutter run -d linux
 ```
 
 `SOKAR_SOCKET` names the machine the interface starts with, which is how the mock is opened;
-more machines are added from the menu bar, under Machines.
+more machines are added from the title bar, with *Watch another machine…*.
 
 ## The one architectural rule
 
@@ -295,8 +295,9 @@ re-implementing the *domain* through the CLI; `ssh` is transport.
 machine's title or its menu, the selected project's header menu, New project in the tree, the
 start tile, a saved job's tile, a work tile's menu, or the machine's status line. The finder goes there, marks
 it and gives it the keyboard, so the next time it is found without the finder; only an action
-with no single place runs from the finder at once. The menu bar holds what belongs to no machine —
-Machines, Options, About — and nothing else. Every one of them still reads `commands.dart`, so a
+with no single place runs from the finder at once. The title bar holds what belongs to no machine —
+the finder, another machine, Options and About — and nothing else. Its title says where you are:
+*Needs you*, or the machine and then *Running* or the project. Every one of them still reads `commands.dart`, so a
 shortcut cannot come to mean something other than the entry naming it.
 
 **A machine's place, top to bottom.** Its title — how it is reached, the daemon's version, its
@@ -322,6 +323,12 @@ rail until that section is the one you are in, then `folder`. Taken from melkhef
 interface runs on eighteen icons; a set that mixes the two weights reads as two interfaces. Pick
 one that says what the thing *is*: a push waiting at the gate is `outbox_outlined`, because
 `Approve` is the only call in the contract that sends anything anywhere.
+
+**The look is melkheftken's, from the same three layers.** `Primitives` in `tokens.dart` names raw
+values — the indigo seed, the spacing steps, the corners — the tokens say what each is for, and
+`theme.dart` builds both themes from them and nothing else. The tree of machines stays beside the
+work from 840 pixels up and waits behind the menu button below that, with the stop for every
+machine then in the title bar so it is never more than one press away.
 
 **Nothing outside `lib/src/ui/tokens.dart` spells out a spacing, a width or a radius**, and
 nothing outside `window_size.dart` compares a width. Layout asks named questions —
@@ -521,8 +528,8 @@ than what the screen said.
 **An action with no method behind it stays in the menu, named and unavailable, with the reason.**
 Renaming work and recreating it from scratch both started out with nothing behind them. An
 action that simply is not there reads as one nobody thought of; one that says *"the backend has no
-method for renaming work"* reads as what it is. `workCommands` builds the row's own menu and the
-menu bar's entries from one list, so neither can offer what the other forgot.
+method for renaming work"* reads as what it is. `workCommands` builds a tile's own menu and the
+finder's entries from one list, so neither can offer what the other forgot.
 
 **`Projects` lists every project, not only the busy ones**, and gives both `tasks` and `running`
 rather than leaving one to be inferred. A project with nothing running is the ordinary case —

@@ -54,8 +54,9 @@ distribution, so an entry below has reached an operator only if they follow that
   every machine with whether it answers — opening onto Running, New project and its projects — and
   a stop for every machine. A machine's place holds its title with its emergency stop and menu,
   the chosen project's header with its menu, the work as tiles beside starting work and saved
-  jobs, and a status line of what it ran. A new project is described there and chosen once made. The menu bar holds
-  Machines, Options and About; the finder goes to where an action lives and marks it there.
+  jobs, and a status line of what it ran. A new project is described there and chosen once made.
+  The title bar says where you are and holds the finder, another machine, Options and About; the
+  tree waits behind the menu button on a narrow window. The look is melkheftken's. The finder goes to where an action lives and marks it there.
 - **Stopping keeps the work and its workspace**; removing is its own action, and what the machine
   would do on "Start it again" is shown before anybody presses it, refusals included.
 

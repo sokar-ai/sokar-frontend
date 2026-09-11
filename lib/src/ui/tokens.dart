@@ -5,22 +5,52 @@
 /// makes a slightly different one — which is how an interface stops looking like one thing.
 library;
 
+import 'dart:ui' show Color;
+
+/// Raw values, named for what they are rather than what they are for. Only the tokens below and
+/// the theme read these; a widget reads the tokens.
+abstract final class Primitives {
+  /// The brand colour every other colour is worked out from, shared with melkheftken.
+  static const Color brandIndigo600 = Color(0xFF3949AB);
+
+  /// Four logical pixels.
+  static const double space1 = 4;
+
+  /// Eight logical pixels.
+  static const double space2 = 8;
+
+  /// Twelve logical pixels.
+  static const double space3 = 12;
+
+  /// Sixteen logical pixels.
+  static const double space4 = 16;
+
+  /// Twenty-four logical pixels.
+  static const double space6 = 24;
+
+  /// A small corner.
+  static const double radiusSm = 4;
+
+  /// A card's corner.
+  static const double radiusMd = 8;
+}
+
 /// Space between things, in logical pixels.
 abstract final class Space {
   /// Hairline separation, inside a row.
-  static const tight = 4.0;
+  static const tight = Primitives.space1;
 
   /// Between a mark and the words beside it.
-  static const small = 8.0;
+  static const small = Primitives.space2;
 
   /// Between rows, and inside a dense control.
-  static const normal = 12.0;
+  static const normal = Primitives.space3;
 
   /// Inside a pane, around its content.
-  static const wide = 16.0;
+  static const wide = Primitives.space4;
 
   /// Around something that stands on its own.
-  static const loose = 24.0;
+  static const loose = Primitives.space6;
 }
 
 /// Fixed sizes that carry a decision rather than a measurement.
@@ -44,8 +74,8 @@ abstract final class Sizes {
 /// Corner radii.
 abstract final class Radii {
   /// Inside a pane: a card, a summary, a block of output.
-  static const small = 4.0;
+  static const small = Primitives.radiusSm;
 
   /// A card that stands on its own.
-  static const medium = 8.0;
+  static const medium = Primitives.radiusMd;
 }

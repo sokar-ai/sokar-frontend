@@ -19,8 +19,8 @@ enum Home {
   /// Run where it was chosen: no single place on screen is its own.
   none,
 
-  /// The menu bar at the top of the window.
-  menuBar,
+  /// The title bar at the top of the window.
+  appBar,
 
   /// A button of its own in the machine's title.
   machineTitle,
@@ -508,35 +508,35 @@ List<Command> commandsFor({
       id: 'machines.add',
       label: 'Watch another machine…',
       group: 'Machines',
-      home: Home.menuBar,
+      home: Home.appBar,
       run: watchAnotherMachine,
     ),
     Command(
       id: 'appearance.light',
       label: 'Appearance: light',
       group: 'Options',
-      home: Home.menuBar,
+      home: Home.appBar,
       run: () => settings.setAppearance(ThemeMode.light),
     ),
     Command(
       id: 'appearance.dark',
       label: 'Appearance: dark',
       group: 'Options',
-      home: Home.menuBar,
+      home: Home.appBar,
       run: () => settings.setAppearance(ThemeMode.dark),
     ),
     Command(
       id: 'appearance.system',
       label: 'Appearance: follow the desktop',
       group: 'Options',
-      home: Home.menuBar,
+      home: Home.appBar,
       run: () => settings.setAppearance(ThemeMode.system),
     ),
     Command(
       id: 'about.show',
       label: 'About Sokar',
       group: 'About',
-      home: Home.menuBar,
+      home: Home.appBar,
       run: showAbout,
     ),
     Command(

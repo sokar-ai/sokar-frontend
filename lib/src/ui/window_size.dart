@@ -54,5 +54,6 @@ enum WindowSize {
   ///
   /// Below this the command finder carries it. Two rows of chrome over one pane is a window that
   /// is mostly not the thing somebody opened it for.
-  bool get showsMenuBar => this != WindowSize.compact;
+  /// Whether the machines stay beside what they show, or wait behind the menu button.
+  bool get showsTreeBeside => this == WindowSize.expanded || this == WindowSize.large;
 }

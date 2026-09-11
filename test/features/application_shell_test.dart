@@ -29,14 +29,16 @@ import './step/the_appearance_is.dart';
 import './step/i_choose_the_command.dart';
 import './step/the_app_is_restarted.dart';
 import './step/the_window_is_pixels_wide.dart';
+import './step/the_project_is_not_listed.dart';
+import './step/i_open_the_machines.dart';
 import './step/i_pick_in_the_finder.dart';
 import './step/the_menu_that_holds_is_open_with_it_marked.dart';
-import './step/the_menu_bar_offers.dart';
+import './step/the_title_bar_offers.dart';
+import './step/the_title_is.dart';
 import './step/the_work_is_no_longer_listed.dart';
 import './step/i_show_what_is_running.dart';
 import './step/the_work_is_dead.dart';
 import './step/i_hide_the_projects_of.dart';
-import './step/the_project_is_not_listed.dart';
 
 void main() {
   group('''Moving around the frame by keyboard and by pointer''', () {
@@ -113,12 +115,14 @@ void main() {
       await theAppIsRestarted(tester);
       await theAppearanceIs(tester, 'dark');
     });
-    testWidgets('''a narrow window keeps the rail and the machine it is on''',
+    testWidgets('''a narrow window keeps the machines behind the menu button''',
         (tester) async {
       await bddSetUp(tester);
       await theWindowIsPixelsWide(tester, 420);
-      await theProjectIsListed(tester, 'checkout');
       await theWorkPaneIsShown(tester);
+      await theProjectIsNotListed(tester, 'checkout');
+      await iOpenTheMachines(tester);
+      await theProjectIsListed(tester, 'checkout');
     });
     testWidgets(
         '''the finder goes to where an action lives and marks it there''',
@@ -130,10 +134,17 @@ void main() {
       await theMenuThatHoldsIsOpenWithItMarked(
           tester, 'Check whether this machine can run anything');
     });
-    testWidgets('''the menu bar holds only what belongs to no machine''',
+    testWidgets('''the title bar holds only what belongs to no machine''',
         (tester) async {
       await bddSetUp(tester);
-      await theMenuBarOffers(tester, 'Machines, Options, About');
+      await theTitleBarOffers(tester,
+          'Find a command (Ctrl+K), Watch another machine…, Options, About Sokar');
+    });
+    testWidgets('''the title says where you are''', (tester) async {
+      await bddSetUp(tester);
+      await theTitleIs(tester, 'this machine › Running');
+      await iSelectTheProject(tester, 'checkout');
+      await theTitleIs(tester, 'this machine › checkout');
     });
     testWidgets(
         '''a project shows its own work, and Running shows what runs in every project''',

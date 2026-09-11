@@ -37,7 +37,6 @@ import 'package:sokar_frontend/client.dart';
 import 'attention_view.dart';
 import 'command_finder.dart';
 import 'clearance_mode_view.dart';
-import 'command_menu_bar.dart';
 import 'egress_view.dart';
 import 'agents_view.dart';
 import 'authentication_view.dart';
@@ -178,6 +177,7 @@ class _ShellState extends State<Shell> {
   FleetModel get _fleet => widget.machines.fleet;
 
   final _openedFocus = FocusNode(debugLabel: 'opened');
+  final _scaffold = GlobalKey<ScaffoldState>();
   // The frame's own focus, so the keyboard works the moment the window opens and after anything
   // open over it closes.
   final _frameFocus = FocusNode(debugLabel: 'frame');
@@ -747,7 +747,7 @@ class _ShellState extends State<Shell> {
     if (chosen == null || !mounted) return;
     // Something with no single place on screen runs at once; everything else is shown where it
     // lives, so the next time it is found there.
-    if (chosen.home == Home.none || chosen.home == Home.menuBar) {
+    if (chosen.home == Home.none || chosen.home == Home.appBar) {
       chosen.run();
     } else {
       widget.shell.show(chosen.id);
@@ -803,26 +803,24 @@ class _ShellState extends State<Shell> {
           focusNode: _frameFocus,
           autofocus: true,
           child: Scaffold(
+            key: _scaffold,
+            appBar: _appBar(size, commands),
+            // Behind the menu button when the window is narrow: the work gets the width.
+            drawer: size.showsTreeBeside
+                ? null
+                : Drawer(width: 300, child: SafeArea(child: _tree(size))),
             body: SafeArea(
               child: Column(
                 children: <Widget>[
-                  if (size.showsMenuBar)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: CommandMenuBar(
-                        commands: <Command>[
-                          for (final command in commands)
-                            if (command.home == Home.menuBar) command,
-                        ],
-                      ),
-                    ),
                   if (widget.newerVersion.arrived)
                     NewerVersionBanner(onRestart: () => SystemNavigator.pop()),
                   Expanded(
                     child: Row(
                       children: <Widget>[
-                        _tree(size),
-                        const VerticalDivider(width: 1),
+                        if (size.showsTreeBeside) ...<Widget>[
+                          _tree(size),
+                          const VerticalDivider(width: 1),
+                        ],
                         Expanded(
                           child: switch (widget.shell.section) {
                             Section.attention => _needsYou(),
@@ -841,6 +839,66 @@ class _ShellState extends State<Shell> {
     );
   }
 
+  /// Where you are, and what belongs to no machine: the finder, another machine, options, about.
+  PreferredSizeWidget _appBar(WindowSize size, List<Command> commands) {
+    final machine = widget.machines.current;
+    final project = _fleet.selectedProject;
+    final title = widget.shell.section == Section.attention
+        ? 'Needs you'
+        : '${machine.name} › ${project == null ? 'Running' : project.label}';
+    return AppBar(
+      title: Text(title, key: const Key('app-title'), overflow: TextOverflow.ellipsis),
+      actions: <Widget>[
+        // With the machines behind the menu button, the stop for all of them stays in reach.
+        if (!size.showsTreeBeside)
+          IconButton(
+            key: const Key('stop-everywhere-bar'),
+            tooltip: 'Stop everything on every machine',
+            icon: Icon(Icons.pan_tool_outlined, color: Theme.of(context).colorScheme.error),
+            onPressed: _stopEverywhere,
+          ),
+        IconButton(
+          tooltip: 'Find a command (Ctrl+K)',
+          icon: const Icon(Icons.search),
+          onPressed: _openFinder,
+        ),
+        IconButton(
+          key: const Key('watch-another-machine'),
+          tooltip: 'Watch another machine…',
+          icon: const Icon(Icons.add_to_queue),
+          onPressed: _addAMachine,
+        ),
+        PopupMenuButton<String>(
+          key: const Key('options-menu'),
+          tooltip: 'Options',
+          icon: const Icon(Icons.tune),
+          onSelected: (id) {
+            for (final command in commands) {
+              if (command.id == id && command.available) command.run();
+            }
+          },
+          itemBuilder: (context) => <PopupMenuEntry<String>>[
+            for (final command in commands)
+              if (command.home == Home.appBar && command.group == 'Options')
+                PopupMenuItem<String>(value: command.id, child: Text(command.label)),
+          ],
+        ),
+        IconButton(
+          key: const Key('about'),
+          tooltip: 'About Sokar',
+          icon: const Icon(Icons.info_outline),
+          onPressed: _showAbout,
+        ),
+      ],
+    );
+  }
+
+  /// Closes the drawer the tree is in, when it is in one, before going where it was asked.
+  void _leaveDrawer() {
+    final scaffold = _scaffold.currentState;
+    if (scaffold != null && scaffold.isDrawerOpen) scaffold.closeDrawer();
+  }
+
   /// What needs a person, then every machine with its projects under it, then the stop for all.
   Widget _tree(WindowSize size) => ListenableBuilder(
     listenable: _attention,
@@ -849,19 +907,30 @@ class _ShellState extends State<Shell> {
       shell: widget.shell,
       needing: _attention.needingSomebody,
       muted: widget.notifications.muted,
-      width: size.railShowsLabels ? 280 : 220,
-      onNeedsYou: () => widget.shell.goTo(Section.attention),
-      onMachine: _openMachine,
+      width: size.railShowsLabels ? 280 : 240,
+      onNeedsYou: () {
+            _leaveDrawer();
+            widget.shell.goTo(Section.attention);
+          },
+      onMachine: (machine) {
+            _leaveDrawer();
+            _openMachine(machine);
+          },
       onToggle: (machine) => widget.shell.setExpanded(
         machine.name,
         expanded: !widget.shell.isExpanded(machine.name),
       ),
-      onRunning: _showRunning,
+      onRunning: (machine) {
+            _leaveDrawer();
+            _showRunning(machine);
+          },
       onNewProject: (machine) {
+            _leaveDrawer();
         widget.machines.select(machine);
         unawaited(_describeAProject());
       },
       onProject: (machine, project) {
+            _leaveDrawer();
         widget.machines.select(machine);
         widget.machines.of(machine).selectProject(project);
         widget.shell.goTo(Section.machine);

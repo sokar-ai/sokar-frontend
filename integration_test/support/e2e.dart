@@ -80,8 +80,6 @@ Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
 
 /// Opens the dialog that adds a machine, from the menu bar where it lives.
 Future<void> watchAnotherMachine(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(SubmenuButton, 'Machines'));
-  await pumpFor(tester);
-  await tester.tap(find.widgetWithText(MenuItemButton, 'Watch another machine…'));
+  await tester.tap(find.byTooltip('Watch another machine…'));
   await pumpFor(tester);
 }
