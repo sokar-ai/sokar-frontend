@@ -110,6 +110,74 @@ jobs:
             build/test-results.xml
             build/test-report.html
 
+  # Against a machine rented for the run: Maven leases it, the GUI tests run headless over ssh,
+  # and the sweep takes it down whether they passed or not. Not a gate for publishing: a rented
+  # machine that cannot be had is not a fault in this interface.
+  integration:
+    name: Test against a leased machine
+    runs-on: ubuntu-22.04
+    # A fork's pull request gets no secrets, and would rent nothing.
+    if: github.event_name != 'pull_request'
+    env:
+      # With GITHUB_RUN_ID this names the run, so the last step sweeps what this run leased.
+      SOKAR_CI_LEG: frontend-e2e
+      HETZNER_API: ${{ secrets.HETZNER_API }}
+      # The key as material, never written to a file: the lease and tool/e2e.sh both read it.
+      HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Install what a headless desktop test needs
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libstdc++-12-dev xvfb
+
+      # Before anything is rented, so the sweep at the end always has a tool to run.
+      - name: Resolve the machine tool
+        run: |
+          mkdir -p build
+          ./mvnw -B -q -s settings.xml -Phetzner dependency:build-classpath \
+            -Dmdep.outputFile=build/cp.txt
+
+      - name: Lease, test and sweep
+        run: |
+          set +e
+          ./mvnw -B -s settings.xml verify -Pe2e,hetzner -DskipTests
+          built=$?
+          set -e
+          dart tool/test_report.dart build/e2e-results.json build/e2e-report.html \
+            build/e2e-results.xml --heading=Integration --against="a real machine, over ssh"
+          exit $built
+
+      # The net under Maven's own sweep: whatever this run leased, whatever failed on the way.
+      - name: Sweep anything this run leased
+        if: always()
+        run: |
+          test -s build/cp.txt || { echo "::warning::the machine tool was never resolved"; exit 0; }
+          java -cp "$(cat build/cp.txt)" org.fuin.sokar.machines.Main sweep --mine
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: integration-reports
+          path: |
+            build/e2e-results.xml
+            build/e2e-report.html
+
   installs:
     name: Prove the packages install
     needs: build
