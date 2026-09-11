@@ -99,6 +99,11 @@ in full at the top of the IDL:
 
 The build version from `GetInfo` is for display and bug reports. Never gate a feature on it.
 
+**Until the first release the IDL's compatibility rules are not in force** (the operator's ruling,
+2026-09-11). A method may be renamed, removed or given a new meaning in place, but only after both
+sides agree on the channel, and both change together. The three rules above for reading a reply
+still hold; the exemption ends when the interface is frozen by the first release.
+
 ## Code
 
 - **Dart 3.13, Flutter 3.47 stable.** Pinned in `pubspec.yaml`.
