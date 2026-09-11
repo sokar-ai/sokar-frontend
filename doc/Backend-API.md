@@ -124,6 +124,10 @@ Two things worth knowing before designing around them:
   from when the question was asked rather than from `at`: `at` is when the connection was blocked,
   and a watcher that has fallen behind would otherwise send a deadline already past. `at` and
   `prefix` were declared and not sent on an open question until 2026-09-11; all three travel now.
+  **The deadline belongs to the question, not to the packet:** a dropped connection is retried, so
+  the same destination arrives again while one question is open - `at` moves with each event, the
+  deadline does not. Proved against a real blocked connection on 2026-09-11: four events for one
+  destination, one deadline, and `""` on the verdict that ended it.
 - **`Prompts` streams the answer too.** A settled prompt arrives again with `verdict` set, and
   `"timeout"` is the only way a client learns one expired. Match it to the question by `task` and
   `key`; the other fields deliberately differ between the two events.
