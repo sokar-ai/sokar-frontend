@@ -15,6 +15,7 @@ import './step/i_start_watching_another_machine.dart';
 import './step/i_choose.dart';
 import './step/i_say_it_is_called.dart';
 import './step/i_say_it_is_at.dart';
+import './step/its_socket_there_is.dart';
 import './step/i_watch_it.dart';
 import './step/i_switch_to_the_machine.dart';
 import './step/the_session_prints.dart';
@@ -64,6 +65,7 @@ void main() {
       await iChoose(tester, 'Raise the forward for me');
       await iSayItIsCalled(tester, 'the build machine');
       await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
       await iWatchIt(tester);
       await iSwitchToTheMachine(tester, 'the build machine');
       await iSelectTheProject(tester, 'billing');
@@ -202,6 +204,7 @@ void main() {
       await iChoose(tester, 'Raise the forward for me');
       await iSayItIsCalled(tester, 'the build machine');
       await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
       await iWatchIt(tester);
       await iSwitchToTheMachine(tester, 'the build machine');
       await iSelectTheProject(tester, 'billing');

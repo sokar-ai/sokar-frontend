@@ -84,12 +84,14 @@ class Machine {
   /// Under the runtime directory, which is the one place already owner-only — the criterion that
   /// the endpoint is readable by nobody else is answered by where it is put, not by what is done
   /// to it afterwards.
+  /// What [name] becomes in a path. Two names that differ only in what this replaces share a forward.
+  static String slug(String name) => name.replaceAll(RegExp('[^A-Za-z0-9_-]'), '-');
+
   static String endpointFor(String name, {Map<String, String>? environment}) {
     final env = environment ?? Platform.environment;
     final runtime = env['XDG_RUNTIME_DIR'] ??
         '/run/user/${Process.runSync('id', const <String>['-u']).stdout.toString().trim()}';
-    final safe = name.replaceAll(RegExp('[^A-Za-z0-9_-]'), '-');
-    return '$runtime/sokar-tunnel-$safe.sock';
+    return '$runtime/sokar-tunnel-${slug(name)}.sock';
   }
 
   /// Whether the socket is readable by anybody but its owner.

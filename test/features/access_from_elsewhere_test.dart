@@ -27,6 +27,10 @@ import './step/i_open_the_machine_list.dart';
 import './step/the_machine_is_shown_as_the_same_node_as.dart';
 import './step/no_machine_is_shown_as_the_same_node.dart';
 import './step/no_machine_can_say_which_node_it_is.dart';
+import './step/i_say_it_is_called.dart';
+import './step/i_leave_the_name_field.dart';
+import './step/the_name_is_marked_as_taken_by.dart';
+import './step/the_machine_cannot_be_watched_yet.dart';
 
 void main() {
   group('''Watching several machines at once, and telling nodes apart''', () {
@@ -58,7 +62,7 @@ void main() {
       await iNameTheSocket(tester, '/tmp/sokar-elsewhere.sock');
       await iCopyTheForwardingCommand(tester);
       await whatWasCopiedIs(tester,
-          'ssh -L /tmp/sokar-elsewhere.sock:/run/user/1001/sokar/sokard.sock user@host -N');
+          'ssh -L /tmp/sokar-elsewhere.sock:/run/user/<uid>/sokar/sokard.sock user@host -N');
     });
     testWidgets(
         '''every machine is watched at once, not only the one being acted on''',
@@ -110,6 +114,26 @@ void main() {
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
       await iOpenTheMachineList(tester);
       await noMachineIsShownAsTheSameNode(tester);
+    });
+    testWidgets(
+        '''a name already watched is marked when the field is left, and nothing is added''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iSayItIsCalled(tester, 'this machine');
+      await iLeaveTheNameField(tester);
+      await iNameTheSocket(tester, '/tmp/sokar-second.sock');
+      await theNameIsMarkedAsTakenBy(tester, 'this machine');
+      await theMachineCannotBeWatchedYet(tester);
+    });
+    testWidgets(
+        '''two names that would share one forward count as the same name''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iSayItIsCalled(tester, 'this-machine');
+      await iLeaveTheNameField(tester);
+      await theNameIsMarkedAsTakenBy(tester, 'this machine');
     });
   });
 }

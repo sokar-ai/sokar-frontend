@@ -11,6 +11,7 @@ import './step/i_start_watching_another_machine.dart';
 import './step/i_choose.dart';
 import './step/i_say_it_is_called.dart';
 import './step/i_say_it_is_at.dart';
+import './step/its_socket_there_is.dart';
 import './step/i_watch_it.dart';
 import './step/the_forward_was_raised_for.dart';
 import './step/the_machine_says_the_forward_is_raised_here.dart';
@@ -24,6 +25,7 @@ import './step/the_machine_says.dart';
 import './step/i_close_the_interface.dart';
 import './step/no_forward_this_interface_raised_is_still_running.dart';
 import './step/nothing_was_torn_down_for.dart';
+import './step/its_socket_there_is_not_filled_in.dart';
 
 void main() {
   group('''Raising and dropping the forward that reaches a machine''', () {
@@ -41,6 +43,7 @@ void main() {
       await iChoose(tester, 'Raise the forward for me');
       await iSayItIsCalled(tester, 'the build machine');
       await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
       await iWatchIt(tester);
       await theForwardWasRaisedFor(tester, 'the build machine');
       await theMachineSaysTheForwardIsRaisedHere(tester, 'the build machine');
@@ -70,6 +73,7 @@ void main() {
       await iChoose(tester, 'Raise the forward for me');
       await iSayItIsCalled(tester, 'the build machine');
       await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
       await iWatchIt(tester);
       await theMachineSays(
           tester, 'the build machine', 'Host key verification failed.');
@@ -82,6 +86,7 @@ void main() {
       await iChoose(tester, 'Raise the forward for me');
       await iSayItIsCalled(tester, 'the build machine');
       await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
       await iWatchIt(tester);
       await iCloseTheInterface(tester);
       await noForwardThisInterfaceRaisedIsStillRunning(tester);
@@ -93,6 +98,14 @@ void main() {
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
       await iCloseTheInterface(tester);
       await nothingWasTornDownFor(tester, 'elsewhere');
+    });
+    testWidgets(
+        '''the socket on the other machine is asked for, never guessed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iChoose(tester, 'Raise the forward for me');
+      await itsSocketThereIsNotFilledIn(tester);
     });
   });
 }

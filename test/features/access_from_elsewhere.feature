@@ -20,7 +20,7 @@ Feature: Watching several machines at once, and telling nodes apart
     When I start watching another machine
     And I name the socket {'/tmp/sokar-elsewhere.sock'}
     And I copy the forwarding command
-    Then what was copied is {'ssh -L /tmp/sokar-elsewhere.sock:/run/user/1001/sokar/sokard.sock user@host -N'}
+    Then what was copied is {'ssh -L /tmp/sokar-elsewhere.sock:/run/user/<uid>/sokar/sokard.sock user@host -N'}
 
   Scenario: every machine is watched at once, not only the one being acted on
     When I watch another machine called {'elsewhere'}
@@ -60,3 +60,19 @@ Feature: Watching several machines at once, and telling nodes apart
     When I watch another machine called {'elsewhere'}
     And I open the machine list
     Then no machine is shown as the same node
+
+  # The socket is filled in, so the name is the only thing left that can keep the button off.
+  Scenario: a name already watched is marked when the field is left, and nothing is added
+    When I start watching another machine
+    And I say it is called {'this machine'}
+    And I leave the name field
+    And I name the socket {'/tmp/sokar-second.sock'}
+    Then the name is marked as taken by {'this machine'}
+    And the machine cannot be watched yet
+
+  # Both names become the same local socket, so they would share one forward.
+  Scenario: two names that would share one forward count as the same name
+    When I start watching another machine
+    And I say it is called {'this-machine'}
+    And I leave the name field
+    Then the name is marked as taken by {'this machine'}

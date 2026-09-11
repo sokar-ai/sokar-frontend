@@ -18,6 +18,7 @@ Feature: Working inside a container by hand, locally or over ssh
     And I choose {'Raise the forward for me'}
     And I say it is called {'the build machine'}
     And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
     And I watch it
     And I switch to the machine {'the build machine'}
     And I select the project {'billing'}
@@ -135,6 +136,7 @@ Feature: Working inside a container by hand, locally or over ssh
     And I choose {'Raise the forward for me'}
     And I say it is called {'the build machine'}
     And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
     And I watch it
     And I switch to the machine {'the build machine'}
     And I select the project {'billing'}

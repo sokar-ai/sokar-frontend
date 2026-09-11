@@ -12,6 +12,7 @@ Feature: Raising and dropping the forward that reaches a machine
     And I choose {'Raise the forward for me'}
     And I say it is called {'the build machine'}
     And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
     And I watch it
     Then the forward was raised for {'the build machine'}
     And the machine {'the build machine'} says the forward is raised here
@@ -32,6 +33,7 @@ Feature: Raising and dropping the forward that reaches a machine
     And I choose {'Raise the forward for me'}
     And I say it is called {'the build machine'}
     And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
     And I watch it
     Then the machine {'the build machine'} says {'Host key verification failed.'}
 
@@ -40,6 +42,7 @@ Feature: Raising and dropping the forward that reaches a machine
     And I choose {'Raise the forward for me'}
     And I say it is called {'the build machine'}
     And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
     And I watch it
     And I close the interface
     Then no forward this interface raised is still running
@@ -48,3 +51,8 @@ Feature: Raising and dropping the forward that reaches a machine
     When I watch another machine called {'elsewhere'}
     And I close the interface
     Then nothing was torn down for {'elsewhere'}
+
+  Scenario: the socket on the other machine is asked for, never guessed
+    When I start watching another machine
+    And I choose {'Raise the forward for me'}
+    Then its socket there is not filled in

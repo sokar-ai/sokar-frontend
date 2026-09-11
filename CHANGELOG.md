@@ -50,3 +50,6 @@ distribution, so an entry below has reached an operator only if they follow that
   else forwarded. It ran the local `sokar` against a task on another machine.
 - A machine whose forward reaches no daemon now reads as not answering. The connection failed
   with an error nothing handled.
+- A machine added under a name already watched, or one that would share its forward, is
+  refused in the dialog instead of being silently dropped. The socket on the other machine is
+  no longer prefilled with a guessed uid.

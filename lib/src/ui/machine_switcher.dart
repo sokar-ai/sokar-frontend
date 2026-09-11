@@ -169,14 +169,18 @@ class _Reach extends StatelessWidget {
 /// is opened exactly as it always was — that path has no credential handling in it at all and
 /// must keep working untouched. A machine described by where it *is* has its forward raised here,
 /// supervised, and taken down when the window closes.
-Future<Machine?> askForAMachine(BuildContext context) =>
+Future<Machine?> askForAMachine(BuildContext context,
+        {Iterable<String> taken = const <String>[]}) =>
     showDialog<Machine>(
       context: context,
-      builder: (context) => const _AskForAMachine(),
+      builder: (context) => _AskForAMachine(taken: taken.toList()),
     );
 
 class _AskForAMachine extends StatefulWidget {
-  const _AskForAMachine();
+  const _AskForAMachine({required this.taken});
+
+  /// The names already watched. A second with the same name would never be added.
+  final List<String> taken;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -186,7 +190,11 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   final _name = TextEditingController();
   final _socket = TextEditingController();
   final _host = TextEditingController();
-  final _remote = TextEditingController(text: '/run/user/1000/sokar/sokard.sock');
+  // Empty, never prefilled: the uid is the other machine's, and a guess nobody corrects looks like a
+  // machine that never answers.
+  final _remote = TextEditingController();
+  final _nameFocus = FocusNode();
+  bool _nameLeft = false;
 
   /// Whether this interface raises the forward. **Nothing is preselected**: the two are different
   /// commitments — one of them starts a process and owns it — and a default would make that
@@ -203,6 +211,20 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     for (final field in <TextEditingController>[_name, _socket, _host, _remote]) {
       field.addListener(() => setState(() {}));
     }
+    // Marked once somebody moves on from the name, not while they are still typing it.
+    _nameFocus.addListener(() {
+      if (!_nameFocus.hasFocus && !_nameLeft) setState(() => _nameLeft = true);
+    });
+  }
+
+  /// Which watched machine already has this name, or one that would share its forward.
+  String? get _takenBy {
+    final wanted = Machine.slug(_name.text.trim());
+    if (wanted.isEmpty) return null;
+    for (final each in widget.taken) {
+      if (Machine.slug(each) == wanted) return each;
+    }
+    return null;
   }
 
   /// The line that forwards the socket, with the local end filled in.
@@ -210,7 +232,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     final local = _socket.text.trim().isEmpty
         ? '/tmp/sokard-remote.sock'
         : _socket.text.trim();
-    return 'ssh -L $local:/run/user/1001/sokar/sokard.sock user@host -N';
+    return 'ssh -L $local:/run/user/<uid>/sokar/sokard.sock user@host -N';
   }
 
   @override
@@ -223,13 +245,24 @@ class _AskForAMachineState extends State<_AskForAMachine> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                TextField(
-                  controller: _name,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'What to call it',
-                    hintText: 'the build machine',
-                    border: OutlineInputBorder(),
+                // Always a tooltip, shown only when it has something to say: toggling the wrapper
+                // would rebuild the field and take the cursor out of it mid-word.
+                TooltipVisibility(
+                  visible: _takenBy != null,
+                  child: Tooltip(
+                    message: 'A machine called ${_takenBy ?? ''} is already watched',
+                    child: TextField(
+                      key: const Key('machine-name'),
+                      controller: _name,
+                      focusNode: _nameFocus,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'What to call it',
+                        hintText: 'the build machine',
+                        errorText: _nameLeft && _takenBy != null ? 'Already taken' : null,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: Space.wide),
@@ -284,6 +317,8 @@ class _AskForAMachineState extends State<_AskForAMachine> {
                     key: const Key('machine-remote-socket'),
                     decoration: const InputDecoration(
                       labelText: 'Its socket, on that machine',
+                      hintText: '/run/user/<uid>/sokar/sokard.sock',
+                      helperText: 'The uid is that of the user you log in as, on that machine.',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -329,7 +364,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
       );
 
   bool get _ready {
-    if (_name.text.trim().isEmpty || _raiseIt == null) return false;
+    if (_name.text.trim().isEmpty || _raiseIt == null || _takenBy != null) return false;
     return _raiseIt!
         ? _host.text.trim().isNotEmpty && _remote.text.trim().isNotEmpty
         : _socket.text.trim().isNotEmpty;
@@ -358,6 +393,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     _socket.dispose();
     _host.dispose();
     _remote.dispose();
+    _nameFocus.dispose();
     super.dispose();
   }
 }
