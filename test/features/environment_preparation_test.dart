@@ -14,6 +14,7 @@ import './step/the_build_asked_for.dart';
 import './step/nothing_was_started.dart';
 import './step/it_says.dart';
 import './step/the_operation_shows.dart';
+import './step/i_close_what_is_open.dart';
 import './step/the_project_is_listed.dart';
 import './step/the_next_build_will_fail.dart';
 import './step/i_show_what_this_session_has_run.dart';
@@ -63,6 +64,7 @@ void main() {
       await iBuildTheEnvironmentForThisProject(tester);
       await iChooseToBuild(tester, 'what changed');
       await theOperationShows(tester, 'STEP 4/6: RUN apt-get install -y git');
+      await iCloseWhatIsOpen(tester);
       await theProjectIsListed(tester, 'checkout');
     });
     testWidgets(

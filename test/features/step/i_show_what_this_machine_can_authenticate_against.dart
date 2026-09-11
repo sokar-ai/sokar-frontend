@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/tiles.dart';
 import '../support/world.dart';
 import 'i_open_the_command_finder.dart';
 
@@ -13,4 +14,5 @@ Future<void> iShowWhatThisMachineCanAuthenticateAgainst(WidgetTester tester) asy
   await tester.tap(find.widgetWithText(
       ListTile, 'Show what this machine can authenticate against'));
   await World.settle(tester);
+  await followTheFinder(tester);
 }

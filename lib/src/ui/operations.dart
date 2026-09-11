@@ -15,11 +15,19 @@ class OperationsList extends StatelessWidget {
     required this.operations,
     required this.focusNode,
     required this.onOpen,
+    this.machine,
+    this.onClose,
     super.key,
   });
 
   /// Everything started in this session.
   final Operations operations;
+
+  /// The machine whose operations are listed, or null for all of them.
+  final String? machine;
+
+  /// Puts the list away, or null where it is not over anything.
+  final VoidCallback? onClose;
 
   /// This view's keyboard focus.
   final FocusNode focusNode;
@@ -29,15 +37,22 @@ class OperationsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final all = operations.all;
+    final all = machine == null
+        ? operations.all
+        : operations.all.where((each) => each.machine == machine).toList();
     return Column(
       children: <Widget>[
         PaneHeader(
-          title: 'This session',
-          trailing: operations.running == 0
+          title: machine == null
+              ? 'This session'
+              : 'What this session ran on $machine',
+          trailing: onClose == null
               ? null
-              : Text('${operations.running} running',
-                  style: Theme.of(context).textTheme.labelMedium),
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Close (Esc)',
+                  onPressed: onClose,
+                ),
         ),
         Expanded(
           child: SelectionList<Operation>(
@@ -48,7 +63,8 @@ class OperationsList extends StatelessWidget {
             onActivate: onOpen,
             focusNode: focusNode,
             emptyMessage: 'Nothing has been run from here yet.',
-            rowOf: (context, operation, selected) => _OperationRow(operation: operation),
+            rowOf: (context, operation, selected) =>
+                _OperationRow(operation: operation),
           ),
         ),
       ],
@@ -63,24 +79,24 @@ class _OperationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: <Widget>[
-          OperationMark(operation: operation),
-          const SizedBox(width: Space.small),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(operation.title, style: Theme.of(context).textTheme.bodyLarge),
-                Text(
-                  '${_at(operation.startedAt)} · ${operation.summary}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+    children: <Widget>[
+      OperationMark(operation: operation),
+      const SizedBox(width: Space.small),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(operation.title, style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              '${_at(operation.startedAt)} · ${operation.summary}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-          ),
-          const Icon(Icons.chevron_right, size: Sizes.rowIcon),
-        ],
-      );
+          ],
+        ),
+      ),
+      const Icon(Icons.chevron_right, size: Sizes.rowIcon),
+    ],
+  );
 
   static String _at(DateTime time) =>
       '${time.hour.toString().padLeft(2, '0')}:'
@@ -157,7 +173,10 @@ class _OperationOutputViewState extends State<OperationOutputView> {
                     itemCount: operation.output.length,
                     itemBuilder: (context, index) => SelectableText(
                       operation.output[index],
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -196,11 +215,13 @@ class _Summary extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      color: operation.failed ? scheme.errorContainer : scheme.surfaceContainerHighest,
+      color: operation.failed
+          ? scheme.errorContainer
+          : scheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(
-                      horizontal: Space.normal,
-                      vertical: Space.small,
-                    ),
+        horizontal: Space.normal,
+        vertical: Space.small,
+      ),
       child: Row(
         children: <Widget>[
           OperationMark(operation: operation),

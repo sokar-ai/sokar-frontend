@@ -20,10 +20,9 @@ Feature: Moving around the frame by keyboard and by pointer
     Then the detail for {'sokar-checkout-shell'} is shown
 
   Scenario: the frame is worked from the keyboard with no pointer at all
-    When I press the down arrow
+    When I move the keyboard to the project {'billing'}
+    And I press enter
     Then the project {'billing'} is selected
-    When I press the down arrow
-    Then the project {'checkout'} is selected
 
   Scenario: closing a detail comes back with the same selection still made
     When I select the project {'checkout'}
@@ -41,7 +40,7 @@ Feature: Moving around the frame by keyboard and by pointer
     And the command {'Open the selected work'} is offered as unavailable
 
   Scenario: every action is reachable with a pointer alone
-    When I open the menu {'View'}
+    When I open the menu {'Options'}
     And I choose the menu entry {'Appearance: dark'}
     Then the appearance is {'dark'}
 
@@ -55,7 +54,23 @@ Feature: Moving around the frame by keyboard and by pointer
     When the app is restarted
     Then the appearance is {'dark'}
 
-  Scenario: a window too narrow for two panes shows one at a time
-    When the window is {360} pixels wide
+  Scenario: a narrow window keeps the rail and the machine it is on
+    When the window is {420} pixels wide
     Then the project {'checkout'} is listed
-    And the work pane is not shown
+    And the work pane is shown
+
+  # The finder teaches where things are: it goes there and marks the action, rather than running it
+  # from nowhere.
+  Scenario: the finder goes to where an action lives and marks it there
+    When I open the command finder
+    And I pick {'Check whether this machine can run anything'} in the finder
+    Then the menu that holds {'Check whether this machine can run anything'} is open with it marked
+
+  Scenario: the menu bar holds only what belongs to no machine
+    Then the menu bar offers {'Machines, Options, About'}
+
+  Scenario: a project card narrows the work to it, and a second tap widens it back
+    When I tap the project {'checkout'}
+    Then the work {'sokar-billing-shell'} is no longer listed
+    When I tap the project {'checkout'}
+    Then the work {'sokar-billing-shell'} is listed

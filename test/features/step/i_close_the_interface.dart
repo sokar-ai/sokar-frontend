@@ -6,9 +6,9 @@ import 'i_ask_to_close_it.dart';
 
 /// Usage: I close the interface
 Future<void> iCloseTheInterface(WidgetTester tester) async {
-  // Asking and agreeing, because closing is what takes a forward down and there is no other way
-  // to reach that path.
+  // Asking and agreeing, because closing is what takes a forward down.
   await iAskToCloseIt(tester);
   await tester.tap(find.widgetWithText(FilledButton, 'Close it'));
   await World.settle(tester);
+  await World.closing;
 }

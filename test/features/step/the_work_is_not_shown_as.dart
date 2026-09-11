@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'the_work_is_shown_as.dart';
+import '../support/tiles.dart';
 
 /// Usage: the work {'sokar-checkout-shell'} is not shown as {'idle'}
 Future<void> theWorkIsNotShownAs(

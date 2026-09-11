@@ -56,3 +56,14 @@ Feature: Stopping everything on a machine, and naming what survives
     When I ask to stop everything
     Then it does not claim everything will stop cleanly
 
+  Scenario: the stop for every machine is on the rail, and it asks first
+    When I ask to stop everything on every machine
+    Then nothing has been stopped
+    And it says {'Stop everything on every machine?'}
+
+  Scenario: agreeing stops every machine, and says what survived on each
+    When I watch another machine called {'elsewhere'}
+    And I ask to stop everything on every machine
+    And I agree to stop everything everywhere
+    Then every machine was stopped
+    And it says {'Nothing was removed'}

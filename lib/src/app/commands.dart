@@ -14,6 +14,39 @@ import 'start_work.dart';
 import 'templates.dart';
 import 'widening.dart';
 
+/// Where an action lives on screen, so the finder can go there and show it.
+enum Home {
+  /// Run where it was chosen: no single place on screen is its own.
+  none,
+
+  /// The menu bar at the top of the window.
+  menuBar,
+
+  /// A button of its own in the machine's title.
+  machineTitle,
+
+  /// The menu in the machine's title.
+  machineMenu,
+
+  /// The menu on the selected project's card.
+  projectMenu,
+
+  /// The card that describes a new project.
+  newProject,
+
+  /// The tile that starts work.
+  startTile,
+
+  /// A named job's own tile.
+  templateTile,
+
+  /// The menu on the selected work's tile.
+  tileMenu,
+
+  /// The machine's status line.
+  statusLine,
+}
+
 /// One action in the product, by name.
 ///
 /// Everything the interface can do is declared here rather than only wired to a widget, for two
@@ -29,6 +62,7 @@ class Command {
     required this.run,
     this.shortcut,
     this.unavailable,
+    this.home = Home.none,
   });
 
   /// Stable identifier, used to route a keystroke to this command.
@@ -52,8 +86,25 @@ class Command {
   /// no such action" when the truth is "not yet, and here is what is missing".
   final String? unavailable;
 
+  /// Where it lives on screen.
+  final Home home;
+
   /// Whether it can be run now.
   bool get available => unavailable == null;
+
+  /// The same command, doing [first] before it runs.
+  Command after(VoidCallback first) => Command(
+    id: id,
+    label: label,
+    group: group,
+    shortcut: shortcut,
+    unavailable: unavailable,
+    home: home,
+    run: () {
+      first();
+      run();
+    },
+  );
 }
 
 /// Every action in the product, in the order the finder should offer them.
@@ -74,73 +125,135 @@ List<Command> workCommands({
   required void Function(Task task) askToRemove,
   required void Function(Task task) askWhichLog,
   required void Function(Task task) openSession,
+  required void Function(Task task) continueTheWork,
+  required void Function(Task task) recreate,
+  required void Function(Task task) nameTheWork,
+  required void Function(Task task) widenTheWork,
+  required void Function(Task task) enforceOnTheWork,
+  required void Function(Task task) narrowTheWork,
 }) {
   const nothingSelected = 'no work is selected';
   return <Command>[
     Command(
       id: 'work.resume',
-      label: task?.startAction == StartAction.create ? 'Start it' : 'Start it again',
+      label: task?.startAction == StartAction.create
+          ? 'Start it'
+          : 'Start it again',
       group: 'Work',
+      home: Home.tileMenu,
       run: () => fleet.startAgain(task!),
       // The machine says beforehand what Start would do, so a refusal is never found by pressing.
       unavailable: task == null
           ? nothingSelected
           : whyNotStart(task) ??
-              (task.task.isEmpty
-                  ? 'the machine does not say its name within the project'
-                  : fleet.projectFileOf(task) == null
-                      ? 'nothing here knows where its project file is'
-                      : null),
+                (task.task.isEmpty
+                    ? 'the machine does not say its name within the project'
+                    : fleet.projectFileOf(task) == null
+                    ? 'nothing here knows where its project file is'
+                    : null),
     ),
     Command(
       id: 'work.stop',
       label: 'Stop it, keeping its workspace',
       group: 'Work',
+      home: Home.tileMenu,
       run: () => fleet.stopWork(task!.name),
       unavailable: task == null
           ? nothingSelected
           : task.running
-              ? null
-              : 'it is not running',
-    ),
-    Command(
-      id: 'work.remove',
-      label: 'Remove it',
-      group: 'Work',
-      run: () => askToRemove(task!),
-      unavailable: task == null ? nothingSelected : null,
+          ? null
+          : 'it is not running',
     ),
     Command(
       id: 'work.session',
       label: 'Work in it by hand',
       group: 'Work',
+      home: Home.tileMenu,
       run: () => openSession(task!),
       // **Both reasons are answerable from the task itself**, so this is offered as unavailable
-      // with the reason rather than offered and refused. Sokar refuses the same two cases with
-      // exit 69, and finding that out by pressing something is the worse way to learn it.
-      unavailable:
-          task == null ? nothingSelected : Sessions.whyNot(task, machine)?.words,
+      // with the reason rather than offered and refused.
+      unavailable: task == null
+          ? nothingSelected
+          : Sessions.whyNot(task, machine)?.words,
     ),
     Command(
       id: 'work.log',
       label: 'Read one of its logs',
       group: 'Work',
+      home: Home.tileMenu,
       run: () => askWhichLog(task!),
       unavailable: task == null ? nothingSelected : null,
     ),
     Command(
-      id: 'work.recreate',
-      label: 'Recreate it from scratch, to pick up a newly built environment',
+      id: 'work.continue',
+      label: 'Continue this work with a new prompt',
       group: 'Work',
-      run: () {},
-      // Stop then Start, and Start needs the path to the project file. Nothing maps the project
-      // name a task carries to that path. See doc/Contract-Gaps.md.
-      unavailable: 'the backend cannot say where a project file is',
+      home: Home.tileMenu,
+      run: () => continueTheWork(task!),
+      // Three separate reasons, each said rather than collapsed into "not now".
+      unavailable: StartWork.whyNotContinue(task),
+    ),
+    Command(
+      id: 'work.widen',
+      label: 'Let this work reach something new',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => widenTheWork(task!),
+      // Both refusals the daemon would give are knowable here, so they are said, not discovered.
+      unavailable: Widening.whyNot(task),
+    ),
+    Command(
+      id: 'work.narrow',
+      label: 'Take something back from this work',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => narrowTheWork(task!),
+      unavailable: Narrowing.whyNot(task),
+    ),
+    Command(
+      id: 'work.enforcement',
+      label: 'Change what this work does with a blocked connection',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => enforceOnTheWork(task!),
+      unavailable: task == null
+          ? nothingSelected
+          : !task.running
+          ? 'it is not running, and there is nothing to change'
+          : null,
+    ),
+    Command(
+      id: 'work.label',
+      label: task != null && task.label.isNotEmpty
+          ? 'Change what this work reads as'
+          : 'Give this work something to read by',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => nameTheWork(task!),
+      unavailable: task == null ? nothingSelected : null,
+    ),
+    Command(
+      id: 'work.recreate',
+      label: 'Recreate it, so it picks up a newly built environment',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => recreate(task!),
+      // A stopped task is recreated as readily as a running one, and that is often when it is.
+      unavailable: task == null ? nothingSelected : null,
+    ),
+    Command(
+      id: 'work.remove',
+      label: 'Remove it',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => askToRemove(task!),
+      unavailable: task == null ? nothingSelected : null,
     ),
     Command(
       id: 'work.rename',
       label: 'Rename it',
       group: 'Work',
+      home: Home.tileMenu,
       run: () {},
       unavailable: 'the backend has no method for renaming work',
     ),
@@ -153,19 +266,202 @@ String? whyNotStart(Task task) {
   return switch (task.startAction) {
     StartAction.create || StartAction.resume => null,
     StartAction.running => 'it is already running',
-    StartAction.needsVault => 'the vault is locked; unlock it and this can start',
-    StartAction.supersededName => 'its name is from before one container per task, so it can '
-        'only be removed${detail.isEmpty ? '' : ' (it belonged to $detail)'}',
+    StartAction.needsVault =>
+      'the vault is locked; unlock it and this can start',
+    StartAction.supersededName =>
+      'its name is from before one container per task, so it can '
+          'only be removed${detail.isEmpty ? '' : ' (it belonged to $detail)'}',
     StartAction.notReady =>
-      detail.isEmpty ? 'its project is not ready' : 'its project is not ready: $detail',
+      detail.isEmpty
+          ? 'its project is not ready'
+          : 'its project is not ready: $detail',
     // A daemon too old to say, or a value this build does not know: the runtime's answer decides.
     _ => task.running ? 'it is already running' : null,
   };
 }
 
+/// What one project can be told to do, on its card and in the finder.
+///
+/// Judged for [project] itself, so a card that is not the selected one offers what is true of it.
+List<Command> projectCommands({
+  required ProjectOnScreen? project,
+  required FleetModel fleet,
+  required Notifications notifications,
+  required VoidCallback openTheGate,
+  required VoidCallback openEgress,
+  required VoidCallback prepareTheProject,
+  required VoidCallback syncTheUpstream,
+  required VoidCallback showTheBackups,
+  required VoidCallback checkWorkCanStart,
+  required VoidCallback removeWhatWasBuilt,
+}) {
+  const nothing = 'no project selected';
+  final noFile = project == null
+      ? nothing
+      : project.canBeActedOn
+      ? null
+      : 'no project file is recorded for ${project.name}';
+  return <Command>[
+    Command(
+      id: 'gate.open',
+      label: 'Review what is waiting at the gate',
+      group: 'Project',
+      home: Home.projectMenu,
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyG, control: true),
+      run: openTheGate,
+      unavailable: noFile,
+    ),
+    Command(
+      id: 'egress.open',
+      label: 'Change what this project may reach',
+      group: 'Project',
+      home: Home.projectMenu,
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyE, control: true),
+      run: openEgress,
+      unavailable:
+          noFile ??
+          (project!.project.securityClass == 'offline'
+              // An offline project declares no egress at all, and the daemon refuses it.
+              ? 'an offline project declares no egress at all'
+              : null),
+    ),
+    Command(
+      id: 'project.prepare',
+      label: 'Build the environment for this project',
+      group: 'Project',
+      home: Home.projectMenu,
+      run: prepareTheProject,
+      // `Prepare` takes the project file, unlike removing what was built, which takes the name.
+      unavailable: noFile,
+    ),
+    Command(
+      id: 'project.sync',
+      label: 'Ask the upstream how far behind this project is',
+      group: 'Project',
+      home: Home.projectMenu,
+      run: syncTheUpstream,
+      unavailable: project == null ? nothing : null,
+    ),
+    Command(
+      id: 'project.backups',
+      label: 'Show what has been backed up here',
+      group: 'Project',
+      home: Home.projectMenu,
+      run: showTheBackups,
+      unavailable: project == null ? nothing : null,
+    ),
+    Command(
+      id: 'work.check',
+      // `Start(dryRun:)` reports what the project file opens and returns; it is no rehearsal.
+      label: 'Show what this project would open, creating nothing',
+      group: 'Project',
+      home: Home.projectMenu,
+      run: checkWorkCanStart,
+      unavailable: fleet.reachability != Reachability.connected
+          ? 'not connected to a backend'
+          : noFile,
+    ),
+    Command(
+      id: 'notifications.mute',
+      label: project != null && notifications.mutedFor(project.name)
+          ? 'Tell me about ${project.name} again'
+          : 'Stop telling me about this project',
+      group: 'Project',
+      home: Home.projectMenu,
+      run: () => notifications.setMuted(
+        project!.name,
+        muted: !notifications.mutedFor(project.name),
+      ),
+      unavailable: project == null ? nothing : null,
+    ),
+    Command(
+      id: 'project.delete',
+      label: 'Remove what Sokar built for this project',
+      group: 'Project',
+      home: Home.projectMenu,
+      run: removeWhatWasBuilt,
+      // **Takes the name, not the file**, so a project whose file is gone can still be cleared.
+      unavailable: project == null ? nothing : null,
+    ),
+  ];
+}
+
+/// What one machine can be told to do, from the menu in its title.
+List<Command> machineCommands({
+  required FleetModel fleet,
+  required bool canForget,
+  required VoidCallback checkTheMachine,
+  required VoidCallback showTheProviders,
+  required VoidCallback showTheVault,
+  required VoidCallback showAgents,
+  required VoidCallback forget,
+}) {
+  final notConnected = fleet.reachability == Reachability.connected
+      ? null
+      : 'not connected to a backend';
+  return <Command>[
+    Command(
+      id: 'machine.doctor',
+      label: 'Check whether this machine can run anything',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: checkTheMachine,
+    ),
+    Command(
+      id: 'machine.providers',
+      label: 'Show what this machine can authenticate against',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: showTheProviders,
+    ),
+    Command(
+      id: 'vault.show',
+      label: 'Show the protected store',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: showTheVault,
+      unavailable: notConnected,
+    ),
+    Command(
+      id: 'agents.show',
+      label: 'Show the agents installed here',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: showAgents,
+      unavailable: notConnected,
+    ),
+    Command(
+      id: 'fleet.refresh',
+      label: 'Refresh from the backend',
+      group: 'Machine',
+      home: Home.machineMenu,
+      shortcut: const SingleActivator(LogicalKeyboardKey.f5),
+      run: fleet.refresh,
+    ),
+    Command(
+      id: 'fleet.reconnect',
+      label: 'Reconnect to the backend',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: fleet.connect,
+    ),
+    Command(
+      id: 'machine.forget',
+      label: 'Forget this machine',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: forget,
+      // Never the last one: a frame with no machine behind it has nothing to say.
+      unavailable: canForget ? null : 'it is the only machine watched',
+    ),
+  ];
+}
+
+/// Every action, for the finder, the menu bar and the keyboard, each with where it lives.
 List<Command> commandsFor({
   required FleetModel fleet,
   required Machine machine,
+  required bool canForget,
   required ShellModel shell,
   required Settings settings,
   required Operations operations,
@@ -176,6 +472,13 @@ List<Command> commandsFor({
   required void Function(Task task) askToRemove,
   required void Function(Task task) askWhichLog,
   required void Function(Task task) openSession,
+  required VoidCallback openDetail,
+  required void Function(Task task) continueTheWork,
+  required void Function(Task task) recreate,
+  required void Function(Task task) nameTheWork,
+  required void Function(Task task) widenTheWork,
+  required void Function(Task task) enforceOnTheWork,
+  required void Function(Task task) narrowTheWork,
   required VoidCallback openTheGate,
   required VoidCallback openEgress,
   required VoidCallback removeWhatWasBuilt,
@@ -185,53 +488,137 @@ List<Command> commandsFor({
   required VoidCallback describeAProject,
   required VoidCallback showTheBackups,
   required VoidCallback syncTheUpstream,
-  required VoidCallback widenTheWork,
-  required VoidCallback narrowTheWork,
-  required VoidCallback enforceOnTheWork,
   required VoidCallback startWork,
   required VoidCallback showAgents,
   required VoidCallback showTheVault,
   required void Function(Template job) startFromTemplate,
   required VoidCallback stopEverything,
-  required void Function(Task task) nameTheWork,
-  required void Function(Task task) recreate,
-  required VoidCallback continueTheWork,
-  required VoidCallback quit,
+  required VoidCallback stopEverywhere,
+  required VoidCallback watchAnotherMachine,
+  required VoidCallback forget,
+  required VoidCallback showAbout,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
   final latest = operations.latest;
 
   return <Command>[
-    // Grouped for the menu bar, which reads the same list: a group is a menu, and the order here
-    // is the order both it and the finder offer.
+    // The menu bar: machines, options, about. Everything else lives where it acts.
+    Command(
+      id: 'machines.add',
+      label: 'Watch another machine…',
+      group: 'Machines',
+      home: Home.menuBar,
+      run: watchAnotherMachine,
+    ),
+    Command(
+      id: 'appearance.light',
+      label: 'Appearance: light',
+      group: 'Options',
+      home: Home.menuBar,
+      run: () => settings.setAppearance(ThemeMode.light),
+    ),
+    Command(
+      id: 'appearance.dark',
+      label: 'Appearance: dark',
+      group: 'Options',
+      home: Home.menuBar,
+      run: () => settings.setAppearance(ThemeMode.dark),
+    ),
+    Command(
+      id: 'appearance.system',
+      label: 'Appearance: follow the desktop',
+      group: 'Options',
+      home: Home.menuBar,
+      run: () => settings.setAppearance(ThemeMode.system),
+    ),
+    Command(
+      id: 'about.show',
+      label: 'About Sokar',
+      group: 'About',
+      home: Home.menuBar,
+      run: showAbout,
+    ),
+    Command(
+      id: 'everywhere.panic',
+      label: 'Stop everything on every machine',
+      group: 'Machines',
+      run: stopEverywhere,
+    ),
     Command(
       id: 'machine.panic',
       label: 'Stop everything on this machine',
       group: 'Machine',
-      // Shift as well as Control, deliberately: every other shortcut here is one modifier, so
-      // nothing adjacent can be hit by mistake. The key is `.` because it is nowhere near the
-      // letters the other actions use.
-      shortcut: const SingleActivator(LogicalKeyboardKey.period,
-          control: true, shift: true),
+      home: Home.machineTitle,
+      // Shift as well as Control: nothing adjacent can be hit by mistake.
+      shortcut: const SingleActivator(
+        LogicalKeyboardKey.period,
+        control: true,
+        shift: true,
+      ),
       run: stopEverything,
       unavailable: fleet.reachability == Reachability.connected
           ? null
           : 'not connected to a backend',
     ),
-    Command(
-      id: 'app.quit',
-      label: 'Quit',
-      group: 'Sokar',
-      shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, control: true),
-      run: quit,
+    ...machineCommands(
+      fleet: fleet,
+      canForget: canForget,
+      checkTheMachine: checkTheMachine,
+      showTheProviders: showTheProviders,
+      showTheVault: showTheVault,
+      showAgents: showAgents,
+      forget: forget,
     ),
+    Command(
+      id: 'project.create',
+      label: 'Describe a new project',
+      group: 'Project',
+      home: Home.newProject,
+      run: describeAProject,
+    ),
+    ...projectCommands(
+      project: selectedProject,
+      fleet: fleet,
+      notifications: notifications,
+      openTheGate: openTheGate,
+      openEgress: openEgress,
+      prepareTheProject: prepareTheProject,
+      syncTheUpstream: syncTheUpstream,
+      showTheBackups: showTheBackups,
+      checkWorkCanStart: checkWorkCanStart,
+      removeWhatWasBuilt: removeWhatWasBuilt,
+    ),
+    Command(
+      id: 'work.start',
+      label: 'Start work in this project',
+      group: 'Work',
+      home: Home.startTile,
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyN, control: true),
+      run: startWork,
+      unavailable: StartWork.whyNot(selectedProject?.project),
+    ),
+    // One command per named job, so a template turns up in the finder like any other action.
+    for (final job
+        in selectedProject == null
+            ? const <Template>[]
+            : templates.forProject(selectedProject.name))
+      Command(
+        id: 'template.start/${job.project}/${job.name}',
+        label: 'Run ${job.name} in ${job.project}',
+        group: 'Work',
+        home: Home.templateTile,
+        run: () => startFromTemplate(job),
+        unavailable: !job.startable
+            ? 'this job is missing something it needs to run'
+            : StartWork.whyNot(selectedProject?.project),
+      ),
     Command(
       id: 'detail.open',
       label: 'Open the selected work',
       group: 'Work',
       shortcut: const SingleActivator(LogicalKeyboardKey.enter, control: true),
-      run: shell.openDetail,
+      run: openDetail,
       unavailable: selectedTask == null ? 'no work selected' : null,
     ),
     Command(
@@ -249,301 +636,34 @@ List<Command> commandsFor({
       askToRemove: askToRemove,
       askWhichLog: askWhichLog,
       openSession: openSession,
-    ),
-    Command(
-      id: 'notifications.mute',
-      label: selectedProject != null && notifications.mutedFor(selectedProject.name)
-          ? 'Tell me about ${selectedProject.name} again'
-          : 'Stop telling me about this project',
-      group: 'Work',
-      run: () => notifications.setMuted(
-        selectedProject!.name,
-        muted: !notifications.mutedFor(selectedProject.name),
-      ),
-      unavailable: selectedProject == null ? 'no project selected' : null,
-    ),
-    Command(
-      id: 'project.sync',
-      label: 'Ask the upstream how far behind this project is',
-      group: 'Work',
-      run: syncTheUpstream,
-      unavailable: selectedProject == null ? 'no project selected' : null,
-    ),
-    Command(
-      id: 'project.backups',
-      label: 'Show what has been backed up here',
-      group: 'Work',
-      run: showTheBackups,
-      unavailable: selectedProject == null ? 'no project selected' : null,
-    ),
-    Command(
-      id: 'project.create',
-      label: 'Describe a new project',
-      group: 'Work',
-      run: describeAProject,
-    ),
-    Command(
-      id: 'project.prepare',
-      label: 'Build the environment for this project',
-      group: 'Work',
-      run: prepareTheProject,
-      unavailable: selectedProject == null
-          ? 'no project selected'
-          : !selectedProject.canBeActedOn
-              // `Prepare` takes the project file, so a project nothing recorded one for cannot be
-              // prepared — unlike removing what was built, which takes the name.
-              ? 'no project file is recorded for ${selectedProject.name}'
-              : null,
-    ),
-    Command(
-      id: 'project.delete',
-      label: 'Remove what Sokar built for this project',
-      group: 'Work',
-      run: removeWhatWasBuilt,
-      // **Takes the project's name, not its file** — so this is offered for a project whose file
-      // nothing can find any more, which is exactly the one somebody wants to clear away. Every
-      // other project action needs the file and is unavailable there.
-      unavailable: selectedProject == null ? 'no project selected' : null,
-    ),
-    Command(
-      id: 'egress.open',
-      label: 'Change what this project may reach',
-      group: 'Work',
-      shortcut: const SingleActivator(LogicalKeyboardKey.keyE, control: true),
-      run: openEgress,
-      unavailable: selectedProject == null
-          ? 'no project selected'
-          : !selectedProject.canBeActedOn
-              ? 'no project file is recorded for ${selectedProject.name}'
-              : selectedProject.project.securityClass == 'offline'
-                  // An offline project declares no egress at all, and the daemon refuses with
-                  // REFUSED_BY_CLASS. Offering something that will be refused is worse than not
-                  // offering it and saying why.
-                  ? 'an offline project declares no egress at all'
-                  : null,
-    ),
-    Command(
-      id: 'work.start',
-      label: 'Start work in this project',
-      group: 'Work',
-      shortcut: const SingleActivator(LogicalKeyboardKey.keyN, control: true),
-      run: startWork,
-      unavailable: StartWork.whyNot(selectedProject?.project),
-    ),
-    // One command per named job, so a template turns up in the finder, the menu bar and
-    // wherever else the command list is read — without any of them knowing what a template is.
-    // Starting one is then a single action in the same sense every other action is.
-    for (final job in selectedProject == null
-        ? const <Template>[]
-        : templates.forProject(selectedProject.name))
-      Command(
-        id: 'template.start/${job.project}/${job.name}',
-        label: 'Run ${job.name} in ${job.project}',
-        group: 'Work',
-        run: () => startFromTemplate(job),
-        unavailable: !job.startable
-            ? 'this job is missing something it needs to run'
-            : StartWork.whyNot(selectedProject?.project),
-      ),
-    Command(
-      id: 'machine.providers',
-      label: 'Show what this machine can authenticate against',
-      group: 'Machine',
-      run: showTheProviders,
-    ),
-    Command(
-      id: 'machine.doctor',
-      label: 'Check whether this machine can run anything',
-      group: 'Machine',
-      run: checkTheMachine,
-    ),
-    Command(
-      id: 'vault.show',
-      label: 'Show the protected store',
-      group: 'Machine',
-      run: showTheVault,
-      unavailable: fleet.reachability == Reachability.connected
-          ? null
-          : 'not connected to a backend',
-    ),
-    Command(
-      id: 'agents.show',
-      label: 'Show the agents installed here',
-      group: 'Machine',
-      run: showAgents,
-      unavailable: fleet.reachability == Reachability.connected
-          ? null
-          : 'not connected to a backend',
-    ),
-    Command(
-      id: 'work.continue',
-      label: 'Continue this work with a new prompt',
-      group: 'Work',
-      run: continueTheWork,
-      // Three separate reasons, each said rather than collapsed into "not now": still running,
-      // not an unattended run, or nothing recorded what it was asked to do.
-      unavailable: StartWork.whyNotContinue(selectedTask),
-    ),
-    Command(
-      id: 'work.recreate',
-      label: 'Recreate it, so it picks up a newly built environment',
-      group: 'Work',
-      run: () => recreate(selectedTask!),
-      // Nothing to recreate from is the only thing that stops it: a stopped task is recreated as
-      // readily as a running one, and that is often exactly when somebody wants it.
-      unavailable: selectedTask == null ? 'no work is selected' : null,
-    ),
-    Command(
-      id: 'work.label',
-      label: selectedTask != null && selectedTask.label.isNotEmpty
-          ? 'Change what this work reads as'
-          : 'Give this work something to read by',
-      group: 'Work',
-      run: () => nameTheWork(selectedTask!),
-      // Nothing about a task's identity moves, so the only reason this can be unavailable is
-      // that nothing is selected.
-      unavailable: selectedTask == null ? 'no work is selected' : null,
-    ),
-    Command(
-      id: 'work.widen',
-      label: 'Let this work reach something new',
-      group: 'Work',
-      run: widenTheWork,
-      // Both refusals the daemon would give are knowable here — NOT_RUNNING and
-      // REFUSED_BY_CLASS — so they are said rather than discovered. An action offered and then
-      // refused teaches people to distrust the ones that are offered.
-      unavailable: Widening.whyNot(selectedTask),
-    ),
-    Command(
-      id: 'work.enforcement',
-      label: 'Change what this work does with a blocked connection',
-      group: 'Work',
-      run: enforceOnTheWork,
-      // `NOT_RUNNING` is the daemon's refusal and is knowable here. The class is not a refusal
-      // for this one: an offline project's tasks reach nothing either way, and whether a blocked
-      // connection asks anybody is still a real choice.
-      unavailable: selectedTask == null
-          ? 'no work is selected'
-          : !selectedTask.running
-              ? 'it is not running, and there is nothing to change'
-              : null,
-    ),
-    Command(
-      id: 'work.narrow',
-      label: 'Take something back from this work',
-      group: 'Work',
-      run: narrowTheWork,
-      // The same two refusals as widening, and knowable here for the same reason.
-      unavailable: Narrowing.whyNot(selectedTask),
-    ),
-    Command(
-      id: 'gate.open',
-      label: 'Review what is waiting at the gate',
-      group: 'Work',
-      shortcut: const SingleActivator(LogicalKeyboardKey.keyG, control: true),
-      run: openTheGate,
-      unavailable: selectedProject == null
-          ? 'no project selected'
-          : selectedProject.canBeActedOn
-              ? null
-              : 'no project file is recorded for ${selectedProject.name}',
-    ),
-    Command(
-      id: 'work.check',
-      // Named for what it does, which is less than it used to claim. `Start(dryRun:)` reports
-      // what the project file opens and returns — before the runtime check, before the hooks
-      // check, and before anything touches the vault. It is not a rehearsal of starting.
-      label: 'Show what this project would open, creating nothing',
-      group: 'Work',
-      run: checkWorkCanStart,
-      unavailable: fleet.reachability != Reachability.connected
-          ? 'not connected to a backend'
-          : selectedProject == null
-              ? 'no project selected'
-              : selectedProject.canBeActedOn
-                  ? null
-                  : 'no project file is recorded for ${selectedProject.name}',
+      continueTheWork: continueTheWork,
+      recreate: recreate,
+      nameTheWork: nameTheWork,
+      widenTheWork: widenTheWork,
+      enforceOnTheWork: enforceOnTheWork,
+      narrowTheWork: narrowTheWork,
     ),
     Command(
       id: 'operations.show',
       label: 'Show what this session has run',
-      group: 'Operations',
+      group: 'Machine',
+      home: Home.statusLine,
       shortcut: const SingleActivator(LogicalKeyboardKey.keyO, control: true),
-      run: () => shell.goTo(Section.operations),
+      run: shell.openOperations,
     ),
     Command(
       id: 'operations.latest',
       label: 'Watch the last operation',
-      group: 'Operations',
+      group: 'Machine',
       run: () => shell.openOperation(latest!.id),
       unavailable: latest == null ? 'nothing has been run from here yet' : null,
     ),
     Command(
-      id: 'fleet.refresh',
-      label: 'Refresh from the backend',
-      group: 'Backend',
-      shortcut: const SingleActivator(LogicalKeyboardKey.f5),
-      run: fleet.refresh,
-    ),
-    Command(
-      id: 'fleet.reconnect',
-      label: 'Reconnect to the backend',
-      group: 'Backend',
-      run: fleet.connect,
-    ),
-    Command(
       id: 'finder.open',
       label: 'Find a command',
-      group: 'View',
+      group: 'Options',
       shortcut: const SingleActivator(LogicalKeyboardKey.keyK, control: true),
       run: openFinder,
-    ),
-    Command(
-      id: 'section.work',
-      label: 'Go to work',
-      group: 'View',
-      shortcut: const SingleActivator(LogicalKeyboardKey.digit1, control: true),
-      run: () => shell.goTo(Section.work),
-    ),
-    Command(
-      id: 'section.operations',
-      label: 'Go to this session',
-      group: 'View',
-      shortcut: const SingleActivator(LogicalKeyboardKey.digit2, control: true),
-      run: () => shell.goTo(Section.operations),
-    ),
-    Command(
-      id: 'focus.projects',
-      label: 'Go to the project list',
-      group: 'View',
-      run: () => shell.focus(Pane.projects),
-      unavailable:
-          shell.section == Section.work ? null : 'the project list is not showing',
-    ),
-    Command(
-      id: 'focus.work',
-      label: 'Go to the work list',
-      group: 'View',
-      run: () => shell.focus(Pane.work),
-      unavailable: selectedProject == null ? 'no project selected' : null,
-    ),
-    Command(
-      id: 'appearance.light',
-      label: 'Appearance: light',
-      group: 'View',
-      run: () => settings.setAppearance(ThemeMode.light),
-    ),
-    Command(
-      id: 'appearance.dark',
-      label: 'Appearance: dark',
-      group: 'View',
-      run: () => settings.setAppearance(ThemeMode.dark),
-    ),
-    Command(
-      id: 'appearance.system',
-      label: 'Appearance: follow the desktop',
-      group: 'View',
-      run: () => settings.setAppearance(ThemeMode.system),
     ),
   ];
 }

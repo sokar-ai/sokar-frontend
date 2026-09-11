@@ -26,9 +26,7 @@ import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
 import './step/the_work_is_dead.dart';
 import './step/the_command_is_unavailable_because.dart';
-import './step/the_window_is_pixels_wide.dart';
 import './step/the_session_is_on_screen.dart';
-import './step/the_work_is_listed.dart';
 import './step/the_work_pane_is_not_shown.dart';
 import './step/i_put_the_session_away.dart';
 import './step/the_work_is_still_selected.dart';
@@ -117,19 +115,9 @@ void main() {
           'Starting it again brings back the workspace');
     });
     testWidgets(
-        '''on a wide window the work stays visible beside the session''',
+        '''a session takes the machine's place, and leaving gives it back''',
         (tester) async {
       await bddSetUp(tester);
-      await theWindowIsPixelsWide(tester, 1600);
-      await iWorkInItByHand(tester);
-      await theSessionIsOnScreen(tester);
-      await theWorkIsListed(tester, 'sokar-billing-shell');
-    });
-    testWidgets(
-        '''on a narrow window the session has the frame to itself, and leaving gives it back''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theWindowIsPixelsWide(tester, 700);
       await iWorkInItByHand(tester);
       await theSessionIsOnScreen(tester);
       await theWorkPaneIsNotShown(tester);

@@ -113,7 +113,7 @@ Future<SokarApp> _compose() async {
             .firstWhere((each) => each.name == task,
                 orElse: () => Task.from(const <String, dynamic>{}))
             .project,
-        open: (_) => shell.goTo(Section.clearance),
+        open: (_) => shell.goTo(Section.attention),
       );
     }
   })));

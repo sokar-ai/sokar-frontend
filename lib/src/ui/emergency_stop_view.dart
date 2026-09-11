@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/emergency_stop.dart';
+import '../app/fleet_backend.dart';
 import 'tokens.dart';
 import 'window_size.dart';
 
@@ -234,4 +235,121 @@ class EmergencyStopDialog extends StatelessWidget {
           );
         },
       );
+}
+
+/// Asks before stopping everything on every machine, then says what survived on each.
+///
+/// The same two refusals as one machine's: nothing stops on the first press, and leaving is the
+/// default. Each machine is asked on its own, so one that cannot be reached says so and the others
+/// still stop.
+Future<void> openEmergencyStopEverywhere(
+  BuildContext context, {
+  required Map<String, FleetBackend> machines,
+}) =>
+    showDialog<void>(
+      context: context,
+      builder: (context) => _Everywhere(machines: machines),
+    );
+
+class _Everywhere extends StatefulWidget {
+  const _Everywhere({required this.machines});
+
+  final Map<String, FleetBackend> machines;
+
+  @override
+  State<_Everywhere> createState() => _EverywhereState();
+}
+
+class _EverywhereState extends State<_Everywhere> {
+  late final Map<String, EmergencyStop> _stops = <String, EmergencyStop>{
+    for (final name in widget.machines.keys) name: EmergencyStop(),
+  };
+  bool _stopped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final MapEntry(:key, :value) in _stops.entries) {
+      value.addListener(_changed);
+      value.consider(widget.machines[key]!);
+    }
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _stopEverything() async {
+    setState(() => _stopped = true);
+    await Future.wait(<Future<void>>[
+      for (final MapEntry(:key, :value) in _stops.entries)
+        value.stopEverything(widget.machines[key]!),
+    ]);
+  }
+
+  String _about(EmergencyStop stop) {
+    if (stop.busy) return 'asking…';
+    if (stop.problem != null) return stop.problem!;
+    if (stop.done != null) return stop.words;
+    final preview = stop.preview;
+    if (preview == null) return '';
+    return preview.tasks.isEmpty
+        ? 'nothing is running'
+        : 'would stop ${preview.tasks.map((task) => task.name).join(', ')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final red = Theme.of(context).colorScheme.error;
+    return AlertDialog(
+      title: const Text('Stop everything on every machine?'),
+      content: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text('Work is stopped, never removed: every workspace, log and commit stays '
+                'where it is, and Start brings each piece of work back.'),
+            const SizedBox(height: Space.normal),
+            for (final MapEntry(:key, :value) in _stops.entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Space.small),
+                child: Text.rich(
+                  key: ValueKey<String>('everywhere $key'),
+                  TextSpan(children: <InlineSpan>[
+                    TextSpan(text: key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    TextSpan(text: ': ${_about(value)}'),
+                  ]),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(_stopped ? 'Close' : 'Leave it'),
+        ),
+        if (!_stopped)
+          FilledButton(
+            key: const Key('stop-everywhere-now'),
+            style: FilledButton.styleFrom(backgroundColor: red),
+            onPressed: _stopEverything,
+            child: const Text('Stop everything everywhere'),
+          ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final stop in _stops.values) {
+      stop
+        ..removeListener(_changed)
+        ..dispose();
+    }
+    super.dispose();
+  }
 }

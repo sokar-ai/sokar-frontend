@@ -279,28 +279,40 @@ it has nothing to draw — which it did not, as a null check on the first frame.
 
 **Connected to every machine, acting on one.** `Machines` opens a `FleetModel` per configured
 host and keeps them all open, because a clearance prompt has a deadline and is never asked twice —
-a machine nobody is connected to is one whose blocked work expires unseen. Which machine an action
-lands on is a separate question, answered by the switcher **pinned above the rail** and never by
-which host happens to be reachable. It is pinned rather than scrollable on purpose: a host that is
-a collapsible ancestor in a tree scrolls out of view, leaving a row that does not say which
-machine it is on, and that is how somebody stops a task on the wrong one.
+a machine nobody is connected to is one whose blocked work expires unseen. The rail lists what
+needs a person, then every machine with its state, then the stop for every machine. Which machine
+an action lands on is the machine whose place is open, named in its title — never whichever host
+happens to be reachable. A tile on what needs a person selects its own machine before any of its
+actions runs.
 
 A host is a name and a socket path, and raising the forward is somebody else's job —
 the managed tunnel is the interface doing it, and it must never become the
 only way in. Running `ssh` would not breach the no-shelling-out rule, which is about never
 re-implementing the *domain* through the CLI; `ssh` is transport.
 
-**Three surfaces, one list of actions.** The rail says *where you are* (sections), the menu bar
-says *what you can do*, the command finder is *how you find one fast*. All three read
-`commands.dart`, so an action added once turns up in all of them and a shortcut cannot come to
-mean something other than the entry naming it. None of the three is redundant: they answer
-different questions.
+**An action lives where it acts, and the finder goes there.** `Command.home` says where: the
+machine's title or its menu, a project card's menu, the new-project card, the start tile, a
+saved job's tile, a work tile's menu, or the machine's status line. The finder goes there, marks
+it and gives it the keyboard, so the next time it is found without the finder; only an action
+with no single place runs from the finder at once. The menu bar holds what belongs to no machine —
+Machines, Options, About — and nothing else. Every one of them still reads `commands.dart`, so a
+shortcut cannot come to mean something other than the entry naming it.
+
+**A machine's place, top to bottom.** Its title — how it is reached, the daemon's version, its
+emergency stop and its menu. Its projects, as cards: tapping one narrows the work to it, and its
+menu holds what acts on the project. Its work as tiles, beside a tile that starts work and one per
+saved job. Its status line — the last thing said, and what this session ran there. Whatever opens
+does so over the middle, with the title and the status line staying put.
+
+**Closing the window asks first.** There is no Quit: the window's own close asks the app, the app
+names what keeps running, and only then takes down the forwards it raised. Without that, `ssh`
+children outlive the window.
 
 **A pointer must be sufficient, not merely optional.** The rule was "every action is reachable from
 the keyboard alone; a pointer is optional everywhere, never required" — and the first build of the
 shell inverted it. Appearance, reconnect and quit were reachable *only* through the finder, so the
-pointer was the impossible half. The menu bar is the fix, and the scenario *every action is
-reachable with a pointer alone* is the guard that should have caught it.
+pointer was the impossible half. Every action now has a place a pointer can reach, and the
+scenario *every action is reachable with a pointer alone* is the guard that should have caught it.
 
 **Icons are outlined by default and filled only for a selected state** — `folder_outlined` in the
 rail until that section is the one you are in, then `folder`. Taken from melkheftken, whose whole

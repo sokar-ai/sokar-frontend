@@ -14,7 +14,8 @@ import './step/the_work_is_listed.dart';
 import './step/i_select_the_work.dart';
 import './step/i_open_the_selection.dart';
 import './step/the_detail_for_is_shown.dart';
-import './step/i_press_the_down_arrow.dart';
+import './step/i_move_the_keyboard_to_the_project.dart';
+import './step/i_press_enter.dart';
 import './step/the_project_is_selected.dart';
 import './step/i_close_what_is_open.dart';
 import './step/the_work_pane_is_shown.dart';
@@ -28,7 +29,11 @@ import './step/the_appearance_is.dart';
 import './step/i_choose_the_command.dart';
 import './step/the_app_is_restarted.dart';
 import './step/the_window_is_pixels_wide.dart';
-import './step/the_work_pane_is_not_shown.dart';
+import './step/i_pick_in_the_finder.dart';
+import './step/the_menu_that_holds_is_open_with_it_marked.dart';
+import './step/the_menu_bar_offers.dart';
+import './step/i_tap_the_project.dart';
+import './step/the_work_is_no_longer_listed.dart';
 
 void main() {
   group('''Moving around the frame by keyboard and by pointer''', () {
@@ -59,10 +64,9 @@ void main() {
         '''the frame is worked from the keyboard with no pointer at all''',
         (tester) async {
       await bddSetUp(tester);
-      await iPressTheDownArrow(tester);
+      await iMoveTheKeyboardToTheProject(tester, 'billing');
+      await iPressEnter(tester);
       await theProjectIsSelected(tester, 'billing');
-      await iPressTheDownArrow(tester);
-      await theProjectIsSelected(tester, 'checkout');
     });
     testWidgets(
         '''closing a detail comes back with the same selection still made''',
@@ -88,7 +92,7 @@ void main() {
     testWidgets('''every action is reachable with a pointer alone''',
         (tester) async {
       await bddSetUp(tester);
-      await iOpenTheMenu(tester, 'View');
+      await iOpenTheMenu(tester, 'Options');
       await iChooseTheMenuEntry(tester, 'Appearance: dark');
       await theAppearanceIs(tester, 'dark');
     });
@@ -106,12 +110,36 @@ void main() {
       await theAppIsRestarted(tester);
       await theAppearanceIs(tester, 'dark');
     });
-    testWidgets('''a window too narrow for two panes shows one at a time''',
+    testWidgets('''a narrow window keeps the rail and the machine it is on''',
         (tester) async {
       await bddSetUp(tester);
-      await theWindowIsPixelsWide(tester, 360);
+      await theWindowIsPixelsWide(tester, 420);
       await theProjectIsListed(tester, 'checkout');
-      await theWorkPaneIsNotShown(tester);
+      await theWorkPaneIsShown(tester);
+    });
+    testWidgets(
+        '''the finder goes to where an action lives and marks it there''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iOpenTheCommandFinder(tester);
+      await iPickInTheFinder(
+          tester, 'Check whether this machine can run anything');
+      await theMenuThatHoldsIsOpenWithItMarked(
+          tester, 'Check whether this machine can run anything');
+    });
+    testWidgets('''the menu bar holds only what belongs to no machine''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMenuBarOffers(tester, 'Machines, Options, About');
+    });
+    testWidgets(
+        '''a project card narrows the work to it, and a second tap widens it back''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iTapTheProject(tester, 'checkout');
+      await theWorkIsNoLongerListed(tester, 'sokar-billing-shell');
+      await iTapTheProject(tester, 'checkout');
+      await theWorkIsListed(tester, 'sokar-billing-shell');
     });
   });
 }

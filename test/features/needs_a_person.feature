@@ -40,11 +40,13 @@ Feature: What needs a person on every machine, without going anywhere
     When I watch another machine called {'elsewhere'}
     Then the tile {'sokar-shared-shell'} says {'elsewhere'}
 
-  Scenario: a machine that cannot be reached says so as a tile, not as an absence
+  # A machine is not work, so it is no tile; its silence may hide a question, so it is no absence.
+  Scenario: a machine that cannot be reached says so above the tiles, not as one
     When the tunnel drops
-    Then a tile says {'Cannot be reached'}
+    Then a machine notice says {'cannot be reached'}
+    And no tile says {'cannot be reached'}
     When enough time passes for another try
-    Then no tile says {'Cannot be reached'}
+    Then no machine notice says {'cannot be reached'}
 
   Scenario: the keyboard works the moment the window opens
     When I open the command finder

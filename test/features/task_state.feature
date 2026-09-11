@@ -16,17 +16,17 @@ Feature: What a piece of work is doing, and how long it has been
   Scenario: idle is told apart from finished
     Given the work {'sokar-checkout-shell'} is idle
     And the work {'sokar-checkout-migrate'} is dead
-    Then the work {'sokar-checkout-shell'} is shown as {'idle'}
-    And the work {'sokar-checkout-migrate'} is shown as {'not running'}
+    Then the work {'sokar-checkout-shell'} is shown as {'Quiet'}
+    And the work {'sokar-checkout-migrate'} is shown as {'Not running'}
 
   Scenario: how long it has been that way is answerable
     Given the work {'sokar-checkout-shell'} has been idle since {'40'} minutes ago
-    Then the work {'sokar-checkout-shell'} is shown as {'idle for 40 minutes'}
+    Then the work {'sokar-checkout-shell'} is shown as {'Quiet for 40 minutes'}
 
   Scenario: work nothing can see is not reported as idle
     Given the work {'sokar-checkout-shell'} cannot be seen
-    Then the work {'sokar-checkout-shell'} is shown as {'cannot be seen'}
-    And the work {'sokar-checkout-shell'} is not shown as {'idle'}
+    Then the work {'sokar-checkout-shell'} is shown as {'Cannot be seen'}
+    And the work {'sokar-checkout-shell'} is not shown as {'Quiet'}
 
   Scenario: a change of activity arrives without anybody asking for it
     Given the work {'sokar-checkout-shell'} is idle

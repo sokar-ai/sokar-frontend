@@ -65,21 +65,9 @@ Feature: Working inside a container by hand, locally or over ssh
     And I open the command finder
     Then the command {'Work in it by hand'} is unavailable because {'Starting it again brings back the workspace'}
 
-  # The same rule the rest of the frame follows, so a session is not a special case somebody has
-  # to learn: beside the work where there is room for both, and on its own where there is not.
-  #
-  # 1600 rather than 1200: the frame branches on the width **under the rail**, not on the
-  # window's, and an extended rail is 256 of them. A window that is only just wide enough is one
-  # where the work list is already gone.
-  Scenario: on a wide window the work stays visible beside the session
-    When the window is {1600} pixels wide
-    And I work in it by hand
-    Then the session is on screen
-    And the work {'sokar-billing-shell'} is listed
-
-  Scenario: on a narrow window the session has the frame to itself, and leaving gives it back
-    When the window is {700} pixels wide
-    And I work in it by hand
+  # Opened over the machine's place like everything else, with the rail still there.
+  Scenario: a session takes the machine's place, and leaving gives it back
+    When I work in it by hand
     Then the session is on screen
     And the work pane is not shown
     When I put the session away

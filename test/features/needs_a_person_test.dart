@@ -20,9 +20,10 @@ import './step/the_tile_is_not_marked_as_a_guess.dart';
 import './step/the_work_cannot_be_seen.dart';
 import './step/i_watch_another_machine_called.dart';
 import './step/the_tunnel_drops.dart';
-import './step/a_tile_says.dart';
-import './step/enough_time_passes_for_another_try.dart';
+import './step/a_machine_notice_says.dart';
 import './step/no_tile_says.dart';
+import './step/enough_time_passes_for_another_try.dart';
+import './step/no_machine_notice_says.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_finder_is_open.dart';
 import './step/the_machine_is_the_same_node.dart';
@@ -114,13 +115,14 @@ void main() {
       await theTileSays(tester, 'sokar-shared-shell', 'elsewhere');
     });
     testWidgets(
-        '''a machine that cannot be reached says so as a tile, not as an absence''',
+        '''a machine that cannot be reached says so above the tiles, not as one''',
         (tester) async {
       await bddSetUp(tester);
       await theTunnelDrops(tester);
-      await aTileSays(tester, 'Cannot be reached');
+      await aMachineNoticeSays(tester, 'cannot be reached');
+      await noTileSays(tester, 'cannot be reached');
       await enoughTimePassesForAnotherTry(tester);
-      await noTileSays(tester, 'Cannot be reached');
+      await noMachineNoticeSays(tester, 'cannot be reached');
     });
     testWidgets('''the keyboard works the moment the window opens''',
         (tester) async {

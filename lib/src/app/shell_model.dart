@@ -2,38 +2,19 @@ import 'package:flutter/foundation.dart';
 
 /// A place in the product, reached from the rail.
 ///
-/// Sections are *where you are*; the menu bar is *what you can do*; the command finder is how you
-/// find one quickly. Three surfaces over one list of actions, each answering a different question
-/// — which is why none of them is redundant.
+/// What needs a person on every machine, or one machine with everything on it. An action lives
+/// where it acts, and the finder goes there and shows it.
 enum Section {
   /// What needs a person, from every machine at once. The window opens here.
   attention('Needs you'),
 
-  /// The projects on the machine and the work under them. The daily loop.
-  work('Work'),
-
-  /// Everything this session has run.
-  operations('This session'),
-
-  /// Blocked connections waiting for an answer.
-  clearance('Blocked');
+  /// One machine: its projects, its work and what it ran. Which one is `Machines.current`.
+  machine('Machine');
 
   const Section(this.label);
 
   /// What the rail calls it.
   final String label;
-}
-
-/// Which part of the frame the person is working in.
-enum Pane {
-  /// The projects on the machine.
-  projects,
-
-  /// The work under the selected project.
-  work,
-
-  /// Whatever is open over the frame.
-  opened,
 }
 
 /// What is open over the frame.
@@ -108,6 +89,12 @@ class AgentsOpened extends Opened {
   const AgentsOpened();
 }
 
+/// What this session ran on the machine.
+class OperationsOpened extends Opened {
+  /// Constructor.
+  const OperationsOpened();
+}
+
 /// One waiting push, being judged.
 class ReviewOpened extends Opened {
   /// Constructor.
@@ -139,22 +126,17 @@ class LogOpened extends Opened {
   final String log;
 }
 
-/// The frame's own state: where you are, what is open and where the keyboard is.
+/// The frame's own state: where you are, what is open, and what the finder is showing.
 ///
 /// Separate from the backend's state on purpose. Losing contact with a daemon must not move
-/// anybody's cursor, and opening something must not ask the daemon anything.
+/// anybody, and opening something must not ask the daemon anything.
 class ShellModel extends ChangeNotifier {
   Section _section = Section.attention;
-  // The window opens on what needs a person, so the keyboard starts there too.
-  Pane _pane = Pane.opened;
-  Pane _cameFrom = Pane.projects;
   Opened _opened = const NothingOpened();
+  String? _highlight;
 
   /// Where in the product you are.
   Section get section => _section;
-
-  /// Where the keyboard is.
-  Pane get pane => _pane;
 
   /// What is open over the frame.
   Opened get opened => _opened;
@@ -165,23 +147,30 @@ class ShellModel extends ChangeNotifier {
   /// Whether the open thing is a piece of work.
   bool get detailOpen => _opened is WorkOpened;
 
-  /// Goes to a section.
-  ///
-  /// Closes whatever was open over the frame: what is open belongs to where it was opened from,
-  /// and carrying it to another section would leave somebody looking at a task detail over a
-  /// screen that has nothing to do with it.
+  /// The command the finder went to, marked where it lives until something else happens.
+  String? get highlight => _highlight;
+
+  /// Goes to a section, closing whatever was open over the one before.
   void goTo(Section section) {
-    if (_section == section && !anythingOpen) return;
+    if (_section == section && !anythingOpen && _highlight == null) return;
     _section = section;
     _opened = const NothingOpened();
-    _pane = section == Section.work ? _cameFrom : Pane.opened;
+    _highlight = null;
     notifyListeners();
   }
 
-  /// Moves the keyboard to a pane.
-  void focus(Pane pane) {
-    if (_pane == pane) return;
-    _pane = pane;
+  /// Shows where [command] lives: on the machine, with nothing open over it.
+  void show(String command) {
+    _section = Section.machine;
+    _opened = const NothingOpened();
+    _highlight = command;
+    notifyListeners();
+  }
+
+  /// Stops marking where a command lives.
+  void shown() {
+    if (_highlight == null) return;
+    _highlight = null;
     notifyListeners();
   }
 
@@ -190,6 +179,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens what one operation printed.
   void openOperation(String id) => _open(OperationOpened(id));
+
+  /// Opens what this session ran on the machine.
+  void openOperations() => _open(const OperationsOpened());
 
   /// Opens one of a task's logs.
   void openLog(String task, String log) => _open(LogOpened(task, log));
@@ -221,33 +213,26 @@ class ShellModel extends ChangeNotifier {
   /// Opens what the protected store holds.
   void openVault() => _open(const VaultOpened());
 
-  /// Closes whatever is open and hands the keyboard back to where it came from.
-  ///
-  /// The selection is deliberately untouched: coming back to a list with nothing selected is how
-  /// people lose their place, which is the whole thing this frame exists to prevent.
+  /// Closes whatever is open. The selection is untouched, so nobody loses their place.
   void close() {
     if (!anythingOpen) return;
     _opened = const NothingOpened();
-    _pane = _section == Section.work ? _cameFrom : Pane.opened;
     notifyListeners();
   }
 
   void _open(Opened what) {
-    if (_opened is OperationOpened && what is OperationOpened) {
-      if ((_opened as OperationOpened).id == what.id) return;
-    } else if (_opened is LogOpened && what is LogOpened) {
-      final open = _opened as LogOpened;
-      if (open.task == what.task && open.log == what.log) return;
-    } else if (_opened is SessionOpened && what is SessionOpened) {
-      // Going from one open session to another is a move, not a no-op: the pane stays where it
-      // is and what is inside it changes.
-      if ((_opened as SessionOpened).task == what.task) return;
-    } else if (_opened.runtimeType == what.runtimeType && _pane == Pane.opened) {
-      return;
-    }
-    if (!anythingOpen) _cameFrom = _pane;
+    final open = _opened;
+    final same = switch ((open, what)) {
+      (OperationOpened(:final id), OperationOpened(id: final next)) => id == next,
+      (LogOpened(:final task, :final log), LogOpened(task: final t, log: final l)) =>
+        task == t && log == l,
+      (SessionOpened(:final task), SessionOpened(task: final next)) => task == next,
+      (OperationOpened() || LogOpened() || SessionOpened(), _) => false,
+      _ => open.runtimeType == what.runtimeType,
+    };
+    if (same && _highlight == null) return;
     _opened = what;
-    _pane = Pane.opened;
+    _highlight = null;
     notifyListeners();
   }
 }

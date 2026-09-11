@@ -94,7 +94,8 @@ something an interface inferred.**
 - The two or three actions that unblock - answer the question, approve at the gate, attach - are on
   the row, and taking one does not leave this view.
 - An inferred state is labelled as inferred, and no inference is drawn where a known state exists.
-- A machine that cannot be reached says so **as a row**, not as an absence. A fleet view whose
+- A machine that cannot be reached says so **above the tiles, as a message about the machine** —
+  it is not work, so it is not a tile — and never as an absence. A fleet view whose
   quiet means both "nothing needs you" and "three machines are unreachable" is the failure this
   product exists to prevent.
 - Counts on a row are as fresh as the row claims, or say when they were taken. See the backend gap

@@ -21,7 +21,12 @@ enum OperationState {
 /// not mean having missed it.
 class Operation {
   /// Constructor taking what it is and when it began.
-  Operation({required this.id, required this.title, required this.startedAt});
+  Operation({
+    required this.id,
+    required this.title,
+    required this.startedAt,
+    this.machine = '',
+  });
 
   /// Identifies it for the life of the session.
   final String id;
@@ -31,6 +36,9 @@ class Operation {
 
   /// When it began.
   final DateTime startedAt;
+
+  /// The machine it ran on, by name.
+  final String machine;
 
   /// When it stopped, or null while it is still going.
   DateTime? finishedAt;
@@ -88,11 +96,16 @@ class Operations extends ChangeNotifier {
   /// The stream completing is success and the stream erroring is failure — which is how a
   /// non-zero exit reaches here, because the thing that knows what an exit code means is the
   /// caller and not this.
-  Operation run({required String title, required Stream<String> output}) {
+  Operation run({
+    required String title,
+    required Stream<String> output,
+    String machine = '',
+  }) {
     final operation = Operation(
       id: 'operation-${++_counted}',
       title: title,
       startedAt: DateTime.now(),
+      machine: machine,
     );
     _all.add(operation);
 

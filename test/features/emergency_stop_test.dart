@@ -21,6 +21,10 @@ import './step/it_names_the_helper.dart';
 import './step/the_backend_will_refuse_to_stop_everything.dart';
 import './step/it_names_the_work_among_what_was_stopped.dart';
 import './step/it_does_not_claim_everything_will_stop_cleanly.dart';
+import './step/i_ask_to_stop_everything_on_every_machine.dart';
+import './step/i_watch_another_machine_called.dart';
+import './step/i_agree_to_stop_everything_everywhere.dart';
+import './step/every_machine_was_stopped.dart';
 
 void main() {
   group('''Stopping everything on a machine, and naming what survives''', () {
@@ -102,6 +106,24 @@ void main() {
       await bddSetUp(tester);
       await iAskToStopEverything(tester);
       await itDoesNotClaimEverythingWillStopCleanly(tester);
+    });
+    testWidgets(
+        '''the stop for every machine is on the rail, and it asks first''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iAskToStopEverythingOnEveryMachine(tester);
+      await nothingHasBeenStopped(tester);
+      await itSays(tester, 'Stop everything on every machine?');
+    });
+    testWidgets(
+        '''agreeing stops every machine, and says what survived on each''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iAskToStopEverythingOnEveryMachine(tester);
+      await iAgreeToStopEverythingEverywhere(tester);
+      await everyMachineWasStopped(tester);
+      await itSays(tester, 'Nothing was removed');
     });
   });
 }

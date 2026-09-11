@@ -9,9 +9,6 @@ enum Demand {
   /// A question is open, or the task says it waits on one. It has a deadline.
   question,
 
-  /// A machine that cannot be reached, which may be hiding a question.
-  unreachable,
-
   /// Its own work waits at the gate. No deadline, and it can sit for days.
   gate,
 
@@ -28,7 +25,7 @@ enum Demand {
   stopped,
 }
 
-/// One tile: a piece of work, or a machine that cannot say what it holds.
+/// One tile: a piece of work, or a question the list has not caught up with.
 @immutable
 class Tile {
   /// Constructor taking what the tile is about.
@@ -38,6 +35,7 @@ class Tile {
     required this.demand,
     this.task,
     this.questions = const <Prompt>[],
+    this.settled,
   });
 
   /// Which machine it belongs to. On the tile, never a mode of the window.
@@ -49,12 +47,14 @@ class Tile {
   /// Why it sits where it does.
   final Demand demand;
 
-  /// The work, or null for a machine that cannot be reached or a question the list has not
-  /// caught up with.
+  /// The work, or null for a question the list has not caught up with.
   final Task? task;
 
   /// Questions open for this work, oldest first.
   final List<Prompt> questions;
+
+  /// The last question about this work that was answered or ran out, or null.
+  final Prompt? settled;
 
   /// Whether what the tile says is a guess rather than something the machine knows.
   bool get inferred => demand == Demand.quiet;
@@ -75,25 +75,43 @@ class Attention extends ChangeNotifier {
   final Machines _machines;
   final Set<Listenable> _following = <Listenable>{};
 
-  /// Every tile, most urgent first.
-  List<Tile> get tiles {
+  /// Every machine that is not answering. Said about the machine, above the tiles, never as one:
+  /// a machine is not work, and its silence may be hiding a question.
+  List<Machine> get silent => <Machine>[
+        for (final machine in _counted)
+          if (_machines.of(machine).reachability != Reachability.connected) machine,
+      ];
+
+  /// Every machine once: one node reached two ways would deliver every question twice.
+  List<Machine> get _counted {
     final machines = _machines.all;
+    return <Machine>[
+      for (var i = 0; i < machines.length; i++)
+        if (!_machines.sameNodeAs(machines[i]).any((other) {
+          final at = machines.indexOf(other);
+          return at >= 0 && at < i;
+        }))
+          machines[i],
+    ];
+  }
+
+  /// The model of one machine.
+  FleetModel fleetOf(Machine machine) => _machines.of(machine);
+
+  /// Every tile, most urgent first.
+  List<Tile> get tiles => <Tile>[
+        for (final machine in _counted) ..._tilesOf(machine),
+      ]..sort(_byDemand);
+
+  /// One machine's tiles, most urgent first. While it is not answering they are what it last
+  /// said: a lost tunnel is a disconnection, never a machine with nothing on it.
+  List<Tile> tilesOn(Machine machine) => _tilesOf(machine, evenSilent: true)..sort(_byDemand);
+
+  List<Tile> _tilesOf(Machine machine, {bool evenSilent = false}) {
     final out = <Tile>[];
-    for (var i = 0; i < machines.length; i++) {
-      final machine = machines[i];
-      // One node reached two ways would deliver every question twice.
-      final twin = _machines.sameNodeAs(machine).any((other) {
-        final at = machines.indexOf(other);
-        return at >= 0 && at < i;
-      });
-      if (twin) continue;
-
-      final fleet = _machines.of(machine);
-      if (fleet.reachability != Reachability.connected) {
-        out.add(Tile(machine: machine, fleet: fleet, demand: Demand.unreachable));
-        continue;
-      }
-
+    final fleet = _machines.of(machine);
+    if (evenSilent || fleet.reachability == Reachability.connected) {
+      final settled = fleet.clearance.settled;
       final asked = <String, List<Prompt>>{};
       for (final prompt in fleet.clearance.waiting) {
         asked.putIfAbsent(prompt.task, () => <Prompt>[]).add(prompt);
@@ -109,6 +127,7 @@ class Attention extends ChangeNotifier {
           demand: demandOf(task, questions),
           task: task,
           questions: questions,
+          settled: settled.where((each) => each.task == task.name).firstOrNull,
         ));
       }
       // A question can arrive before the list names its task. It is shown, not held back.
@@ -121,13 +140,12 @@ class Attention extends ChangeNotifier {
         ));
       }
     }
-    return out..sort(_byDemand);
+    return out;
   }
 
-  /// How many tiles need somebody now: an open question, or a machine that cannot say.
-  int get needingSomebody => tiles
-      .where((tile) => tile.demand == Demand.question || tile.demand == Demand.unreachable)
-      .length;
+  /// How many things need somebody now: an open question, or a machine that cannot say.
+  int get needingSomebody =>
+      tiles.where((tile) => tile.demand == Demand.question).length + silent.length;
 
   /// Why one piece of work sits where it does.
   static Demand demandOf(Task task, List<Prompt> questions) {

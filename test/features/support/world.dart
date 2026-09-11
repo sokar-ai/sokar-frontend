@@ -1109,6 +1109,9 @@ class World {
   /// The backend under test.
   static late FakeBackend backend;
 
+  /// What the window answered when it was asked to close, once it has.
+  static Future<Object?>? closing;
+
   /// Where the appearance is remembered. It survives a restart within a scenario, which is what
   /// makes "still dark after a restart" a real check rather than a re-read of a field.
   static late MemorySettingsStore store;
@@ -1441,7 +1444,7 @@ class World {
           .firstWhere((each) => each.name == task,
               orElse: () => Task.from(const <String, dynamic>{}))
           .project,
-      open: (_) => shell.goTo(Section.clearance),
+      open: (_) => shell.goTo(Section.attention),
     );
 
     await tester.pumpWidget(SokarApp(
@@ -1502,7 +1505,7 @@ class World {
           .firstWhere((each) => each.name == task,
               orElse: () => Task.from(const <String, dynamic>{}))
           .project,
-      open: (_) => shell.goTo(Section.clearance),
+      open: (_) => shell.goTo(Section.attention),
     );
 
     await tester.pumpWidget(SokarApp(

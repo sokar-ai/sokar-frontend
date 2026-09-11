@@ -13,7 +13,7 @@ distribution, so an entry below has reached an operator only if they follow that
 ### Added
 
 - **The window opens on what needs a person**, from every machine at once: open questions
-  first, nearest deadline first with the time left, and answered on their tile, a machine that cannot be reached as a tile of its own, and
+  first, nearest deadline first with the time left, and answered on their tile, a machine that cannot be reached said above them, and
   a quiet task marked as a guess.
 - **Every tile carries its work's menu**, from its button or a right-click, acting on the tile's
   own machine; the task's name on it can be selected and copied.
@@ -50,6 +50,11 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Changed
 
+- **The frame is one rail and one place per machine.** The rail holds what needs you, every
+  machine with whether it answers, and a stop for every machine. A machine's place holds its title
+  with its emergency stop and menu, its projects as cards that narrow the work, its work as tiles
+  beside starting work and saved jobs, and a status line of what it ran. The menu bar holds
+  Machines, Options and About; the finder goes to where an action lives and marks it there.
 - **Stopping keeps the work and its workspace**; removing is its own action, and what the machine
   would do on "Start it again" is shown before anybody presses it, refusals included.
 

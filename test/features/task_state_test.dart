@@ -40,8 +40,8 @@ void main() {
       await bddSetUp(tester);
       await theWorkIsIdle(tester, 'sokar-checkout-shell');
       await theWorkIsDead(tester, 'sokar-checkout-migrate');
-      await theWorkIsShownAs(tester, 'sokar-checkout-shell', 'idle');
-      await theWorkIsShownAs(tester, 'sokar-checkout-migrate', 'not running');
+      await theWorkIsShownAs(tester, 'sokar-checkout-shell', 'Quiet');
+      await theWorkIsShownAs(tester, 'sokar-checkout-migrate', 'Not running');
     });
     testWidgets('''how long it has been that way is answerable''',
         (tester) async {
@@ -49,14 +49,14 @@ void main() {
       await theWorkHasBeenIdleSinceMinutesAgo(
           tester, 'sokar-checkout-shell', '40');
       await theWorkIsShownAs(
-          tester, 'sokar-checkout-shell', 'idle for 40 minutes');
+          tester, 'sokar-checkout-shell', 'Quiet for 40 minutes');
     });
     testWidgets('''work nothing can see is not reported as idle''',
         (tester) async {
       await bddSetUp(tester);
       await theWorkCannotBeSeen(tester, 'sokar-checkout-shell');
-      await theWorkIsShownAs(tester, 'sokar-checkout-shell', 'cannot be seen');
-      await theWorkIsNotShownAs(tester, 'sokar-checkout-shell', 'idle');
+      await theWorkIsShownAs(tester, 'sokar-checkout-shell', 'Cannot be seen');
+      await theWorkIsNotShownAs(tester, 'sokar-checkout-shell', 'Quiet');
     });
     testWidgets(
         '''a change of activity arrives without anybody asking for it''',

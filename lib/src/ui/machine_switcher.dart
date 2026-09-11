@@ -7,138 +7,31 @@ import '../app/machines.dart';
 import '../app/tunnel.dart';
 import 'tokens.dart';
 
-/// Which machine everything below is about.
-///
-/// Above the rail rather than inside it, and pinned rather than scrollable, because *which
-/// machine an action will act on must never be ambiguous* — and a machine that is a collapsible
-/// ancestor of
-/// a tree scrolls out of view, leaving a row that does not say which machine it is on. That is
-/// how somebody stops a task on the wrong one.
-///
-/// It is also a different axis from the rail. The rail is *where in the product*; this is *on
-/// which machine*, and every section below is about the one named here.
-class MachineSwitcher extends StatelessWidget {
-  /// Constructor taking the machines and the ways to change them.
-  const MachineSwitcher({
-    required this.machines,
-    required this.onAdd,
-    required this.extended,
-    super.key,
-  });
+/// What one machine says about itself: the kind of way in, and whether it is a second way in to
+/// a node already listed. **That is asked, not worked out**: a hostname has many spellings, and a
+/// forwarded socket looks nothing like a tunnel raised here.
+String describeMachine(Machines machines, Machine machine) =>
+    '${machine.name}${machineKind(machines, machine)}';
 
-  /// Every machine being watched, and which is being acted on.
-  final Machines machines;
-
-  /// Asks for another machine to watch.
-  final VoidCallback onAdd;
-
-  /// Whether there is room to say the name in full.
-  final bool extended;
-
-  @override
-  Widget build(BuildContext context) {
-    final current = machines.current;
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.small,
-        vertical: Space.small,
-      ),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
-      ),
-      child: MenuAnchor(
-        builder: (context, controller, _) => InkWell(
-          key: const Key('machine-switcher'),
-          borderRadius: BorderRadius.circular(Radii.medium),
-          onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          child: Padding(
-            padding: const EdgeInsets.all(Space.small),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                _Reach(
-                  name: current.name,
-                  fleet: machines.of(current),
-                  tunnel: machines.tunnels.of(current),
-                ),
-                if (extended) ...<Widget>[
-                  const SizedBox(width: Space.small),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 130),
-                    child: Text(
-                      current.name,
-                      key: const Key('current-machine'),
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ),
-                  const Icon(Icons.arrow_drop_down, size: Sizes.rowIcon),
-                ],
-              ],
-            ),
-          ),
-        ),
-        menuChildren: <Widget>[
-          for (final machine in machines.all)
-            MenuItemButton(
-              leadingIcon: _Reach(
-                name: machine.name,
-                fleet: machines.of(machine),
-                tunnel: machines.tunnels.of(machine),
-              ),
-              trailingIcon:
-                  machine == current ? const Icon(Icons.check, size: Sizes.mark) : null,
-              onPressed: () => machines.select(machine),
-              // Which of the two kinds it is, said rather than left to be inferred: it decides
-              // what happens when it stops answering, and what happens when the window closes.
-              //
-              // And whether it is a second way in to a node already listed. **That is asked, not
-              // worked out**: a hostname has many spellings and a forwarded socket looks nothing
-              // like a tunnel raised here. Left unsaid, every clearance question on that node
-              // arrives twice and answering one leaves the other expiring.
-              child: Text(_describe(machines, machine)),
-            ),
-          const Divider(height: 1),
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.add, size: Sizes.rowIcon),
-            onPressed: onAdd,
-            child: const Text('Watch another machine…'),
-          ),
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.delete_outline, size: Sizes.rowIcon),
-            // Never the last one: a frame with no machine behind it has nothing to say and no way
-            // to say why.
-            onPressed:
-                machines.all.length > 1 ? () => machines.forget(current) : null,
-            child: Text('Forget ${current.name}'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Whether one machine is answering, in the space of an icon.
-/// What one entry says about itself in the list.
-String _describe(Machines machines, Machine machine) {
+/// What [describeMachine] says after the name: empty for a plain socket.
+String machineKind(Machines machines, Machine machine) {
   final also = machines.sameNodeAs(machine);
   final same = also.isEmpty
       ? ''
       : '  ·  the same node as ${also.map((each) => each.name).join(', ')}';
-  return machine.needsATunnel
-      ? '${machine.name}  ·  forward raised here$same'
-      : '${machine.name}$same';
+  return machine.needsATunnel ? '  ·  forward raised here$same' : same;
 }
 
-class _Reach extends StatelessWidget {
-  const _Reach({required this.name, required this.fleet, this.tunnel});
+/// Whether one machine is answering, in the space of an icon.
+class ReachIcon extends StatelessWidget {
+  /// Constructor taking the machine's name, its model and the forward raised for it.
+  const ReachIcon({required this.name, required this.fleet, this.tunnel, super.key});
 
   /// The machine, by the name on screen beside it — not the backend's own label, which is what
   /// the transport calls it and need not be what a person does.
   final String name;
 
+  /// The machine's model.
   final FleetModel fleet;
 
   /// The forward this interface raised for it, or null when somebody else did.

@@ -35,7 +35,8 @@ Feature: Building a project's environment, and watching it run
     When I build the environment for this project
     And I choose to build {'what changed'}
     Then the operation shows {'STEP 4/6: RUN apt-get install -y git'}
-    And the project {'checkout'} is listed
+    When I close what is open
+    Then the project {'checkout'} is listed
 
   # A build fails at a line of a Containerfile, and the one thing somebody needs is which line.
   Scenario: a build that fails names the step, and it is still readable afterwards

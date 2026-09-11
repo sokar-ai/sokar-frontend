@@ -27,7 +27,7 @@ abstract final class E2e {
 Future<SokarApp> showTheInterface(WidgetTester tester) async {
   final interface = await app.sokar();
   await tester.pumpWidget(interface);
-  await pumpUntil(tester, () => find.byKey(const Key('machine-switcher')).evaluate().isNotEmpty);
+  await pumpUntil(tester, () => find.byType(NavigationRail).evaluate().isNotEmpty);
   return interface;
 }
 
@@ -53,24 +53,13 @@ Future<void> pumpUntil(
 
 /// Makes [name] the machine acted on, through the switcher a person would use.
 Future<void> switchTo(WidgetTester tester, String name) async {
-  // Already acted on after an earlier scenario, and the switcher lists that one differently.
-  if ((await app.sokar()).machines.current.name == name) return;
-  await tester.tap(find.byKey(const Key('machine-switcher')));
-  await pumpFor(tester);
-  final entry =
-      find.byWidgetPredicate((widget) => widget is Text && (widget.data ?? '').startsWith(name));
-  await tester.tap(find.ancestor(of: entry.first, matching: find.byType(MenuItemButton)).first);
+  await tester.tap(find.byKey(ValueKey<String>('waiting-count $name')));
   await pumpFor(tester);
 }
 
 /// Fills the dialog for a forward to the test machine with [socket] there, and tries it.
 Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
-  await tester.tap(find.byKey(const Key('machine-switcher')));
-  await pumpFor(tester);
-  await tester.tap(
-    find.widgetWithText(MenuItemButton, 'Watch another machine…'),
-  );
-  await pumpFor(tester);
+  await watchAnotherMachine(tester);
   await tester.enterText(find.byKey(const Key('machine-name')), 'e2e trial');
   await tester.tap(find.byKey(const Key('machine-raise-it')));
   await pumpFor(tester);
@@ -87,4 +76,12 @@ Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
     timeout: const Duration(seconds: 30),
     what: 'the trial to say something',
   );
+}
+
+/// Opens the dialog that adds a machine, from the menu bar where it lives.
+Future<void> watchAnotherMachine(WidgetTester tester) async {
+  await tester.tap(find.widgetWithText(SubmenuButton, 'Machines'));
+  await pumpFor(tester);
+  await tester.tap(find.widgetWithText(MenuItemButton, 'Watch another machine…'));
+  await pumpFor(tester);
 }
