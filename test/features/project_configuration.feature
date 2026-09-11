@@ -5,6 +5,7 @@ Feature: Changing what a project may reach, and removing a project
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   Scenario: what the work may reach says where each host came from

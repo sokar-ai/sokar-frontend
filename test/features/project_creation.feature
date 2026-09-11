@@ -5,6 +5,7 @@ Feature: Creating a project, checked by the machine that will run it
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: every question is in one place, and the sets offered are the ones this machine has
     When I describe a new project

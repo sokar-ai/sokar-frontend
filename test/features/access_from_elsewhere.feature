@@ -5,6 +5,7 @@ Feature: Watching several machines at once, and telling nodes apart
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: which machine an action will act on is always visible
     Then the machine shown is {'this machine'}

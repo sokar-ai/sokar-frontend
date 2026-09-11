@@ -5,6 +5,7 @@ Feature: Starting work with an agent, a mode and a credential
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   Scenario: work is started with a name, an agent and a mode

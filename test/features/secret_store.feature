@@ -5,6 +5,7 @@ Feature: Seeing and shutting the secret store, without showing a value
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: what the store holds is visible without doing anything to it
     When I show the protected store

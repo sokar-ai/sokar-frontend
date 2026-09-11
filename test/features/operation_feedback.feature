@@ -5,6 +5,7 @@ Feature: Running long operations without blocking the frame
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   Scenario: the frame stays usable while a long operation runs

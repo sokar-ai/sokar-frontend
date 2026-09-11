@@ -5,6 +5,7 @@ Feature: Answering blocked connections, and widening what work reaches
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: a blocked connection turns up without anybody going to look for it
     When work is blocked reaching {'api.example.test:443'}

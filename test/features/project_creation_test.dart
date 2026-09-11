@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
+import './step/i_go_to_the_work.dart';
 import './step/i_describe_a_new_project.dart';
 import './step/it_says.dart';
 import './step/the_sets_offered_are_the_ones_installed_here.dart';
@@ -25,6 +26,7 @@ void main() {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
+      await iGoToTheWork(tester);
     }
 
     testWidgets(

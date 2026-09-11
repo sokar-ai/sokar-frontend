@@ -5,6 +5,7 @@ Feature: Backups of a mirror: listing, removing, restoring, and upstream
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   # A bundle is written wherever an operator names it and the command forgets it, so "what has

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
+import './step/i_go_to_the_work.dart';
 import './step/the_machine_shown_is.dart';
 import './step/i_watch_another_machine_called.dart';
 import './step/i_switch_to_the_machine.dart';
@@ -32,6 +33,7 @@ void main() {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
+      await iGoToTheWork(tester);
     }
 
     testWidgets('''which machine an action will act on is always visible''',

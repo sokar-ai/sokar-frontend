@@ -5,6 +5,7 @@ Feature: Which providers a machine is authenticated against
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   # Named as what they are rather than as bare identifiers — and the identifier is kept beside
   # the name, because it is what an agent and `vault put` both take.

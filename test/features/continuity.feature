@@ -5,6 +5,7 @@ Feature: Leaving and reopening the window without losing where you were
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: leaving says what carries on without the window
     When I select the project {'checkout'}
@@ -25,13 +26,14 @@ Feature: Leaving and reopening the window without losing where you were
     When I select the project {'checkout'}
     And I select the work {'sokar-checkout-shell'}
     And the app is restarted
+    And I go to the work
     Then the project {'checkout'} is selected
     And the work {'sokar-checkout-shell'} is still selected
 
-  Scenario: reopening comes back to the same section
+  Scenario: reopening opens on what needs a person, whichever section was left
     When I show what this session has run
     And the app is restarted
-    Then the section shown is {'This session'}
+    Then the section shown is {'Needs you'}
 
   Scenario: a newer build installed underneath says so, and changes nothing on its own
     When a newer build is installed underneath

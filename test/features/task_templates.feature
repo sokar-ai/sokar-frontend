@@ -5,6 +5,7 @@ Feature: Naming a job so it can be started again
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   Scenario: a job is named, and becomes an action of its own
@@ -41,6 +42,7 @@ Feature: Naming a job so it can be started again
   Scenario: a named job outlives the run that named it
     Given the job {'nightly-tests'} is already named
     When the app is restarted
+    And I go to the work
     And I select the project {'checkout'}
     And I open the command finder
     Then the command finder names {'Run nightly-tests in checkout'}

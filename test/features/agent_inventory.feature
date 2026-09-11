@@ -5,6 +5,7 @@ Feature: Listing the agents a machine has, and what each one may reach
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: every installed agent is listed with its version and where it was found
     When I show the agents installed here

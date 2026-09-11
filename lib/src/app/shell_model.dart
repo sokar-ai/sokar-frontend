@@ -6,6 +6,9 @@ import 'package:flutter/foundation.dart';
 /// find one quickly. Three surfaces over one list of actions, each answering a different question
 /// — which is why none of them is redundant.
 enum Section {
+  /// What needs a person, from every machine at once. The window opens here.
+  attention('Needs you'),
+
   /// The projects on the machine and the work under them. The daily loop.
   work('Work'),
 
@@ -141,8 +144,9 @@ class LogOpened extends Opened {
 /// Separate from the backend's state on purpose. Losing contact with a daemon must not move
 /// anybody's cursor, and opening something must not ask the daemon anything.
 class ShellModel extends ChangeNotifier {
-  Section _section = Section.work;
-  Pane _pane = Pane.projects;
+  Section _section = Section.attention;
+  // The window opens on what needs a person, so the keyboard starts there too.
+  Pane _pane = Pane.opened;
   Pane _cameFrom = Pane.projects;
   Opened _opened = const NothingOpened();
 

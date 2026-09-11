@@ -5,6 +5,7 @@ Feature: Stopping everything on a machine, and naming what survives
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: the way to stop everything is on screen without opening anything
     Then stopping everything is offered on the frame

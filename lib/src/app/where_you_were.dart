@@ -37,10 +37,7 @@ class WhereYouWere {
       }
     }
 
-    final section = place['section'];
-    for (final each in Section.values) {
-      if (each.name == section) _shell.goTo(each);
-    }
+    // Not the section: the window always opens on what needs a person.
 
     final fleet = _machines.fleet;
     final project = place['project'];
@@ -59,7 +56,6 @@ class WhereYouWere {
     final fleet = _machines.fleet;
     unawaited(_settings.rememberWhereYouWere(<String, String>{
       'machine': _machines.current.name,
-      'section': _shell.section.name,
       if (fleet.selectedProject != null) 'project': fleet.selectedProject!.name,
       if (fleet.selectedTask != null) 'task': fleet.selectedTask!.name,
     }));

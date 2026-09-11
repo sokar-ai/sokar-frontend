@@ -5,6 +5,7 @@ Feature: Building a project's environment, and watching it run
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   # Nothing is started: this builds the image a task would otherwise build on its way to running,

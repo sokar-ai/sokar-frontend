@@ -5,6 +5,7 @@ Feature: Stopping, renaming and recreating work, and what that destroys
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
     And I select the work {'sokar-checkout-shell'}
 

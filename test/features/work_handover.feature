@@ -5,6 +5,7 @@ Feature: Reviewing what work pushed, and what it holds back
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   # Answered on the task itself since 2026-09-08. Nothing joins it to the gate: this container's

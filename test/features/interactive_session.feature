@@ -5,6 +5,7 @@ Feature: Working inside a container by hand, locally or over ssh
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'billing'}
     And I select the work {'sokar-billing-shell'}
 

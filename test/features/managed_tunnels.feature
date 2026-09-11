@@ -5,6 +5,7 @@ Feature: Raising and dropping the forward that reaches a machine
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: a machine is described by where it is, and the forward is raised here
     When I start watching another machine

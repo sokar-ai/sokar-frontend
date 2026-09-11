@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
+import './step/i_go_to_the_work.dart';
 import './step/i_select_the_project.dart';
 import './step/the_work_is_waiting_on.dart';
 import './step/the_work_is_shown_as.dart';
@@ -22,6 +23,7 @@ void main() {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
+      await iGoToTheWork(tester);
       await iSelectTheProject(tester, 'checkout');
     }
 

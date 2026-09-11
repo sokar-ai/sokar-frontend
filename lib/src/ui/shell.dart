@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app/attention.dart';
 import '../app/commands.dart';
 import '../app/fleet_backend.dart';
 import '../app/fleet_model.dart';
@@ -30,6 +31,7 @@ import '../app/settings.dart';
 import '../app/shell_model.dart';
 import 'package:sokar_frontend/client.dart';
 
+import 'attention_view.dart';
 import 'command_finder.dart';
 import 'clearance_mode_view.dart';
 import 'clearance_view.dart';
@@ -175,10 +177,12 @@ class _ShellState extends State<Shell> {
   final _projectsFocus = FocusNode(debugLabel: 'projects');
   final _workFocus = FocusNode(debugLabel: 'work');
   final _openedFocus = FocusNode(debugLabel: 'opened');
+  late final Attention _attention;
 
   @override
   void initState() {
     super.initState();
+    _attention = Attention(widget.machines);
     widget.shell.addListener(_moveKeyboard);
     WidgetsBinding.instance.addPostFrameCallback((_) => _moveKeyboard());
   }
@@ -760,6 +764,20 @@ class _ShellState extends State<Shell> {
         onDestinationSelected: (chosen) =>
             widget.shell.goTo(Section.values[chosen]),
         destinations: <NavigationRailDestination>[
+          NavigationRailDestination(
+            // Every machine's count, not only the one being acted on.
+            icon: ListenableBuilder(
+              listenable: _attention,
+              builder: (context, _) => Badge(
+                key: const Key('needing-count-badge'),
+                isLabelVisible: _attention.needingSomebody > 0,
+                label: Text('${_attention.needingSomebody}'),
+                child: const Icon(Icons.notifications_active_outlined),
+              ),
+            ),
+            selectedIcon: const Icon(Icons.notifications_active),
+            label: const Text('Needs you'),
+          ),
           const NavigationRailDestination(
             icon: Icon(Icons.folder_outlined),
             selectedIcon: Icon(Icons.folder),
@@ -785,6 +803,7 @@ class _ShellState extends State<Shell> {
 
   Widget _section(BuildContext context, BoxConstraints constraints) =>
       switch (widget.shell.section) {
+        Section.attention => _needsYou(),
         Section.work => _work(WindowSize.of(constraints.maxWidth)),
         Section.operations => _thisSession(),
         Section.clearance => ClearanceView(
@@ -793,6 +812,29 @@ class _ShellState extends State<Shell> {
                 _fleet.clearance.decide(_fleet.backend, prompt, allow: allow),
           ),
       };
+
+  /// What needs a person. An action on another machine's work selects that machine first.
+  Widget _needsYou() {
+    final opened = _opened();
+    if (opened != null) return opened;
+    return Focus(
+      focusNode: _openedFocus,
+      child: AttentionView(
+      attention: _attention,
+      onDecide: (tile, prompt, {required allow}) =>
+          tile.fleet.clearance.decide(tile.fleet.backend, prompt, allow: allow),
+      onAttach: (tile) {
+        widget.machines.select(tile.machine);
+        _openSession(tile.task!);
+      },
+      onReview: (tile) {
+        widget.machines.select(tile.machine);
+        tile.fleet.selectProject(tile.task!.project);
+        unawaited(_openTheGate());
+      },
+      ),
+    );
+  }
 
   Widget _thisSession() {
     final opened = _opened();
@@ -1026,6 +1068,7 @@ class _ShellState extends State<Shell> {
   @override
   void dispose() {
     widget.shell.removeListener(_moveKeyboard);
+    _attention.dispose();
     _projectsFocus.dispose();
     _workFocus.dispose();
     _openedFocus.dispose();

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
+import './step/i_go_to_the_work.dart';
 import './step/i_select_the_project.dart';
 import './step/i_ask_to_close_it.dart';
 import './step/it_says_keeps_running.dart';
@@ -28,6 +29,7 @@ void main() {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
+      await iGoToTheWork(tester);
     }
 
     testWidgets('''leaving says what carries on without the window''',
@@ -58,14 +60,17 @@ void main() {
       await iSelectTheProject(tester, 'checkout');
       await iSelectTheWork(tester, 'sokar-checkout-shell');
       await theAppIsRestarted(tester);
+      await iGoToTheWork(tester);
       await theProjectIsSelected(tester, 'checkout');
       await theWorkIsStillSelected(tester, 'sokar-checkout-shell');
     });
-    testWidgets('''reopening comes back to the same section''', (tester) async {
+    testWidgets(
+        '''reopening opens on what needs a person, whichever section was left''',
+        (tester) async {
       await bddSetUp(tester);
       await iShowWhatThisSessionHasRun(tester);
       await theAppIsRestarted(tester);
-      await theSectionShownIs(tester, 'This session');
+      await theSectionShownIs(tester, 'Needs you');
     });
     testWidgets(
         '''a newer build installed underneath says so, and changes nothing on its own''',

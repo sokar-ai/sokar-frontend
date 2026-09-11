@@ -5,6 +5,7 @@ Feature: What a piece of work is doing, and how long it has been
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   Scenario: work waiting on a person says so, and says what it is waiting on

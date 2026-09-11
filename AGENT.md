@@ -1970,3 +1970,17 @@ be told apart from one that never ran.** Their acceptance suite proved nothing f
 because a CI line named an aggregator, so the step passed in seconds and the absence of results read
 as a build with no test step. An empty run here writes *"No tests ran"* on the summary page and
 exits non-zero — the page makes the state visible, the exit code makes it unmergeable.
+
+## The window opens on what needs a person
+
+`Attention` reads every machine's existing `FleetModel` and `Clearance`; it opens no stream of its
+own, so it cannot disagree with the Blocked section. Before it, the Blocked section and its badge
+showed the current machine only, and another machine's question reached nobody but a notification.
+
+- **The keyboard has to land where the window opens.** Starting on the new view with focus still
+  aimed at the projects pane left every shortcut dead until something was clicked. A scenario now
+  opens the command finder straight after launch.
+- **Work is a precondition, and the scenarios say so.** Every Background has *"And I go to the
+  work"*, and so does every scenario after a restart, which lands on this view again.
+- **A deadline is not shown as time remaining.** `Prompt` carries when it was blocked, not when it
+  expires; the tile says how long it has been blocked and that the machine does not say when.

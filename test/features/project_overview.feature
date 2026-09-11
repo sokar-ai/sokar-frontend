@@ -5,6 +5,7 @@ Feature: What each project is, and how far behind it has fallen
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: a project says what it is and how much work it has
     Then the project {'checkout'} says {'1 of 2 running · guarded'}
@@ -39,6 +40,7 @@ Feature: What each project is, and how far behind it has fallen
 
   Scenario: a count left over from an older measurement is not drawn as one
     Given the last check for {'billing'} failed, leaving a stale count
+    And I go to the work
     Then the project {'billing'} says {'The last check did not work'}
     And the project {'billing'} does not say {'7 behind'}
 
@@ -53,4 +55,5 @@ Feature: What each project is, and how far behind it has fallen
   Scenario: an image that records nothing about itself is not called stale
     Given the project {'checkout'} records nothing about its image
     When the app is restarted
+    And I go to the work
     Then the project {'checkout'} is not marked as stale

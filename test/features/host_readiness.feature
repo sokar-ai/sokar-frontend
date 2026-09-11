@@ -5,6 +5,7 @@ Feature: Checking whether a machine can run work at all
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: whether this machine can run anything is one action away
     When I check whether this machine can run anything

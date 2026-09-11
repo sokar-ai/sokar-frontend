@@ -5,6 +5,7 @@ Feature: Telling somebody who is not looking at the window
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
     And I select the project {'checkout'}
 
   Scenario: a waiting decision reaches somebody who is not looking at the window

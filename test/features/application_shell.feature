@@ -5,6 +5,7 @@ Feature: Moving around the frame by keyboard and by pointer
   Background:
     Given a backend with work on it
     And the app is running
+    And I go to the work
 
   Scenario: what is on the machine is answered before anything is selected
     Then the project {'checkout'} is listed
