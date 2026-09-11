@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Never published. The package version is pubspec.yaml's, read by tool/package.sh. -->
+    <groupId>org.fuin.sokar</groupId>
+    <artifactId>sokar-frontend</artifactId>
+    <version>0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>sokar-frontend</name>
+    <description>The Sokar interface. Maven drives Flutter so an end-to-end run can lease a machine.</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Which device flutter builds for at "package". Override with -Dflutter.target. -->
+        <flutter.target>linux</flutter.target>
+        <!-- Declared so -DskipTests resolves here as it does for surefire. -->
+        <skipTests>false</skipTests>
+        <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- Flutter and dart from PATH, with no profile around them: nothing here builds without
+                 Flutter, and a profile that switched itself off would make a green build that did nothing. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>flutter-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>flutter</executable>
+                            <arguments>
+                                <argument>clean</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>flutter-pub-get</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>flutter</executable>
+                            <arguments>
+                                <argument>pub</argument>
+                                <argument>get</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <!-- dart, never flutter analyze, which rewrites analysis_options.yaml. Before the
+                         build rather than after it: failing early is worth leaving the template's order. -->
+                    <execution>
+                        <id>dart-analyze</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>dart</executable>
+                            <arguments>
+                                <argument>analyze</argument>
+                                <argument>--fatal-infos</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <!-- The file reporter feeds the build's summary; the console keeps its own output. -->
+                    <execution>
+                        <id>flutter-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skipTests}</skip>
+                            <executable>flutter</executable>
+                            <arguments>
+                                <argument>test</argument>
+                                <argument>--file-reporter=json:build/test-results.json</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>flutter-build</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>flutter</executable>
+                            <arguments>
+                                <argument>build</argument>
+                                <argument>${flutter.target}</argument>
+                                <argument>--release</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- Against the machine SOKAR_E2E_* names. Failsafe's shape: the run never fails its phase, so
+             whatever follows it still runs, and verify fails the build from the status it left. -->
+        <profile>
+            <id>e2e</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec-maven-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>e2e-run</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>mkdir -p build; tool/e2e.sh --file-reporter=json:build/e2e-results.json; echo $? &gt; build/e2e.status</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>e2e-verdict</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>exit "$(cat build/e2e.status)"</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>
