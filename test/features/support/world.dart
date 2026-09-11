@@ -1159,6 +1159,9 @@ class World {
   /// What the next forward does. A scenario sets it to make one fail the way `ssh` fails.
   static String? forwardsFailWith;
 
+  /// Forwards raised for a trial and not yet taken down, by machine name.
+  static final Set<String> trialForwards = <String>{};
+
   /// What agents the machine has.
   static late AgentInventory inventory;
 
@@ -1379,6 +1382,7 @@ class World {
     forwardsAsked.clear();
     forwardsHeld.clear();
     forwardsFailWith = null;
+    trialForwards.clear();
     templates = Templates(settings);
     await templates.load();
     stopping = EmergencyStop();
@@ -1653,6 +1657,17 @@ class FakeTerminal implements SessionChannel {
   }
 }
 
+/// A forward raised for a trial, which says when it is taken down.
+class _TrialTunnel extends Tunnel {
+  _TrialTunnel(super.machine);
+
+  @override
+  Future<void> drop() async {
+    World.trialForwards.remove(machine.name);
+    state = TunnelState.idle;
+  }
+}
+
 class FakeTunnels extends Tunnels {
   final Map<String, Tunnel> _mine = <String, Tunnel>{};
 
@@ -1682,6 +1697,18 @@ class FakeTunnels extends Tunnels {
       ..problem = null;
     notifyListeners();
     return true;
+  }
+
+  @override
+  Future<Tunnel> trial(Machine machine) async {
+    final tunnel = _TrialTunnel(machine);
+    World.forwardsAsked.add(tunnel.command);
+    World.trialForwards.add(machine.name);
+    final failing = World.forwardsFailWith;
+    tunnel
+      ..state = failing == null ? TunnelState.up : TunnelState.down
+      ..problem = failing;
+    return tunnel;
   }
 
   @override

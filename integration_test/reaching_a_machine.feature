@@ -12,3 +12,16 @@ Feature: Reaching a real machine and reading what its daemon says
   Scenario: every reply the interface reads can be read from the real daemon
     Given the test machine is being watched
     Then every reply it gives can be read
+
+  Scenario: a machine is tried from the dialog before it is watched
+    When I try the test machine from the dialog
+    Then the trial says {'Reached Sokar'}
+    And no forward raised for the trial is left
+    And I put the dialog away
+
+  # The forward comes up either way; only connecting through it finds the far end empty.
+  Scenario: a socket nobody serves on the test machine is found by trying it
+    When I try the test machine from the dialog with the socket {'/run/user/0/sokar/none.sock'}
+    Then the trial says {'nothing answers at /run/user/0/sokar/none.sock on that machine'}
+    And no forward raised for the trial is left
+    And I put the dialog away

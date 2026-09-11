@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app/connection_trial.dart';
 import '../app/fleet_model.dart';
 import '../app/machines.dart';
 import '../app/tunnel.dart';
@@ -170,17 +171,20 @@ class _Reach extends StatelessWidget {
 /// must keep working untouched. A machine described by where it *is* has its forward raised here,
 /// supervised, and taken down when the window closes.
 Future<Machine?> askForAMachine(BuildContext context,
-        {Iterable<String> taken = const <String>[]}) =>
+        {Iterable<String> taken = const <String>[], Future<Trial> Function(Machine)? trying}) =>
     showDialog<Machine>(
       context: context,
-      builder: (context) => _AskForAMachine(taken: taken.toList()),
+      builder: (context) => _AskForAMachine(taken: taken.toList(), trying: trying),
     );
 
 class _AskForAMachine extends StatefulWidget {
-  const _AskForAMachine({required this.taken});
+  const _AskForAMachine({required this.taken, this.trying});
 
   /// The names already watched. A second with the same name would never be added.
   final List<String> taken;
+
+  /// Tries a machine before it is watched, or null where nothing can.
+  final Future<Trial> Function(Machine)? trying;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -195,6 +199,11 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   final _remote = TextEditingController();
   final _nameFocus = FocusNode();
   bool _nameLeft = false;
+
+  Trial? _trial;
+  String _triedFor = '';
+  bool _trying = false;
+  int _attempt = 0;
 
   /// Whether this interface raises the forward. **Nothing is preselected**: the two are different
   /// commitments — one of them starts a process and owns it — and a default would make that
@@ -325,6 +334,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
                 ] else if (_raiseIt == false) ...<Widget>[
                   TextField(
                     controller: _socket,
+                    key: const Key('machine-socket'),
                     decoration: const InputDecoration(
                       labelText: 'Forwarded socket',
                       hintText: '/tmp/sokard-remote.sock',
@@ -346,6 +356,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
+                if (_raiseIt != null && widget.trying != null) ..._trialRow(context),
               ],
             ),
           ),
@@ -363,6 +374,90 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         ],
       );
 
+  /// The button that tries it, and what the last try found while the fields still say the same.
+  List<Widget> _trialRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final trial = _triedFor == _signature ? _trial : null;
+    return <Widget>[
+      const SizedBox(height: Space.normal),
+      Row(
+        children: <Widget>[
+          OutlinedButton.icon(
+            key: const Key('try-it'),
+            onPressed: _canTry && !_trying ? _tryIt : null,
+            icon: const Icon(Icons.network_check, size: Sizes.rowIcon),
+            label: const Text('Try the connection'),
+          ),
+          if (_trying) ...<Widget>[
+            const SizedBox(width: Space.normal),
+            const SizedBox.square(
+              dimension: Sizes.mark,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: Space.small),
+            const Text('Trying…'),
+          ],
+        ],
+      ),
+      if (trial != null) ...<Widget>[
+        const SizedBox(height: Space.small),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(
+              trial.reached ? Icons.check_circle_outline : Icons.error_outline,
+              size: Sizes.rowIcon,
+              color: trial.reached ? scheme.primary : scheme.error,
+            ),
+            const SizedBox(width: Space.small),
+            Expanded(child: SelectableText(trial.words, key: const Key('trial-result'))),
+          ],
+        ),
+      ],
+    ];
+  }
+
+  /// What the fields describe, so an answer about other fields is never shown against these.
+  String get _signature =>
+      '$_raiseIt|${_host.text.trim()}|${_remote.text.trim()}|${_socket.text.trim()}';
+
+  bool get _canTry {
+    if (_raiseIt == null) return false;
+    return _raiseIt!
+        ? _host.text.trim().isNotEmpty && _remote.text.trim().isNotEmpty
+        : _socket.text.trim().isNotEmpty;
+  }
+
+  Future<void> _tryIt() async {
+    final trying = widget.trying!;
+    final attempt = ++_attempt;
+    final signature = _signature;
+    setState(() => _trying = true);
+    final trial = await trying(_described);
+    if (!mounted || attempt != _attempt) return;
+    setState(() {
+      _trying = false;
+      _trial = trial;
+      _triedFor = signature;
+    });
+  }
+
+  /// The machine the fields describe.
+  Machine get _described {
+    final name = _name.text.trim().isEmpty ? 'new machine' : _name.text.trim();
+    return _raiseIt!
+        // The local end is ours to choose, and it goes where the runtime directory already
+        // makes it owner-only. Asking somebody for a path they do not care about would be one
+        // more thing to get almost right.
+        ? Machine(
+            name: name,
+            socketPath: Machine.endpointFor(name),
+            host: _host.text.trim(),
+            remoteSocket: _remote.text.trim(),
+          )
+        : Machine(name: name, socketPath: _socket.text.trim());
+  }
+
   bool get _ready {
     if (_name.text.trim().isEmpty || _raiseIt == null || _takenBy != null) return false;
     return _raiseIt!
@@ -370,22 +465,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         : _socket.text.trim().isNotEmpty;
   }
 
-  void _watchIt() {
-    final name = _name.text.trim();
-    Navigator.of(context).pop(
-      _raiseIt!
-          // The local end is ours to choose, and it goes where the runtime directory already
-          // makes it owner-only. Asking somebody for a path they do not care about would be one
-          // more thing to get almost right.
-          ? Machine(
-              name: name,
-              socketPath: Machine.endpointFor(name),
-              host: _host.text.trim(),
-              remoteSocket: _remote.text.trim(),
-            )
-          : Machine(name: name, socketPath: _socket.text.trim()),
-    );
-  }
+  void _watchIt() => Navigator.of(context).pop(_described);
 
   @override
   void dispose() {

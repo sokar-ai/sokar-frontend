@@ -1,0 +1,80 @@
+import 'dart:async';
+
+import 'package:sokar_frontend/client.dart';
+
+import 'fleet_backend.dart';
+import 'machines.dart';
+import 'tunnel.dart';
+
+const _tasks = 'org.fuin.sokar.Tasks1';
+
+/// What trying a machine found, before anybody watches it.
+class Trial {
+  /// Constructor taking the verdict and the words for it.
+  const Trial({required this.reached, required this.words});
+
+  /// Whether a Sokar this build understands answered.
+  final bool reached;
+
+  /// What was found, in a sentence somebody can act on.
+  final String words;
+}
+
+/// Tries [machine] the way watching it would, and leaves nothing running.
+///
+/// A forward raised here gets one of its own for the trial, on its own socket, taken down again
+/// whatever was found. Connecting through it is the test: an exit code proves nothing.
+Future<Trial> tryAMachine(
+  Machine machine, {
+  required FleetBackend Function(Machine machine) reach,
+  required Tunnels tunnels,
+  Duration within = const Duration(seconds: 10),
+}) async {
+  final target = machine.needsATunnel
+      ? Machine(
+          name: machine.name,
+          socketPath: Machine.endpointFor('${machine.name} trial'),
+          host: machine.host,
+          remoteSocket: machine.remoteSocket,
+        )
+      : machine;
+  Tunnel? tunnel;
+  try {
+    if (machine.needsATunnel) {
+      tunnel = await tunnels.trial(target);
+      if (tunnel.state != TunnelState.up) {
+        return Trial(
+          reached: false,
+          words: 'ssh could not raise the forward: ${tunnel.problem ?? 'it gave no reason'}',
+        );
+      }
+    }
+    final info = await reach(target).open().timeout(within);
+    if (!info.interfaces.contains(_tasks)) {
+      return Trial(
+        reached: false,
+        words: 'It answers, but serves nothing this build understands: '
+            '${info.interfaces.join(', ')}.',
+      );
+    }
+    return Trial(reached: true, words: 'Reached ${info.product} ${info.version}.');
+  } on TimeoutException {
+    return Trial(reached: false, words: 'Nothing answered within ${within.inSeconds} seconds.');
+  } on VarlinkDisconnected catch (ex) {
+    // The forward to a socket nobody serves comes up fine; only connecting through it says so.
+    return Trial(
+      reached: false,
+      words: machine.needsATunnel
+          ? 'The forward came up, but nothing answers at ${machine.remoteSocket} on that '
+              'machine. Is sokard running there, for the user you log in as? (${ex.message})'
+          : 'Nothing answers at ${machine.socketPath}: ${ex.message}',
+    );
+  } on StateError catch (ex) {
+    return Trial(
+      reached: false,
+      words: 'It answers, but serves nothing this build understands: ${ex.message}',
+    );
+  } finally {
+    await tunnel?.drop();
+  }
+}

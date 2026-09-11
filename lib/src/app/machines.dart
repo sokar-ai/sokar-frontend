@@ -1,3 +1,4 @@
+import 'connection_trial.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -154,6 +155,10 @@ class Machines extends ChangeNotifier {
 
   static FleetBackend _overSocket(Machine machine) =>
       SokarBackend(Backend(socketPath: machine.socketPath, label: machine.name));
+
+  /// Tries [machine] as watching it would, without watching it or leaving anything running.
+  Future<Trial> tryMachine(Machine machine) =>
+      tryAMachine(machine, reach: _reach, tunnels: tunnels);
 
   /// Every machine, in the order they were added.
   List<Machine> get all => List<Machine>.unmodifiable(_machines);

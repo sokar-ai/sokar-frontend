@@ -593,7 +593,8 @@ class _ShellState extends State<Shell> {
 
   /// Asks for another machine to watch, and starts watching it.
   Future<void> _addAMachine() async {
-    final machine = await askForAMachine(context, taken: widget.machines.all.map((each) => each.name));
+    final machine = await askForAMachine(context,
+        taken: widget.machines.all.map((each) => each.name), trying: widget.machines.tryMachine);
     if (machine == null) return;
     await widget.machines.add(machine);
   }

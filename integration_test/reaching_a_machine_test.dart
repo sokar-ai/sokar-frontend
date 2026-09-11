@@ -10,6 +10,11 @@ import './step/i_watch_the_test_machine_through_a_forward_raised_here.dart';
 import './step/the_test_machine_is_answering.dart';
 import './step/the_test_machine_is_being_watched.dart';
 import './step/every_reply_it_gives_can_be_read.dart';
+import './step/i_try_the_test_machine_from_the_dialog.dart';
+import './step/the_trial_says.dart';
+import './step/no_forward_raised_for_the_trial_is_left.dart';
+import './step/i_put_the_dialog_away.dart';
+import './step/i_try_the_test_machine_from_the_dialog_with_the_socket.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +36,25 @@ void main() {
       await bddSetUp(tester);
       await theTestMachineIsBeingWatched(tester);
       await everyReplyItGivesCanBeRead(tester);
+    });
+    testWidgets('''a machine is tried from the dialog before it is watched''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iTryTheTestMachineFromTheDialog(tester);
+      await theTrialSays(tester, 'Reached Sokar');
+      await noForwardRaisedForTheTrialIsLeft(tester);
+      await iPutTheDialogAway(tester);
+    });
+    testWidgets(
+        '''a socket nobody serves on the test machine is found by trying it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iTryTheTestMachineFromTheDialogWithTheSocket(
+          tester, '/run/user/0/sokar/none.sock');
+      await theTrialSays(tester,
+          'nothing answers at /run/user/0/sokar/none.sock on that machine');
+      await noForwardRaisedForTheTrialIsLeft(tester);
+      await iPutTheDialogAway(tester);
     });
   });
 }

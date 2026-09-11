@@ -62,3 +62,29 @@ Future<void> switchTo(WidgetTester tester, String name) async {
   await tester.tap(find.ancestor(of: entry.first, matching: find.byType(MenuItemButton)).first);
   await pumpFor(tester);
 }
+
+/// Fills the dialog for a forward to the test machine with [socket] there, and tries it.
+Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
+  await tester.tap(find.byKey(const Key('machine-switcher')));
+  await pumpFor(tester);
+  await tester.tap(
+    find.widgetWithText(MenuItemButton, 'Watch another machine…'),
+  );
+  await pumpFor(tester);
+  await tester.enterText(find.byKey(const Key('machine-name')), 'e2e trial');
+  await tester.tap(find.byKey(const Key('machine-raise-it')));
+  await pumpFor(tester);
+  await tester.enterText(find.byKey(const Key('machine-host')), E2e.host);
+  await tester.enterText(
+    find.byKey(const Key('machine-remote-socket')),
+    socket,
+  );
+  await pumpFor(tester);
+  await tester.tap(find.byKey(const Key('try-it')));
+  await pumpUntil(
+    tester,
+    () => find.byKey(const Key('trial-result')).evaluate().isNotEmpty,
+    timeout: const Duration(seconds: 30),
+    what: 'the trial to say something',
+  );
+}

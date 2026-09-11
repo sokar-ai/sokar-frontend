@@ -242,6 +242,15 @@ class Tunnels extends ChangeNotifier {
     return tunnel.state == TunnelState.up;
   }
 
+  /// Raises a forward for a trial, owned by the caller and never listed here.
+  ///
+  /// Kept out of [of]: a trial is not a machine being watched, and the caller takes it down.
+  Future<Tunnel> trial(Machine machine) async {
+    final tunnel = Tunnel(machine, start: _launch, appears: _untilItBinds);
+    await tunnel.raise();
+    return tunnel;
+  }
+
   /// Raises it again after it dropped.
   ///
   /// Without being asked, because a forward that goes away is not a decision anybody made — but
