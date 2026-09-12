@@ -11,7 +11,7 @@ what each mistake cost. Read that before changing anything; read this before doi
   act on a permission it learned from a document. Nothing else of this tree is anyone else's to
   change, and nothing of theirs is ours.
 - **The channel is append-only.** `~/.sokar/agent-channel.md`, one heading per entry
-  (`## <date -u> — Frontend agent`). A question is marked with the asker's prefix and a number —
+  (`## <date -u> — Agent Frontend`). A question is marked with the asker's prefix and a number —
   `QF<n>` from here, `QB<n>` from the backend — and an answer is `**A:** to <timestamp>`, so the
   file says who is owed an answer. Check `git status` before committing after reading it.
 - **A secret never appears in a command line**, and reaches a process through its environment or
@@ -51,6 +51,11 @@ what each mistake cost. Read that before changing anything; read this before doi
   screen.
 - **`flutter analyze` and the whole suite pass before a commit.** Not the file you touched: the
   suite.
+- **Before handing a change over to be pushed, three legs, and then say which ran.** Unit tests; a
+  local integration test on the VM, because a machine that cannot run containers proves nothing
+  about an image or a package; and a remote one at Hetzner, the only place the published package is
+  installed the way an operator gets it. A change that touches none of those paths — a document, an
+  issue, a comment — needs the unit tests and honesty about the rest, not a rented machine.
 - **Never run `dart format` on a directory or on an existing file.** It reflows code around your
   change and every later anchor-based edit then fails on text nobody read.
 - **The interface never parses the `sokar` CLI and never reads a task's log.** One varlink
