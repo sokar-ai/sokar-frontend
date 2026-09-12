@@ -21,6 +21,10 @@ what is only true on one machine and is never committed.
   with the asker's prefix and a number — `QF<n>` from here, `QB<n>` from the backend — and an
   answer is `**A:** to <timestamp>`, so the file says who is owed one. Check `git status` before
   committing after reading it: another agent's edits can be in this working tree.
+- **Re-read the channel immediately before appending to it.** An entry that landed between your
+  read and your append makes what you are about to write answer a state that no longer exists —
+  Agent Smith published advice for an experiment that had been settled four minutes earlier, and
+  the read that would have caught it costs nothing. The marker says what to compare against.
 - **Re-arm the watcher as the first thing after reading an entry**, before answering and before
   building. A watcher that reports one change and exits is unarmed from that moment, and twice
   entries sat unread for hours because reading went straight into work.
