@@ -61,6 +61,10 @@ what each mistake cost. Read that before changing anything; read this before doi
 - **The interface never parses the `sokar` CLI and never reads a task's log.** One varlink
   interface, `org.fuin.sokar.Tasks1`, over one socket. A second reader of the domain is a second
   implementation of it.
+- **The index is part of the change.** `issues/README.md` opens with a table — number linked,
+  status, what it covers, how many questions are still open — ordered by priority, so the top row
+  is what to do next. Adding or closing an issue means writing that row in the same change.
+  `blocked` names whose answer it waits for. (The operator's rule, 2026-09-12.)
 - **Requirements live in `issues/FNN-Name.md`.** The number is identity, not order;
   [issues/README.md](issues/README.md) is the order. A requirement says what must be true for a
   person, never how it is built.

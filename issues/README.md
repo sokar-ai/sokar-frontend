@@ -41,15 +41,23 @@ it is judged against the rest, not because it matters least.
 **The last column says what the backend is short of**, not merely that something is. A row with
 nothing in it can be built today. Anything named there is a method or a field that does not exist
 yet, or exists and is not built here yet; [what the contract does not yet
-cover](../doc/Contract-Gaps.md) has the reasoning behind each.
+cover](../doc/Contract-Gaps.md) has the reasoning behind each. **Open questions** is the count in
+that file's *To be checked* section: a number, because a requirement with three unanswered
+questions is a different thing from one with none, and the difference is invisible in prose.
 
-| # | Requirement | What must be true | What is still missing | Open question |
+**The top row is what to do next.** Writing this table is part of the change that adds or closes
+an issue — the operator's rule, 2026-09-12 — so a row is as true as the work it names. `blocked`
+says whose answer it waits for. Three of these five are built and their acceptance is met; they
+stay listed, with their remaining questions counted, until the operator says to retire them, which
+deletes the file and leaves the scenarios that guard it.
+
+| # | Status | What must be true | Open questions | What the backend is short of |
 |---|---|---|---|---|
-| F28 | [One View Of What Needs A Person](F28-One-View-Of-What-Needs-A-Person.md) | Opening the window answers whether anything needs a person, for every connected machine at once. | | |
-| F29 | [Try A Machine Before Watching It](F29-Try-A-Machine-Before-Watching-It.md) | Adding a machine can try the connection first, and says what stood in the way when it fails. | | |
-| F30 | [Start The Daemon On A Machine You Can Reach](F30-Start-The-Daemon-On-A-Machine-You-Can-Reach.md) | A machine reached over ssh with nothing serving is offered a start, and started only when asked. | nothing since Sokar's `8de32db`: there is a `sokard` user unit. Lingering stays the operator's own decision | whether stopping should be offered too |
-| F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
-| F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
+| [F15](F15-Secret-Store-Control.md) | **blocked** — waits on Sokar | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | 0 | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked |
+| [F30](F30-Start-The-Daemon-On-A-Machine-You-Can-Reach.md) | in progress — built, questions open | A machine reached over ssh with nothing serving is offered a start, and started only when asked. | 1 | nothing since Sokar's `8de32db`: there is a `sokard` user unit. Lingering stays the operator's own decision |
+| [F28](F28-One-View-Of-What-Needs-A-Person.md) | in progress — built, questions open | Opening the window answers whether anything needs a person, for every connected machine at once. | 3 | |
+| [F29](F29-Try-A-Machine-Before-Watching-It.md) | in progress — built, questions open | Adding a machine can try the connection first, and says what stood in the way when it fails. | 1 | |
+| [F26](F26-Linux-Packaging.md) | in progress — met, ready to retire | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | 0 | |
 
 
 ## What was here and is finished
