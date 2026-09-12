@@ -309,7 +309,7 @@ be read again.
   action from where the work is listed — several at once, each named by its task and its machine,
   and the way back is the frame's own: leaving returns to the same place with the same selection.
   Asked for as
-  [B16](https://github.com/sokar-ai/sokar/blob/main/issues/base/B16-Working-Inside-A-Running-Container.md)
+  [B16](https://github.com/sokar-ai/sokar/blob/main/issues/base/README.md)
   and designed there: **varlink cannot carry a session** — one call in, many replies out — so the
   session is a **pty running `sokar task attach`**, over ssh for a machine that needs one and here
   for a machine that does not. Sokar's own verb rather than the runtime's, so this end never
@@ -335,7 +335,7 @@ be read again.
   a tree, where it could scroll out of view. The managed tunnel raises it.
 - **Task State Visibility.** Working, idle, waiting and dead, beside the runtime's own words
   and never instead of them, with *"idle for forty minutes"* as arithmetic on a timestamp. Asked
-  for as [B11](https://github.com/sokar-ai/sokar/blob/main/issues/base/B11-What-A-Task-Says-About-Itself.md)
+  for as [B11](https://github.com/sokar-ai/sokar/blob/main/issues/base/README.md)
   and answered the same day. One thing it deliberately does **not** do: `WAITING` covers clearance
   questions only, so an agent asking its own question reads as `UNKNOWN` or `IDLE`, and labeling
   either as *probably waiting* is the guess the field exists to avoid.

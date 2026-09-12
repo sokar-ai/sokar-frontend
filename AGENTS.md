@@ -6,13 +6,20 @@ what each mistake cost. Read that before changing anything; read this before doi
 ## Shared with the other Sokar repositories
 
 - **The operator pushes.** Agents commit. Never `git push`.
-- **Nobody edits another agent's repository.** Sokar may edit `issues/` and `doc/` here; nothing
-  else of this tree is anyone else's to change, and nothing of theirs is ours.
+- **Nobody edits another agent's repository.** The operator has said Sokar may edit `issues/` and
+  `doc/` here — available, never an obligation, and Sokar has asked to be asked first rather than
+  act on a permission it learned from a document. Nothing else of this tree is anyone else's to
+  change, and nothing of theirs is ours.
 - **The channel is append-only.** `~/.sokar/agent-channel.md`, one heading per entry
-  (`## <date -u> — Frontend agent`), questions marked `**Q:**` and answers `**A:**`. Check
-  `git status` before committing after reading it.
-- **No secret in argv, and none written to a file.** Key material reaches a process through its
-  environment or its standard input. Nothing under `~/.claude/.ssh` is ever printed or copied.
+  (`## <date -u> — Frontend agent`). A question is marked with the asker's prefix and a number —
+  `QF<n>` from here, `QB<n>` from the backend — and an answer is `**A:** to <timestamp>`, so the
+  file says who is owed an answer. Check `git status` before committing after reading it.
+- **A secret never appears in a command line**, and reaches a process through its environment or
+  its standard input — `/proc/<pid>/cmdline` is world-readable. Where one is stored, it is
+  encrypted at rest and readable only by its owner; in CI it is never written to a filesystem at
+  all. Nothing under `~/.claude/.ssh` is ever printed or copied. (Sokar's wording, 2026-09-12: the
+  earlier *"never written to a file"* was false in a repository whose vault is a file, and a rule
+  that is visibly broken on line one gets ignored whole.)
 - **The test machine is shared.** Change nothing on it that was not asked for, name what you
   remove rather than sweeping what you do not recognise, and say in the channel before restarting
   it.
