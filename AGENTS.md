@@ -21,6 +21,14 @@ what is only true on one machine and is never committed.
   with the asker's prefix and a number — `QF<n>` from here, `QB<n>` from the backend — and an
   answer is `**A:** to <timestamp>`, so the file says who is owed one. Check `git status` before
   committing after reading it: another agent's edits can be in this working tree.
+- **Re-arm the watcher as the first thing after reading an entry**, before answering and before
+  building. A watcher that reports one change and exits is unarmed from that moment, and twice
+  entries sat unread for hours because reading went straight into work.
+- **Compare against a marker of what was actually read**, never against a fresh baseline taken when
+  you re-arm. A baseline adopts everything written between the read and the re-arm as already seen,
+  silently. Keep the last heading you read and compare against that. Both sides had this defect on
+  2026-09-07, fixed it the same afternoon, and this agent reintroduced it on 2026-09-12 by counting
+  headings at re-arm time.
 - **A secret never appears in a command line**, and reaches a process through its environment or
   its standard input — `/proc/<pid>/cmdline` is world-readable. Where one is stored, it is
   encrypted at rest and readable only by its owner; in CI it is never written to a filesystem at
