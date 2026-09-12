@@ -79,7 +79,11 @@ what is only true on one machine and is never committed.
   the other Sokar repositories needs them: none of them holds Flutter or Dart code, and the Java
   skills they are required to carry would be furniture nobody sits on here.
 - **Skills are fetched from <https://fuinorg.jfrog.io/artifactory/agent-skills/>**, not from
-  whatever a tag upstream points at today — the operator's rule, 2026-09-12, and the same argument
+  whatever a tag upstream points at today. There are two repositories and the type decides which:
+  `agent-skills` is a **Skills** repository, one package per skill, indexed from each `SKILL.md`'s
+  frontmatter; `agent-packages` is an **AgentPackages** repository, where one package bundles
+  several. Measured on 2026-09-12, not inferred. A Flutter or Dart skill would belong in the
+  first — the operator's rule, 2026-09-12, and the same argument
   this product already makes about every other dependency: a tag is a name its owner may repoint,
   and a machine that fetches at install time gets what it points at that day. What is in
   `agent-skills` is what was reviewed, and it can be rolled back. The GitHub repositories above say
