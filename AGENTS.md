@@ -76,7 +76,14 @@ what is only true on one machine and is never committed.
   habit invented here — widget and integration tests, mocks, static analysis, layout failures,
   pattern matching, coverage and the rest. Installed here as the `dart-flutter` plugin, so they
   appear as `dart-flutter:<skill>`; check for one before writing a recipe of your own. Nothing in
-  the other Sokar repositories needs them: none of them holds Flutter or Dart code.
+  the other Sokar repositories needs them: none of them holds Flutter or Dart code, and the Java
+  skills they are required to carry would be furniture nobody sits on here.
+- **Skills are fetched from <https://fuinorg.jfrog.io/artifactory/agent-skills/>**, not from
+  whatever a tag upstream points at today — the operator's rule, 2026-09-12, and the same argument
+  this product already makes about every other dependency: a tag is a name its owner may repoint,
+  and a machine that fetches at install time gets what it points at that day. What is in
+  `agent-skills` is what was reviewed, and it can be rolled back. The GitHub repositories above say
+  *which* skills; that repository is *where they come from*.
 - **Never run `dart format` on a directory or on an existing file.** It reflows code around your
   change and every later anchor-based edit then fails on text nobody read.
 - **The interface never parses the `sokar` CLI and never reads a task's log.** One varlink
