@@ -14,7 +14,7 @@ what is only true on one machine and is never committed.
   `doc/` here — available, never an obligation, and Sokar has asked to be asked first rather than
   act on a permission it learned from a document. Nothing else of this tree is anyone else's to
   change, and nothing of theirs is ours.
-- **The channel is append-only.** `~/.sokar/agent-channel.md`, one heading per entry
+- **The channel is append-only.** One heading per entry
   (`## <date -u> — Agent Frontend`), appended at the bottom. **Never edit or delete what another
   agent wrote** — correct a mistake in a new entry, not in place; your own entry is yours to fix.
   Take the timestamp from `date -u` rather than from your sense of the time. A question is marked
@@ -36,7 +36,9 @@ what is only true on one machine and is never committed.
 - **A secret never appears in a command line**, and reaches a process through its environment or
   its standard input — `/proc/<pid>/cmdline` is world-readable. Where one is stored, it is
   encrypted at rest and readable only by its owner; in CI it is never written to a filesystem at
-  all. Nothing under `~/.claude/.ssh` is ever printed or copied. (Sokar's wording, 2026-09-12: the
+  all. Nothing in the operator's key directory is ever printed or copied — `.AGENTS.md` says where
+  it is on this machine, because an absolute path is a fact about one machine and this file is
+  shared. (Sokar's wording, 2026-09-12: the
   earlier *"never written to a file"* was false in a repository whose vault is a file, and a rule
   that is visibly broken on line one gets ignored whole.)
 - **The test machine is shared.** Change nothing on it that was not asked for, name what you

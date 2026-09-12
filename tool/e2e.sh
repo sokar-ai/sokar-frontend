@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Runs the GUI integration tests against a real Sokar machine.
 #
-#   SOKAR_E2E_HOST=claude@192.168.122.174 \
-#   SOKAR_E2E_REMOTE_SOCKET=/run/user/1001/sokar/sokard.sock \
-#   SOKAR_E2E_KEY=~/.claude/.ssh/claude_key \
+#   SOKAR_E2E_HOST=user@host \
+#   SOKAR_E2E_REMOTE_SOCKET=/run/user/<uid>/sokar/sokard.sock \
+#   SOKAR_E2E_KEY=~/.ssh/the_key_for_that_host \
 #   tool/e2e.sh [integration_test/connecting_test.dart]
 #
 # The app gets a config and runtime directory of its own and ssh a private agent holding only that

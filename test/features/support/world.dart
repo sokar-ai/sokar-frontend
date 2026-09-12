@@ -725,7 +725,7 @@ class FakeBackend implements FleetBackend {
     name: 'an-agent',
     type: 'api-key',
     length: 51,
-    source: '/home/michi/.config/an-agent/credentials.json',
+    source: '/home/somebody/.config/an-agent/credentials.json',
     detail: '',
   );
 
