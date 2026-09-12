@@ -41,18 +41,28 @@ start one — and starts it only when asked.**
 
 ## What the backend is short of
 
-**A supported way to be started.** The package ships `/usr/bin/sokard` and nothing else — no
-systemd unit, system or user. So the only thing that can be run from here is the binary itself,
-detached with `setsid`, which nothing supervises and which does not come back after a reboot.
+**Nothing, as of 2026-09-12.** It was asked for in the channel the same day and answered within
+hours, in Sokar's `8de32db`:
 
-Asked of Sokar in the channel on 2026-09-12: `sokard.socket` and `sokard.service` as **user** units,
-socket-activated. With those, the first connection through the forward starts the daemon by itself
-and this requirement shrinks to almost nothing. The interface prefers a unit wherever it finds one
-and falls back to the binary.
+- **`/usr/lib/systemd/user/sokard.service`**, in the deb and the rpm, installed and not enabled —
+  a package that enabled it would start a daemon for every account. So the line run from here is
+  `systemctl --user start sokard`, supervised and restarted on failure, and `setsid sokard` is now
+  only the fallback for a machine carrying an older package.
+- **`sokard --help` no longer starts anything**, and an unknown option is refused rather than
+  ignored.
+- **A socket is unlinked on the way out**, through a shutdown hook rather than only through
+  try-with-resources, so a signal cleans up too. A second daemon binding over the first is refused
+  instead of silently stealing its name.
 
-Two defects were reported with it, both of which this requirement has to work around until they are
-fixed: `sokard --help` starts the daemon rather than answering, and a killed `sokard` leaves its
-socket behind.
+**`sokard.socket` is not coming, and the reason is written down** in Sokar's `doc/daemon.md`: the
+JDK offers no way to adopt a listening descriptor systemd bound and passed in. So the first
+connection through a forward will not start a daemon by itself, and this requirement stays.
+
+**What is still short is lingering.** A user service lives as long as that user has a session on
+the machine, and `loginctl enable-linger` is the operator's decision on their own machine, not
+something to be made for them from here. The forward this interface holds is itself a session, so
+a machine being watched keeps its daemon alive — and loses it when watching stops. The start says
+so when lingering is off, and names the command, rather than turning it on.
 
 ## To be checked
 

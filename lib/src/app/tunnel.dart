@@ -303,11 +303,23 @@ class Tunnels extends ChangeNotifier {
       ];
 
   /// What is run at the far end. Held apart so a scenario can say what was asked of the machine.
+  ///
+  /// `sokard.service` is a user unit the package installs and does not enable, so starting it is
+  /// one call and a daemon that is restarted on failure. **Not `sokard.socket`**: there is none,
+  /// and there will not be one — the JDK offers no way to adopt a listening descriptor systemd
+  /// bound, which is Sokar's own note rather than a guess from here.
+  ///
+  /// The last line says nothing and changes nothing; it reports. A user service lives as long as
+  /// that user has a session on the machine, and with no lingering the daemon goes when the last
+  /// one ends. The forward this interface holds *is* such a session, so a machine being watched
+  /// keeps it alive — but only for as long as it is watched, which is worth saying rather than
+  /// finding out.
   static const String startsIt =
       'command -v sokard >/dev/null 2>&1 || { echo "no sokard is installed there" >&2; exit 127; }; '
-      'if systemctl --user start sokard.socket >/dev/null 2>&1 || '
-      'systemctl --user start sokard >/dev/null 2>&1; then echo "started by systemd"; '
-      'else setsid sokard >/dev/null 2>&1 </dev/null & echo "started sokard itself"; fi';
+      'if systemctl --user start sokard >/dev/null 2>&1; then echo "started by systemd"; '
+      'else setsid sokard >/dev/null 2>&1 </dev/null & echo "started sokard itself"; fi; '
+      r'loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null | grep -qx yes || '
+      r'echo "(it stops when the last session there ends: loginctl enable-linger $(id -un))"';
 
   /// Starts a daemon on [machine], over the same transport that forwards it.
   ///

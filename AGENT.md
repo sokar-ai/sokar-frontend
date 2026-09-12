@@ -961,13 +961,19 @@ This runs a line there, which is a step further in, so:
 - **Only where ssh already worked and nothing served.** `Trial.nothingServing` is that and only
   that. A forward that could not be raised is a different problem, and a socket somebody else
   forwarded has no host behind it to log into.
-- **A unit first, `setsid sokard` only if there is none.** The package ships the binary and no
-  systemd unit yet; asked of Sokar on 2026-09-12. Socket activation would make this requirement
-  almost nothing — the first connection would start the daemon.
+- **The unit first, `setsid sokard` only for a machine that has none.** Sokar's `8de32db` ships
+  `sokard.service` as a user unit, installed and not enabled, so the line is `systemctl --user
+  start sokard`. There is no `sokard.socket` and there will not be one: the JDK cannot adopt a
+  listening descriptor systemd bound, so the first connection will never start a daemon by itself.
+- **A user service dies with the last session on that machine**, and the forward held here is one
+  of them. So a watched machine keeps its daemon alive and an unwatched one does not. `loginctl
+  enable-linger` is the fix and it is the operator's decision: the start reports that lingering is
+  off and names the command, and changes nothing.
 - **The exit code is not the verdict.** A line that ran cleanly and left nothing listening is what
   a missing binary looks like from here, so a start is always followed by connecting again.
 - **A stale socket is not deleted from here.** A socket nothing answers on and one belonging to a
-  daemon that is merely slow are told apart at the machine.
+  daemon that is merely slow are told apart at the machine — and since `8de32db` a second daemon
+  is refused rather than quietly taking the first one's name.
 
 The script is proven by running it, in `test/app/tunnel_test.dart`, with `PATH` deciding what the
 far end has. Two traps found doing that: this machine has `/usr/bin/sokard` too, so a test with a

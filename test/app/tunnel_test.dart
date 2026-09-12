@@ -281,6 +281,24 @@ void main() {
       expect(File(marker).existsSync(), isTrue, reason: 'it was never run at the far end');
     });
 
+    test('a far end with no lingering is told what that costs, and one with it is not', () async {
+      File('${where.path}/sokard').writeAsStringSync('#!/bin/sh\nsleep 1\n');
+      Process.runSync('chmod', <String>['755', '${where.path}/sokard']);
+
+      Future<String> wordsWhenLingerIs(String answer) async {
+        File('${where.path}/loginctl').writeAsStringSync('#!/bin/sh\necho $answer\n');
+        Process.runSync('chmod', <String>['755', '${where.path}/loginctl']);
+        final started = await runningTheScript('${where.path}:/usr/bin:/bin')
+            .startSokarOn(machineAt('/tmp/unused.sock'));
+        return started.words;
+      }
+
+      // A user service dies with the last session on that machine, and the forward held here is
+      // one of those sessions. Said rather than discovered when the window is closed.
+      expect(await wordsWhenLingerIs('no'), contains('enable-linger'));
+      expect(await wordsWhenLingerIs('yes'), isNot(contains('enable-linger')));
+    });
+
     test('a machine somebody else forwards is refused before anything is run', () async {
       var asked = false;
       final tunnels = Tunnels(run: (_) async {
