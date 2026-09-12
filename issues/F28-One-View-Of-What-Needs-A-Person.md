@@ -29,7 +29,7 @@ Nothing here is a new signal. All of it is already streamed or already on a row:
 | On the card | Source | Kind |
 |---|---|---|
 | a clearance question waits, since when, with its deadline | `Prompts`, streaming | **known** |
-| working / idle / waiting / dead, and *"idle for forty minutes"* | `Watch`, from [B11](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B11-What-A-Task-Says-About-Itself.md) | known, with B11's own limits |
+| working / idle / waiting / dead, and *"idle for forty minutes"* | `Watch`, from [B11](https://github.com/sokar-ai/sokar/blob/main/issues/base/B11-What-A-Task-Says-About-Itself.md) | known, with B11's own limits |
 | work waiting at the gate | `Task.waiting`, on `Watch` | known |
 | which machine, which project, which agent, which mode, which class | `List` / `Watch` | known |
 
@@ -48,14 +48,14 @@ at a time.
 
 **Not taken:** its status detection reads a Claude Code session's terminal and reports *awaiting
 permission*. Inside a task that state is by design absent -
-[B24](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B24-First-Run-Consent-Inside-The-Box.md)
+[B24](https://github.com/sokar-ai/sokar/blob/main/issues/base/B24-First-Run-Consent-Inside-The-Box.md)
 turns the agent's own prompts off, the container being the answer - so an agent stopping to ask is
 a defect here rather than a state to display. What remains is the clearance question, which this
 machine knows rather than parses.
 
 **Also not taken:** its browser and its central server. Those are a separate decision with a
 separate price, recorded under *What was settled* and in
-[B06](https://github.com/sokar-ai/sokar/blob/main/requirements/base/B06-Remote-Access.md). Nothing
+[B06](https://github.com/sokar-ai/sokar/blob/main/issues/base/B06-Remote-Access.md). Nothing
 in this requirement needs either.
 
 ## On the look, which is the frontend's to decide

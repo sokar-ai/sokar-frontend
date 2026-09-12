@@ -16,6 +16,12 @@ what each mistake cost. Read that before changing anything; read this before doi
 - **The test machine is shared.** Change nothing on it that was not asked for, name what you
   remove rather than sweeping what you do not recognise, and say in the channel before restarting
   it.
+- **Say what a run does to a shared machine before starting it, not what you believe it does.**
+  Sokar's acceptance suite was described as rebooting nothing while three of its scenarios existed
+  to reboot the machine, and it took another agent's test run down with it on 2026-09-12.
+- **Link to a requirement by number and to the index, not to its file.** A finished requirement's
+  file is deleted — so a link to it breaks exactly when that requirement succeeds, which is the
+  worst moment for a reader to meet a 404.
 - **Dot files and directories are not checked in.** The exceptions are listed in `.gitignore`, and
   they are only what a build needs: `.github`, `.mvn` for the Maven wrapper, `.metadata` for
   Flutter. Anything that applies only to this machine goes in `.AGENTS.md`, which that rule
