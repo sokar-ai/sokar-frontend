@@ -43,6 +43,7 @@ Feature: Trying a machine from the dialog, before it is watched
     And its socket there is {'/run/user/1001/sokar/sokard.sock'}
     And I try the connection
     Then starting Sokar there is offered
+    And the question is asked in its own dialog
     And nothing was started on that machine
     When I start Sokar there
     Then the machine was asked to start {'setsid sokard'}

@@ -99,6 +99,9 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   final _nameFocus = FocusNode();
   bool _nameLeft = false;
 
+  /// The content's own scroll, so an answer that lands below the fold is scrolled to.
+  final _scroll = ScrollController();
+
   Trial? _trial;
   String _triedFor = '';
   bool _trying = false;
@@ -107,9 +110,6 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   /// What a start said, kept after the trial that follows it so the two read together.
   String? _startSaid;
   bool _starting = false;
-
-  /// Whether the offer to start was turned down. Asked once per try, never again unprompted.
-  bool _declined = false;
 
   /// Whether this interface raises the forward. **Nothing is preselected**: the two are different
   /// commitments — one of them starts a process and owns it — and a default would make that
@@ -156,6 +156,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
+            controller: _scroll,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,54 +327,72 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         const SizedBox(height: Space.small),
         SelectableText(_startSaid!, key: const Key('start-result')),
       ],
-      if (trial != null &&
-          !trial.reached &&
-          trial.nothingServing &&
-          widget.starting != null &&
-          !_declined)
-        ..._offerToStart(context),
+      if (_canStartIt(trial)) ..._offerToStart(context),
     ];
   }
 
-  /// The offer to start a daemon at the far end, with the line it would run.
+  /// Whether a start is the answer to what the trial found.
+  bool _canStartIt(Trial? trial) =>
+      trial != null && !trial.reached && trial.nothingServing && widget.starting != null;
+
+  /// The way back to the offer, for somebody who turned it down and changed their mind.
   ///
-  /// **A question, never a default.** Running something on somebody else's machine is a step past
-  /// forwarding a socket, and the line is shown in full because that is what is being agreed to.
+  /// **One row, and never the question itself.** The question is a dialog, because an offer at the
+  /// end of a scrolling panel is an offer nobody sees — which is exactly what happened.
   List<Widget> _offerToStart(BuildContext context) => <Widget>[
-        const SizedBox(height: Space.normal),
-        Text(
-          'Nothing serves there. Start Sokar on ${_host.text.trim()}?',
-          key: const Key('offer-to-start'),
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: Space.tight),
-        _Recipe(command: Tunnels.startCommandFor(_described).join(' ')),
         const SizedBox(height: Space.small),
-        Row(
-          children: <Widget>[
-            FilledButton(
-              key: const Key('start-it'),
-              onPressed: _starting ? null : _startIt,
-              child: const Text('Start it'),
-            ),
-            const SizedBox(width: Space.small),
-            TextButton(
-              key: const Key('not-now'),
-              onPressed: _starting ? null : () => setState(() => _declined = true),
-              child: const Text('Not now'),
-            ),
-            if (_starting) ...<Widget>[
-              const SizedBox(width: Space.normal),
-              const SizedBox.square(
-                dimension: Sizes.mark,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              const SizedBox(width: Space.small),
-              const Text('Starting…'),
-            ],
-          ],
+        OutlinedButton.icon(
+          key: const Key('offer-again'),
+          onPressed: _starting ? null : _askToStart,
+          icon: const Icon(Icons.play_arrow_outlined, size: Sizes.rowIcon),
+          label: const Text('Start Sokar there'),
         ),
       ];
+
+  /// Asks whether to start it, and starts it on a yes.
+  ///
+  /// The line is shown in full before the yes and run unchanged after it: this is the interface
+  /// reaching further into somebody else's machine than forwarding a socket goes.
+  Future<void> _askToStart() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Nothing serves on ${_host.text.trim()}. Start Sokar there?',
+          key: const Key('offer-to-start'),
+        ),
+        content: SizedBox(
+          width: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'The forward came up and no daemon answered through it. This logs in and starts '
+                'one, as the user you log in as. Nothing else on that machine is touched.',
+              ),
+              const SizedBox(height: Space.normal),
+              _Recipe(command: Tunnels.startCommandFor(_described).join(' ')),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            key: const Key('not-now'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            key: const Key('start-it'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Start it'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || yes != true) return;
+    await _startIt();
+  }
 
   /// Starts it, and tries again by itself: a start nobody verified is a claim, not an answer.
   Future<void> _startIt() async {
@@ -387,6 +406,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
       _starting = false;
       _startSaid = started.words;
     });
+    _showTheEnd();
     if (started.went) await _tryIt(afterAStart: true);
   }
 
@@ -407,12 +427,9 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     final signature = _signature;
     setState(() {
       _trying = true;
-      // A try somebody asked for is a fresh question, so the offer comes back and what an earlier
-      // start said goes. The try that follows a start keeps both: they are one answer.
-      if (!afterAStart) {
-        _declined = false;
-        _startSaid = null;
-      }
+      // A try somebody asked for is a fresh question: what an earlier start said goes with it.
+      // The try that follows a start keeps it — they are one answer.
+      if (!afterAStart) _startSaid = null;
     });
     final trial = await trying(_described);
     if (!mounted || attempt != _attempt) return;
@@ -420,6 +437,17 @@ class _AskForAMachineState extends State<_AskForAMachine> {
       _trying = false;
       _trial = trial;
       _triedFor = signature;
+    });
+    _showTheEnd();
+    // Asked rather than left to be found: an offer at the end of a scrolling panel is one nobody
+    // sees. Not after a start, which would ask the same question again in a loop.
+    if (!afterAStart && _canStartIt(trial)) await _askToStart();
+  }
+
+  /// Scrolls to what just arrived. The panel scrolls, and an answer below the fold is no answer.
+  void _showTheEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
     });
   }
 
@@ -450,6 +478,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _name.dispose();
     _socket.dispose();
     _host.dispose();

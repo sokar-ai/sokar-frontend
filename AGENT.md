@@ -958,6 +958,9 @@ This runs a line there, which is a step further in, so:
 
 - **Never without being asked**, in either place it is offered — the dialog's trial and a watched
   machine's menu. The line is shown in full before the yes, and run unchanged after it.
+- **The question is a dialog, in front of what is open.** It was inline at the end of the machine
+  panel first, and the operator found it only by scrolling: an offer below the fold is an offer
+  nobody sees. What a trial or a start then says is scrolled to for the same reason.
 - **Only where ssh already worked and nothing served.** `Trial.nothingServing` is that and only
   that. A forward that could not be raised is a different problem, and a socket somebody else
   forwarded has no host behind it to log into.

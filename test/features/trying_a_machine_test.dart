@@ -17,6 +17,7 @@ import './step/the_forward_raised_for_the_trial_was_taken_down.dart';
 import './step/raising_a_forward_will_fail_with.dart';
 import './step/nothing_answers_on_that_machine.dart';
 import './step/starting_sokar_there_is_offered.dart';
+import './step/the_question_is_asked_in_its_own_dialog.dart';
 import './step/nothing_was_started_on_that_machine.dart';
 import './step/i_start_sokar_there.dart';
 import './step/the_machine_was_asked_to_start.dart';
@@ -83,6 +84,7 @@ void main() {
       await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
       await iTryTheConnection(tester);
       await startingSokarThereIsOffered(tester);
+      await theQuestionIsAskedInItsOwnDialog(tester);
       await nothingWasStartedOnThatMachine(tester);
       await iStartSokarThere(tester);
       await theMachineWasAskedToStart(tester, 'setsid sokard');

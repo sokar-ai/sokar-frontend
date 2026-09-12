@@ -28,9 +28,11 @@ start one — and starts it only when asked.**
   problem and is never answered with an offer to start something.
 - Only for a machine this interface forwards itself. A socket somebody else forwarded carries no
   host to log into, and nothing is offered for it.
-- **Never without being asked.** Running a command on somebody else's machine is a step past
-  forwarding a socket, and the interface takes that step only on a yes. The question names the host
-  and the command it would run.
+- **Never without being asked, and the question is put in front of the person.** Running a command
+  on somebody else's machine is a step past forwarding a socket, and the interface takes that step
+  only on a yes. The question names the host and the command it would run, and it is its own dialog
+  — the first version put it at the end of a scrolling panel, where the operator found it only by
+  scrolling for it.
 - What was run and what came back is shown as it came, including a failure.
 - After a start, the connection is tried again by itself, and says what it found.
 - The offer is in both places the silence appears: the dialog that adds a machine, and a machine
