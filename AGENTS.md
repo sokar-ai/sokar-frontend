@@ -79,11 +79,8 @@ what is only true on one machine and is never committed.
   the other Sokar repositories needs them: none of them holds Flutter or Dart code, and the Java
   skills they are required to carry would be furniture nobody sits on here.
 - **Skills are fetched from <https://fuinorg.jfrog.io/artifactory/agent-skills/>**, not from
-  whatever a tag upstream points at today. There are two repositories and the type decides which:
-  `agent-skills` is a **Skills** repository, one package per skill, indexed from each `SKILL.md`'s
-  frontmatter; `agent-packages` is an **AgentPackages** repository, where one package bundles
-  several. Measured on 2026-09-12, not inferred. A Flutter or Dart skill would belong in the
-  first — the operator's rule, 2026-09-12, and the same argument
+  whatever a tag upstream points at today. It is a **Skills** repository, one package per skill,
+  indexed from each `SKILL.md`'s frontmatter; the commands are under [Skills](#skills) below — the operator's rule, 2026-09-12, and the same argument
   this product already makes about every other dependency: a tag is a name its owner may repoint,
   and a machine that fetches at install time gets what it points at that day. What is in
   `agent-skills` is what was reviewed, and it can be rolled back. The GitHub repositories above say
@@ -122,11 +119,9 @@ what is only true on one machine and is never committed.
 
 ### How to get them
 
-**Both repositories are readable without credentials and without any tool**, because a skill is a
-directory holding `SKILL.md` and installing one is unpacking an archive. Commands, not a verb:
-there is no instruction every agent understands, so this section gives you something to run.
-
-**One skill** — the catalogue and each skill's version list are ordinary files:
+**The repository is readable without credentials and without any tool**, because a skill is a
+directory holding `SKILL.md` and installing one is unpacking an archive. Commands rather than a
+verb: there is no instruction every agent understands, so this section gives you something to run.
 
     BASE=https://fuinorg.jfrog.io/artifactory/agent-skills
     curl -fsSL $BASE/.skills/skills.json             # every slug with its latest version
@@ -134,33 +129,30 @@ there is no instruction every agent understands, so this section gives you somet
     curl -fsSL -o /tmp/s.zip $BASE/<slug>/<version>/<slug>-<version>.zip
     unzip -q -d <your skills directory>/<slug> /tmp/s.zip
 
-**A whole set** — four bundles: `fuinorg/graal`, `fuinorg/java-agent-skills`, `fuinorg/dart`,
-`fuinorg/flutter`. The skills sit under `.apm/skills/` inside the archive:
-
-    BASE=https://fuinorg.jfrog.io/artifactory/agent-packages
-    curl -fsSL -o /tmp/p.zip $BASE/fuinorg/<name>/<name>-<version>.zip
-    unzip -q -d /tmp/p /tmp/p.zip
-    cp -r /tmp/p/.apm/skills/. <your skills directory>/
-
 **Where `<your skills directory>` is depends on the harness, and only you know yours.** Claude Code
 reads `~/.claude/skills/<slug>/` and a project's `.claude/skills/<slug>/`; another harness has its
-own place, and putting a skill where nothing reads it fails silently. Verify by asking the harness
-what it loaded, not by looking at the directory.
+own place, and a skill put where nothing reads it fails silently. Verify by asking the harness what
+it loaded, not by looking at the directory.
+
+**Check what you downloaded.** The artifact's SHA-256 is stated under
+`/artifactory/api/storage/agent-skills/<path>`; an interrupted transfer otherwise installs a
+truncated skill, which reads as a short one rather than as an error.
 
 **If the JFrog CLI happens to be installed**, `jf agent skills install <slug> --repo agent-skills`
-and `apm install fuinorg/<name>#<version>` do the same with resolution and an install record. Do
-not install either tool for this - the four commands above are the whole requirement.
-
-**Check what you downloaded.** `curl -fsSL <base>/api/storage/<repo>/<path>` states the artifact's
-SHA-256; an interrupted transfer otherwise installs a truncated skill that reads as a short one.
+does the same with resolution and an install record. Do not install it for this — the four commands
+above are the whole requirement.
 
 **The version is `YYYY.MMDD.P`** — the upstream commit's date, then the packaging revision, so a
 newer upstream always sorts higher and a repackaging of the same upstream never reuses a number.
-`2026.911.2` is the eleventh of September, packaged the second time. (Not `2026.09.11`: SemVer
-forbids a leading zero in a numeric identifier, and an APM dependency expression rejects it.)
+`2026.911.3` is the eleventh of September, packaged the third time. (Not `2026.09.11`: SemVer
+forbids a leading zero in a numeric identifier.)
 
 **Which skills this repository takes:** Dart and Flutter. The Java and GraalVM sets belong to the
 three Java repositories and would be furniture nobody sits on here.
+
+**There is no bundle to install, and `agent-packages` is empty on purpose** — withdrawn on
+2026-09-12 as a second copy of the same 44 skills, which is the thing that goes stale. The
+catalogue-driven loop above installs a whole set without it.
 
 ---
 
