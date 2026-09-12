@@ -30,6 +30,49 @@ void main() {
     expect(live, isNotEmpty);
   });
 
+  /// The decisions document's own index.
+  ///
+  /// **An index maintained by hand is a second copy of the truth**, and two copies is how one
+  /// becomes wrong: both agents on this channel found an index lying about its own document within
+  /// the same hour on 2026-09-12. Rather than generating the table, this holds it to the sections.
+  group('the decisions index', () {
+    final decisions = File('doc/decisions.md').readAsLinesSync();
+    final sections = <String>[
+      for (final line in decisions)
+        if (line.startsWith('## ')) line.substring(3).trim(),
+    ];
+    final rows = <String>[
+      for (final line in decisions)
+        if (RegExp(r'^\| \d{4}-\d\d-\d\d \|').hasMatch(line)) line,
+    ];
+
+    test('every decision has a row and every row a decision', () {
+      expect(sections, isNotEmpty);
+      expect(rows, hasLength(sections.length),
+          reason: 'the table and the document disagree on how many decisions there are');
+      for (final (index, section) in sections.indexed) {
+        // The row's date is the section's date, and its link is the section's anchor.
+        final date = section.split(' — ').first;
+        expect(rows[index], contains(date),
+            reason: 'row ${index + 1} is not the decision it sits above');
+        final anchor = section
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9 _-]'), '')
+            .replaceAll(' ', '-');
+        expect(rows[index], contains('(#$anchor'),
+            reason: 'the link in row ${index + 1} does not reach its own section');
+      }
+    });
+
+    test('newest first, so the top row is what changed last', () {
+      final dates = <String>[
+        for (final row in rows) row.split('|')[1].trim(),
+      ];
+      final sorted = <String>[...dates]..sort((a, b) => b.compareTo(a));
+      expect(dates, sorted);
+    });
+  });
+
   test('every requirement id in the docs has a file', () {
     final stale = <String>[
       for (final doc in docs)
