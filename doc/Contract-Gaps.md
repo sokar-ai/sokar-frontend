@@ -19,7 +19,7 @@ gap here is a backend method that has to be added, not a workaround waiting to b
 ## Not on the wire yet
 
 - **A bounded unlock of the secret store, and changing its passphrase, both at the machine.** The
-  operator's decision is parked; see [Secret Store Control](../requirements/F15-Secret-Store-Control.md).
+  operator's decision is parked; see [Secret Store Control](../issues/F15-Secret-Store-Control.md).
 - **Whether an agent is waiting on a person for its own question.** `WAITING` covers clearance
   questions only. The backend will observe working and quiet from outside for every agent, and let
   each agent declare waiting where it can; until then a quiet task is shown as a guess.

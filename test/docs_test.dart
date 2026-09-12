@@ -12,19 +12,19 @@ void main() {
   final docs = <File>[
     for (final file in Directory('.').listSync().whereType<File>())
       if (file.path.endsWith('.md') && !file.uri.pathSegments.last.startsWith('.')) file,
-    for (final root in <String>['doc', 'requirements'])
+    for (final root in <String>['doc', 'issues'])
       ...Directory(root)
           .listSync(recursive: true)
           .whereType<File>()
           .where((file) => file.path.endsWith('.md')),
   ];
   final live = <String>{
-    for (final file in Directory('requirements').listSync().whereType<File>())
+    for (final file in Directory('issues').listSync().whereType<File>())
       if (RegExp(r'^F\d\d-').hasMatch(file.uri.pathSegments.last))
         file.uri.pathSegments.last.substring(0, 3),
   };
 
-  test('the docs and the requirements were found at all', () {
+  test('the docs and the issues were found at all', () {
     // Without this both tests below pass by examining nothing.
     expect(docs, isNotEmpty);
     expect(live, isNotEmpty);

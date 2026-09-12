@@ -1,8 +1,13 @@
-# Dotfiles are ignored by default; what Flutter needs tracked is listed back in.
+# Dot files and directories are not checked in. What a build genuinely needs is listed back in,
+# and nothing else — so a local `.AGENTS.md` is ignored by the rule rather than by being named,
+# and a tool that drops a new dot directory here cannot quietly add it to the repository.
 .*
 !.gitignore
 !.gitkeep
 !.github
+# Java: the Maven wrapper's own directory, without which `./mvnw` picks a version nobody chose.
+!.mvn
+# Flutter: written by `flutter create` and read by the tooling.
 !.metadata
 
 *.log

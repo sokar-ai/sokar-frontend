@@ -13,9 +13,9 @@ makes it reachable without one.
    objects separated by NUL bytes, no client library. It also covers reaching a Sokar on another
    machine, which is the same code and a different socket path, and the rules for staying
    compatible with a backend older than this build.
-2. **[Requirements](requirements/README.md)** — what must be true for a person using it, in the
+2. **[Requirements](issues/README.md)** — what must be true for a person using it, in the
    order to build it. Each file carries its own acceptance criteria, so it can be judged done
-   rather than discussed. [Design](requirements/design.md) says what it is built out of.
+   rather than discussed. [Design](issues/design.md) says what it is built out of.
 3. **[What the contract does not yet cover](doc/Contract-Gaps.md)** — roughly half the
    requirements have no backend method behind them yet, and which half is not obvious.
 4. **[AGENT.md](AGENT.md)** — the working rules: how to talk to the backend, how to stay
@@ -184,7 +184,7 @@ tojunit < build/test-results.json > build/test-results.xml
 
 Every feature names one requirement on its `Feature` line, and that becomes the JUnit group — so
 **both reports are a per-requirement traceability matrix**. The HTML one goes further and reads
-`requirements/` as well, so it lists the requirements *no scenario names yet*: a matrix that only
+`issues/` as well, so it lists the requirements *no scenario names yet*: a matrix that only
 shows what was tested cannot answer the question somebody opens it to ask.
 
 `dart tool/test_report.dart` exits non-zero when anything failed, so it can gate a build on its
