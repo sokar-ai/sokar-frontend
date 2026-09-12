@@ -130,6 +130,50 @@ void main() {
     expect(first, containsPair('one', true));
   });
 
+  /// A frame that stops halfway, in the two ways a peer can stop it.
+  ///
+  /// Named by the round-2 review: the synthetic failures above prove the parser, and this proves
+  /// the end of a frame that never comes. **The two ways are different and both had to be
+  /// checked** — a clean close arrives as the stream ending, a reset arrives as a socket error,
+  /// and only one of those paths was exercised before. Neither may wait for the timeout: that is
+  /// what the 20-second deadline in each is for, since a test with a short one would pass on the
+  /// timeout and prove nothing.
+  Future<void> halfAFrameThen(void Function(Socket) stop) async {
+    await server.close();
+    server = await ServerSocket.bind(
+        InternetAddress(socketPath, type: InternetAddressType.unix), 0);
+    server.listen((client) async {
+      client.add(utf8.encode('{"parameters": {"half": tr'));
+      await client.flush();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      stop(client);
+    });
+  }
+
+  test('a peer that closes cleanly mid-frame ends the call, not the clock', () async {
+    await halfAFrameThen((client) => client.close());
+    final connection = await VarlinkConnection.open(socketPath);
+
+    await expectLater(
+      connection.call('org.fuin.sokar.Tasks1.List', const {}, const Duration(seconds: 20)),
+      throwsA(isA<VarlinkDisconnected>().having((ex) => ex.message, 'message',
+          contains('closed before the call was answered'))),
+    );
+  });
+
+  test('a peer that resets mid-frame reports the transport, not a timeout', () async {
+    await halfAFrameThen((client) => client.destroy());
+    final connection = await VarlinkConnection.open(socketPath);
+
+    await expectLater(
+      connection.call('org.fuin.sokar.Tasks1.List', const {}, const Duration(seconds: 20)),
+      // The transport's own sentence — "Connection reset by peer" — rather than ours. What must
+      // never appear is the deadline: that would mean nothing noticed the socket had gone.
+      throwsA(isA<VarlinkDisconnected>().having((ex) => ex.message, 'message',
+          isNot(contains('not answered within')))),
+    );
+  });
+
   test('a peer that hangs up is a lost connection, never an error that escapes', () async {
     final connection = await VarlinkConnection.open(socketPath);
     // Written after the peer has gone, so the write itself fails.
