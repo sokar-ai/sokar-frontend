@@ -63,7 +63,7 @@ are different.
 - **The pty is ours, written with `dart:ffi`.** The usual companion, `flutter_pty`, is a native
   plugin, and a native plugin is another `.so` in the bundle. Every `.so` in the bundle goes
   through `dpkg-shlibdeps` and the rpm scanner and comes out as a package dependency, which is
-  the chain [F26](F26-Linux-Packaging.md) is about and the most delicate part of shipping this.
+  the chain the packaging requirement was about — met and retired — and the most delicate part of shipping this.
   `dart:ffi` is in the SDK and costs the packaging nothing.
 - **Nothing forks.** The obvious shape is `forkpty` and then `exec` in the child — and the child
   returns into the Dart runtime, in a process whose other threads no longer exist. `posix_spawn`
@@ -173,7 +173,7 @@ so it runs on any hosted runner.
 ## Packaging
 
 Delivered as a `.deb` and an `.rpm`, from the same repository as the `sokar` package —
-[F26](F26-Linux-Packaging.md) is the requirement; this is what it is made of.
+The packaging requirement is met and retired; this is what it is made of.
 
 - **Output:** `flutter build linux --release` produces a bundle directory — the binary,
   `lib/libapp.so`, `lib/libflutter_linux_gtk.so`, `data/`. Measured at 22 MB and 11 s. The

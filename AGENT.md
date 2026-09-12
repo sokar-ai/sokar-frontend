@@ -635,7 +635,7 @@ independence is the reason the two are split; do not introduce anything that bre
 ## Deployment
 
 Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
-([F26](issues/F26-Linux-Packaging.md)).
+(the packaging requirement, met and retired on 2026-09-12).
 
 - **Built with [nfpm](https://nfpm.goreleaser.com/)** — one static binary, one YAML, both
   formats. Deliberately *not* `rpm-maven-plugin` and jdeb, which is what the backend uses: they
@@ -1016,6 +1016,38 @@ worth keeping as rules, because each names a way of being wrong that reads as wo
 The two CI findings are the only ones with a path in from outside: actions are pinned to commits
 (kept current by Dependabot, held by a test that rejects any `uses:` without a 40-character SHA),
 and `nfpm` is verified against its digest before it builds anything.
+
+## What the retired requirements measured, kept when their files went
+
+Five facts that lived only in the index's *finished* list, which the operator's rule of 2026-09-12
+deletes along with every finished issue. Everything else that list held is already recorded above,
+in the section it belongs to; these were not.
+
+- **Where a credential value goes is *said*, not offered** (Authentication Flows). A credential is
+  held under the **provider's** name, falling back to the agent's for older vaults — so a client
+  intersecting a provider list with a credential list reports one missing from precisely the vault
+  that has it. The command that stores one is rendered verbatim instead. Importing what an agent
+  already holds moves **no secret**: the daemon reads that agent's own config on its own disk and
+  only a name crosses. And `authenticated` is drawn only beside a *readable* store, because a shut
+  store and an unauthenticated provider are different sentences and only one of them is somebody's
+  problem.
+- **Three readiness states, and `UNKNOWN` is not the good one** (Host Readiness). `DEGRADED` and
+  `UNKNOWN` both leave a machine running tasks, so the verdict separates *nothing is missing* from
+  *it runs work, and one thing is worth knowing about*; a probe that guesses well is
+  indistinguishable from one that works. `ready` is the daemon's own answer and is never re-derived
+  here. Half of that requirement was withdrawn because the fix is root on the node — and because
+  **a machine that is not ready usually has no daemon to ask**, so a check delivered over the
+  daemon's socket can only ever answer for a machine whose daemon is already up.
+- **`Task.waiting` has three states, not two** (Task Inspection And Work Handover). An `online`
+  task answers zero: a question the class does not have, rather than a smaller number. It is on the
+  task because the join a client would have made — a container name to a gate ref — is right for at
+  most one container of a task's life, and several push to one ref over time.
+- **The boundary is the container, not the window** (Continuity And Updates). A session is a
+  multiplexer *inside* the container, so closing the window leaves it running and coming back finds
+  it as it was. The screen says that without implying the reverse.
+- **`activity` says `DEAD` for stopped, finished and killed alike** (Notifications). So finishing
+  can be told from failing only for what this session itself started, and that is as far as it can
+  honestly go. A desktop that cannot notify says so rather than going quiet.
 
 ## Break it and watch the *right* thing fail
 

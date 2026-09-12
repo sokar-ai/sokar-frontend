@@ -56,6 +56,12 @@ what each mistake cost. Read that before changing anything; read this before doi
   about an image or a package; and a remote one at Hetzner, the only place the published package is
   installed the way an operator gets it. A change that touches none of those paths — a document, an
   issue, a comment — needs the unit tests and honesty about the rest, not a rented machine.
+- **Use the official Flutter and Dart skills.** [flutter/agent-plugins](https://github.com/flutter/agent-plugins)
+  for Flutter and [dart-lang/skills](https://github.com/dart-lang/skills) for Dart, rather than a
+  habit invented here — widget and integration tests, mocks, static analysis, layout failures,
+  pattern matching, coverage and the rest. Installed here as the `dart-flutter` plugin, so they
+  appear as `dart-flutter:<skill>`; check for one before writing a recipe of your own. Nothing in
+  the other Sokar repositories needs them: none of them holds Flutter or Dart code.
 - **Never run `dart format` on a directory or on an existing file.** It reflows code around your
   change and every later anchor-based edit then fails on text nobody read.
 - **The interface never parses the `sokar` CLI and never reads a task's log.** One varlink
@@ -65,6 +71,16 @@ what each mistake cost. Read that before changing anything; read this before doi
   status, what it covers, how many questions are still open — ordered by priority, so the top row
   is what to do next. Adding or closing an issue means writing that row in the same change.
   `blocked` names whose answer it waits for. (The operator's rule, 2026-09-12.)
+- **A finished issue is deleted, completely.** The file goes and so does its row in
+  `issues/README.md` — there is no *met* status and no list of what used to be here. What guards it
+  afterwards is the scenarios in `test/features`. (The operator's rule, 2026-09-12.)
+- **Before an issue is deleted, what outlives it is written somewhere else.** Anything still useful
+  that is about more than that issue: into `doc/` if a person using the product needs it, into this
+  file if it is internal and true wherever you work, into `.AGENTS.md` if it only matters on the
+  operator's own machine. The long-form internal notes are [AGENT.md](AGENT.md), which is this
+  file's appendix rather than a second rules file. The test is *"is it about more than the issue"* —
+  a measurement, a distinction the contract makes, something that was built wrong once. Acceptance
+  criteria are not: the scenarios carry those.
 - **Requirements live in `issues/FNN-Name.md`.** The number is identity, not order;
   [issues/README.md](issues/README.md) is the order. A requirement says what must be true for a
   person, never how it is built.
