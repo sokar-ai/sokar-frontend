@@ -40,6 +40,10 @@ what each mistake cost. Read that before changing anything; read this before doi
   German.
 - **A commit message is one brief line.** Comments in code are brief and say *why*, never what the
   line already says.
+- **Measure before you claim.** *"It works"* means it was run. *"That is not the cause"* means the
+  counter-test was run too. (Agent Smith's wording, 2026-09-12, from a regression test of his that
+  passed with and without the fix.)
+- **A test that passes with and without the fix proves nothing.**
 - **Every guard gets a scenario, and then the guard gets broken.** Mutation is the rule: change
   the condition, watch the *right* scenario fail, restore. A mutation that survives means the test
   names the wrong thing. A mutation that does not compile proves nothing — check for that.
