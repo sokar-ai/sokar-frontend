@@ -37,6 +37,55 @@ Feature: Raising and dropping the forward that reaches a machine
     And I watch it
     Then the machine {'the build machine'} says {'Host key verification failed.'}
 
+  # A machine that answered yesterday and does not today is usually a daemon nobody started.
+  Scenario: a watched machine that is silent can be started from its menu, once somebody agrees
+    Given nothing answers on that machine
+    When I start watching another machine
+    And I choose {'Raise the forward for me'}
+    And I say it is called {'the build machine'}
+    And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
+    And I watch it
+    And I switch to the machine {'the build machine'}
+    And I ask to start Sokar on this machine
+    Then nothing was started on that machine
+    When I agree to start it
+    Then the machine was asked to start {'setsid sokard'}
+    And the session recorded {'Start Sokar on user@build.example.test'}
+    And the machine {'the build machine'} answers again
+
+  Scenario: a start nobody agreed to runs nothing
+    Given nothing answers on that machine
+    When I start watching another machine
+    And I choose {'Raise the forward for me'}
+    And I say it is called {'the build machine'}
+    And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
+    And I watch it
+    And I switch to the machine {'the build machine'}
+    And I ask to start Sokar on this machine
+    And I do not agree to start it
+    Then nothing was started on that machine
+    When the machine can answer again
+    Then the machine {'the build machine'} answers again
+
+  Scenario: a machine that answers is offered no start at all
+    When I start watching another machine
+    And I choose {'Raise the forward for me'}
+    And I say it is called {'the build machine'}
+    And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
+    And I watch it
+    And I switch to the machine {'the build machine'}
+    And I open the command finder
+    Then the command {'Start Sokar on this machine'} is unavailable because {'already answering'}
+
+  Scenario: a machine somebody else forwards is offered no start, because there is no host
+    When I watch another machine called {'elsewhere'}
+    And I switch to the machine {'elsewhere'}
+    And I open the command finder
+    Then the command {'Start Sokar on this machine'} is unavailable because {'somebody else'}
+
   Scenario: closing the interface leaves no forward it raised still running
     When I start watching another machine
     And I choose {'Raise the forward for me'}

@@ -951,6 +951,30 @@ a second implementation of the *domain* by parsing the `sokar` CLI. `ssh` is tra
 answers; the process itself is proven in `test/app/tunnel_test.dart` against real sockets. Same
 reason `FleetBackend` is a seam: a widget test's clock does not carry real input and output.
 
+## Starting a daemon at the far end is the one thing run on somebody else's machine
+
+`Tunnels.startSokarOn` (F30). Everything else over `ssh` is `-N`: a forward and no remote command.
+This runs a line there, which is a step further in, so:
+
+- **Never without being asked**, in either place it is offered — the dialog's trial and a watched
+  machine's menu. The line is shown in full before the yes, and run unchanged after it.
+- **Only where ssh already worked and nothing served.** `Trial.nothingServing` is that and only
+  that. A forward that could not be raised is a different problem, and a socket somebody else
+  forwarded has no host behind it to log into.
+- **A unit first, `setsid sokard` only if there is none.** The package ships the binary and no
+  systemd unit yet; asked of Sokar on 2026-09-12. Socket activation would make this requirement
+  almost nothing — the first connection would start the daemon.
+- **The exit code is not the verdict.** A line that ran cleanly and left nothing listening is what
+  a missing binary looks like from here, so a start is always followed by connecting again.
+- **A stale socket is not deleted from here.** A socket nothing answers on and one belonging to a
+  daemon that is merely slow are told apart at the machine.
+
+The script is proven by running it, in `test/app/tunnel_test.dart`, with `PATH` deciding what the
+far end has. Two traps found doing that: this machine has `/usr/bin/sokard` too, so a test with a
+real `PATH` starts a real daemon — give it a bare directory or a fake that shadows the real one.
+And `Process.run('sh')` resolves `sh` through the *child's* `PATH`, so use `/bin/sh` when the test
+replaces it.
+
 ## Break it and watch the *right* thing fail
 
 Mutation testing is the rule here already: after writing a guard, break what it guards and watch it

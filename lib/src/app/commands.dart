@@ -414,16 +414,31 @@ List<Command> projectCommands({
 List<Command> machineCommands({
   required FleetModel fleet,
   required bool canForget,
+  required bool reachedOverSsh,
   required VoidCallback checkTheMachine,
   required VoidCallback showTheProviders,
   required VoidCallback showTheVault,
   required VoidCallback showAgents,
+  required VoidCallback startTheDaemon,
   required VoidCallback forget,
 }) {
-  final notConnected = fleet.reachability == Reachability.connected
-      ? null
-      : 'the machine is not answering';
+  final connected = fleet.reachability == Reachability.connected;
+  final notConnected = connected ? null : 'the machine is not answering';
   return <Command>[
+    // The one thing a machine that is not answering can still be asked, and only while this
+    // interface is the one that logs in: everything else here needs the daemon that is missing.
+    Command(
+      id: 'machine.start',
+      label: 'Start Sokar on this machine',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: startTheDaemon,
+      unavailable: !reachedOverSsh
+          ? 'its socket is forwarded by somebody else'
+          : connected
+              ? 'it is already answering'
+              : null,
+    ),
     Command(
       id: 'machine.doctor',
       label: 'Check whether this machine can run anything',
@@ -521,6 +536,7 @@ List<Command> commandsFor({
   required VoidCallback stopEverything,
   required VoidCallback stopEverywhere,
   required VoidCallback watchAnotherMachine,
+  required VoidCallback startTheDaemon,
   required VoidCallback forget,
   required VoidCallback showAbout,
   required VoidCallback refreshAll,
@@ -616,10 +632,12 @@ List<Command> commandsFor({
     ...machineCommands(
       fleet: fleet,
       canForget: canForget,
+      reachedOverSsh: machine.needsATunnel,
       checkTheMachine: checkTheMachine,
       showTheProviders: showTheProviders,
       showTheVault: showTheVault,
       showAgents: showAgents,
+      startTheDaemon: startTheDaemon,
       forget: forget,
     ),
     Command(

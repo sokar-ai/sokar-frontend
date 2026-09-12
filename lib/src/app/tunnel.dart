@@ -6,6 +6,23 @@ import 'package:flutter/foundation.dart';
 
 import 'machines.dart';
 
+/// What an attempt to start a daemon came back with.
+@immutable
+class Started {
+  /// Constructor taking whether it ran and what it said.
+  const Started({required this.went, required this.words});
+
+  /// Whether ssh ran the line and it came back without complaint.
+  ///
+  /// **Not whether a daemon is now serving.** Only connecting says that, which is why a start is
+  /// always followed by a trial: a line that ran cleanly and left nothing listening is exactly
+  /// what a missing binary or a socket already taken looks like from here.
+  final bool went;
+
+  /// What came back, as it came.
+  final String words;
+}
+
 /// Where a managed forward has got to.
 enum TunnelState {
   /// Nothing has been asked of it yet.
@@ -211,11 +228,17 @@ class Tunnels extends ChangeNotifier {
   /// Constructor taking how to start a forward, injectable for tests.
   Tunnels({
     Future<Process> Function(List<String> command)? start,
+    Future<ProcessResult> Function(List<String> command)? run,
     Duration appears = const Duration(seconds: 10),
   })  : _launch = start,
+        _run = run ?? _runIt,
         _untilItBinds = appears;
 
   final Future<Process> Function(List<String> command)? _launch;
+  final Future<ProcessResult> Function(List<String> command) _run;
+
+  static Future<ProcessResult> _runIt(List<String> command) =>
+      Process.run(command.first, command.sublist(1));
 
   /// How long a forward is given to bind before it is called down.
   final Duration _untilItBinds;
@@ -260,6 +283,67 @@ class Tunnels extends ChangeNotifier {
     if (tunnel == null || tunnel.state != TunnelState.down) return;
     await tunnel.raise();
     notifyListeners();
+  }
+
+  /// The line that would start a daemon on [machine].
+  ///
+  /// Shown to somebody before they agree to it and run unchanged afterwards, so that what was
+  /// agreed to is what happens.
+  ///
+  /// **A unit first, the binary only if there is none.** Socket activation is supervised, comes
+  /// back after a reboot and owns its socket; `setsid` is none of those and is here because the
+  /// package ships no unit yet. The fallback is deliberately loud about which one ran.
+  static List<String> startCommandFor(Machine machine) => <String>[
+        'ssh',
+        '-n',
+        '-o', 'BatchMode=yes',
+        '-o', 'ConnectTimeout=10',
+        machine.host,
+        startsIt,
+      ];
+
+  /// What is run at the far end. Held apart so a scenario can say what was asked of the machine.
+  static const String startsIt =
+      'command -v sokard >/dev/null 2>&1 || { echo "no sokard is installed there" >&2; exit 127; }; '
+      'if systemctl --user start sokard.socket >/dev/null 2>&1 || '
+      'systemctl --user start sokard >/dev/null 2>&1; then echo "started by systemd"; '
+      'else setsid sokard >/dev/null 2>&1 </dev/null & echo "started sokard itself"; fi';
+
+  /// Starts a daemon on [machine], over the same transport that forwards it.
+  ///
+  /// **Only for a machine this interface forwards.** A socket somebody else forwarded names no
+  /// host to log into, and running something on a machine described by nothing but a path is not a
+  /// thing this can guess at.
+  ///
+  /// Running a line at the far end is further into somebody else's machine than forwarding a
+  /// socket goes, and the caller asks first — which is why this takes no decision of its own.
+  Future<Started> startSokarOn(Machine machine) async {
+    if (!machine.needsATunnel) {
+      return const Started(
+        went: false,
+        words: 'This machine names no host to log into: its socket is forwarded by somebody else.',
+      );
+    }
+    try {
+      final result = await _run(startCommandFor(machine));
+      // ssh's own words, whichever stream they came on: the useful sentence is on stderr when the
+      // far end refused and on stdout when it did something.
+      final said = <String>[
+        '${result.stdout}'.trim(),
+        '${result.stderr}'.trim(),
+      ].where((each) => each.isNotEmpty).join(' ');
+      final went = result.exitCode == 0;
+      return Started(
+        went: went,
+        words: said.isNotEmpty
+            ? said
+            : went
+                ? 'It ran and said nothing.'
+                : 'ssh gave up, exit code ${result.exitCode}.',
+      );
+    } on ProcessException catch (ex) {
+      return Started(went: false, words: ex.message);
+    }
   }
 
   /// Takes down the forward for one machine, if this interface raised it.

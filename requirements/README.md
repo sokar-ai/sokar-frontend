@@ -47,6 +47,7 @@ cover](../doc/Contract-Gaps.md) has the reasoning behind each.
 |---|---|---|---|---|
 | F28 | [One View Of What Needs A Person](F28-One-View-Of-What-Needs-A-Person.md) | Opening the window answers whether anything needs a person, for every connected machine at once. | | |
 | F29 | [Try A Machine Before Watching It](F29-Try-A-Machine-Before-Watching-It.md) | Adding a machine can try the connection first, and says what stood in the way when it fails. | | |
+| F30 | [Start The Daemon On A Machine You Can Reach](F30-Start-The-Daemon-On-A-Machine-You-Can-Reach.md) | A machine reached over ssh with nothing serving is offered a start, and started only when asked. | a supported way to be started: the package ships the binary and no systemd unit, so what runs from here is `setsid sokard` | whether stopping should be offered too |
 | F15 | [Secret Store Control](F15-Secret-Store-Control.md) | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked | |
 | F26 | [Linux Packaging](F26-Linux-Packaging.md) | The interface installs from apt and dnf out of the same repository as the backend, and appears in the application menu. | | |
 

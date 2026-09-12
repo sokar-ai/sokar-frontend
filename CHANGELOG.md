@@ -19,6 +19,9 @@ distribution, so an entry below has reached an operator only if they follow that
   own machine; the task's name on it can be selected and copied.
 - **A machine can be tried before it is watched**, from the dialog that adds it: what answered, or
   what stood in the way — ssh's own words, or a forward that came up with no daemon behind it.
+- **A machine that can be reached but serves nothing is offered a start**, in the dialog that adds
+  it and in the menu of a machine already watched: the line that would run is shown, nothing runs
+  until somebody agrees, and the connection is tried again afterwards to say whether it worked.
 - **Every tile is headed by its machine's name**, and what an action from the tile came to is
   said on the tile, not only in the status line.
 - A window for Linux desktop that talks to `sokard` over a unix socket. Every action is reachable

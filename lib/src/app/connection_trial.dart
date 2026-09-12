@@ -11,13 +11,20 @@ const _tasks = 'org.fuin.sokar.Tasks1';
 /// What trying a machine found, before anybody watches it.
 class Trial {
   /// Constructor taking the verdict and the words for it.
-  const Trial({required this.reached, required this.words});
+  const Trial({required this.reached, required this.words, this.nothingServing = false});
 
   /// Whether a Sokar this build understands answered.
   final bool reached;
 
   /// What was found, in a sentence somebody can act on.
   final String words;
+
+  /// Whether ssh worked and nothing served at the far end.
+  ///
+  /// The one failure that can be answered from here rather than only described: the host is there,
+  /// the login worked, and what is missing is a daemon. Every other failure — a forward that could
+  /// not be raised, a daemon serving something else — is somebody else's to fix.
+  final bool nothingServing;
 }
 
 /// Tries [machine] the way watching it would, and leaves nothing running.
@@ -64,6 +71,9 @@ Future<Trial> tryAMachine(
     // The forward to a socket nobody serves comes up fine; only connecting through it says so.
     return Trial(
       reached: false,
+      // Only a machine forwarded from here can be started from here. A socket somebody else
+      // forwarded fails the same way and has no host behind it to log into.
+      nothingServing: machine.needsATunnel,
       words: machine.needsATunnel
           ? 'The forward came up, but nothing answers at ${machine.remoteSocket} on that '
               'machine. Is sokard running there, for the user you log in as? (${ex.message})'

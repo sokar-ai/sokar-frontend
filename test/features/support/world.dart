@@ -1192,6 +1192,12 @@ class World {
   /// Forwards raised for a trial and not yet taken down, by machine name.
   static final Set<String> trialForwards = <String>{};
 
+  /// Every line the interface asked a machine to run, in order. Recorded, never run.
+  static final List<List<String>> startsAsked = <List<String>>[];
+
+  /// What a start does. A scenario sets it to make one come back the way a failure comes back.
+  static String? startFailsWith;
+
   /// What agents the machine has.
   static late AgentInventory inventory;
 
@@ -1413,6 +1419,8 @@ class World {
     forwardsHeld.clear();
     forwardsFailWith = null;
     trialForwards.clear();
+    startsAsked.clear();
+    startFailsWith = null;
     templates = Templates(settings);
     await templates.load();
     stopping = EmergencyStop();
@@ -1727,6 +1735,18 @@ class FakeTunnels extends Tunnels {
       ..problem = null;
     notifyListeners();
     return true;
+  }
+
+  @override
+  Future<Started> startSokarOn(Machine machine) async {
+    // A machine with no host behind it is refused before anything is run, by the real thing.
+    if (!machine.needsATunnel) return super.startSokarOn(machine);
+    World.startsAsked.add(Tunnels.startCommandFor(machine));
+    final failing = World.startFailsWith;
+    if (failing != null) return Started(went: false, words: failing);
+    // The daemon that was missing is there now, so the try that follows finds it.
+    World.backend.absent = null;
+    return const Started(went: true, words: 'started sokard itself');
   }
 
   @override

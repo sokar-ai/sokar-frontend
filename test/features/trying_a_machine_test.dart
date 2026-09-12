@@ -16,8 +16,16 @@ import './step/the_trial_says.dart';
 import './step/the_forward_raised_for_the_trial_was_taken_down.dart';
 import './step/raising_a_forward_will_fail_with.dart';
 import './step/nothing_answers_on_that_machine.dart';
-import './step/the_machine_serves_nothing_this_build_knows.dart';
+import './step/starting_sokar_there_is_offered.dart';
+import './step/nothing_was_started_on_that_machine.dart';
+import './step/i_start_sokar_there.dart';
+import './step/the_machine_was_asked_to_start.dart';
+import './step/i_turn_the_offer_down.dart';
+import './step/starting_sokar_there_is_not_offered.dart';
+import './step/starting_sokar_will_fail_with.dart';
+import './step/the_start_says.dart';
 import './step/the_forwarded_socket_is.dart';
+import './step/the_machine_serves_nothing_this_build_knows.dart';
 import './step/nothing_was_raised_for_the_trial.dart';
 import './step/the_trial_says_nothing.dart';
 
@@ -64,6 +72,65 @@ void main() {
       await theTrialSays(tester,
           'nothing answers at /run/user/1001/sokar/sokard.sock on that machine');
       await theForwardRaisedForTheTrialWasTakenDown(tester);
+    });
+    testWidgets(
+        '''a machine nobody serves is offered a start, and nothing runs until it is asked for''',
+        (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iTryTheConnection(tester);
+      await startingSokarThereIsOffered(tester);
+      await nothingWasStartedOnThatMachine(tester);
+      await iStartSokarThere(tester);
+      await theMachineWasAskedToStart(tester, 'setsid sokard');
+      await theTrialSays(tester, 'Reached Sokar');
+    });
+    testWidgets('''the offer is turned down and nothing is run''',
+        (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iTryTheConnection(tester);
+      await iTurnTheOfferDown(tester);
+      await startingSokarThereIsNotOffered(tester);
+      await nothingWasStartedOnThatMachine(tester);
+    });
+    testWidgets('''a start that failed says what came back''', (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await startingSokarWillFailWith(tester, 'no sokard is installed there');
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iTryTheConnection(tester);
+      await iStartSokarThere(tester);
+      await theStartSays(tester, 'no sokard is installed there');
+    });
+    testWidgets('''a forward ssh could not raise is never offered a start''',
+        (tester) async {
+      await bddSetUp(tester);
+      await raisingAForwardWillFailWith(
+          tester, 'Host key verification failed.');
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iTryTheConnection(tester);
+      await startingSokarThereIsNotOffered(tester);
+    });
+    testWidgets(
+        '''a socket somebody else forwarded names no host to log into''',
+        (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await iChoose(tester, 'Its socket is already forwarded');
+      await theForwardedSocketIs(tester, '/tmp/sokard-remote.sock');
+      await iTryTheConnection(tester);
+      await startingSokarThereIsNotOffered(tester);
     });
     testWidgets('''a machine that speaks something else says so''',
         (tester) async {

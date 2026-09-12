@@ -15,6 +15,7 @@ import '../app/backups.dart';
 import '../app/emergency_stop.dart';
 import '../app/start_work.dart';
 import '../app/templates.dart';
+import '../app/tunnel.dart';
 import '../app/vault.dart';
 import '../app/widening.dart';
 import '../app/work_held.dart';
@@ -296,6 +297,7 @@ class _ShellState extends State<Shell> {
     stopEverything: _stopEverything,
     stopEverywhere: _stopEverywhere,
     watchAnotherMachine: _addAMachine,
+    startTheDaemon: () => unawaited(_startTheDaemon()),
     forget: _forget,
     showAbout: _showAbout,
         refreshAll: () => unawaited(_refreshAll()),
@@ -307,10 +309,12 @@ class _ShellState extends State<Shell> {
   List<Command> _machineMenu() => machineCommands(
     fleet: _fleet,
     canForget: widget.machines.all.length > 1,
+    reachedOverSsh: widget.machines.current.needsATunnel,
     checkTheMachine: _checkTheMachine,
     showTheProviders: _showTheProviders,
     showTheVault: _showTheVault,
     showAgents: _showAgents,
+    startTheDaemon: () => unawaited(_startTheDaemon()),
     forget: _forget,
   );
 
@@ -708,9 +712,79 @@ class _ShellState extends State<Shell> {
       context,
       taken: widget.machines.all.map((each) => each.name),
       trying: widget.machines.tryMachine,
+      starting: widget.machines.startSokarOn,
     );
     if (machine == null) return;
     await widget.machines.add(machine);
+  }
+
+  /// Offers to start a daemon on a machine that is not answering, and starts it on a yes.
+  ///
+  /// The one thing a silent machine can still be asked. What runs is named before it runs: this
+  /// is the interface reaching further into somebody else's machine than forwarding a socket goes,
+  /// and it goes no further than a line somebody read and agreed to.
+  Future<void> _startTheDaemon() async {
+    final machine = widget.machines.current;
+    if (!machine.needsATunnel) return;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Start Sokar on ${machine.host}?'),
+        content: SizedBox(
+          width: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'It is not answering. This logs in and starts the daemon there, as the user you '
+                'log in as. Nothing else on that machine is touched.',
+              ),
+              const SizedBox(height: Space.normal),
+              SelectableText(
+                Tunnels.startCommandFor(machine).join(' '),
+                key: const Key('what-would-run'),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('start-it'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Start it'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    widget.operations.run(
+      title: 'Start Sokar on ${machine.host}',
+      machine: machine.name,
+      output: _startingSaid(machine),
+    );
+  }
+
+  /// What the start prints, as an operation: the line, then what came back, then the verdict.
+  ///
+  /// Erroring the stream is how a failure reaches the session record, and connecting again is the
+  /// only thing that can say whether it worked — a line that ran cleanly proves nothing.
+  Stream<String> _startingSaid(Machine machine) async* {
+    yield Tunnels.startCommandFor(machine).join(' ');
+    final started = await widget.machines.startSokarOn(machine);
+    yield started.words;
+    if (!started.went) throw StateError(started.words);
+    await widget.machines.raiseAgainIfNeeded(machine);
+    await widget.machines.of(machine).connect();
+    final answering =
+        widget.machines.of(machine).reachability == Reachability.connected;
+    yield answering ? 'It answers now.' : 'It still does not answer.';
+    if (!answering) throw StateError('It was started, and still nothing answers.');
   }
 
   /// Asks which log, then opens it. Reading starts whether or not it stays on screen.

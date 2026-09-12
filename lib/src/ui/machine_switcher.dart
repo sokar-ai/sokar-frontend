@@ -64,20 +64,26 @@ class ReachIcon extends StatelessWidget {
 /// must keep working untouched. A machine described by where it *is* has its forward raised here,
 /// supervised, and taken down when the window closes.
 Future<Machine?> askForAMachine(BuildContext context,
-        {Iterable<String> taken = const <String>[], Future<Trial> Function(Machine)? trying}) =>
+        {Iterable<String> taken = const <String>[],
+        Future<Trial> Function(Machine)? trying,
+        Future<Started> Function(Machine)? starting}) =>
     showDialog<Machine>(
       context: context,
-      builder: (context) => _AskForAMachine(taken: taken.toList(), trying: trying),
+      builder: (context) =>
+          _AskForAMachine(taken: taken.toList(), trying: trying, starting: starting),
     );
 
 class _AskForAMachine extends StatefulWidget {
-  const _AskForAMachine({required this.taken, this.trying});
+  const _AskForAMachine({required this.taken, this.trying, this.starting});
 
   /// The names already watched. A second with the same name would never be added.
   final List<String> taken;
 
   /// Tries a machine before it is watched, or null where nothing can.
   final Future<Trial> Function(Machine)? trying;
+
+  /// Starts a daemon on it, when the trial found ssh working and nothing serving.
+  final Future<Started> Function(Machine)? starting;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -97,6 +103,13 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   String _triedFor = '';
   bool _trying = false;
   int _attempt = 0;
+
+  /// What a start said, kept after the trial that follows it so the two read together.
+  String? _startSaid;
+  bool _starting = false;
+
+  /// Whether the offer to start was turned down. Asked once per try, never again unprompted.
+  bool _declined = false;
 
   /// Whether this interface raises the forward. **Nothing is preselected**: the two are different
   /// commitments — one of them starts a process and owns it — and a default would make that
@@ -307,7 +320,74 @@ class _AskForAMachineState extends State<_AskForAMachine> {
           ],
         ),
       ],
+      // Outside the offer, and deliberately: what a start said is worth reading next to the trial
+      // that followed it, including the one that then succeeded and took the offer away.
+      if (_startSaid != null) ...<Widget>[
+        const SizedBox(height: Space.small),
+        SelectableText(_startSaid!, key: const Key('start-result')),
+      ],
+      if (trial != null &&
+          !trial.reached &&
+          trial.nothingServing &&
+          widget.starting != null &&
+          !_declined)
+        ..._offerToStart(context),
     ];
+  }
+
+  /// The offer to start a daemon at the far end, with the line it would run.
+  ///
+  /// **A question, never a default.** Running something on somebody else's machine is a step past
+  /// forwarding a socket, and the line is shown in full because that is what is being agreed to.
+  List<Widget> _offerToStart(BuildContext context) => <Widget>[
+        const SizedBox(height: Space.normal),
+        Text(
+          'Nothing serves there. Start Sokar on ${_host.text.trim()}?',
+          key: const Key('offer-to-start'),
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: Space.tight),
+        _Recipe(command: Tunnels.startCommandFor(_described).join(' ')),
+        const SizedBox(height: Space.small),
+        Row(
+          children: <Widget>[
+            FilledButton(
+              key: const Key('start-it'),
+              onPressed: _starting ? null : _startIt,
+              child: const Text('Start it'),
+            ),
+            const SizedBox(width: Space.small),
+            TextButton(
+              key: const Key('not-now'),
+              onPressed: _starting ? null : () => setState(() => _declined = true),
+              child: const Text('Not now'),
+            ),
+            if (_starting) ...<Widget>[
+              const SizedBox(width: Space.normal),
+              const SizedBox.square(
+                dimension: Sizes.mark,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: Space.small),
+              const Text('Starting…'),
+            ],
+          ],
+        ),
+      ];
+
+  /// Starts it, and tries again by itself: a start nobody verified is a claim, not an answer.
+  Future<void> _startIt() async {
+    setState(() {
+      _starting = true;
+      _startSaid = null;
+    });
+    final started = await widget.starting!(_described);
+    if (!mounted) return;
+    setState(() {
+      _starting = false;
+      _startSaid = started.words;
+    });
+    if (started.went) await _tryIt(afterAStart: true);
   }
 
   /// What the fields describe, so an answer about other fields is never shown against these.
@@ -321,11 +401,19 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         : _socket.text.trim().isNotEmpty;
   }
 
-  Future<void> _tryIt() async {
+  Future<void> _tryIt({bool afterAStart = false}) async {
     final trying = widget.trying!;
     final attempt = ++_attempt;
     final signature = _signature;
-    setState(() => _trying = true);
+    setState(() {
+      _trying = true;
+      // A try somebody asked for is a fresh question, so the offer comes back and what an earlier
+      // start said goes. The try that follows a start keeps both: they are one answer.
+      if (!afterAStart) {
+        _declined = false;
+        _startSaid = null;
+      }
+    });
     final trial = await trying(_described);
     if (!mounted || attempt != _attempt) return;
     setState(() {

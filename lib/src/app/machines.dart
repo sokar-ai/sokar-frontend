@@ -160,6 +160,9 @@ class Machines extends ChangeNotifier {
   Future<Trial> tryMachine(Machine machine) =>
       tryAMachine(machine, reach: _reach, tunnels: tunnels);
 
+  /// Starts a daemon on [machine], for somebody who has been asked and said yes.
+  Future<Started> startSokarOn(Machine machine) => tunnels.startSokarOn(machine);
+
   /// Every machine, in the order they were added.
   List<Machine> get all => List<Machine>.unmodifiable(_machines);
 

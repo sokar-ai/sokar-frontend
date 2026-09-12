@@ -22,6 +22,18 @@ import './step/nothing_was_raised_for.dart';
 import './step/the_machine_does_not_say_the_forward_is_raised_here.dart';
 import './step/raising_a_forward_will_fail_with.dart';
 import './step/the_machine_says.dart';
+import './step/nothing_answers_on_that_machine.dart';
+import './step/i_switch_to_the_machine.dart';
+import './step/i_ask_to_start_sokar_on_this_machine.dart';
+import './step/nothing_was_started_on_that_machine.dart';
+import './step/i_agree_to_start_it.dart';
+import './step/the_machine_was_asked_to_start.dart';
+import './step/the_session_recorded.dart';
+import './step/the_machine_answers_again.dart';
+import './step/i_do_not_agree_to_start_it.dart';
+import './step/the_machine_can_answer_again.dart';
+import './step/i_open_the_command_finder.dart';
+import './step/the_command_is_unavailable_because.dart';
 import './step/i_close_the_interface.dart';
 import './step/no_forward_this_interface_raised_is_still_running.dart';
 import './step/nothing_was_torn_down_for.dart';
@@ -77,6 +89,66 @@ void main() {
       await iWatchIt(tester);
       await theMachineSays(
           tester, 'the build machine', 'Host key verification failed.');
+    });
+    testWidgets(
+        '''a watched machine that is silent can be started from its menu, once somebody agrees''',
+        (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iWatchIt(tester);
+      await iSwitchToTheMachine(tester, 'the build machine');
+      await iAskToStartSokarOnThisMachine(tester);
+      await nothingWasStartedOnThatMachine(tester);
+      await iAgreeToStartIt(tester);
+      await theMachineWasAskedToStart(tester, 'setsid sokard');
+      await theSessionRecorded(
+          tester, 'Start Sokar on user@build.example.test');
+      await theMachineAnswersAgain(tester, 'the build machine');
+    });
+    testWidgets('''a start nobody agreed to runs nothing''', (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iWatchIt(tester);
+      await iSwitchToTheMachine(tester, 'the build machine');
+      await iAskToStartSokarOnThisMachine(tester);
+      await iDoNotAgreeToStartIt(tester);
+      await nothingWasStartedOnThatMachine(tester);
+      await theMachineCanAnswerAgain(tester);
+      await theMachineAnswersAgain(tester, 'the build machine');
+    });
+    testWidgets('''a machine that answers is offered no start at all''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWatchingAnotherMachine(tester);
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iWatchIt(tester);
+      await iSwitchToTheMachine(tester, 'the build machine');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsUnavailableBecause(
+          tester, 'Start Sokar on this machine', 'already answering');
+    });
+    testWidgets(
+        '''a machine somebody else forwards is offered no start, because there is no host''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await iSwitchToTheMachine(tester, 'elsewhere');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsUnavailableBecause(
+          tester, 'Start Sokar on this machine', 'somebody else');
     });
     testWidgets(
         '''closing the interface leaves no forward it raised still running''',

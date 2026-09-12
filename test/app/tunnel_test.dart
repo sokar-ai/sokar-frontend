@@ -222,4 +222,92 @@ void main() {
       expect(tunnels.manages(ours), isFalse);
     });
   });
+  /// Starting a daemon at the far end.
+  ///
+  /// **The script is run, not mocked.** What can go wrong here is the line itself — a missing
+  /// binary, a unit that is not there, a start that blocks because its output was never
+  /// redirected — and a stand-in for `ssh` that echoed a fixed answer would prove none of it. So
+  /// the far end is this machine, with `PATH` deciding what it has.
+  group('starting a daemon at the far end', () {
+    Tunnels runningTheScript(String path) => Tunnels(
+          run: (command) => Process.run(
+            '/bin/sh',
+            <String>['-c', command.last],
+            environment: <String, String>{'PATH': path},
+            includeParentEnvironment: false,
+          ),
+        );
+
+    test('the line names the host, asks for a unit first, and never prompts', () {
+      final command = Tunnels.startCommandFor(machineAt('/tmp/unused.sock'));
+
+      expect(command.first, 'ssh');
+      expect(command, contains('user@build'));
+      // Batch mode, for the same reason the forward uses it: there is no terminal to prompt at.
+      expect(command, contains('BatchMode=yes'));
+      expect(command.last.indexOf('systemctl'), lessThan(command.last.indexOf('setsid')),
+          reason: 'a supervised unit is preferred to a loose process');
+    });
+
+    test('a machine with no sokard on it says so, and starts nothing', () async {
+      // A path with nothing on it, and deliberately not this machine's own: a far end that has no
+      // daemon is the case being tested, and running the real one here would be a side effect of
+      // a test.
+      final bare = Directory('${where.path}/bare')..createSync();
+
+      final started = await runningTheScript(bare.path).startSokarOn(machineAt('/tmp/unused.sock'));
+
+      expect(started.went, isFalse);
+      expect(started.words, contains('no sokard is installed there'));
+    });
+
+    test('a machine that has it starts it detached, and does not wait for it', () async {
+      final marker = '${where.path}/it-ran';
+      final fake = File('${where.path}/sokard')
+        ..writeAsStringSync('#!/bin/sh\necho ran > $marker\nsleep 5\n');
+      Process.runSync('chmod', <String>['755', fake.path]);
+
+      final started = await runningTheScript('${where.path}:/usr/bin:/bin')
+          .startSokarOn(machineAt('/tmp/unused.sock'));
+
+      expect(started.went, isTrue);
+      expect(started.words, contains('started sokard itself'));
+      // It came back while the daemon is still running, which is the whole of "detached": a start
+      // that waited for the daemon to finish would hold the window for as long as it serves.
+      final by = DateTime.now().add(const Duration(seconds: 5));
+      while (!File(marker).existsSync() && DateTime.now().isBefore(by)) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      expect(File(marker).existsSync(), isTrue, reason: 'it was never run at the far end');
+    });
+
+    test('a machine somebody else forwards is refused before anything is run', () async {
+      var asked = false;
+      final tunnels = Tunnels(run: (_) async {
+        asked = true;
+        return ProcessResult(0, 0, '', '');
+      });
+      addTearDown(tunnels.dispose);
+
+      final started = await tunnels
+          .startSokarOn(const Machine(name: 'elsewhere', socketPath: '/tmp/elsewhere.sock'));
+
+      expect(started.went, isFalse);
+      expect(asked, isFalse, reason: 'there is no host to log into');
+      expect(started.words, contains('forwarded by somebody else'));
+    });
+
+    test('ssh that cannot be run at all is a refusal, not a crash', () async {
+      final tunnels = Tunnels(
+        run: (_) => Future<ProcessResult>.error(
+            const ProcessException('ssh', <String>[], 'No such file or directory')),
+      );
+      addTearDown(tunnels.dispose);
+
+      final started = await tunnels.startSokarOn(machineAt('/tmp/unused.sock'));
+
+      expect(started.went, isFalse);
+      expect(started.words, contains('No such file or directory'));
+    });
+  });
 }
