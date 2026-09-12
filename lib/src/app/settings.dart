@@ -44,11 +44,25 @@ class FileSettingsStore implements SettingsStore {
     }
   }
 
+  /// Replaces what is stored, in one step and readable by nobody else.
+  ///
+  /// **Written beside it and renamed over it.** A write in place is not one step: a crash or a
+  /// power cut halfway through leaves truncated JSON, which the read below cannot tell from a
+  /// first run — so the answer to "why are my machines gone" would be a file that says nothing
+  /// about what happened to it. A rename within a directory is atomic: either the old file or the
+  /// whole new one.
+  ///
+  /// Owner-only, because it names the machines somebody watches and the accounts they log in as.
+  /// Not secrets, and not everybody's business either.
   @override
   Future<void> write(Map<String, Object?> values) async {
     try {
       await _file.parent.create(recursive: true);
-      await _file.writeAsString(jsonEncode(values));
+      final beside = File('${_file.path}.writing');
+      await beside.writeAsString(jsonEncode(values), flush: true);
+      // Before the rename, so the file is never briefly readable by others under its real name.
+      await Process.run('chmod', <String>['600', beside.path]);
+      await beside.rename(_file.path);
     } on Exception {
       // Losing a theme choice is not worth interrupting anybody over.
     }
@@ -143,10 +157,16 @@ class Settings extends ChangeNotifier {
   Future<List<Machine>> machines() async {
     final stored = (await _store.read())['machines'];
     if (stored is! List) return const <Machine>[];
-    return <Machine>[
-      for (final each in stored)
-        if (each is Map<String, Object?>) Machine.fromStored(each),
-    ];
+    // One unusable entry is dropped and the rest are kept. A machine with no name or no socket
+    // cannot be watched or told apart from another, and losing every other machine over it would
+    // be the worse answer.
+    final machines = <Machine>[];
+    for (final each in stored) {
+      if (each is! Map<String, Object?>) continue;
+      final machine = Machine.fromStored(each);
+      if (machine.name.isNotEmpty && machine.socketPath.isNotEmpty) machines.add(machine);
+    }
+    return machines;
   }
 
   /// Where somebody was when the interface last closed.

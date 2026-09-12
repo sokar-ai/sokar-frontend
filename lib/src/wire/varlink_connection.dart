@@ -15,6 +15,16 @@ class VarlinkConnection {
   final StreamController<Map<String, dynamic>> _replies =
       StreamController<Map<String, dynamic>>();
 
+  /// The most one reply may weigh before the connection is called broken.
+  ///
+  /// Generous: a log chunk or a long task list is a legitimate reply and there is no length prefix
+  /// to size the buffer from, so the only way to know a reply has ended is the NUL. Finite,
+  /// because a peer that never sends one would otherwise be answered with all the memory there is
+  /// — and an interface killed by the daemon it watches has nothing left to report it with.
+  static const int mostBytesPerReply = 8 * 1024 * 1024;
+
+  bool _broken = false;
+
   VarlinkConnection._(this._socket) {
     final buffer = BytesBuilder();
     // A write to a peer that has gone fails here, not where it was written, and a failure nobody
@@ -22,19 +32,50 @@ class VarlinkConnection {
     unawaited(_socket.done.catchError((Object error) => _lost(error)));
     _socket.listen(
       (chunk) {
+        // **Every failure in here is the connection, not an exception.** A throw inside this
+        // callback does not reach `onError`: it escapes the zone, and the call waiting on the
+        // reply hangs until its timeout with nothing said. So what a peer can produce — bytes
+        // that are not UTF-8, text that is not JSON, JSON that is not an object, a reply with no
+        // end — is caught here and reported as a lost connection.
+        if (_broken) return;
         for (final byte in chunk) {
           if (byte != 0) {
+            if (buffer.length >= mostBytesPerReply) {
+              _breakOff('a reply passed $mostBytesPerReply bytes without ending');
+              return;
+            }
             buffer.addByte(byte);
             continue;
           }
-          final text = utf8.decode(buffer.takeBytes());
-          _replies.add(jsonDecode(text) as Map<String, dynamic>);
+          final bytes = buffer.takeBytes();
+          final Object? decoded;
+          try {
+            decoded = jsonDecode(utf8.decode(bytes));
+          } on FormatException catch (ex) {
+            _breakOff('a reply was not readable: ${ex.message}');
+            return;
+          }
+          if (decoded is! Map<String, dynamic>) {
+            _breakOff('a reply was ${decoded.runtimeType}, not an object');
+            return;
+          }
+          _replies.add(decoded);
         }
       },
       onError: _lost,
       onDone: _replies.close,
       cancelOnError: true,
     );
+  }
+
+  /// Reports the connection broken and stops reading it.
+  ///
+  /// The socket is destroyed rather than left open: a peer talking nonsense will go on talking,
+  /// and there is nothing left here that could act on it.
+  void _breakOff(String why) {
+    _broken = true;
+    _socket.destroy();
+    _lost(why);
   }
 
   void _lost(Object error) {

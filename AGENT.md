@@ -3,8 +3,8 @@
 The interface people use to work with a [Sokar](https://github.com/sokar-ai/sokar) backend, in
 Flutter. This file is the working knowledge: the rules, the traps, and the things that were
 measured rather than assumed. What must be *true for a person using it* is in
-[requirements](requirements/README.md); what it is *made of* is in
-[design](requirements/design.md).
+[issues](issues/README.md); what it is *made of* is in
+[design](issues/design.md).
 
 ## Start here
 
@@ -15,9 +15,9 @@ The frame and the client exist; the rest of the product does not. In order:
 2. **[What the contract does not yet cover](doc/Contract-Gaps.md)** — the short list of what the
    backend has no method or field for yet. Read it before picking a requirement, not after
    designing a screen for one.
-3. **[Design](requirements/design.md)** — what this is made of and why: Flutter, testing, the
+3. **[Design](issues/design.md)** — what this is made of and why: Flutter, testing, the
    mock, packaging.
-4. **[Requirements](requirements/README.md)** — the work, ordered, with a **Backend** column
+4. **[Requirements](issues/README.md)** — the work, ordered, with a **Backend** column
    saying what is reachable today.
 
 Green means `dart analyze` at "No issues found!", `flutter test` passing, and
@@ -138,7 +138,7 @@ still hold; the exemption ends when the interface is frozen by the first release
 **Gherkin `.feature` files, generated into real widget tests by
 [`bdd_widget_test`](https://pub.dev/packages/bdd_widget_test).** Run `dart run build_runner build`
 after adding or editing a feature. Why this package and not the better-known ones is in
-[design](requirements/design.md) — the short version is that every other Gherkin option for Dart
+[design](issues/design.md) — the short version is that every other Gherkin option for Dart
 is a parallel runner whose scenarios never reach JUnit XML, and most of them predate Dart 3.
 
 - **The requirement id goes in the `Feature` line, never in a scenario name.** It becomes the
@@ -635,7 +635,7 @@ independence is the reason the two are split; do not introduce anything that bre
 ## Deployment
 
 Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
-([F26](requirements/F26-Linux-Packaging.md)).
+([F26](issues/F26-Linux-Packaging.md)).
 
 - **Built with [nfpm](https://nfpm.goreleaser.com/)** — one static binary, one YAML, both
   formats. Deliberately *not* `rpm-maven-plugin` and jdeb, which is what the backend uses: they
@@ -671,8 +671,8 @@ Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
 
 ## Requirements
 
-- Files are `requirements/FNN-Name.md`. **The number is identity, not order**; the table in
-  [requirements/README.md](requirements/README.md) is the order.
+- Files are `issues/FNN-Name.md`. **The number is identity, not order**; the table in
+  [issues/README.md](issues/README.md) is the order.
 - **A finished requirement is deleted**, file and index row together. What it measured — the
   expensive facts and the traps — moves into this file, and one line summarizing it into the
   index's *"What was here and is finished"*. The set is what is left to do, not a history of what
@@ -983,6 +983,39 @@ far end has. Two traps found doing that: this machine has `/usr/bin/sokard` too,
 real `PATH` starts a real daemon — give it a bare directory or a fake that shadows the real one.
 And `Process.run('sh')` resolves `sh` through the *child's* `PATH`, so use `/bin/sh` when the test
 replaces it.
+
+## What an outside review found, 2026-09-12
+
+Six findings in `.codex-review.md`, answered in `.codex-review-answer-1.md`. Five of them are
+worth keeping as rules, because each names a way of being wrong that reads as working:
+
+- **A throw inside a socket `onData` callback does not reach `onError`.** It escapes the zone, and
+  the call waiting on that reply hangs for its whole timeout with nothing said. So everything a
+  peer can produce — bytes that are not UTF-8, text that is not JSON, JSON that is not an object,
+  a reply with no end — is caught in the callback and reported as a lost connection.
+  `mostBytesPerReply` bounds the last one: there is no length prefix, so a peer that never sends a
+  NUL would otherwise be answered with all the memory there is.
+- **A socket that answers belongs to somebody; refuse it, never delete it.** `Tunnel.raise` used
+  to clear the path unconditionally. It now stops its own process first, then connects: something
+  answering means the forward is refused and said, and only a leftover that answers nothing is
+  removed. `OneInstance.take` already worked this way and is where the shape came from.
+- **Verify the property, not the exit code of the command that was supposed to set it.** A `chmod`
+  that succeeded on a socket that is still group-readable is a claim the socket itself
+  contradicts, and a `chmod` that failed on one ssh already made private is nothing to report.
+- **A settings file is written beside itself and renamed over.** A write in place is not one step:
+  a crash halfway leaves truncated JSON, which the reader cannot tell from a first run — so the
+  answer to *"why are my machines gone"* would be a file that says nothing about what happened to
+  it. And **every stored field is checked rather than cast**: that load runs where nobody awaits
+  it, so a number where a path belongs used to surface as a machine list silently reduced to the
+  local daemon.
+- **A pid is a number the kernel hands out again.** Nothing is signalled after the child has been
+  reaped — while it is a zombie the number is safe, and the moment it is reaped `_ended`
+  completes, which is exactly when signalling it would reach a stranger. And `write` to a pty
+  master takes what fits: believing one call loses the tail of a paste, silently.
+
+The two CI findings are the only ones with a path in from outside: actions are pinned to commits
+(kept current by Dependabot, held by a test that rejects any `uses:` without a 40-character SHA),
+and `nfpm` is verified against its digest before it builds anything.
 
 ## Break it and watch the *right* thing fail
 

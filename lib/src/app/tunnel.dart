@@ -66,14 +66,17 @@ class Tunnel {
   Tunnel(
     this.machine, {
     Future<Process> Function(List<String> command)? start,
+    Future<ProcessResult> Function(List<String> command)? run,
     Duration appears = const Duration(seconds: 10),
   })  : _launch = start ?? _runIt,
+        _tighten = run ?? _runAndWait,
         _untilItBinds = appears;
 
   /// The machine this forwards to.
   final Machine machine;
 
   final Future<Process> Function(List<String> command) _launch;
+  final Future<ProcessResult> Function(List<String> command) _tighten;
   final Duration _untilItBinds;
 
   Process? _process;
@@ -113,9 +116,23 @@ class Tunnel {
     state = TunnelState.raising;
     problem = null;
 
-    // ssh refuses to bind a path that already exists. A socket left by a run that died is a
-    // leftover, and the alternative is a machine that can never be opened again without somebody
-    // knowing to delete a file they have never heard of.
+    // Our own previous process first. A re-raise while the old `ssh` is still alive would
+    // otherwise meet its socket below and refuse it as somebody else's.
+    await _stopWhatWeStarted();
+
+    // **A socket that answers belongs to somebody.** It may be another program of this user that
+    // happens to sit at that path, and taking its endpoint away to put ours there would break it
+    // silently. Refused instead, and said. Told apart by connecting, exactly as
+    // [OneInstance.take] tells its own leftover from a running interface.
+    if (await _somebodyIsServing()) {
+      state = TunnelState.down;
+      problem = 'something is already serving ${machine.socketPath}, and it was left alone';
+      return;
+    }
+
+    // ssh refuses to bind a path that already exists. A socket left by a run that died answers
+    // nothing, so it is a leftover, and the alternative is a machine that can never be opened
+    // again without somebody knowing to delete a file they have never heard of.
     _clearTheWay();
 
     final stopped = Completer<void>();
@@ -148,8 +165,17 @@ class Tunnel {
       // working forward — which is exactly what a leftover from a run that died looks like.
       if (FileSystemEntity.typeSync(machine.socketPath) ==
           FileSystemEntityType.unixDomainSock) {
+        if (!await _ownerOnly()) {
+          // The one property of the transport that can be checked from here, and it is the one
+          // the requirement names. A forward anybody on the machine can read is not the thing
+          // that was asked for, so it is taken down rather than reported as working.
+          await _stopWhatWeStarted();
+          _clearTheWay();
+          state = TunnelState.down;
+          problem = 'the endpoint could not be made readable by nobody but you';
+          return;
+        }
         state = TunnelState.up;
-        _lockTheEndpoint();
         return;
       }
       await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -166,12 +192,33 @@ class Tunnel {
   /// to call it on everything without asking which is which.
   Future<void> drop() async {
     _wanted = false;
-    final process = _process;
-    _process = null;
-    process?.kill();
-    if (process != null) await process.exitCode;
+    await _stopWhatWeStarted();
     _clearTheWay();
     state = TunnelState.idle;
+  }
+
+  /// Takes down the process this tunnel started, if it is still there.
+  Future<void> _stopWhatWeStarted() async {
+    final process = _process;
+    _process = null;
+    if (process == null) return;
+    process.kill();
+    await process.exitCode;
+  }
+
+  /// Whether something answers at the endpoint. A leftover socket does not.
+  Future<bool> _somebodyIsServing() async {
+    try {
+      final socket = await Socket.connect(
+        InternetAddress(machine.socketPath, type: InternetAddressType.unix),
+        0,
+        timeout: const Duration(seconds: 1),
+      );
+      socket.destroy();
+      return true;
+    } on SocketException {
+      return false;
+    }
   }
 
   /// What is worth saying about it, or null when there is nothing.
@@ -201,21 +248,27 @@ class Tunnel {
     }
   }
 
-  /// Makes the endpoint owner-only.
+  /// Makes the endpoint owner-only and says whether it now is.
   ///
-  /// `ssh` already creates it that way; this is belt and braces on the one property of the
-  /// transport that can be checked from here, and it costs nothing.
-  void _lockTheEndpoint() {
+  /// `ssh` already creates it that way — it binds under a `0177` umask — so the `chmod` is belt
+  /// and braces. **What is returned is the state of the socket, not the exit code of the
+  /// command.** A `chmod` that failed on a socket ssh had already made private is nothing to
+  /// report, and a `chmod` that succeeded on one that is still group-readable would be a claim
+  /// contradicted by the thing itself.
+  Future<bool> _ownerOnly() async {
     try {
-      Process.runSync('chmod', <String>['600', machine.socketPath]);
+      await _tighten(<String>['chmod', '600', machine.socketPath]);
     } on ProcessException {
-      // Nothing to do, and nothing worth saying: the socket is already owner-only when ssh made
-      // it, and this only ever tightens.
+      // Judged below, by looking at the socket.
     }
+    return !machine.readableByOthers;
   }
 
   static Future<Process> _runIt(List<String> command) =>
       Process.start(command.first, command.sublist(1));
+
+  static Future<ProcessResult> _runAndWait(List<String> command) =>
+      Process.run(command.first, command.sublist(1));
 }
 
 /// Every forward this interface owns.

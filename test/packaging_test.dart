@@ -119,6 +119,44 @@ void main() {
       expect(workflow, contains('sokar-dist-rpm/snapshots/'));
     });
 
+    test('every action is pinned to a commit, never to a tag that can move', () {
+      // A tag is a name somebody else can repoint. These jobs hold the publishing token and the
+      // credentials for a leased machine, and one of them uploads what another publishes — so an
+      // action replaced upstream would run with the keys to the release.
+      final loose = <String>[];
+      for (final each in Directory('.github/workflows').listSync().whereType<File>()) {
+        for (final line in each.readAsLinesSync()) {
+          final used = RegExp(r'uses:\s*(\S+)').firstMatch(line);
+          if (used == null) continue;
+          final reference = used.group(1)!;
+          // A local action is this repository's own file, not somebody else's release.
+          if (reference.startsWith('./')) continue;
+          if (!RegExp(r'@[0-9a-f]{40}$').hasMatch(reference)) {
+            loose.add('${each.path.split('/').last}: $reference');
+          }
+        }
+      }
+      expect(loose, isEmpty, reason: 'pin these to a commit and keep the version in a comment');
+    });
+
+    test('the pins are kept current by something other than remembering', () {
+      // A pin nobody moves is a pin that rots, and then a security fix upstream never arrives.
+      final robot = File('.github/dependabot.yml');
+      expect(robot.existsSync(), isTrue);
+      expect(robot.readAsStringSync(), contains('github-actions'));
+    });
+
+    test('the builder that writes the packages is pinned by digest', () {
+      // It is fetched and then run, and what it produces is what gets published. A version tag
+      // names what was meant; only the digest says what arrived. Without the check, an asset
+      // replaced upstream would build packages nobody here has ever seen.
+      final fetched = RegExp(r'nfpm_([0-9.]+)_Linux_x86_64\.tar\.gz').firstMatch(workflow);
+      expect(fetched, isNotNull, reason: 'the workflow no longer fetches nfpm by that name');
+      expect(workflow, matches(RegExp(r'nfpm_sha=[0-9a-f]{64}')));
+      expect(workflow, contains('sha256sum -c -'),
+          reason: 'the digest is declared and never checked');
+    });
+
     test('the secret names are the ones that exist, not invented ones', () {
       expect(workflow, contains(r'secrets.JF_ACCESS_TOKEN'));
       expect(workflow, contains(r'vars.JF_URL'));

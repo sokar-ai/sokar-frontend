@@ -44,12 +44,20 @@ class Machine {
   }
 
   /// Reads one back from what was stored.
+  ///
+  /// **Every field is checked rather than cast.** That file is a person's own JSON, editable by
+  /// hand and written by older versions of this program; a number where a path belongs used to
+  /// throw during the load, and the load runs where nobody is waiting for it — so the symptom was
+  /// an interface that opened with the machine list silently reduced to the local daemon, which
+  /// is indistinguishable from having lost the list.
   factory Machine.fromStored(Map<String, Object?> stored) => Machine(
-        name: stored['name'] as String? ?? '',
-        socketPath: stored['socket'] as String? ?? '',
-        host: stored['host'] as String? ?? '',
-        remoteSocket: stored['remoteSocket'] as String? ?? '',
+        name: _text(stored['name']),
+        socketPath: _text(stored['socket']),
+        host: _text(stored['host']),
+        remoteSocket: _text(stored['remoteSocket']),
       );
+
+  static String _text(Object? value) => value is String ? value : '';
 
   /// What to call it. Shown wherever an action could be ambiguous about where it lands.
   final String name;

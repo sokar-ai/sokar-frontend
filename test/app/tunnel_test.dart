@@ -33,8 +33,10 @@ void main() {
       (_) => Process.start('sh', <String>[
             '-c',
             // A real unix socket, made by something other than this test, then held open. `nc -lU`
-            // is not everywhere; a two-line python is.
-            'python3 -c "'
+            // is not everywhere; a two-line python is. **`exec`**, so that killing the process
+            // this returns kills the server: without it the shell dies and its child goes on
+            // serving, which is not how killing `ssh` behaves.
+            'exec python3 -c "'
                 'import socket,time;'
                 's=socket.socket(socket.AF_UNIX);'
                 's.bind(\'$socket\');'
@@ -128,6 +130,77 @@ void main() {
     await tunnel.raise();
 
     expect(tunnel.state, TunnelState.up);
+  });
+
+  test('a socket that answers is left alone, and the forward is refused', () async {
+    // The endpoint may belong to another program of this user that happens to sit at that path.
+    // Deleting it to put ours there would break it with nothing said anywhere.
+    final socket = '${where.path}/somebody-elses.sock';
+    final theirs = await ServerSocket.bind(
+        InternetAddress(socket, type: InternetAddressType.unix), 0);
+    addTearDown(theirs.close);
+    var started = false;
+    final tunnel = Tunnel(machineAt(socket), start: (_) async {
+      started = true;
+      return Process.start('sh', const <String>['-c', 'sleep 30']);
+    });
+    addTearDown(tunnel.drop);
+
+    await tunnel.raise();
+
+    expect(tunnel.state, TunnelState.down);
+    expect(tunnel.problem, contains('already serving'));
+    expect(started, isFalse, reason: 'ssh was run over a live endpoint');
+    expect(FileSystemEntity.typeSync(socket), FileSystemEntityType.unixDomainSock,
+        reason: 'somebody else\'s endpoint was deleted');
+  });
+
+  test('an endpoint anybody can read is refused, not reported as working', () async {
+    // What is checked is the socket, not the exit code of `chmod`: a command that succeeded on a
+    // socket that is still group-readable would be a claim the thing itself contradicts.
+    final socket = '${where.path}/loose.sock';
+    final tunnel = Tunnel(
+      machineAt(socket),
+      // Binds with no umask at all, so the socket comes up readable by everybody.
+      start: (_) => Process.start('sh', <String>[
+            '-c',
+            'exec python3 -c "'
+                'import socket,os,time;'
+                'os.umask(0);'
+                's=socket.socket(socket.AF_UNIX);'
+                's.bind(\'$socket\');'
+                's.listen(1);'
+                'time.sleep(30)"',
+          ]),
+      // A chmod that does nothing, which is how a machine that refuses to tighten it behaves.
+      run: (_) async => ProcessResult(0, 0, '', ''),
+    );
+    addTearDown(tunnel.drop);
+
+    await tunnel.raise();
+
+    expect(tunnel.state, TunnelState.down);
+    expect(tunnel.problem, contains('readable by nobody but you'));
+    expect(File(socket).existsSync(), isFalse, reason: 'it was left behind');
+  });
+
+  test('raising twice over does not refuse the forward to itself', () async {
+    // The re-raise path: the old process is still alive and its socket still answers, and that is
+    // ours rather than somebody else's.
+    final socket = '${where.path}/twice.sock';
+    var starts = 0;
+    final tunnel = Tunnel(machineAt(socket), start: (command) {
+      starts++;
+      return bindsAndStays(socket)(command);
+    });
+    addTearDown(tunnel.drop);
+
+    await tunnel.raise();
+    expect(tunnel.state, TunnelState.up);
+    await tunnel.raise();
+
+    expect(tunnel.state, TunnelState.up, reason: tunnel.problem ?? '');
+    expect(starts, 2);
   });
 
   test('dropping it takes the process down and leaves no socket behind', () async {
@@ -247,6 +320,26 @@ void main() {
       expect(command, contains('BatchMode=yes'));
       expect(command.last.indexOf('systemctl'), lessThan(command.last.indexOf('setsid')),
           reason: 'a supervised unit is preferred to a loose process');
+    });
+
+    test('nothing from a machine reaches the line that is run there', () {
+      // The script runs through a login shell at the far end. It is a constant, and it has to
+      // stay one: a field interpolated into it would be a command injection on somebody else's
+      // machine, from a dialog anybody can type into.
+      const sneaky = Machine(
+        name: 'innocent',
+        socketPath: '/tmp/unused.sock',
+        host: r'user@build; rm -rf $HOME #',
+        remoteSocket: r'/run/$(whoami)/sokar/sokard.sock',
+      );
+
+      final command = Tunnels.startCommandFor(sneaky);
+
+      // The host travels as its own argument, never inside the script.
+      expect(command.last, Tunnels.startsIt);
+      expect(command.last, Tunnels.startCommandFor(machineAt('/tmp/other.sock')).last,
+          reason: 'the line differs between machines, so something of theirs is in it');
+      expect(command.where((each) => each.contains('rm -rf')), hasLength(1));
     });
 
     test('a machine with no sokard on it says so, and starts nothing', () async {

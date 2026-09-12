@@ -5,6 +5,8 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 /// A byte channel to something running at the far end, and the two things a terminal needs
 /// beyond bytes: a size, and an ending.
 ///
@@ -47,7 +49,9 @@ abstract class SessionChannel {
 ///   takes it as its controlling terminal. That is what makes `Ctrl-C` reach the far end instead
 ///   of this window, and what lets `SIGWINCH` arrive at all.
 class Pty implements SessionChannel {
-  Pty._(this._master, this._pid, this._output, this._ended);
+  Pty._(this._master, this._pid, this._output, this._ended) {
+    unawaited(_ended.then((_) => _reaped = true).catchError((Object _) => _reaped = true));
+  }
 
   /// Starts [executable] with [arguments] under a terminal of the given size.
   ///
@@ -154,12 +158,32 @@ class Pty implements SessionChannel {
   final Future<int> _ended;
   bool _shut = false;
 
+  /// Whether the far end has been waited for. **Nothing is signalled after this.**
+  ///
+  /// A pid is a number the kernel hands out again. It cannot be reused while the child is a
+  /// zombie, and it stops being one the moment the reader isolate reaps it — which is exactly
+  /// when this becomes true. So closing a session that has already ended signals nothing, rather
+  /// than sending `SIGHUP` to whatever now holds that number.
+  bool _reaped = false;
+
+  /// Whether closing actually signalled the far end. For a test, which cannot force a pid to be
+  /// reused and can at least hold this to the rule above.
+  @visibleForTesting
+  bool signalledOnClose = false;
+
   @override
   Stream<List<int>> get output => _output.stream;
 
   @override
   Future<int> get ended => _ended;
 
+  /// Sends input to the far end, all of it.
+  ///
+  /// **`write` is allowed to take some of it.** A pty master whose reader has not caught up
+  /// accepts what fits and returns that, and the first version here believed the call: a paste
+  /// into a busy program lost its tail, silently, which reads as an agent that ignored half of
+  /// what it was told. Interruption is the same shape — `-1` with the buffer untouched — so what
+  /// went nowhere is tried again rather than dropped.
   @override
   void send(String input) {
     if (_shut) return;
@@ -167,7 +191,20 @@ class Pty implements SessionChannel {
     final bytes = utf8.encode(input);
     final buffer = c.malloc(bytes.length).cast<Uint8>();
     buffer.asTypedList(bytes.length).setAll(0, bytes);
-    c.write(_master, buffer, bytes.length);
+    var sent = 0;
+    // Bounded, because a descriptor that refuses everything for ever must not become a loop that
+    // never ends. Generous enough that a full terminal buffer drains long before it runs out.
+    var attemptsLeft = 1000;
+    while (sent < bytes.length && attemptsLeft-- > 0) {
+      final wrote = c.write(_master, (buffer + sent).cast<Uint8>(), bytes.length - sent);
+      if (wrote > 0) {
+        sent += wrote;
+        continue;
+      }
+      // 0 is nothing taken and -1 is an error; either way there is nothing to learn from here
+      // without errno, and both are answered the same way: give the far end a moment and retry.
+      if (wrote < 0 && attemptsLeft.isEven) sleep(const Duration(milliseconds: 1));
+    }
     c.free(buffer.cast());
   }
 
@@ -183,8 +220,12 @@ class Pty implements SessionChannel {
     _shut = true;
     final c = _Libc(DynamicLibrary.process());
     // SIGHUP, which is what a terminal window closing sends. Inside the container the session is
-    // a multiplexer, so this ends the way in and not the work.
-    c.kill(_pid, _sighup);
+    // a multiplexer, so this ends the way in and not the work. **Only while the far end is still
+    // there**: after it has been reaped the number is the kernel's to hand out again.
+    if (!_reaped) {
+      c.kill(_pid, _sighup);
+      signalledOnClose = true;
+    }
     c.close(_master);
   }
 

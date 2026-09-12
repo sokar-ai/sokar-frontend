@@ -10,6 +10,20 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ## [Unreleased]
 
+### Security
+
+- **The build no longer trusts what it downloads.** Every GitHub Action is pinned to a commit
+  rather than a movable tag, kept current by Dependabot and held by a test that rejects a tag; the
+  `nfpm` binary that writes the packages is verified against its digest before it runs.
+- **What a machine sends is bounded and checked.** A reply that is not readable, is not an object,
+  or never ends is reported as a lost connection rather than escaping as an error nobody sees.
+- **A forward never takes an endpoint away from something that is using it**, and a forward that
+  cannot be made readable by nobody but you is refused rather than reported as working.
+- **Preferences are written in one step and readable only by their owner.** They name the machines
+  somebody watches and the accounts they log in as.
+- **A closing terminal session signals only a process that is still there**, and everything typed
+  into one arrives whole.
+
 ### Added
 
 - **The window opens on what needs a person**, from every machine at once: open questions

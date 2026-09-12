@@ -1,0 +1,13 @@
+version: 2
+
+# Why this file exists: every action is pinned to a commit, and a pin nobody moves is a pin that
+# rots. The digest is the control; this is what keeps it current without a person reading release
+# notes for six actions. Each bump arrives as a pull request that names the new commit and the
+# version behind it, which is a change somebody reviews rather than one that happens to them.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "Move the pinned"

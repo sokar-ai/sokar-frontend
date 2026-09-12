@@ -72,6 +72,45 @@ void main() {
     expect(await pty.ended, 0);
   });
 
+  test('a long paste arrives whole, rather than as much as one write took', () async {
+    // A pty master takes what fits and reports that. Believing the call loses the tail of a
+    // paste, silently — which reads as an agent that ignored half of what it was told.
+    final pty = Pty.start('sh', <String>['-c', 'cat']);
+    final printed = whatItPrinted(pty);
+    final long = '${'x' * 200000}\n';
+
+    pty.send(long);
+    // `cat` ends at end of input, which is what the terminal sends for ctrl-D.
+    pty.send(String.fromCharCode(4));
+    final said = await printed;
+
+    // The far end echoes as well as prints, so what comes back is at least what went out.
+    expect(said.split('x').length - 1, greaterThanOrEqualTo(200000),
+        reason: 'part of what was typed went nowhere');
+  });
+
+  test('closing a session whose far end has ended signals nothing', () async {
+    // A pid is a number the kernel hands out again. While the child is a zombie it cannot be
+    // reused; once it is reaped, sending SIGHUP to that number is sending it to a stranger.
+    final pty = Pty.start('sh', <String>['-c', 'exit 0']);
+    await pty.output.drain<void>();
+    expect(await pty.ended, 0);
+
+    await pty.close();
+
+    expect(pty.signalledOnClose, isFalse);
+  });
+
+  test('closing a session that is still running does signal it', () async {
+    final pty = Pty.start('sh', <String>['-c', 'sleep 30']);
+    // Long enough to be running, short enough not to slow the suite down.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    await pty.close();
+
+    expect(pty.signalledOnClose, isTrue);
+  });
+
   test('closing it ends the far end rather than leaving it running', () async {
     final pty = Pty.start('sh', <String>['-c', 'sleep 30']);
     unawaited(whatItPrinted(pty));

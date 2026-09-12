@@ -64,6 +64,44 @@ void main() {
     machines.dispose();
   });
 
+  /// What a hand-edited or older settings file can contain.
+  ///
+  /// The load runs where nobody is waiting for it, so a throw in here does not surface as an
+  /// error: the window simply opens with the machine list reduced to the local daemon, which
+  /// looks exactly like having lost it.
+  group('a stored machine that is not what it should be', () {
+    test('a wrong type where a path belongs does not take the other machines with it', () async {
+      final settings = Settings(MemorySettingsStore(<String, Object?>{
+        'machines': <Object?>[
+          <String, Object?>{'name': 'this machine', 'socket': '/run/user/1000/sokar/sokard.sock'},
+          <String, Object?>{'name': 'broken', 'socket': 1000},
+          <String, Object?>{'name': 'the build machine', 'socket': '/tmp/build.sock',
+              'host': 'user@build', 'remoteSocket': '/run/user/1001/sokar/sokard.sock'},
+        ],
+      }));
+
+      final machines = await settings.machines();
+
+      expect(machines.map((each) => each.name), <String>['this machine', 'the build machine']);
+    });
+
+    test('an entry that is not an object at all is dropped', () async {
+      final settings = Settings(MemorySettingsStore(<String, Object?>{
+        'machines': <Object?>['just a string', <String, Object?>{'name': 'kept', 'socket': '/tmp/k.sock'}],
+      }));
+
+      expect((await settings.machines()).map((each) => each.name), <String>['kept']);
+    });
+
+    test('a nameless machine is dropped: nothing could tell it from another', () async {
+      final settings = Settings(MemorySettingsStore(<String, Object?>{
+        'machines': <Object?>[<String, Object?>{'socket': '/tmp/nameless.sock'}],
+      }));
+
+      expect(await settings.machines(), isEmpty);
+    });
+  });
+
   test('an empty value is not a socket path', () {
     final machine = Machine.local(environment: const <String, String>{'SOKAR_SOCKET': ''});
 
