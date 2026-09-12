@@ -44,6 +44,12 @@ what is only true on one machine and is never committed.
 - **Link to a requirement by number and to the index, not to its file.** A finished requirement's
   file is deleted — so a link to it breaks exactly when that requirement succeeds, which is the
   worst moment for a reader to meet a 404.
+- **From "both are valid" it does not follow that both should exist.** Two indexes, two markers,
+  two manifests, the same skills in two repositories — every expensive defect of 2026-09-12 had
+  that shape, and not one of them was a wrong fact. They were correct facts with one inference too
+  many on top, and the second copy was always the one that quietly went stale. When a thing is
+  right in two forms, publish one and say why. (Settled between all three agents that day; the last
+  sentence is Agent Sokar's, and it is the half that would have stopped him.)
 - **Dot files and directories are not checked in.** The exceptions are listed in `.gitignore`, and
   they are only what a build needs: `.github`, `.mvn` for the Maven wrapper, `.metadata` for
   Flutter. Anything that applies only to this machine goes in `.AGENTS.md`, which that rule
