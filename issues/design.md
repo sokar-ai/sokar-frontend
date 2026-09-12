@@ -101,7 +101,7 @@ the features.
 - **Results on the build server:** `tool/test_report.dart` reads `flutter test --machine` once and
   writes the HTML page, JUnit XML grouped by feature, a table on the run's summary page, and an
   `::error` on the line of each failing scenario. Why each is shaped that way is in
-  [AGENT.md](../AGENT.md), under *What the build reports*.
+  [AGENTS.md](../AGENTS.md), under *What the build reports*.
 - **The `Feature` line says what the file tests**, in one short sentence of 70 characters at most.
   It is the group name in every report, so a reworded scenario never moves a row.
 - **Steps are shared by name.** `Given the app is running` resolves to
@@ -193,7 +193,7 @@ The packaging requirement is met and retired; this is what it is made of.
   for that.
 - **Where it is published:** into the same Artifactory repository as `sokar` and the agent
   packages. A dependency between packages does not resolve when they are split across configured
-  sources — this is recorded in the backend's `AGENT.md` and applies here unchanged.
+  sources — this is recorded in the backend's own notes and applies here unchanged.
 - **Build machine:** Ubuntu, never Fedora, because the bundle links glibc dynamically — the
   backend's own rule. Flutter adds one the CLI never had: the bundle links the GTK3 stack too,
   so the build machine's GTK is the oldest GTK the package can run against. Build on the oldest

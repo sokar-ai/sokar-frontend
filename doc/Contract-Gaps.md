@@ -13,7 +13,7 @@ most expensive kind of wasted work, because it looks finished.
 - **Never read or write the backend's files directly.** Over a forwarded socket there is no
   filesystem on that machine at all, so the API is the only way in.
 
-Both rules, and why running `ssh` is not a breach of the first, are in [AGENT.md](../AGENT.md). A
+Both rules, and why running `ssh` is not a breach of the first, are in [AGENTS.md](../AGENTS.md). A
 gap here is a backend method that has to be added, not a workaround waiting to be found.
 
 ## Not on the wire yet

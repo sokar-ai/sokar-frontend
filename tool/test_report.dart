@@ -1,6 +1,6 @@
 // Turns one test run into a requirements traceability matrix, in four shapes at once: an HTML
 // page, JUnit XML grouped by requirement, a `$GITHUB_STEP_SUMMARY` table, and an `::error` per
-// failing scenario. Why each is shaped the way it is: AGENT.md, "What the build reports".
+// failing scenario. Why each is shaped the way it is: AGENTS.md, "What the build reports".
 // ignore_for_file: avoid_print - this is a command-line tool; printing is its output.
 //
 // Usage:

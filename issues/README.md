@@ -50,7 +50,7 @@ an issue — the operator's rule, 2026-09-12 — so a row is as true as the work
 says whose answer it waits for. **A finished issue is deleted, file and row together** — this
 index holds what is still to do and nothing else, so there is no status for *met*. Three of these
 four are built and carry only open questions; what each of them measured is written down before the
-file goes, in [AGENT.md](../AGENT.md) or in one of the documents under `doc/`.
+file goes, in [AGENTS.md](../AGENTS.md) or in one of the documents under `doc/`.
 
 | # | Status | What must be true | Open questions | What the backend is short of |
 |---|---|---|---|---|
@@ -59,14 +59,7 @@ file goes, in [AGENT.md](../AGENT.md) or in one of the documents under `doc/`.
 | [F28](F28-One-View-Of-What-Needs-A-Person.md) | in progress — built, questions open | Opening the window answers whether anything needs a person, for every connected machine at once. | 3 | |
 | [F29](F29-Try-A-Machine-Before-Watching-It.md) | in progress — built, questions open | Adding a machine can try the connection first, and says what stood in the way when it fails. | 1 | |
 
+## What was decided
 
-## What was settled
-
-**No browser.** The interface is a Flutter application talking to a unix socket, and reaching a
-remote Sokar is an SSH socket forward rather than a server. This was the only requirement in the
-set that would have forced the daemon to bind a network interface, and dropping it is what keeps
-local and remote the same code.
-
-**Handing off works from another device.** A session on a remote machine is `sokar task attach`
-over ssh, in a terminal of this window's own, and a diff is fetched over the socket and handed off
-here.
+Choices that shape this set rather than sit in it — including the two that removed a requirement
+instead of building it — are in [doc/decisions.md](../doc/decisions.md), newest first.

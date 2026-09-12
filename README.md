@@ -18,8 +18,10 @@ makes it reachable without one.
    rather than discussed. [Design](issues/design.md) says what it is built out of.
 3. **[What the contract does not yet cover](doc/Contract-Gaps.md)** — roughly half the
    requirements have no backend method behind them yet, and which half is not obvious.
-4. **[AGENT.md](AGENT.md)** — the working rules: how to talk to the backend, how to stay
-   compatible with an older one, how this is tested, built and packaged.
+4. **[AGENTS.md](AGENTS.md)** — the rules, and below them the long form: how to talk to the
+   backend, how to stay compatible with an older one, how this is tested, built and packaged.
+5. **[Decisions](doc/decisions.md)** — what was decided and what it costs, newest first,
+   including the risks that were looked at and accepted.
 
 To see what a running backend offers, with a daemon up:
 
@@ -48,7 +50,7 @@ only test that can, and skipped when there is nothing to talk to:
 SOKAR_SOCKET=$XDG_RUNTIME_DIR/sokar/sokard.sock flutter test test/client/live_daemon_test.dart
 ```
 
-`dart analyze`, never `flutter analyze` — the reason is in [AGENT.md](AGENT.md). Run
+`dart analyze`, never `flutter analyze` — the reason is in [AGENTS.md](AGENTS.md). Run
 `build_runner` after adding or editing a `.feature` file; the generated `_test.dart` beside it is
 committed, and CI fails on a diff.
 
