@@ -306,9 +306,11 @@ after adding or editing a feature. Why this package and not the better-known one
 [design](issues/design.md) — the short version is that every other Gherkin option for Dart
 is a parallel runner whose scenarios never reach JUnit XML, and most of them predate Dart 3.
 
-- **The requirement id goes in the `Feature` line, never in a scenario name.** It becomes the
-  JUnit group, which makes the CI test report a traceability matrix for free. Reworded criteria
-  then do not churn ids.
+- **The `Feature` line is the report row: one short sentence saying what the file tests.** It
+  becomes the JUnit group. **No requirement id**, there or in a scenario name: a finished
+  requirement's file is deleted, so an id would name a document nobody can open.
+  `test/features_named_test.dart` holds the line to one sentence and fails on an id left in `lib`,
+  `test` or `tool`.
 - **Step wording is an API, and two features sharing words must mean the same thing by them.**
   `it warns {...}` was written for one feature's cost banner and reused by another for something
   else entirely, which then looked for the wrong widget. Name a step for what it asserts.
@@ -319,12 +321,11 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
   a stub referencing `MyApp`, which fails to compile until it is written.
 - **Generated tests are committed**, and CI proves they are current by running `build_runner` and
   failing on a diff. Do not edit them.
-- **Every requirement must be named by at least one feature**, and no feature may name one that
-  no longer exists. `test/requirements_coverage_test.dart` asserts both. Bind at requirement
-  level, never at bullet level.
-- **`pending` in that file is a ratchet, not a suppression list.** It must equal the uncovered
-  set exactly, so covering a requirement fails the build until it is removed from the list — and
-  removing one early fails too. Shrink it; never grow it without saying why.
+- **Nothing binds a scenario to a requirement.** Whether an issue's acceptance criteria are covered
+  is checked when it is retired, criterion by criterion, and the scenarios it leaves behind stay
+  as guards named for what they test. (Earlier versions of this file described a
+  `test/requirements_coverage_test.dart` with `pending` and `retired` lists; no such test exists in
+  this repository's history, so that rule never held.)
 - **Every guard must be proven to fail.** A test that has never failed is a test nobody has
   checked. When adding a rule, violate it once deliberately and watch it break. This is not
   ceremony: it has already paid for itself here. Removing the "a stream that ends without a final
@@ -362,8 +363,8 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
 - **Never commit with a failing suite.** Run `flutter test` as its own step, read the result,
   then commit. Chaining test-and-commit in one command is how red commits get into a history.
 
-`dart tool/test_report.dart` turns a run into `build/test-report.html` — the same traceability
-matrix, plus the requirements nothing covers yet, in one file with no external anything. It reads
+`dart tool/test_report.dart` turns a run into `build/test-report.html` — every feature file with
+its scenarios and how they ended, in one file with no external anything. It reads
 the `--machine` JSON rather than the JUnit XML: the XML is made from that JSON, so reading the
 source is one fewer thing that can disagree, and it keeps the failure text the XML flattens away.
 
@@ -838,14 +839,13 @@ Delivered as a `.deb` and an `.rpm`, the same as every other part of Sokar
 
 - Files are `issues/FNN-Name.md`. **The number is identity, not order**; the table in
   [issues/README.md](issues/README.md) is the order.
-- **A finished requirement is deleted**, file and index row together. What it measured — the
-  expensive facts and the traps — moves into this file, and one line summarizing it into the
-  index's *"What was here and is finished"*. The set is what is left to do, not a history of what
-  was done; the history is in git.
+- **A finished requirement is deleted**, file and index row together. What lasts moves first:
+  what a person needs into `doc/`, what was decided into `doc/decisions.md`, and what it measured —
+  the expensive facts and the traps — into this file. The index holds what is left to do, not a
+  history of what was done; the history is in git.
 - **Its scenarios stay.** They are the guards that keep the finished thing working, and retiring a
-  requirement must never quietly delete its tests — so the id outlives the file, listed in
-  `retired` in `test/requirements_coverage_test.dart`, and the traceability report reads the same
-  as it always did. `retired` and `pending` may not overlap, which a test asserts.
+  requirement must never quietly delete its tests. They carry no id, so nothing about them changes
+  when the file goes.
 - A file ending in **To be checked** has something unresolved that could change what it
   promises, and its index row is marked as an open question.
 
