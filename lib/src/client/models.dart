@@ -79,9 +79,13 @@ class StartAction {
   /// Something not specific to this task is in the way; `startDetail` says what.
   static const notReady = StartAction('NOT_READY');
 
+  /// It was started before this machine restarted: its sockets went with the restart, so it cannot
+  /// come back. `startDetail` says how to copy its workspace out before removing it.
+  static const predatesRestart = StartAction('PREDATES_RESTART');
+
   /// Every value this build was written against.
   static const known = <StartAction>[
-    create, resume, running, needsVault, supersededName, notReady,
+    create, resume, running, needsVault, supersededName, notReady, predatesRestart,
   ];
 
   /// Whether this build knows what this value means.

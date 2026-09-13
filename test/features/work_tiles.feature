@@ -68,6 +68,14 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     And I open the menu of the tile {'sokar-checkout-shell'}
     Then the menu offers {'Start it again'} as unavailable because {'vault is locked'}
 
+  # A restart took its sockets; the machine says how to save the workspace instead.
+  Scenario: work started before its machine restarted can only be recovered, and says how
+    Given the work {'sokar-checkout-shell'} has stopped
+    And the machine says {'sokar-checkout-shell'} was started before the machine restarted
+    When I select the project {'checkout'}
+    And I open the menu of the tile {'sokar-checkout-shell'}
+    Then the menu offers {'Start it again'} as unavailable because {'podman cp sokar-checkout-shell:/workspace'}
+
   Scenario: a container named from before one per task can only be removed
     Given the work {'sokar-checkout-shell'} has stopped
     And the machine says {'sokar-checkout-shell'} has a name from before one container per task

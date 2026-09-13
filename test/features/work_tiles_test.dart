@@ -29,6 +29,7 @@ import './step/starting_it_again_will_be_refused_because_the_vault_is_locked.dar
 import './step/starting_it_again_will_fail_with_exit_code_saying.dart';
 import './step/the_machine_says_starting_needs_the_vault_unlocked.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
+import './step/the_machine_says_was_started_before_the_machine_restarted.dart';
 import './step/the_machine_says_has_a_name_from_before_one_container_per_task.dart';
 
 void main() {
@@ -130,6 +131,18 @@ void main() {
       await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
       await theMenuOffersAsUnavailableBecause(
           tester, 'Start it again', 'vault is locked');
+    });
+    testWidgets(
+        '''work started before its machine restarted can only be recovered, and says how''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await theMachineSaysWasStartedBeforeTheMachineRestarted(
+          tester, 'sokar-checkout-shell');
+      await iSelectTheProject(tester, 'checkout');
+      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
+      await theMenuOffersAsUnavailableBecause(tester, 'Start it again',
+          'podman cp sokar-checkout-shell:/workspace');
     });
     testWidgets(
         '''a container named from before one per task can only be removed''',

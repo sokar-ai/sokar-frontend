@@ -301,6 +301,11 @@ String? whyNotStart(Task task) {
       detail.isEmpty
           ? 'its project is not ready'
           : 'its project is not ready: $detail',
+    // The machine's own words carry the recovery, which is the one thing worth reading here.
+    StartAction.predatesRestart =>
+      detail.isEmpty
+          ? 'it was started before this machine restarted, so it can only be recovered and removed'
+          : detail,
     // A daemon too old to say, or a value this build does not know: the runtime's answer decides.
     _ => task.running ? 'it is already running' : null,
   };

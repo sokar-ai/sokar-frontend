@@ -558,6 +558,9 @@ class StartRefused implements Exception {
         StartAction.supersededName =>
           'It is from before one container per task, and can only be removed.',
         StartAction.notReady => 'This project is not ready to start work.',
+        StartAction.predatesRestart =>
+          'It was started before this machine restarted, so it cannot be started again. '
+              'Copy its workspace out, then remove it.',
         _ => 'Refused: ${action.label}.',
       };
 }

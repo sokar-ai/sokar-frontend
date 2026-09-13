@@ -67,6 +67,9 @@ String startWords(String task, StartProgress result) {
     StartAction.supersededName =>
       '$task is from before one container per task, so it cannot be started. Remove it.',
     StartAction.notReady => '$task was not started: its project is not ready.',
+    StartAction.predatesRestart =>
+      '$task was started before this machine restarted, so it cannot be started again. '
+          'Copy its workspace out, then remove it.',
     _ => '$task: ${action.label}.'
   };
 }

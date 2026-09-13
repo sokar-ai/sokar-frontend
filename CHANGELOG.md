@@ -26,6 +26,8 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Added
 
+- **Work started before its machine restarted is marked as such.** *Start it again* is unavailable
+  on it, and says how to copy the workspace out before removing it, in the machine's own words.
 - **What was run outlives the window.** Every operation is kept for 30 days in
   `~/.local/state/sokar/operations.json`, readable only by you; the list of what was run shows
   earlier ones and says where the file is, the finder opens it, and a failure nobody opened still

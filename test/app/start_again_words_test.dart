@@ -66,6 +66,16 @@ void main() {
     expect(words, isNot(contains('deb.debian.org')));
   });
 
+  test('work started before its machine restarted is a known refusal, said in words', () {
+    const predates = StartAction('PREDATES_RESTART');
+
+    expect(predates.isKnown, isTrue);
+    expect(predates.starts, isFalse);
+    expect(startWords('sokar-predates-shell', const StartProgress(action: predates, exitCode: 69)),
+        contains('was started before this machine restarted'));
+    expect('${const StartRefused(predates)}', contains('started before this machine restarted'));
+  });
+
   test('a failure that printed nothing still says its exit code, and no more', () {
     expect(startWords('sokar-demo-shell', const StartProgress(exitCode: 70)),
         'Starting sokar-demo-shell failed with exit code 70.');
