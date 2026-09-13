@@ -318,10 +318,15 @@ class SokarBackend implements FleetBackend {
   @override
   Future<StartProgress> startAgain({required String project, required String task}) async {
     var last = const StartProgress();
+    final printed = <String>[];
     await for (final progress in _opened().start(project: project, task: task, now: true)) {
+      final line = progress.line;
+      if (line != null) printed.add(line);
       last = progress;
     }
-    return last;
+    // The final reply carries only a code. What was printed before it is why, and dropping it left
+    // "failed with exit code 70" where the machine had said which agent it wanted.
+    return last.output.isEmpty ? last.withOutput(printed) : last;
   }
 
   @override

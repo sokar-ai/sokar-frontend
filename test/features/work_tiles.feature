@@ -52,6 +52,14 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     And I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
     Then the tile {'sokar-checkout-shell'} says {'the vault is locked'}
 
+  # The operator's report: only "failed with exit code 70", where the machine had said why.
+  Scenario: a start that failed with an exit code says what the machine printed, on the tile
+    Given the work {'sokar-checkout-shell'} has stopped
+    And starting it again will fail with exit code {70} saying {'Several agents are installed'}
+    When I select the project {'checkout'}
+    And I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
+    Then the tile {'sokar-checkout-shell'} says {'Several agents are installed'}
+
   # The machine says beforehand what Start would do, so nobody finds a refusal by pressing.
   Scenario: a start the machine would refuse is unavailable on the tile, with its reason
     Given the work {'sokar-checkout-shell'} has stopped

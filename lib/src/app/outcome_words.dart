@@ -53,7 +53,7 @@ String startWords(String task, StartProgress result) {
   return switch (action) {
     null => (result.exitCode ?? 0) == 0
         ? '$task was started.'
-        : 'Starting $task failed with exit code ${result.exitCode}.',
+        : 'Starting $task failed with exit code ${result.exitCode}.${_reasonIn(result.output)}',
     // Fewer started than recorded is a partial start, and saying "running again" would be a lie.
     StartAction.resume when started != null && recorded != null && started < recorded =>
       '$task is running again, but only $started of $recorded helpers came back.'
@@ -69,6 +69,15 @@ String startWords(String task, StartProgress result) {
     StartAction.notReady => '$task was not started: its project is not ready.',
     _ => '$task: ${action.label}.'
   };
+}
+
+/// What a failed launch said last, as one sentence: its last unindented line and the indented lines
+/// that continue it. What came before is the plan it printed on the way, not why it stopped.
+String _reasonIn(List<String> printed) {
+  final start = printed.lastIndexWhere((line) => line.trim().isNotEmpty && !line.startsWith(' '));
+  if (start < 0) return '';
+  final said = printed.sublist(start).map((line) => line.trim()).where((line) => line.isNotEmpty);
+  return ' It said: ${said.join(' ')}';
 }
 
 /// A byte count as a person reads it.

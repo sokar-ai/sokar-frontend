@@ -92,6 +92,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Fixed
 
+- **Starting work again that fails says what the machine printed**, not only its exit code. The
+  daemon's words were received and thrown away, so a start that needed an agent named said only
+  *"failed with exit code 70"*.
 - **A start that fails says why.** When systemd refuses to start the daemon, its own words and exit
   code are shown, and the binary is no longer started behind its back; without a unit, a daemon that
   ends at once is reported with what it wrote instead of as started.

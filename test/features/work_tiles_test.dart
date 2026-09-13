@@ -26,6 +26,7 @@ import './step/i_select_the_project.dart';
 import './step/i_choose_from_the_menu_of_the_tile.dart';
 import './step/was_started_again.dart';
 import './step/starting_it_again_will_be_refused_because_the_vault_is_locked.dart';
+import './step/starting_it_again_will_fail_with_exit_code_saying.dart';
 import './step/the_machine_says_starting_needs_the_vault_unlocked.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
 import './step/the_machine_says_has_a_name_from_before_one_container_per_task.dart';
@@ -104,6 +105,19 @@ void main() {
       await iChooseFromTheMenuOfTheTile(
           tester, 'Start it again', 'sokar-checkout-shell');
       await theTileSays(tester, 'sokar-checkout-shell', 'the vault is locked');
+    });
+    testWidgets(
+        '''a start that failed with an exit code says what the machine printed, on the tile''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await startingItAgainWillFailWithExitCodeSaying(
+          tester, 70, 'Several agents are installed');
+      await iSelectTheProject(tester, 'checkout');
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Start it again', 'sokar-checkout-shell');
+      await theTileSays(
+          tester, 'sokar-checkout-shell', 'Several agents are installed');
     });
     testWidgets(
         '''a start the machine would refuse is unavailable on the tile, with its reason''',

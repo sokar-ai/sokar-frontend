@@ -721,6 +721,10 @@ class StartProgress {
   /// Set when the image the container was built from has changed since.
   final String imageDrift;
 
+  /// Everything the launch printed. The contract fills it only for a caller that did not stream;
+  /// one that streamed gathers the lines itself, because on a failure they are the reason.
+  final List<String> output;
+
   /// Constructor taking every field.
   const StartProgress({
     this.line,
@@ -731,7 +735,21 @@ class StartProgress {
     this.helpersRecorded,
     this.problems = const <String>[],
     this.imageDrift = '',
+    this.output = const <String>[],
   });
+
+  /// The same reply, carrying [lines] as what the launch printed.
+  StartProgress withOutput(List<String> lines) => StartProgress(
+        line: line,
+        container: container,
+        exitCode: exitCode,
+        action: action,
+        helpersStarted: helpersStarted,
+        helpersRecorded: helpersRecorded,
+        problems: problems,
+        imageDrift: imageDrift,
+        output: List<String>.unmodifiable(lines),
+      );
 
   /// Reads one from a reply.
   factory StartProgress.from(Map<String, dynamic> map) {
@@ -743,6 +761,7 @@ class StartProgress {
     final recorded = map['helpersRecorded'];
     final problems = map['problems'];
     final drift = map['imageDrift'];
+    final output = map['output'];
     return StartProgress(
       line: line is String ? line : null,
       container: container is String ? container : null,
@@ -752,6 +771,7 @@ class StartProgress {
       helpersRecorded: recorded is num ? recorded.toInt() : null,
       problems: problems is List ? problems.whereType<String>().toList() : const <String>[],
       imageDrift: drift is String ? drift : '',
+      output: output is List ? output.whereType<String>().toList() : const <String>[],
     );
   }
 
