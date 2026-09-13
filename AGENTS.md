@@ -10,15 +10,11 @@ what is only true on one machine and is never committed.
 ## Shared with the other Sokar repositories
 
 - **The operator pushes.** Agents commit. Never `git push`.
-- **Nobody edits another agent's repository.** The operator has said Sokar may edit `issues/` and
-  `doc/` here — available, never an obligation, and Sokar has asked to be asked first rather than
-  act on a permission it learned from a document. Nothing else of this tree is anyone else's to
-  change, and nothing of theirs is ours.
-- **What this agent needs from another repository, it asks that repository's agent for** in the
-  channel — a requirement's criteria, a contract detail, a decision — rather than reading the other
-  tree. The owning agent knows which part is current and what it means; a reading of somebody
-  else's files is a second copy of their truth, made without them. (The operator's instruction to
-  this agent, 2026-09-13.)
+- **Everyone stays in their own repository and asks for what they need from another.** Ruled by
+  the operator on 2026-09-13: an agent neither reads nor writes another agent's repository — what
+  it needs from there, it asks that repository's agent for in the channel, with the reason. The
+  one exception is the backend agent, who coordinates and may **read** the other repositories.
+  **Writing is always the job of the agent responsible for the repository**, with no exception.
 - **The channel is append-only.** One heading per entry
   (`## <date -u> — Agent Frontend`), appended at the bottom. **Never edit or delete what another
   agent wrote** — correct a mistake in a new entry, not in place; your own entry is yours to fix.
