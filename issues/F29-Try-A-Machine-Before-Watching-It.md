@@ -42,6 +42,24 @@ serves.
 
 ## To be checked
 
-- **Whether a trial should also say which user it reached.** The wrong uid is the commonest mistake
-  and the trial only finds its consequence. A daemon that said which user it runs as would let
-  the dialog say *"this is somebody else's Sokar"* instead of nothing at all.
+- **Whether a trial should also say which user it reached — and what could tell.** The wrong uid in
+  the socket path is the commonest mistake, and the trial only finds its consequence.
+
+  **Measured on 2026-09-13, on the Ubuntu VM, logged in as uid 1001**, forwarding to three sockets
+  and connecting through each: another user's socket (`/run/user/1000/…`, a `0700` directory not
+  ours), our own directory with nothing serving, and a directory that does not exist. **All three
+  look identical from here**: the client's connection is reset, and `ssh` says exactly
+  `channel 1: open failed: connect failed: open failed` in every case. OpenSSH does not pass the
+  server's reason to the client, so **ssh's own words cannot tell a wrong uid from a missing daemon.**
+
+  **And a daemon field cannot tell either.** The earlier idea was a daemon that says which user it
+  runs as. But with the wrong uid there is no daemon to ask: every user's runtime directory is `0700`,
+  so the forward never reaches somebody else's socket at all. The field would only ever be read by a
+  trial that had already succeeded.
+
+  **What can tell is the login uid.** The uid in the typed path (`/run/user/<uid>/…`) compared with
+  the uid the machine gives the account logged in as — `id -u` over the same `ssh` — separates the
+  three cases: a different uid is *"that socket is in another user's runtime directory; you log in as
+  uid 1000"*. It needs nothing from Sokar. **The open part is whether the trial may run that one
+  read-only command** as part of *Try the connection*, since F30 set the rule that a command on
+  somebody else's machine is a step past forwarding a socket.
