@@ -411,6 +411,36 @@ class Tunnels extends ChangeNotifier {
     }
   }
 
+  /// The line that asks a machine which uid its login account has.
+  ///
+  /// A constant, like the start line: the host travels as its own argument and nothing of the
+  /// machine reaches the command run there.
+  static List<String> loginUidCommandFor(Machine machine) => <String>[
+        'ssh',
+        '-n',
+        '-o', 'BatchMode=yes',
+        '-o', 'ConnectTimeout=10',
+        machine.host,
+        'id -u',
+      ];
+
+  /// The uid of the account this interface logs in as on [machine], or null when it cannot say.
+  ///
+  /// **Read-only, and asked without a question** — the operator's decision of 2026-09-13. `id -u`
+  /// reports the caller's own uid, needs no privilege and changes nothing, and it is only ever run
+  /// as part of a trial somebody asked for. **Every failure is null**: a trial that cannot learn the
+  /// uid says what it said before rather than guessing one.
+  Future<int?> loginUidOn(Machine machine) async {
+    if (!machine.needsATunnel) return null;
+    try {
+      final result = await _run(loginUidCommandFor(machine));
+      if (result.exitCode != 0) return null;
+      return int.tryParse('${result.stdout}'.trim());
+    } on ProcessException {
+      return null;
+    }
+  }
+
   /// Takes down the forward for one machine, if this interface raised it.
   Future<void> dropFor(Machine machine) async {
     final tunnel = _mine.remove(machine.name);

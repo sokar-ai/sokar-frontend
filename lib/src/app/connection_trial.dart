@@ -68,6 +68,22 @@ Future<Trial> tryAMachine(
   } on TimeoutException {
     return Trial(reached: false, words: 'Nothing answered within ${within.inSeconds} seconds.');
   } on VarlinkDisconnected catch (ex) {
+    // ssh reports a missing daemon and somebody else's socket in the same words — measured on
+    // 2026-09-13 — and every runtime directory is owner-only, so no daemon can be asked either. The
+    // login's own uid is the one thing that tells the two apart.
+    if (machine.needsATunnel) {
+      final typed = _uidIn(machine.remoteSocket);
+      final login = typed == null ? null : await tunnels.loginUidOn(machine);
+      if (typed != null && login != null && typed != login) {
+        final meant = machine.remoteSocket.replaceFirst('/run/user/$typed/', '/run/user/$login/');
+        // No start is offered: a daemon started for this login would still not serve that path.
+        return Trial(
+          reached: false,
+          words: "That socket is in another user's runtime directory (uid $typed), but you log in "
+              'as uid $login, so nothing there can be reached. Did you mean $meant?',
+        );
+      }
+    }
     // The forward to a socket nobody serves comes up fine; only connecting through it says so.
     return Trial(
       reached: false,
@@ -87,4 +103,10 @@ Future<Trial> tryAMachine(
   } finally {
     await tunnel?.drop();
   }
+}
+
+/// The uid in a per-user runtime path, or null for a path that is not one.
+int? _uidIn(String socket) {
+  final match = RegExp(r'^/run/user/(\d+)/').firstMatch(socket);
+  return match == null ? null : int.parse(match[1]!);
 }

@@ -1198,6 +1198,9 @@ class World {
   /// What a start does. A scenario sets it to make one come back the way a failure comes back.
   static String? startFailsWith;
 
+  /// The uid a machine reports for the account logged in as, or null when it says nothing.
+  static int? loginUid;
+
   /// What agents the machine has.
   static late AgentInventory inventory;
 
@@ -1421,6 +1424,7 @@ class World {
     trialForwards.clear();
     startsAsked.clear();
     startFailsWith = null;
+    loginUid = null;
     templates = Templates(settings);
     await templates.load();
     stopping = EmergencyStop();
@@ -1736,6 +1740,10 @@ class FakeTunnels extends Tunnels {
     notifyListeners();
     return true;
   }
+
+  @override
+  Future<int?> loginUidOn(Machine machine) async =>
+      machine.needsATunnel ? World.loginUid : null;
 
   @override
   Future<Started> startSokarOn(Machine machine) async {

@@ -421,4 +421,66 @@ void main() {
       expect(started.words, contains('No such file or directory'));
     });
   });
+  /// Asking a machine which uid the login account has.
+  ///
+  /// ssh reports a missing daemon and somebody else's socket in the same words, so this is how a
+  /// trial tells them apart. Every way it can fail must be null, never a number: a guessed uid
+  /// would send somebody to a path that is just as wrong.
+  group('asking a machine which uid its login has', () {
+    Tunnels answering(ProcessResult result) => Tunnels(run: (_) async => result);
+
+    test('the line is a constant, and the host travels as its own argument', () {
+      final command = Tunnels.loginUidCommandFor(machineAt('/tmp/unused.sock'));
+
+      expect(command.first, 'ssh');
+      expect(command, contains('BatchMode=yes'));
+      expect(command, contains('user@build'));
+      expect(command.last, 'id -u');
+    });
+
+    test('the uid it prints is the answer', () async {
+      final uid = await answering(ProcessResult(0, 0, '1000\n', ''))
+          .loginUidOn(machineAt('/tmp/unused.sock'));
+
+      expect(uid, 1000);
+    });
+
+    test('a command that failed says nothing, even if something printed a number', () async {
+      // The exit code is the verdict: a login banner or a wrapper can print digits and still fail.
+      final uid = await answering(ProcessResult(0, 255, '1000', 'Permission denied (publickey).'))
+          .loginUidOn(machineAt('/tmp/unused.sock'));
+
+      expect(uid, isNull);
+    });
+
+    test('output that is not a number says nothing', () async {
+      final uid = await answering(ProcessResult(0, 0, 'Welcome to the build host\n1000', ''))
+          .loginUidOn(machineAt('/tmp/unused.sock'));
+
+      expect(uid, isNull);
+    });
+
+    test('ssh that cannot be run at all says nothing', () async {
+      final tunnels = Tunnels(
+        run: (_) => Future<ProcessResult>.error(
+            const ProcessException('ssh', <String>[], 'No such file or directory')),
+      );
+
+      expect(await tunnels.loginUidOn(machineAt('/tmp/unused.sock')), isNull);
+    });
+
+    test('a machine somebody else forwards is not asked', () async {
+      var asked = false;
+      final tunnels = Tunnels(run: (_) async {
+        asked = true;
+        return ProcessResult(0, 0, '1000', '');
+      });
+
+      final uid = await tunnels
+          .loginUidOn(const Machine(name: 'elsewhere', socketPath: '/tmp/elsewhere.sock'));
+
+      expect(uid, isNull);
+      expect(asked, isFalse, reason: 'there is no host to log into');
+    });
+  });
 }

@@ -35,6 +35,30 @@ Feature: Trying a machine from the dialog, before it is watched
     Then the trial says {'nothing answers at /run/user/1001/sokar/sokard.sock on that machine'}
     And the forward raised for the trial was taken down
 
+  # ssh says the same words for a missing daemon and for another user's socket, so the login uid is asked.
+  Scenario: a socket in another user's runtime directory is named as that, with the path meant
+    Given nothing answers on that machine
+    And the account logs in as uid {1000}
+    When I choose {'Raise the forward for me'}
+    And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
+    And I try the connection
+    Then the trial says {'runtime directory (uid 1001)'}
+    And the trial says {'Did you mean /run/user/1000/sokar/sokard.sock'}
+    And starting Sokar there is not offered
+
+  Scenario: a socket under the login's own uid still says that nothing answers
+    Given nothing answers on that machine
+    And the account logs in as uid {1001}
+    When I choose {'Raise the forward for me'}
+    And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
+    And I try the connection
+    Then the trial says {'nothing answers at /run/user/1001/sokar/sokard.sock on that machine'}
+    And starting Sokar there is offered
+    When I turn the offer down
+    Then nothing was started on that machine
+
   # ssh works and nothing serves: the one failure the dialog can answer rather than only describe.
   Scenario: a machine nobody serves is offered a start, and nothing runs until it is asked for
     Given nothing answers on that machine
