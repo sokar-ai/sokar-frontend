@@ -47,9 +47,9 @@ not appear.
 at a time.
 
 **Not taken:** its status detection reads a Claude Code session's terminal and reports *awaiting
-permission*. Inside a task that state is by design absent -
-[B24](https://github.com/sokar-ai/sokar/blob/main/issues/base/README.md)
-turns the agent's own prompts off, the container being the answer - so an agent stopping to ask is
+permission*. Inside a task that state is by design absent - the agent's own first-run and
+permission prompts are turned off, the container being the answer, and each agent's repository
+now owns how - so an agent stopping to ask is
 a defect here rather than a state to display. What remains is the clearance question, which this
 machine knows rather than parses.
 

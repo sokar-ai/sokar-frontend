@@ -11,6 +11,7 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-12 | [`XDG_RUNTIME_DIR` is trusted, and that is not a hole worth closing](#2026-09-12--xdg_runtime_dir-is-trusted) |
 | 2026-09-12 | [The licence is GPL-3.0-only, pending the operator's word on *or-later*](#2026-09-12--the-licence-is-gpl-30-only-pending-a-word-on-or-later) |
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
+| 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
 
 ## 2026-09-12 — The settings file is written atomically and owner-only
@@ -58,6 +59,24 @@ to settle: `-only` cannot be relaxed later without every contributor's agreement
 A session on a remote machine is `sokar task attach` over ssh in a terminal of this window's own,
 and a diff is fetched over the socket and handed off here. Both were asked for as a separate
 capability and both turned out to be what the interface already does, so nothing was built.
+
+## 2026-09-07 — The interface raises and supervises its own ssh forward
+
+Recorded here on 2026-09-13 because Sokar's B06 (remote access) waits on it; taken on 2026-09-07
+in `fd52c9e`. Three decisions, each B06 asked the client to make:
+
+- **Which tunnel shape: a unix socket forward**, `ssh -L <local socket>:<remote socket> <host> -N`.
+  The daemon never binds a network interface, so local and remote are the same code over the same
+  socket. A socket somebody else forwarded is also accepted, and is opened exactly as it always
+  was — nothing raised, nothing supervised, nothing taken down.
+- **The interface manages `ssh` itself** for a machine described by where it is: one process per
+  machine, `BatchMode=yes` so it fails with ssh's own sentence rather than prompting, and
+  `ExitOnForwardFailure=yes` so a forward that cannot bind does not read as connected. It owns only
+  what it raised, and closing the window takes those down.
+- **A cut stream is a disconnection, never an empty machine.** A forward that drops is raised again
+  without being asked, and a machine that stops answering is tried again every two seconds; a
+  `Watch` that ends without its final reply reports a lost connection. Nothing is re-derived from
+  silence.
 
 ## 2026-09-07 — No browser
 

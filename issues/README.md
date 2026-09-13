@@ -47,17 +47,21 @@ questions is a different thing from one with none, and the difference is invisib
 
 **The top row is what to do next.** Writing this table is part of the change that adds or closes
 an issue — the operator's rule, 2026-09-12 — so a row is as true as the work it names. `blocked`
-says whose answer it waits for. **A finished issue is deleted, file and row together** — this
+says whose answer it waits for, and **Blocked by** names it — a Sokar number, or a decision when
+the answer is nobody's work but the operator's — so a dependency reads the same from both ends as
+Sokar's own *Blocks* column. **A finished issue is deleted, file and row together** — this
 index holds what is still to do and nothing else, so there is no status for *met*. Three of these
 four are built and carry only open questions; what each of them measured is written down before the
 file goes, in [AGENTS.md](../AGENTS.md) or in one of the documents under `doc/`.
 
-| # | Status | What must be true | Open questions | What the backend is short of |
-|---|---|---|---|---|
-| [F15](F15-Secret-Store-Control.md) | **blocked** — waits on Sokar | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | 0 | a bounded unlock and changing the passphrase, both **at the machine**. Revealing a recovery secret will **never** be possible here; whether unlocking could be is reopened by the 2026-09-08 rule change and is asked |
-| [F30](F30-Start-The-Daemon-On-A-Machine-You-Can-Reach.md) | in progress — built, questions open | A machine reached over ssh with nothing serving is offered a start, and started only when asked. | 1 | nothing since Sokar's `8de32db`: there is a `sokard` user unit. Lingering stays the operator's own decision |
-| [F28](F28-One-View-Of-What-Needs-A-Person.md) | in progress — built, questions open | Opening the window answers whether anything needs a person, for every connected machine at once. | 3 | |
-| [F29](F29-Try-A-Machine-Before-Watching-It.md) | in progress — built, questions open | Adding a machine can try the connection first, and says what stood in the way when it fails. | 1 | |
+| # | Status | Blocked by | What must be true | Open questions | What the backend is short of |
+|---|---|---|---|---|---|
+| [F30](F30-Start-The-Daemon-On-A-Machine-You-Can-Reach.md) | in progress — built, questions open | | A machine reached over ssh with nothing serving is offered a start, and started only when asked. | 1 | nothing since Sokar's `8de32db`: there is a `sokard` user unit. Lingering stays the operator's own decision |
+| [F28](F28-One-View-Of-What-Needs-A-Person.md) | in progress — built, questions open | | Opening the window answers whether anything needs a person, for every connected machine at once. | 3 | |
+| [F29](F29-Try-A-Machine-Before-Watching-It.md) | in progress — built, questions open | | Adding a machine can try the connection first, and says what stood in the way when it fails. | 1 | |
+| [F31](F31-A-Consent-Granted-Once-Outside-The-Interface.md) | **blocked** | Sokar B31 | When a machine needs a person to grant an authorization in a browser, the link is shown whole, opened on request, and waited for visibly. | 1 | the whole flow: no method or event for a pending consent |
+| [F32](F32-The-Ranked-Review-Of-What-Got-Through.md) | **blocked** | Sokar B38 | What got through is shown most far-reaching first, each entry saying how far it can get. | 1 | the ranking itself |
+| [F15](F15-Secret-Store-Control.md) | **blocked** | the operator's parked decision | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | 0 | nothing at the machine: `sokar vault unlock --for <duration>` and `sokar vault passphrase` both exist. What is parked is whether unlocking could ever be a daemon method; revealing a recovery secret will **never** be possible here |
 
 ## What was decided
 
