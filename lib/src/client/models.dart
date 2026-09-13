@@ -1938,9 +1938,14 @@ class StartOutcome {
   /// The vault is shut, so nothing can say what it holds. **Unlocking, at the machine.**
   static const vaultLocked = StartOutcome('VAULT_LOCKED');
 
+  /// The task name is not one a task can have. `detail` names the rule and, where one exists, a
+  /// name that would do. **Retyping the name**, nothing else.
+  static const badTaskName = StartOutcome('BAD_TASK_NAME');
+
   /// The values this build knows.
   static const known = <StartOutcome>[
     ready,
+    badTaskName,
     noAgent,
     unknownAgent,
     severalAgents,
@@ -2047,6 +2052,7 @@ class Readiness {
         'UNKNOWN_PROVIDER' => '$provider is not a provider this machine knows.',
         'WRONG_DIALECT' => '$provider does not speak what $agent expects.',
         'NO_PROJECT_FILE' => 'No project file is recorded, and starting takes one.',
+        'BAD_TASK_NAME' => detail.isEmpty ? 'This is not a name a task can have.' : detail,
         // Added after this build shipped: the daemon's own words rather than silence.
         _ => detail.isEmpty ? 'This cannot start, and nothing said why.' : detail,
       };

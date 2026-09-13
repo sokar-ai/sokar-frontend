@@ -69,6 +69,18 @@ Feature: Starting work with an agent, a mode and a credential
     Then the name is refused saying {'at most 65 fit'}
     And starting is not offered yet
 
+  # The machine's rule is the authority, and its sentence carries a name that would do.
+  # Named last, so only typing it can have asked the machine about it.
+  Scenario: a name the machine refuses is refused in its words
+    Given the machine refuses the name {'login-7'} saying {'kept for login containers - login7 would do'}
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    And I call it {'login-7'}
+    Then the name is refused saying {'login7 would do'}
+    And starting is not offered yet
+    And the machine was asked about the name {'login-7'}
+
   Scenario: the mode is chosen, never assumed on somebody's behalf
     When I start work in this project
     And I choose the agent {'An Agent'}

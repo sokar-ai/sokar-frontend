@@ -203,7 +203,7 @@ class _Wedged implements FleetBackend {
           detail: '');
 
   @override
-  Future<Readiness> canStart({String? project, String? agent}) async => const Readiness(
+  Future<Readiness> canStart({String? project, String? agent, String? task}) async => const Readiness(
         ready: true,
         outcome: StartOutcome.ready,
         agent: '',
@@ -435,7 +435,7 @@ class _Machine implements FleetBackend {
           detail: '');
 
   @override
-  Future<Readiness> canStart({String? project, String? agent}) async => const Readiness(
+  Future<Readiness> canStart({String? project, String? agent, String? task}) async => const Readiness(
         ready: true,
         outcome: StartOutcome.ready,
         agent: '',

@@ -87,7 +87,7 @@ abstract class FleetBackend {
   Future<Locked> lock();
 
   /// Whether work can start, asked before anything is created.
-  Future<Readiness> canStart({String? project, String? agent});
+  Future<Readiness> canStart({String? project, String? agent, String? task});
 
   /// Stops every running task and its helpers at once, or says what it would stop.
   ///
@@ -340,8 +340,8 @@ class SokarBackend implements FleetBackend {
   Future<Locked> lock() => _opened().lock();
 
   @override
-  Future<Readiness> canStart({String? project, String? agent}) =>
-      _opened().canStart(project: project, agent: agent);
+  Future<Readiness> canStart({String? project, String? agent, String? task}) =>
+      _opened().canStart(project: project, agent: agent, task: task);
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);

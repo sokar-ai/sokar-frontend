@@ -433,17 +433,36 @@ class FakeBackend implements FleetBackend {
   /// credential, neither of which a contrived agent list can produce.
   Readiness? nextReadiness;
 
+  /// A name this machine refuses, and its words, the way a daemon with a rule of its own would.
+  ({String name, String words})? refusedName;
+
+  /// Every name `CanStart` was asked about, null where none was sent.
+  final List<String?> askedAboutNames = <String?>[];
+
   @override
-  Future<Readiness> canStart({String? project, String? agent}) async =>
-      nextReadiness ??
-      const Readiness(
-        ready: true,
-        outcome: StartOutcome.ready,
-        agent: 'an-agent',
-        provider: 'a-provider',
-        credential: 'a-provider',
-        detail: '',
+  Future<Readiness> canStart({String? project, String? agent, String? task}) async {
+    askedAboutNames.add(task);
+    final refused = refusedName;
+    if (refused != null && task == refused.name) {
+      return Readiness(
+        ready: false,
+        outcome: StartOutcome.badTaskName,
+        agent: agent ?? '',
+        provider: '',
+        credential: '',
+        detail: refused.words,
       );
+    }
+    return nextReadiness ??
+        const Readiness(
+          ready: true,
+          outcome: StartOutcome.ready,
+          agent: 'an-agent',
+          provider: 'a-provider',
+          credential: 'a-provider',
+          detail: '',
+        );
+  }
 
   /// Set to lose the machine part way through stopping it.
   bool refusePanic = false;

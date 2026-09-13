@@ -357,12 +357,14 @@ class SokarClient {
   Future<Readiness> canStart({
     String? project,
     String? agent,
+    String? task,
     String? provider,
     String? credentialType,
   }) async =>
       Readiness.from(await _call('CanStart', {
         'project': ?project,
         'agent': ?agent,
+        'task': ?task,
         'provider': ?provider,
         'credentialType': ?credentialType,
       }));

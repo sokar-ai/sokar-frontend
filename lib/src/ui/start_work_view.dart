@@ -180,7 +180,9 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                     // its outcomes are different actions — choose a provider, store a secret,
                     // unlock the vault — and sending somebody to the wrong one costs more than
                     // saying nothing would.
-                    if (starting.readiness != null && !starting.readiness!.ready) ...<Widget>[
+                    if (starting.readiness != null &&
+                        !starting.readiness!.ready &&
+                        !starting.readinessIsAboutTheName) ...<Widget>[
                       const SizedBox(height: Space.wide),
                       _NotReady(starting: starting),
                     ],

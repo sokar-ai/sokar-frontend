@@ -32,6 +32,28 @@ void main() {
       };
 
   group('talking to a backend', () {
+    test('a task name is asked about with readiness, and a bad one comes back as such', () async {
+      Map<String, dynamic>? asked;
+      daemon.method('CanStart', (parameters) {
+        asked = parameters;
+        return <String, dynamic>{
+          'ready': false,
+          'outcome': 'BAD_TASK_NAME',
+          'agent': 'claude',
+          'provider': '',
+          'credential': '',
+          'detail': "'Foo Bar' is not a task name: use lowercase letters, digits and hyphens - 'foo-bar' would do",
+        };
+      });
+
+      final answer = await (await connect()).canStart(project: '/srv/demo/project.yml', task: 'Foo Bar');
+
+      expect(asked, containsPair('task', 'Foo Bar'));
+      expect(answer.outcome, StartOutcome.badTaskName);
+      expect(answer.outcome.recognized, isTrue);
+      expect(answer.whatToDo, contains("'foo-bar' would do"));
+    });
+
     test('reads the task list over the socket', () async {
       daemon.method('List', (_) => {'tasks': [task('sokar-demo-shell-1')]});
       final tasks = await (await connect()).tasks();

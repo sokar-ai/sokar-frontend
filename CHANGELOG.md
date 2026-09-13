@@ -26,6 +26,8 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Added
 
+- **The start dialog asks the machine about a task name too**, and shows its refusal in its own
+  words, with the name it suggests.
 - **Work started before its machine restarted is marked as such.** *Start it again* is unavailable
   on it, and says how to copy the workspace out before removing it, in the machine's own words.
 - **What was run outlives the window.** Every operation is kept for 30 days in

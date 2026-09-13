@@ -19,6 +19,8 @@ import './step/the_launch_was_given_the_project_file.dart';
 import './step/the_launch_left_the_naming_to_the_machine.dart';
 import './step/the_name_is_refused_saying.dart';
 import './step/starting_is_not_offered_yet.dart';
+import './step/the_machine_refuses_the_name_saying.dart';
+import './step/the_machine_was_asked_about_the_name.dart';
 import './step/what_to_ask_it_cannot_be_filled_in.dart';
 import './step/i_ask_it_to.dart';
 import './step/the_launch_asked_it_to.dart';
@@ -122,6 +124,19 @@ void main() {
       await iChoose(tester, 'A shell, driven by hand');
       await theNameIsRefusedSaying(tester, 'at most 65 fit');
       await startingIsNotOfferedYet(tester);
+    });
+    testWidgets('''a name the machine refuses is refused in its words''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineRefusesTheNameSaying(
+          tester, 'login-7', 'kept for login containers - login7 would do');
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await iCallIt(tester, 'login-7');
+      await theNameIsRefusedSaying(tester, 'login7 would do');
+      await startingIsNotOfferedYet(tester);
+      await theMachineWasAskedAboutTheName(tester, 'login-7');
     });
     testWidgets('''the mode is chosen, never assumed on somebody's behalf''',
         (tester) async {

@@ -89,7 +89,22 @@ class StartWork extends ChangeNotifier {
   /// login container's name is. And the container name at most [longestContainerName] characters,
   /// because the task's longest socket path must fit. Start stays the authority; this only stops a
   /// name it will refuse from being sent.
-  String? get nameProblem {
+  String? get nameProblem => _localNameProblem ?? _refusedName;
+
+  /// The machine's own refusal of the name, when it answered for the name on screen.
+  ///
+  /// **Its words, not ours**: they carry the rule as it is on that machine and a name that would do.
+  String? get _refusedName {
+    final answer = readiness;
+    if (name.isEmpty || answer == null || _readinessName != name) return null;
+    if (answer.outcome != StartOutcome.badTaskName) return null;
+    return answer.detail.isEmpty ? 'This is not a name a task can have.' : answer.detail;
+  }
+
+  /// Whether what the machine last said is about the name rather than about starting at all.
+  bool get readinessIsAboutTheName => readiness?.outcome == StartOutcome.badTaskName;
+
+  String? get _localNameProblem {
     if (name.isEmpty) return null;
     if (name.contains(' ')) return 'A name cannot hold a space. Use lowercase letters, digits and "-".';
     if (name != name.toLowerCase()) return 'A name is lowercase: letters, digits and "-".';
@@ -122,7 +137,7 @@ class StartWork extends ChangeNotifier {
   /// refused is better not offered. The interactive modes are offered anyway: a person is right
   /// there, may know something this does not, and the cost is said rather than hidden.
   bool get refusedOutright =>
-      takesAPrompt && readiness != null && !readiness!.ready;
+      takesAPrompt && readiness != null && !readiness!.ready && !readinessIsAboutTheName;
 
   /// What starting would cost when it is offered in spite of a problem.
   ///
@@ -131,7 +146,7 @@ class StartWork extends ChangeNotifier {
   /// failed run is **kept** — so what is left is a container and a workspace to clear up by hand.
   String? get whatItWouldCost {
     final answer = readiness;
-    if (answer == null || answer.ready || takesAPrompt) return null;
+    if (answer == null || answer.ready || takesAPrompt || readinessIsAboutTheName) return null;
     return 'This will start a container you will have to clear up: the agent cannot '
         'authenticate, and a run that fails is kept rather than removed.';
   }
@@ -266,10 +281,12 @@ class StartWork extends ChangeNotifier {
     );
   }
 
-  /// Takes what was typed as the name.
+  /// Takes what was typed as the name, and asks the machine about it once nothing here objects.
   void callIt(String typed) {
     name = typed.trim();
     notifyListeners();
+    final machine = _machine;
+    if (machine != null && _localNameProblem == null) unawaited(_askWhetherItCanStart(machine));
   }
 
   /// Takes what was typed as the thing to ask for.
@@ -301,12 +318,28 @@ class StartWork extends ChangeNotifier {
   /// The machine this was opened against, so choosing an agent can ask it again.
   FleetBackend? _machine;
 
+  /// The name the last answer was about, or null when none was sent.
+  String? _readinessName;
+
+  /// Counts the questions, so an answer to an earlier one never overwrites a later one.
+  int _asked = 0;
+
   /// Asks the daemon whether work can start, without starting anything.
+  ///
+  /// **The name goes with it only when nothing here objects to it**: a name refused on this side is
+  /// already said, and asking about it would only put the machine's copy of the same sentence
+  /// beside it.
   Future<void> _askWhetherItCanStart(FleetBackend backend) async {
     final where = project;
     if (where == null || !where.canBeActedOn) return;
+    final asking = ++_asked;
+    final about = name.isEmpty || _localNameProblem != null ? null : name;
     try {
-      readiness = await backend.canStart(project: where.file, agent: agent);
+      final answer = await backend.canStart(project: where.file, agent: agent, task: about);
+      // Typing moves faster than a machine answers.
+      if (asking != _asked) return;
+      readiness = answer;
+      _readinessName = about;
     } on VarlinkDisconnected {
       // Nothing to say: the dialog already shows what it could not read, and a second sentence
       // about the same lost connection is noise at the moment somebody is trying to work.
