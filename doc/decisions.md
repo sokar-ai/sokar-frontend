@@ -14,13 +14,14 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-12 | [A socket that answers is refused rather than deleted; the remaining race is accepted](#2026-09-12--a-socket-that-answers-is-refused-rather-than-deleted) |
 | 2026-09-12 | [`XDG_RUNTIME_DIR` is trusted, and that is not a hole worth closing](#2026-09-12--xdg_runtime_dir-is-trusted) |
 | 2026-09-12 | [The licence is GPL-3.0-only, pending the operator's word on *or-later*](#2026-09-12--the-licence-is-gpl-30-only-pending-a-word-on-or-later) |
+| 2026-09-11 | [Needs you shows what a machine knows, not what a terminal seems to say](#2026-09-11--needs-you-shows-what-a-machine-knows-not-what-a-terminal-seems-to-say) |
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
 
 ## 2026-09-13 — Needs you shows only what needs a person
 
-The operator's decision, closing F28's question *what it does with many machines and much work*.
+The operator's decision, closing the question *what it does with many machines and much work*.
 The view the window opens on lists open questions and work waiting at the gate, from every connected
 machine, and says which machines are silent. **Working, quiet, unseen and stopped work is not in it**:
 it stays in its machine's area — running work under *Running*, all of a project's work under the
@@ -41,7 +42,7 @@ joins this view rather than waiting in a machine's area.
 
 ## 2026-09-13 — Needs you has ranks, and a question with a deadline is always first
 
-Closing F28's question *whether "needs a person" is one rank or several*: several, and it was
+Closing the question *whether "needs a person" is one rank or several*: several, and it was
 already built that way. Tiles order by what they are — an open question, then work at the gate, then
 working, quiet, unseen and stopped — and within a rank by the nearest deadline, a question with none
 sorting after every one that has one, then by the oldest question.
@@ -52,7 +53,7 @@ without anything being wrong, so it is listed and not counted.
 
 ## 2026-09-13 — A tile keeps its actions, each offered only where it can be honoured
 
-Closing F28's question *whether the actions belong on the card when the view is used from
+Closing the question *whether the actions belong on the card when the view is used from
 elsewhere*. They do. The interface runs where the person is and reaches every machine over ssh, so
 attaching is `sokar task attach` over ssh in a terminal of the window's own and a diff is fetched
 over the socket — see *Handing off from another device needs no feature of its own*. An action a
@@ -112,6 +113,17 @@ The rest of Sokar is GPL v3, and the packages, the POM and `LICENSE` here say `G
 **What is not decided is *or-later*.** It was assumed rather than asked, and it is the operator's
 to settle: `-only` cannot be relaxed later without every contributor's agreement, while
 `-or-later` cannot be tightened at all. Nothing depends on the answer today.
+
+## 2026-09-11 — Needs you shows what a machine knows, not what a terminal seems to say
+
+Taken when the view was proposed, after the operator pointed at AI Beacon's fleet dashboard. **Taken
+from it:** work first rather than navigation first, one pane for every machine, one tile per piece
+of work with its state legible and its actions on it, and the machine as a property of the tile
+rather than a mode of the window. **Not taken:** leading with model, context and cost, and detecting
+*awaiting permission* by reading a session's terminal. Inside a task an agent's own permission
+prompts are off by design — the container is the answer — so an agent stopping to ask is a defect
+rather than a state to display. What a person is asked is a clearance question, which the machine
+knows. A quiet task is drawn as a guess, and a guess is never drawn like a known state.
 
 ## 2026-09-11 — Handing off from another device needs no feature of its own
 
