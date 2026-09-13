@@ -13,9 +13,9 @@ on:
 permissions:
   contents: read
 
-# Action majors are kept current, not pinned and forgotten: GitHub deprecated the Node 20 runtime
-# on 2025-09-19 and began forcing those actions onto Node 24, which is a warning today and a
-# failure whenever they stop forcing it. Checked against the published tags on 2026-09-08.
+# Every action is pinned to a commit, the version in a trailing comment: a tag is a name its owner
+# can repoint, and these jobs hold the publishing token. Dependabot keeps the pins current, and
+# test/packaging_test.dart rejects any action reference without a SHA.
 
 jobs:
   build:
