@@ -105,7 +105,9 @@ what is only true on one machine and is never committed.
 - **The index is part of the change.** `issues/README.md` opens with a table — number linked,
   status, what it covers, how many questions are still open — ordered by priority, so the top row
   is what to do next. Adding or closing an issue means writing that row in the same change.
-  `blocked` names whose answer it waits for. (The operator's rule, 2026-09-12.)
+  A **Blocked by** column names what a blocked row waits for — a Sokar number, or a decision when
+  the answer is the operator's rather than anybody's work — so the dependency reads the same as
+  Sokar's own *Blocks* column from the other end. (The operator's rules, 2026-09-12 and 2026-09-13.)
 - **`doc/decisions.md` holds what was decided, and opens with its own index**: a table of date —
   **newest first** — and one line saying *what*, each row linking to the full text below it in the
   same document. A decision and what it costs, an accepted risk with what would change the answer.
