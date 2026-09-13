@@ -1,6 +1,6 @@
-// Turns one test run into a requirements traceability matrix, in four shapes at once: an HTML
-// page, JUnit XML grouped by requirement, a `$GITHUB_STEP_SUMMARY` table, and an `::error` per
-// failing scenario. Why each is shaped the way it is: AGENTS.md, "What the build reports".
+// Turns one test run into a report of every feature file and its scenarios, in four shapes at once:
+// an HTML page, JUnit XML grouped by feature file, a `$GITHUB_STEP_SUMMARY` table, and an `::error`
+// per failing scenario. Why each is shaped the way it is: AGENTS.md, "What the build reports".
 // ignore_for_file: avoid_print - this is a command-line tool; printing is its output.
 //
 // Usage:
@@ -386,7 +386,7 @@ String _relative(String path) {
   return path.startsWith(root) ? path.substring(root.length) : path;
 }
 
-/// JUnit, grouped by requirement.
+/// JUnit, grouped by feature file.
 ///
 /// **`classname` is what the feature tests and `name` is the scenario**, so any reader of this
 /// file — a CI plugin, an IDE, a spreadsheet — groups the way the summary does.
