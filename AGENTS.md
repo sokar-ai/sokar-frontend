@@ -1118,7 +1118,7 @@ reason `FleetBackend` is a seam: a widget test's clock does not carry real input
 
 ## Starting a daemon at the far end is the one thing run on somebody else's machine
 
-`Tunnels.startSokarOn` (F30). Everything else over `ssh` is `-N`: a forward and no remote command.
+`Tunnels.startSokarOn`, met and retired on 2026-09-13. Everything else over `ssh` is `-N`: a forward and no remote command.
 This runs a line there, which is a step further in, so:
 
 - **Never without being asked**, in either place it is offered — the dialog's trial and a watched
@@ -1139,6 +1139,11 @@ This runs a line there, which is a step further in, so:
   off and names the command, and changes nothing.
 - **The exit code is not the verdict.** A line that ran cleanly and left nothing listening is what
   a missing binary looks like from here, so a start is always followed by connecting again.
+- **Stopping is not the mirror image of starting — not yet.** Measured by the backend on 2026-09-13:
+  stopping the daemon stops every task it started, container included, because it starts them from
+  inside its own unit's control group; running work, the clearance questions its watchers held and
+  every open stream go with it, while nothing on disk is lost. And a client cannot tell which running
+  tasks the daemon started. So no stop is offered until Sokar B54 changes that — see F33.
 - **A stale socket is not deleted from here.** A socket nothing answers on and one belonging to a
   daemon that is merely slow are told apart at the machine — and since `8de32db` a second daemon
   is refused rather than quietly taking the first one's name.

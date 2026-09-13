@@ -61,5 +61,5 @@ serves.
   the uid the machine gives the account logged in as — `id -u` over the same `ssh` — separates the
   three cases: a different uid is *"that socket is in another user's runtime directory; you log in as
   uid 1000"*. It needs nothing from Sokar. **The open part is whether the trial may run that one
-  read-only command** as part of *Try the connection*, since F30 set the rule that a command on
+  read-only command** as part of *Try the connection*, since starting a daemon set the rule that a command on
   somebody else's machine is a step past forwarding a socket.

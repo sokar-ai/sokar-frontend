@@ -56,9 +56,9 @@ file goes, in [AGENTS.md](../AGENTS.md) or in one of the documents under `doc/`.
 
 | # | Status | Blocked by | What must be true | Open questions | What the backend is short of |
 |---|---|---|---|---|---|
-| [F30](F30-Start-The-Daemon-On-A-Machine-You-Can-Reach.md) | in progress — built, questions open | | A machine reached over ssh with nothing serving is offered a start, and started only when asked. | 1 | nothing since Sokar's `8de32db`: there is a `sokard` user unit. Lingering stays the operator's own decision |
 | [F28](F28-One-View-Of-What-Needs-A-Person.md) | in progress — built, questions open | | Opening the window answers whether anything needs a person, for every connected machine at once. | 3 | |
 | [F29](F29-Try-A-Machine-Before-Watching-It.md) | in progress — built, questions open | | Adding a machine can try the connection first, and says what stood in the way when it fails. | 1 | |
+| [F33](F33-Stop-The-Daemon-On-A-Machine-You-Can-Reach.md) | **blocked** | Sokar B54 | A person can stop the daemon on a machine reached over ssh, told first exactly what stopping costs. | 1 | a stop that leaves the tasks it started running, and a way to know which running tasks a stop would affect |
 | [F31](F31-A-Consent-Granted-Once-Outside-The-Interface.md) | **blocked** | Sokar B31 | When a machine needs a person to grant an authorization in a browser, the link is shown whole, opened on request, and waited for visibly. | 1 | the whole flow: no method or event for a pending consent |
 | [F32](F32-The-Ranked-Review-Of-What-Got-Through.md) | **blocked** | Sokar B38 | What got through is shown most far-reaching first, each entry saying how far it can get. | 1 | the ranking itself |
 | [F15](F15-Secret-Store-Control.md) | **blocked** | the operator's parked decision | The protected store's state is visible and changeable, and its recovery secret is revealed once and acknowledged. | 0 | nothing at the machine: `sokar vault unlock --for <duration>` and `sokar vault passphrase` both exist. What is parked is whether unlocking could ever be a daemon method; revealing a recovery secret will **never** be possible here |
