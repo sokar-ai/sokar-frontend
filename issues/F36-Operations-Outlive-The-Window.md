@@ -29,6 +29,11 @@ request.**
 
 ## To be checked
 
+- **Whether a failure from before a restart still waits under Needs you.** A failed operation
+  nobody has opened waits there until it is opened, within one run of the window. Once operations
+  outlive the window, an unseen failure from yesterday is still unseen, and whether it waits or only
+  shows in the record is a decision about what the window opens on.
+
 - **How much is kept**: a count, an age or a size, and whether the output of a long operation is kept
   whole or cut.
 - **One file or one per machine**, which decides whether forgetting a machine forgets its history.
