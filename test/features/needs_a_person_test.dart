@@ -7,18 +7,18 @@ import 'package:flutter_test/flutter_test.dart';
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
 import './step/the_view_shown_is_what_needs_a_person.dart';
-import './step/other_work_is_blocked_reaching.dart';
 import './step/the_first_tile_is.dart';
+import './step/no_tile_is_shown_for.dart';
+import './step/other_work_is_blocked_reaching.dart';
 import './step/work_is_blocked_reaching.dart';
 import './step/the_tile_says.dart';
 import './step/i_let_it_through_from_its_tile.dart';
 import './step/the_answer_sent_was.dart';
-import './step/the_work_is_idle.dart';
-import './step/the_work_is_waiting_on.dart';
-import './step/the_tile_is_marked_as_a_guess.dart';
-import './step/the_tile_is_not_marked_as_a_guess.dart';
-import './step/the_work_cannot_be_seen.dart';
+import './step/the_answer_comes_back.dart';
+import './step/i_put_away_what_the_tile_says.dart';
+import './step/the_question_runs_out.dart';
 import './step/i_watch_another_machine_called.dart';
+import './step/work_on_is_blocked_reaching.dart';
 import './step/the_tunnel_drops.dart';
 import './step/a_machine_notice_says.dart';
 import './step/no_tile_says.dart';
@@ -29,9 +29,6 @@ import './step/the_command_finder_is_open.dart';
 import './step/the_machine_is_the_same_node.dart';
 import './step/the_same_question_arrives_through_both.dart';
 import './step/tile_asks_to_reach.dart';
-import './step/i_work_in_by_hand_from_its_tile.dart';
-import './step/the_session_runs.dart';
-import './step/i_put_the_session_away.dart';
 import './step/i_review_the_work_from_its_tile.dart';
 import './step/i_open_the_waiting_push.dart';
 import './step/the_review_shows_the_file.dart';
@@ -40,20 +37,12 @@ import './step/work_is_blocked_reaching_with_no_deadline.dart';
 import './step/work_is_blocked_reaching_past_its_deadline.dart';
 import './step/the_tile_does_not_say.dart';
 import './step/other_work_is_blocked_reaching_with_minutes_left.dart';
-import './step/the_name_on_the_tile_can_be_copied.dart';
 import './step/i_open_the_menu_of_the_tile.dart';
-import './step/the_menu_offers.dart';
-import './step/i_click_the_tile_with_the_right_button.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
 import './step/i_choose_from_the_menu_of_the_tile.dart';
 import './step/was_stopped_on_the_machine.dart';
 import './step/nothing_was_stopped_on_this_machine.dart';
 import './step/the_tile_is_headed.dart';
-import './step/the_work_has_stopped.dart';
-import './step/was_started_again.dart';
-import './step/starting_it_again_will_be_refused_because_the_vault_is_locked.dart';
-import './step/the_machine_says_starting_needs_the_vault_unlocked.dart';
-import './step/the_machine_says_has_a_name_from_before_one_container_per_task.dart';
 import './step/i_mark_the_notice_about_as_seen.dart';
 import './step/nothing_needs_me.dart';
 
@@ -67,6 +56,13 @@ void main() {
     testWidgets('''the window opens on what needs a person''', (tester) async {
       await bddSetUp(tester);
       await theViewShownIsWhatNeedsAPerson(tester);
+    });
+    testWidgets('''work that needs nobody is not on what needs a person''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theFirstTileIs(tester, 'sokar-checkout-migrate');
+      await noTileIsShownFor(tester, 'sokar-billing-shell');
+      await noTileIsShownFor(tester, 'sokar-checkout-shell');
     });
     testWidgets(
         '''a question waiting for an answer is above work that is merely running''',
@@ -93,27 +89,33 @@ void main() {
       await theViewShownIsWhatNeedsAPerson(tester);
     });
     testWidgets(
-        '''a quiet task is marked as a guess, and a known state never is''',
+        '''a question let through stays with its answer until it is put away''',
         (tester) async {
       await bddSetUp(tester);
-      await theWorkIsIdle(tester, 'sokar-checkout-shell');
-      await theWorkIsWaitingOn(
-          tester, 'sokar-billing-shell', 'api.example.test:443');
-      await theTileIsMarkedAsAGuess(tester, 'sokar-checkout-shell');
-      await theTileIsNotMarkedAsAGuess(tester, 'sokar-billing-shell');
-    });
-    testWidgets('''work nothing can see is never drawn as quiet''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theWorkCannotBeSeen(tester, 'sokar-checkout-shell');
-      await theTileSays(tester, 'sokar-checkout-shell', 'Cannot be seen');
-      await theTileIsNotMarkedAsAGuess(tester, 'sokar-checkout-shell');
+      await workIsBlockedReaching(tester, 'api.example.test:443');
+      await iLetItThroughFromItsTile(tester);
+      await theAnswerComesBack(tester);
+      await theTileSays(tester, 'sokar-checkout-shell', 'is now reachable');
+      await iPutAwayWhatTheTileSays(tester, 'sokar-checkout-shell');
+      await noTileIsShownFor(tester, 'sokar-checkout-shell');
     });
     testWidgets(
-        '''work on another machine is in the same list, with its machine on it''',
+        '''a question that ran out stays, saying so, until it is put away''',
+        (tester) async {
+      await bddSetUp(tester);
+      await workIsBlockedReaching(tester, 'api.example.test:443');
+      await theQuestionRunsOut(tester);
+      await theTileSays(tester, 'sokar-checkout-shell', 'ran out');
+      await iPutAwayWhatTheTileSays(tester, 'sokar-checkout-shell');
+      await noTileIsShownFor(tester, 'sokar-checkout-shell');
+    });
+    testWidgets(
+        '''a question on another machine is in the same list, with its machine on it''',
         (tester) async {
       await bddSetUp(tester);
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await workOnIsBlockedReaching(
+          tester, 'elsewhere', 'api.example.test:443');
       await theTileSays(tester, 'sokar-shared-shell', 'elsewhere');
     });
     testWidgets(
@@ -139,15 +141,6 @@ void main() {
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
       await theSameQuestionArrivesThroughBoth(tester);
       await tileAsksToReach(tester, 1, 'api.example.test');
-    });
-    testWidgets(
-        '''work is opened by hand from its tile, and putting it away comes back here''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iWorkInByHandFromItsTile(tester, 'sokar-checkout-shell');
-      await theSessionRuns(tester, 'sokar task attach sokar-checkout-shell');
-      await iPutTheSessionAway(tester);
-      await theViewShownIsWhatNeedsAPerson(tester);
     });
     testWidgets(
         '''work waiting at the gate is reviewed from its tile, over the view''',
@@ -189,29 +182,13 @@ void main() {
           tester, 'files.example.test:22', 10);
       await theFirstTileIs(tester, 'sokar-checkout-shell');
     });
-    testWidgets('''the name on a tile can be selected and copied''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theNameOnTheTileCanBeCopied(tester, 'sokar-checkout-shell');
-    });
-    testWidgets(
-        '''a tile offers what its work can be told to do, from its menu''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
-      await theMenuOffers(tester, 'Work in it by hand');
-    });
-    testWidgets('''clicking a tile with the right button opens the same menu''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iClickTheTileWithTheRightButton(tester, 'sokar-checkout-shell');
-      await theMenuOffers(tester, 'Work in it by hand');
-    });
     testWidgets(
         '''work reached through a forwarded socket offers no session, and says why''',
         (tester) async {
       await bddSetUp(tester);
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await workOnIsBlockedReaching(
+          tester, 'elsewhere', 'api.example.test:443');
       await iOpenTheMenuOfTheTile(tester, 'sokar-shared-shell');
       await theMenuOffersAsUnavailableBecause(
           tester, 'Work in it by hand', 'forwarded');
@@ -220,6 +197,8 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await workOnIsBlockedReaching(
+          tester, 'elsewhere', 'api.example.test:443');
       await iChooseFromTheMenuOfTheTile(
           tester, 'Stop it, keeping its workspace', 'sokar-shared-shell');
       await wasStoppedOnTheMachine(tester, 'sokar-shared-shell', 'elsewhere');
@@ -229,50 +208,11 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
+      await workIsBlockedReaching(tester, 'api.example.test:443');
+      await workOnIsBlockedReaching(
+          tester, 'elsewhere', 'files.example.test:22');
       await theTileIsHeaded(tester, 'sokar-shared-shell', 'elsewhere');
       await theTileIsHeaded(tester, 'sokar-checkout-shell', 'this machine');
-    });
-    testWidgets(
-        '''work started again from its tile says what came of it, on the tile''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theWorkHasStopped(tester, 'sokar-checkout-shell');
-      await iChooseFromTheMenuOfTheTile(
-          tester, 'Start it again', 'sokar-checkout-shell');
-      await wasStartedAgain(tester, 'sokar-checkout-shell');
-      await theTileSays(tester, 'sokar-checkout-shell', 'is running again');
-    });
-    testWidgets(
-        '''a start the machine refused when pressed says so on the tile''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theWorkHasStopped(tester, 'sokar-checkout-shell');
-      await startingItAgainWillBeRefusedBecauseTheVaultIsLocked(tester);
-      await iChooseFromTheMenuOfTheTile(
-          tester, 'Start it again', 'sokar-checkout-shell');
-      await theTileSays(tester, 'sokar-checkout-shell', 'the vault is locked');
-    });
-    testWidgets(
-        '''a start the machine would refuse is unavailable on the tile, with its reason''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theWorkHasStopped(tester, 'sokar-checkout-shell');
-      await theMachineSaysStartingNeedsTheVaultUnlocked(
-          tester, 'sokar-checkout-shell');
-      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
-      await theMenuOffersAsUnavailableBecause(
-          tester, 'Start it again', 'vault is locked');
-    });
-    testWidgets(
-        '''a container named from before one per task can only be removed''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theWorkHasStopped(tester, 'sokar-checkout-shell');
-      await theMachineSaysHasANameFromBeforeOneContainerPerTask(
-          tester, 'sokar-checkout-shell');
-      await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
-      await theMenuOffersAsUnavailableBecause(
-          tester, 'Start it again', 'can only be removed');
     });
     testWidgets(
         '''a silent machine can be marked as seen, until it has answered again''',

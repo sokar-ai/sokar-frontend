@@ -1074,6 +1074,7 @@ class _ShellState extends State<Shell> {
         attention: _attention,
         onDecide: (tile, prompt, {required allow}) => tile.fleet.clearance
             .decide(tile.fleet.backend, prompt, allow: allow),
+        onPutAway: (tile, prompt) => tile.fleet.clearance.forget(prompt),
         actionsFor: _tileActions,
         onSelect: _goToWork,
         onReview: (tile) {
@@ -1175,6 +1176,8 @@ class _ShellState extends State<Shell> {
                             .fleet
                             .clearance
                             .decide(tile.fleet.backend, prompt, allow: allow),
+                        onPutAway: (tile, prompt) =>
+                            tile.fleet.clearance.forget(prompt),
                         onReview: (tile) {
                           _select(tile);
                           unawaited(_openTheGate());

@@ -6,6 +6,9 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-13 | [Needs you shows only what needs a person; everything else stays in its machine's area](#2026-09-13--needs-you-shows-only-what-needs-a-person) |
+| 2026-09-13 | [Needs you has ranks, and a question with a deadline is always first](#2026-09-13--needs-you-has-ranks-and-a-question-with-a-deadline-is-always-first) |
+| 2026-09-13 | [A tile keeps its actions, each offered only where it can be honoured](#2026-09-13--a-tile-keeps-its-actions-each-offered-only-where-it-can-be-honoured) |
 | 2026-09-13 | [A connection trial may ask the machine `id -u` without a question, to name a wrong uid](#2026-09-13--a-connection-trial-may-ask-the-machine-id--u-without-a-question) |
 | 2026-09-12 | [The settings file is written atomically and owner-only, and a bad entry is dropped rather than fatal](#2026-09-12--the-settings-file-is-written-atomically-and-owner-only) |
 | 2026-09-12 | [A socket that answers is refused rather than deleted; the remaining race is accepted](#2026-09-12--a-socket-that-answers-is-refused-rather-than-deleted) |
@@ -14,6 +17,48 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-13 — Needs you shows only what needs a person
+
+The operator's decision, closing F28's question *what it does with many machines and much work*.
+The view the window opens on lists open questions and work waiting at the gate, from every connected
+machine, and says which machines are silent. **Working, quiet, unseen and stopped work is not in it**:
+it stays in its machine's area — running work under *Running*, all of a project's work under the
+project — where the same tile carries the same menu.
+
+**Why:** the reason to open the window is a short list of things that need answering. At fifty tasks
+a list of every tile is fifty tiles of which two need anybody, and a filter added later to fix that
+would hide something without saying what. Nothing is hidden this way; it is placed.
+
+**A question that was answered or ran out stays, with its outcome, until it is put away** with *Got
+it* on its tile. The operator's decision the same day: a question that ran out while nobody looked
+would otherwise leave the view without a trace, and the confirmation of an answer would vanish with
+the click that gave it.
+
+**What would change the answer:** a state that needs a person and is neither a question nor the
+gate — an agent that ended with a question of its own, once the machine can say so (Sokar B47) —
+joins this view rather than waiting in a machine's area.
+
+## 2026-09-13 — Needs you has ranks, and a question with a deadline is always first
+
+Closing F28's question *whether "needs a person" is one rank or several*: several, and it was
+already built that way. Tiles order by what they are — an open question, then work at the gate, then
+working, quiet, unseen and stopped — and within a rank by the nearest deadline, a question with none
+sorting after every one that has one, then by the oldest question.
+
+**So a week-old review can never sit above a question with two minutes left**, which was the worry.
+The count the view shows is questions and silent machines only: work at the gate can wait for days
+without anything being wrong, so it is listed and not counted.
+
+## 2026-09-13 — A tile keeps its actions, each offered only where it can be honoured
+
+Closing F28's question *whether the actions belong on the card when the view is used from
+elsewhere*. They do. The interface runs where the person is and reaches every machine over ssh, so
+attaching is `sokar task attach` over ssh in a terminal of the window's own and a diff is fetched
+over the socket — see *Handing off from another device needs no feature of its own*. An action a
+machine cannot honour from here is shown as unavailable with its reason rather than removed: working
+in a task by hand, for one, is unavailable for a machine reached through a socket somebody else
+forwarded, because there is no host to log into.
 
 ## 2026-09-13 — A connection trial may ask the machine `id -u` without a question
 

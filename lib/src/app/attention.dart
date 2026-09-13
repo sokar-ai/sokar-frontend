@@ -134,6 +134,25 @@ class Attention extends ChangeNotifier {
         for (final machine in _counted) ..._tilesOf(machine),
       ]..sort(_byDemand);
 
+  /// The tiles that need a person: an open question, work waiting at the gate, or the outcome of a
+  /// question that was answered or ran out and has not been put away.
+  ///
+  /// **What the window opens on**, decided by the operator on 2026-09-13. A list of every tile is,
+  /// at fifty tasks, fifty tiles of which two need anybody — and the reason to open the window is
+  /// the two. Everything else — working, quiet, unseen, stopped — is still drawn, in its machine's
+  /// area, which is where somebody looking at that machine goes.
+  ///
+  /// **An outcome stays until it is put away**, decided the same day: a question that ran out while
+  /// nobody looked would otherwise leave without a trace, and an answer's confirmation would go with
+  /// the click that gave it.
+  List<Tile> get needing => <Tile>[
+        for (final tile in tiles)
+          if (tile.demand == Demand.question ||
+              tile.demand == Demand.gate ||
+              tile.settled != null)
+            tile,
+      ];
+
   /// One machine's tiles, most urgent first. While it is not answering they are what it last
   /// said: a lost tunnel is a disconnection, never a machine with nothing on it.
   List<Tile> tilesOn(Machine machine) => _tilesOf(machine, evenSilent: true)..sort(_byDemand);

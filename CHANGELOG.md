@@ -69,6 +69,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Changed
 
+- **Needs you lists only what needs a person**: open questions, work waiting at the gate, and a
+  question that was answered or ran out, which stays with its outcome until *Got it* puts it away.
+  Work that needs nobody is in its machine's area, under Running or its project.
 - **The frame is a tree of machines and one place per machine.** The tree holds what needs you,
   every machine with whether it answers — opening onto Running, New project and its projects — and
   a stop for every machine. A machine's place holds its title with its emergency stop and menu,

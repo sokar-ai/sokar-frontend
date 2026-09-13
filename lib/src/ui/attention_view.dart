@@ -23,6 +23,7 @@ class AttentionView extends StatefulWidget {
     required this.onDecide,
     required this.actionsFor,
     required this.onReview,
+    this.onPutAway,
     this.onSelect,
     super.key,
   });
@@ -41,6 +42,9 @@ class AttentionView extends StatefulWidget {
 
   /// Opens the gate for the work's project.
   final void Function(Tile tile) onReview;
+
+  /// Puts away the outcome of a question, on the machine that asked it.
+  final void Function(Tile tile, Prompt prompt)? onPutAway;
 
   @override
   State<AttentionView> createState() => _AttentionViewState();
@@ -71,7 +75,7 @@ class _AttentionViewState extends State<AttentionView> {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: widget.attention,
     builder: (context, _) {
-      final tiles = widget.attention.tiles;
+      final tiles = widget.attention.needing;
       final silent = widget.attention.silent;
       final needing = widget.attention.needingSomebody;
       _keepTicking(
@@ -97,9 +101,10 @@ class _AttentionViewState extends State<AttentionView> {
           Expanded(
             child: tiles.isEmpty && silent.isEmpty
                 ? const Center(
+                    // Not "no work": the work that needs nobody is still there, in its machine.
                     child: Text(
-                      'No machine has any work on it.',
-                      key: Key('no-work-anywhere'),
+                      'Nothing needs you on any machine.',
+                      key: Key('nothing-needs-you'),
                     ),
                   )
                 : SingleChildScrollView(
@@ -127,6 +132,7 @@ class _AttentionViewState extends State<AttentionView> {
                                     : widget.actionsFor(tile),
                                 onDecide: widget.onDecide,
                                 onReview: widget.onReview,
+                                onPutAway: widget.onPutAway,
                                 onSelect: widget.onSelect == null
                                     ? null
                                     : () => widget.onSelect!(tile),
@@ -217,6 +223,7 @@ class TaskTile extends StatelessWidget {
     required this.actions,
     required this.onDecide,
     required this.onReview,
+    this.onPutAway,
     this.selected = false,
     this.onSelect,
     this.onOpen,
@@ -236,6 +243,9 @@ class TaskTile extends StatelessWidget {
 
   /// Opens the gate for the work's project.
   final void Function(Tile tile) onReview;
+
+  /// Puts away the outcome of a question, on the machine that asked it. No button without it.
+  final void Function(Tile tile, Prompt prompt)? onPutAway;
 
   /// Whether its work is the one selected.
   final bool selected;
@@ -432,6 +442,13 @@ class TaskTile extends StatelessWidget {
                       _settledWords(tile.settled!),
                       key: const Key('tile-settled'),
                       style: text.bodySmall,
+                    ),
+                  // Until then it stays on what needs a person, so nobody misses it.
+                  if (first == null && tile.settled != null && onPutAway != null)
+                    TextButton(
+                      key: const Key('tile-put-away'),
+                      onPressed: () => onPutAway!(tile, tile.settled!),
+                      child: const Text('Got it'),
                     ),
                   if (first != null ||
                       (session?.available ?? false) ||

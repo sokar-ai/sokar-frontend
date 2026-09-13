@@ -87,8 +87,10 @@ something an interface inferred.**
 ## Acceptance
 
 - The window opens on this view. Reaching it is not an act of navigation.
-- Every connected machine's work appears in one list, and which machine a row belongs to is on the
-  row rather than in a mode the window is in.
+- Everything that needs a person on any connected machine appears in one list — an open question,
+  work waiting at the gate, or the outcome of a question that has not been put away — and which
+  machine a row belongs to is on the row rather than in a mode the window is in. Work that needs
+  nobody is in its machine's area, not here.
 - A task waiting on a clearance question is above one that is merely running, and its deadline is
   shown as time remaining rather than as a timestamp.
 - The two or three actions that unblock - answer the question, approve at the gate, attach - are on
