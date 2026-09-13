@@ -182,7 +182,8 @@ class Notifications extends ChangeNotifier {
   }) {
     operations.addListener(() {
       for (final operation in operations.all) {
-        if (operation.running) continue;
+        // Read back from an earlier run: whatever it had to say was said then, or waits in Needs you.
+        if (operation.running || operation.fromBefore) continue;
         _raise(
           Announcement(
             id: 'operation/${operation.id}',

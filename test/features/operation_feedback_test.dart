@@ -28,6 +28,8 @@ import './step/a_failed_operation_waits_saying.dart';
 import './step/the_count_of_what_needs_a_person_is.dart';
 import './step/i_open_the_failed_operation_from_what_needs_a_person.dart';
 import './step/no_failed_operation_waits.dart';
+import './step/the_app_is_restarted.dart';
+import './step/the_file_of_what_was_run_was_opened.dart';
 
 void main() {
   group('''Running long operations without blocking the frame''', () {
@@ -175,6 +177,42 @@ void main() {
       await iCloseWhatIsOpen(tester);
       await iGoToWhatNeedsAPerson(tester);
       await noFailedOperationWaits(tester);
+    });
+    testWidgets(
+        '''what was run is listed again after a restart, marked as earlier''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await theOperationFinishes(tester);
+      await iCloseWhatIsOpen(tester);
+      await theAppIsRestarted(tester);
+      await iShowWhatThisSessionHasRun(tester);
+      await theRecordShows(tester, 'would open');
+      await theRecordShows(tester, 'earlier');
+    });
+    testWidgets('''a failure nobody opened still waits after a restart''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await iCloseWhatIsOpen(tester);
+      await theOperationFails(tester);
+      await theAppIsRestarted(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await aFailedOperationWaitsSaying(tester, 'would open');
+    });
+    testWidgets('''the record says where it is kept''', (tester) async {
+      await bddSetUp(tester);
+      await iShowWhatThisSessionHasRun(tester);
+      await theRecordShows(tester, 'Kept for 30 days in');
+    });
+    testWidgets('''the file of what was run is opened from the finder''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Open the file of everything that was run');
+      await theFileOfWhatWasRunWasOpened(tester);
     });
   });
 }

@@ -26,6 +26,10 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Added
 
+- **What was run outlives the window.** Every operation is kept for 30 days in
+  `~/.local/state/sokar/operations.json`, readable only by you; the list of what was run shows
+  earlier ones and says where the file is, the finder opens it, and a failure nobody opened still
+  waits under Needs you after a restart.
 - **A trial that fails because the socket is in another user's runtime directory says so**, and
   names the path that was probably meant, instead of reporting that nothing answers.
 - **The window opens on what needs a person**, from every machine at once: open questions

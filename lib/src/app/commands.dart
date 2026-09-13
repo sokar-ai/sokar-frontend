@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sokar_frontend/client.dart';
@@ -728,6 +730,13 @@ List<Command> commandsFor({
       group: 'Machine',
       run: () => shell.openOperation(latest!.id),
       unavailable: latest == null ? 'nothing has been run from here yet' : null,
+    ),
+    Command(
+      id: 'operations.file',
+      label: 'Open the file of everything that was run',
+      group: 'Machine',
+      run: () => unawaited(operations.openTheFile()),
+      unavailable: operations.file == null ? 'nothing here keeps a file of it' : null,
     ),
     Command(
       id: 'finder.open',

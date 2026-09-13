@@ -6,6 +6,7 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-13 | [What was run is kept for thirty days in one owner-only file, and an unseen failure still waits](#2026-09-13--what-was-run-is-kept-for-thirty-days-in-one-owner-only-file) |
 | 2026-09-13 | [A unit that refuses is a failure, and a start without one is watched for two seconds](#2026-09-13--a-unit-that-refuses-is-a-failure-and-a-start-without-one-is-watched-for-two-seconds) |
 | 2026-09-13 | [Needs you shows only what needs a person; everything else stays in its machine's area](#2026-09-13--needs-you-shows-only-what-needs-a-person) |
 | 2026-09-13 | [Needs you has ranks, and a question with a deadline is always first](#2026-09-13--needs-you-has-ranks-and-a-question-with-a-deadline-is-always-first) |
@@ -19,6 +20,29 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-13 — What was run is kept for thirty days in one owner-only file
+
+The operator's decisions, after asking whether the interface has a log to open. Every operation —
+what ran, on which machine, what it printed and how it ended — is kept in
+`$XDG_STATE_HOME/sokar/operations.json` (`~/.local/state/sokar/operations.json` without it), and
+the list of what was run shows earlier ones beside this run's, marked *earlier*, and names the file.
+The finder opens it with the desktop's opener.
+
+- **Thirty days**, and only an operation's last 2,000 lines, with how many were not kept said where
+  it is read. Older operations are dropped when the file is read, and the list says how many.
+- **One file for every machine.** One place to open, and forgetting a machine does not forget what
+  was run on it.
+- **A failure nobody opened still waits under Needs you after a restart.** Whether it was seen is
+  kept with it, so closing the window before reading a failure does not count as reading it.
+- **Written the way the settings are**: beside the file and renamed over it, mode 600, because it
+  names hosts. A start, an end and being seen are written at once; the lines of a busy operation are
+  gathered for a second, so a build that prints thousands of lines is not thousands of writes.
+- **An operation still running when the window closed comes back as a failure nobody has seen**,
+  saying that how it ended is not known. Nothing watched it end, and reporting it as finished well
+  would be a guess in the direction that costs.
+- **Nothing read back is announced again.** A desktop notification for yesterday's build on every
+  start would teach somebody to ignore them.
 
 ## 2026-09-13 — A unit that refuses is a failure, and a start without one is watched for two seconds
 

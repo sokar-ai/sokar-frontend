@@ -68,7 +68,8 @@ Future<SokarApp> _compose() async {
   // what makes several of them tellable apart.
   final sessions = Sessions();
   final whereYouWere = WhereYouWere(settings, machines, shell);
-  final operations = Operations();
+  final operations = Operations(store: FileOperationsStore());
+  await operations.load();
   final notifications = Notifications(DesktopNotifier(), settings)
     ..watchOperations(operations, open: (_) {});
   await notifications.load();

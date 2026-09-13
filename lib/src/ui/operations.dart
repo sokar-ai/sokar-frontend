@@ -45,7 +45,7 @@ class OperationsList extends StatelessWidget {
         PaneHeader(
           title: machine == null
               ? 'This session'
-              : 'What this session ran on $machine',
+              : 'What was run on $machine',
           trailing: onClose == null
               ? null
               : IconButton(
@@ -54,6 +54,16 @@ class OperationsList extends StatelessWidget {
                   onPressed: onClose,
                 ),
         ),
+        if (operations.file != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Space.normal, vertical: Space.small),
+            child: SelectableText(
+              'Kept for ${Operations.kept.inDays} days in ${operations.file!.path}'
+              '${operations.droppedAsOld == 0 ? '' : ' — ${operations.droppedAsOld} older than that were dropped'}',
+              key: const Key('operations-file'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         Expanded(
           child: SelectionList<Operation>(
             items: all,
@@ -88,6 +98,7 @@ class _OperationRow extends StatelessWidget {
           children: <Widget>[
             Text(operation.title, style: Theme.of(context).textTheme.bodyLarge),
             Text(
+              '${operation.fromBefore ? 'earlier, ${_on(operation.startedAt)} ' : ''}'
               '${_at(operation.startedAt)} · ${operation.summary}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -97,6 +108,9 @@ class _OperationRow extends StatelessWidget {
       const Icon(Icons.chevron_right, size: Sizes.rowIcon),
     ],
   );
+
+  static String _on(DateTime time) =>
+      '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}';
 
   static String _at(DateTime time) =>
       '${time.hour.toString().padLeft(2, '0')}:'
@@ -151,6 +165,15 @@ class _OperationOutputViewState extends State<OperationOutputView> {
           ),
         ),
         _Summary(operation: operation),
+        if (operation.linesNotKept > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Space.normal, vertical: Space.small),
+            child: Text(
+              'The first ${operation.linesNotKept} lines it printed were not kept.',
+              key: const Key('lines-not-kept'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         Expanded(
           child: operation.output.isEmpty
               ? Center(

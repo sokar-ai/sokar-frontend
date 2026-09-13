@@ -108,3 +108,29 @@ Feature: Running long operations without blocking the frame
     And I close what is open
     And I go to what needs a person
     Then no failed operation waits
+
+  # What ran is kept in a file, so closing the window does not lose it.
+  Scenario: what was run is listed again after a restart, marked as earlier
+    When I choose the command {'Show what this project would open, creating nothing'}
+    And the operation finishes
+    And I close what is open
+    And the app is restarted
+    And I show what this session has run
+    Then the record shows {'would open'}
+    And the record shows {'earlier'}
+
+  Scenario: a failure nobody opened still waits after a restart
+    When I choose the command {'Show what this project would open, creating nothing'}
+    And I close what is open
+    And the operation fails
+    And the app is restarted
+    And I go to what needs a person
+    Then a failed operation waits saying {'would open'}
+
+  Scenario: the record says where it is kept
+    When I show what this session has run
+    Then the record shows {'Kept for 30 days in'}
+
+  Scenario: the file of what was run is opened from the finder
+    When I choose the command {'Open the file of everything that was run'}
+    Then the file of what was run was opened

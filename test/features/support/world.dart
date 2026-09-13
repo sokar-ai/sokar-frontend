@@ -1161,6 +1161,12 @@ class World {
   /// What this session has run.
   static late Operations operations;
 
+  /// Where what was run is kept, so it survives a restart within a scenario.
+  static late MemoryOperationsStore operationsStore;
+
+  /// Every file the window asked the desktop to open.
+  static final List<String> filesOpened = <String>[];
+
   /// What this session is reading.
   static late Logs logs;
 
@@ -1411,7 +1417,9 @@ class World {
     store = MemorySettingsStore();
     settings = Settings(store);
     shell = ShellModel();
-    operations = Operations();
+    operationsStore = MemoryOperationsStore(file: File('/home/somebody/.local/state/sokar/operations.json'));
+    filesOpened.clear();
+    operations = _operationsFrom(operationsStore);
     logs = Logs();
     gate = Gate();
     egress = Egress();
@@ -1514,8 +1522,19 @@ class World {
     await tester.pumpAndSettle();
   }
 
+  static Operations _operationsFrom(OperationsStore store) => Operations(
+        store: store,
+        open: (path) async => filesOpened.add(path),
+        // Written at once: a timer still pending when a scenario ends fails it.
+        saveDelay: Duration.zero,
+      );
+
   /// Closes the window and opens it again, keeping what was stored.
   static Future<void> restartApp(WidgetTester tester) async {
+    await operations.flush();
+    operations = _operationsFrom(operationsStore);
+    await operations.load();
+    notifications.watchOperations(operations, open: (operation) => shell.openOperation(operation.id));
     final reopened = Settings(store);
     await reopened.load();
     settings = reopened;
