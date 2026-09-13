@@ -311,6 +311,20 @@ void main() {
           ),
         );
 
+    /// A far end whose `systemctl` reports [loadState] for the unit and does [start] when asked to
+    /// start it. In the test's own directory, so it shadows this machine's real one.
+    void systemdThatSays(String loadState, {String start = 'exit 0'}) {
+      final fake = File('${where.path}/systemctl')
+        ..writeAsStringSync('#!/bin/sh\ncase "\$*" in *show*) echo $loadState ;; *start*) $start ;; esac\n');
+      Process.runSync('chmod', <String>['755', fake.path]);
+    }
+
+    /// A far end whose `sokard` runs [body].
+    void sokardThat(String body) {
+      File('${where.path}/sokard').writeAsStringSync('#!/bin/sh\n$body\n');
+      Process.runSync('chmod', <String>['755', '${where.path}/sokard']);
+    }
+
     test('the line names the host, asks for a unit first, and never prompts', () {
       final command = Tunnels.startCommandFor(machineAt('/tmp/unused.sock'));
 
@@ -354,17 +368,16 @@ void main() {
       expect(started.words, contains('no sokard is installed there'));
     });
 
-    test('a machine that has it starts it detached, and does not wait for it', () async {
+    test('a machine with no unit starts it detached, and does not wait for it', () async {
       final marker = '${where.path}/it-ran';
-      final fake = File('${where.path}/sokard')
-        ..writeAsStringSync('#!/bin/sh\necho ran > $marker\nsleep 5\n');
-      Process.runSync('chmod', <String>['755', fake.path]);
+      sokardThat('echo ran > $marker\nsleep 5');
+      systemdThatSays('not-found');
 
       final started = await runningTheScript('${where.path}:/usr/bin:/bin')
           .startSokarOn(machineAt('/tmp/unused.sock'));
 
       expect(started.went, isTrue);
-      expect(started.words, contains('started sokard itself'));
+      expect(started.words, contains('started sokard itself: there is no systemd unit for it'));
       // It came back while the daemon is still running, which is the whole of "detached": a start
       // that waited for the daemon to finish would hold the window for as long as it serves.
       final by = DateTime.now().add(const Duration(seconds: 5));
@@ -374,9 +387,52 @@ void main() {
       expect(File(marker).existsSync(), isTrue, reason: 'it was never run at the far end');
     });
 
+    test('a machine with a unit has systemd start it, and never runs the binary itself', () async {
+      final marker = '${where.path}/binary-ran';
+      sokardThat('echo ran > $marker');
+      systemdThatSays('loaded');
+
+      final started = await runningTheScript('${where.path}:/usr/bin:/bin')
+          .startSokarOn(machineAt('/tmp/unused.sock'));
+
+      expect(started.went, isTrue);
+      expect(started.words, contains('started by systemd'));
+      expect(File(marker).existsSync(), isFalse, reason: 'a supervised start ran the binary as well');
+    });
+
+    // The operator's report on 2026-09-13: a refused start said only that nothing answered.
+    test('a unit that refuses says what systemd said, and the binary is not run instead', () async {
+      final marker = '${where.path}/binary-ran';
+      sokardThat('echo ran > $marker\nsleep 5');
+      systemdThatSays('loaded',
+          start: 'echo "Job for sokard.service failed because the control process exited." >&2; exit 1');
+
+      final started = await runningTheScript('${where.path}:/usr/bin:/bin')
+          .startSokarOn(machineAt('/tmp/unused.sock'));
+
+      expect(started.went, isFalse);
+      expect(started.words, contains('Job for sokard.service failed because the control process exited.'));
+      expect(started.words, contains('exit 1'));
+      expect(File(marker).existsSync(), isFalse,
+          reason: 'a unit that refused was worked around by starting the binary behind it');
+    });
+
+    test('a daemon that ends as soon as it starts is a failure, with what it wrote', () async {
+      sokardThat('echo "cannot read /etc/sokar/sokard.conf" >&2\nexit 3');
+      systemdThatSays('not-found');
+
+      final started = await runningTheScript('${where.path}:/usr/bin:/bin')
+          .startSokarOn(machineAt('/tmp/unused.sock'));
+
+      expect(started.went, isFalse);
+      expect(started.words, contains('cannot read /etc/sokar/sokard.conf'));
+      expect(started.words, contains('exit 3'));
+      expect(started.words, isNot(contains('started sokard itself')));
+    });
+
     test('a far end with no lingering is told what that costs, and one with it is not', () async {
-      File('${where.path}/sokard').writeAsStringSync('#!/bin/sh\nsleep 1\n');
-      Process.runSync('chmod', <String>['755', '${where.path}/sokard']);
+      sokardThat('sleep 5');
+      systemdThatSays('not-found');
 
       Future<String> wordsWhenLingerIs(String answer) async {
         File('${where.path}/loginctl').writeAsStringSync('#!/bin/sh\necho $answer\n');

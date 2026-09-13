@@ -367,10 +367,24 @@ class Tunnels extends ChangeNotifier {
   /// one ends. The forward this interface holds *is* such a session, so a machine being watched
   /// keeps it alive — but only for as long as it is watched, which is worth saying rather than
   /// finding out.
+  ///
+  /// **A unit that refuses is a failure, never a reason to run the binary behind systemd's back**,
+  /// and what systemd said is what the person reads. Only with no unit loaded does it start the
+  /// binary itself, and then it looks two seconds later: a daemon that ended at once is reported with
+  /// its exit code and the last it wrote, rather than as started. Two seconds is enough for one that
+  /// cannot read its configuration and short enough not to hold every start.
   static const String startsIt =
       'command -v sokard >/dev/null 2>&1 || { echo "no sokard is installed there" >&2; exit 127; }; '
-      'if systemctl --user start sokard >/dev/null 2>&1; then echo "started by systemd"; '
-      'else setsid sokard >/dev/null 2>&1 </dev/null & echo "started sokard itself"; fi; '
+      r'if [ "$(systemctl --user show sokard -p LoadState --value 2>/dev/null)" = loaded ]; then '
+      r'said=$(systemctl --user start sokard 2>&1) || { rc=$?; '
+      r'echo "systemd refused to start sokard (exit $rc): $said" >&2; exit $rc; }; '
+      'echo "started by systemd"; '
+      r'else out=$(mktemp) || exit 1; setsid sokard >"$out" 2>&1 </dev/null & pid=$!; sleep 2; '
+      r'if kill -0 "$pid" 2>/dev/null; then rm -f "$out"; '
+      'echo "started sokard itself: there is no systemd unit for it"; '
+      r'else wait "$pid"; rc=$?; '
+      r'echo "sokard ended as soon as it started (exit $rc): $(tail -n 5 "$out")" >&2; '
+      r'rm -f "$out"; exit 1; fi; fi; '
       r'loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null | grep -qx yes || '
       r'echo "(it stops when the last session there ends: loginctl enable-linger $(id -un))"';
 

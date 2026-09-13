@@ -87,6 +87,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Fixed
 
+- **A start that fails says why.** When systemd refuses to start the daemon, its own words and exit
+  code are shown, and the binary is no longer started behind its back; without a unit, a daemon that
+  ends at once is reported with what it wrote instead of as started.
 - **The licence is the GPL 3, like the rest of Sokar**, and its text ships in every package. The
   package metadata had said Apache-2.0.
 - Working in a task by hand is no longer offered for a machine reached through a socket something
