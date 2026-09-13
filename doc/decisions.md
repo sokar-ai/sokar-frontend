@@ -6,6 +6,7 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-13 | [A unit that refuses is a failure, and a start without one is watched for two seconds](#2026-09-13--a-unit-that-refuses-is-a-failure-and-a-start-without-one-is-watched-for-two-seconds) |
 | 2026-09-13 | [Needs you shows only what needs a person; everything else stays in its machine's area](#2026-09-13--needs-you-shows-only-what-needs-a-person) |
 | 2026-09-13 | [Needs you has ranks, and a question with a deadline is always first](#2026-09-13--needs-you-has-ranks-and-a-question-with-a-deadline-is-always-first) |
 | 2026-09-13 | [A tile keeps its actions, each offered only where it can be honoured](#2026-09-13--a-tile-keeps-its-actions-each-offered-only-where-it-can-be-honoured) |
@@ -18,6 +19,25 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-13 — A unit that refuses is a failure, and a start without one is watched for two seconds
+
+The operator's decision, answering Sokar's QB10 after a start from the machine menu failed and said
+only that nothing answered. The start line used to throw systemd's words away and start the binary
+itself whenever systemd refused.
+
+- **A unit that is loaded and refuses is a failure**, reported with systemd's own words and exit
+  code. Starting the binary behind it would run a daemon nobody supervises, next to a unit that
+  says it is stopped.
+- **Only with no unit loaded** — none installed, or no user manager to ask — is the binary started
+  directly.
+- **Such a start is looked at two seconds later**, and a daemon that has already ended is a failure
+  with its exit code and the last lines it wrote. Two seconds is enough for one that cannot read
+  its configuration and short enough not to hold every start. A daemon that dies later is found by
+  the connection trial that follows every start, as before.
+
+Measured on the Ubuntu VM on 2026-09-13: the line, run unchanged as `michi`, reported *"started by
+systemd"* and the daemon came up in `app.slice/sokard.service`.
 
 ## 2026-09-13 — Needs you shows only what needs a person
 

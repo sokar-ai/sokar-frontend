@@ -56,8 +56,7 @@ file goes, in [AGENTS.md](../AGENTS.md) or in one of the documents under `doc/`.
 
 | # | Status | Blocked by | What must be true | Open questions | What the backend is short of |
 |---|---|---|---|---|---|
-| [F34](F34-A-Start-That-Says-Why-It-Failed.md) | open — next | | When a start fails, the person reads why, in the words of whatever refused, and a start is never reported as done when nothing was started. | 1 | |
-| [F35](F35-A-Failed-Operation-Waits-Until-Seen.md) | open | | An operation a person started that failed stays under Needs you until that person has opened it. | 1 | |
+| [F35](F35-A-Failed-Operation-Waits-Until-Seen.md) | open — next | | An operation a person started that failed stays under Needs you until that person has opened it. | 1 | |
 | [F36](F36-Operations-Outlive-The-Window.md) | open | | Every operation is kept in an owner-only file, shown again after a restart and opened on request. | 2 | |
 | [F33](F33-Stop-The-Daemon-On-A-Machine-You-Can-Reach.md) | **blocked** | Sokar B54 | A person can stop the daemon on a machine reached over ssh, told first exactly what stopping costs. | 1 | a stop that leaves the tasks it started running, and a way to know which running tasks a stop would affect |
 | [F31](F31-A-Consent-Granted-Once-Outside-The-Interface.md) | **blocked** | Sokar B31 | When a machine needs a person to grant an authorization in a browser, the link is shown whole, opened on request, and waited for visibly. | 1 | the whole flow: no method or event for a pending consent |
