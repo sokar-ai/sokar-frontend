@@ -77,7 +77,43 @@ class StartWork extends ChangeNotifier {
       agent != null &&
       mode != null &&
       (!takesAPrompt || prompt.trim().isNotEmpty) &&
+      nameProblem == null &&
       !refusedOutright;
+
+  /// Why the name cannot be a task's, or null when it can or none was typed.
+  ///
+  /// **Sokar's rule for a task name**, accepted by the operator on 2026-09-13 after `Foo Bar` was
+  /// sent, the image built, and only `podman create` refused it. Lowercase letters, digits and
+  /// inner hyphens: podman names the container `sokar-<project>-<task>`, git names the ref after the
+  /// task, and a case-insensitive filesystem makes `Foo` and `foo` one ref. Not only digits, which a
+  /// login container's name is. And the container name at most [longestContainerName] characters,
+  /// because the task's longest socket path must fit. Start stays the authority; this only stops a
+  /// name it will refuse from being sent.
+  String? get nameProblem {
+    if (name.isEmpty) return null;
+    if (name.contains(' ')) return 'A name cannot hold a space. Use lowercase letters, digits and "-".';
+    if (name != name.toLowerCase()) return 'A name is lowercase: letters, digits and "-".';
+    if (!_taskName.hasMatch(name)) {
+      return 'A name holds only lowercase letters, digits and "-", and starts and ends with a letter '
+          'or a digit.';
+    }
+    if (_onlyDigits.hasMatch(name)) return 'A name cannot be only digits.';
+    final where = project;
+    if (where != null) {
+      final container = 'sokar-${where.name}-$name';
+      if (container.length > longestContainerName) {
+        return 'That name is too long for this project: "$container" is ${container.length} '
+            'characters, and at most $longestContainerName fit.';
+      }
+    }
+    return null;
+  }
+
+  /// The longest a task's container name may be, prefix included.
+  static const int longestContainerName = 65;
+
+  static final RegExp _taskName = RegExp(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?$');
+  static final RegExp _onlyDigits = RegExp(r'^[0-9]+$');
 
   /// Whether starting would be refused before anything was created.
   ///

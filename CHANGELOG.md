@@ -94,6 +94,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Fixed
 
+- **A task name is checked in the dialog against Sokar's rule**, before anything is sent: lowercase
+  letters, digits and inner hyphens, not only digits, and short enough for its project. A name with
+  a space was accepted, the image was built, and only then did podman refuse the container name.
 - **Starting work again that fails says what the machine printed**, not only its exit code. The
   daemon's words were received and thrown away, so a start that needed an agent named said only
   *"failed with exit code 70"*.

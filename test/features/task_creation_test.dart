@@ -17,6 +17,7 @@ import './step/the_launch_was_called.dart';
 import './step/the_launch_asked_for_the_mode.dart';
 import './step/the_launch_was_given_the_project_file.dart';
 import './step/the_launch_left_the_naming_to_the_machine.dart';
+import './step/the_name_is_refused_saying.dart';
 import './step/starting_is_not_offered_yet.dart';
 import './step/what_to_ask_it_cannot_be_filled_in.dart';
 import './step/i_ask_it_to.dart';
@@ -66,6 +67,61 @@ void main() {
       await iChoose(tester, 'A shell, driven by hand');
       await iStartIt(tester);
       await theLaunchLeftTheNamingToTheMachine(tester);
+    });
+    testWidgets(
+        '''a name no container could have is refused before anything starts''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWorkInThisProject(tester);
+      await iCallIt(tester, 'Foo Bar');
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await theNameIsRefusedSaying(tester, 'cannot hold a space');
+      await startingIsNotOfferedYet(tester);
+    });
+    testWidgets(
+        '''a name in upper case is refused, because two of them could be one ref''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWorkInThisProject(tester);
+      await iCallIt(tester, 'Schema-Work');
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await theNameIsRefusedSaying(tester, 'lowercase');
+      await startingIsNotOfferedYet(tester);
+    });
+    testWidgets(
+        '''a name of other characters, or with a hyphen at its edge, is refused''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWorkInThisProject(tester);
+      await iCallIt(tester, 'schema_work-');
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await theNameIsRefusedSaying(
+          tester, 'starts and ends with a letter or a digit');
+      await startingIsNotOfferedYet(tester);
+    });
+    testWidgets('''a name of only digits is refused''', (tester) async {
+      await bddSetUp(tester);
+      await iStartWorkInThisProject(tester);
+      await iCallIt(tester, '123');
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await theNameIsRefusedSaying(tester, 'only digits');
+      await startingIsNotOfferedYet(tester);
+    });
+    testWidgets(
+        '''a name too long for its project is refused, saying how long it may be''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWorkInThisProject(tester);
+      await iCallIt(
+          tester, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await theNameIsRefusedSaying(tester, 'at most 65 fit');
+      await startingIsNotOfferedYet(tester);
     });
     testWidgets('''the mode is chosen, never assumed on somebody's behalf''',
         (tester) async {

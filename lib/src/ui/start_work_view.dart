@@ -105,10 +105,11 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                       ),
                     TextField(
                       key: const Key('start-name'),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'What to call it',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         helperText: 'Optional. Left empty, the machine names it.',
+                        errorText: starting.nameProblem,
                       ),
                       onChanged: starting.callIt,
                     ),

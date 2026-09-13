@@ -25,6 +25,50 @@ Feature: Starting work with an agent, a mode and a credential
     And I start it
     Then the launch left the naming to the machine
 
+  # The operator's Foo Bar was sent, the image was built, and only podman's create refused the name.
+  Scenario: a name no container could have is refused before anything starts
+    When I start work in this project
+    And I call it {'Foo Bar'}
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then the name is refused saying {'cannot hold a space'}
+    And starting is not offered yet
+
+  # A case-insensitive filesystem makes Foo and foo one git ref.
+  Scenario: a name in upper case is refused, because two of them could be one ref
+    When I start work in this project
+    And I call it {'Schema-Work'}
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then the name is refused saying {'lowercase'}
+    And starting is not offered yet
+
+  Scenario: a name of other characters, or with a hyphen at its edge, is refused
+    When I start work in this project
+    And I call it {'schema_work-'}
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then the name is refused saying {'starts and ends with a letter or a digit'}
+    And starting is not offered yet
+
+  # A login container is sokar-login-<digits>.
+  Scenario: a name of only digits is refused
+    When I start work in this project
+    And I call it {'123'}
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then the name is refused saying {'only digits'}
+    And starting is not offered yet
+
+  # The container name holds the prefix, and the task's longest socket path has to fit.
+  Scenario: a name too long for its project is refused, saying how long it may be
+    When I start work in this project
+    And I call it {'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then the name is refused saying {'at most 65 fit'}
+    And starting is not offered yet
+
   Scenario: the mode is chosen, never assumed on somebody's behalf
     When I start work in this project
     And I choose the agent {'An Agent'}
