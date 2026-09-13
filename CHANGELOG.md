@@ -26,6 +26,8 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Added
 
+- **A trial that fails because the socket is in another user's runtime directory says so**, and
+  names the path that was probably meant, instead of reporting that nothing answers.
 - **The window opens on what needs a person**, from every machine at once: open questions
   first, nearest deadline first with the time left, and answered on their tile, a machine that cannot be reached said above them, and
   a quiet task marked as a guess.

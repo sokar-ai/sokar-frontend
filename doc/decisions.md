@@ -6,6 +6,7 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-13 | [A connection trial may ask the machine `id -u` without a question, to name a wrong uid](#2026-09-13--a-connection-trial-may-ask-the-machine-id--u-without-a-question) |
 | 2026-09-12 | [The settings file is written atomically and owner-only, and a bad entry is dropped rather than fatal](#2026-09-12--the-settings-file-is-written-atomically-and-owner-only) |
 | 2026-09-12 | [A socket that answers is refused rather than deleted; the remaining race is accepted](#2026-09-12--a-socket-that-answers-is-refused-rather-than-deleted) |
 | 2026-09-12 | [`XDG_RUNTIME_DIR` is trusted, and that is not a hole worth closing](#2026-09-12--xdg_runtime_dir-is-trusted) |
@@ -13,6 +14,19 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-13 — A connection trial may ask the machine `id -u` without a question
+
+The operator's decision. When *Try the connection* finds the forward up and nothing serving, it runs
+`ssh -n -o BatchMode=yes <host> id -u` and compares the uid with the one in the typed socket path, so
+a socket in somebody else's runtime directory is named as that rather than as a missing daemon.
+
+**Why without a question**, when starting a daemon asks first: `id -u` reports the caller's own uid,
+needs no privilege, reads nothing of anybody else's and changes nothing — and it runs only inside a
+trial the person asked for. The rule it relaxes exists for commands that change a machine.
+
+**What would change the answer:** any second command added beside it, or one that reads more than
+the caller's own identity. A trial that needs more than that asks, the way a start does.
 
 ## 2026-09-12 — The settings file is written atomically and owner-only
 

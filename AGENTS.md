@@ -1116,10 +1116,24 @@ a second implementation of the *domain* by parsing the `sokar` CLI. `ssh` is tra
 answers; the process itself is proven in `test/app/tunnel_test.dart` against real sockets. Same
 reason `FleetBackend` is a seam: a widget test's clock does not carry real input and output.
 
-## Starting a daemon at the far end is the one thing run on somebody else's machine
+## Two things are run on somebody else's machine: a start, asked first, and `id -u`, not asked
 
-`Tunnels.startSokarOn`, met and retired on 2026-09-13. Everything else over `ssh` is `-N`: a forward and no remote command.
-This runs a line there, which is a step further in, so:
+Everything else over `ssh` is `-N`: a forward and no remote command.
+
+**`id -u`, run by a connection trial that found nothing serving** (`Tunnels.loginUidOn`). Measured on
+2026-09-13 on the Ubuntu VM: ssh reports another user's socket, our own directory with no daemon and
+a directory that does not exist in **exactly the same words** — `channel 1: open failed: connect
+failed: open failed` — because OpenSSH does not pass the server's reason on. No daemon field could
+tell either: every runtime directory is `0700`, so a wrong uid never reaches a daemon to ask. The one
+thing that separates them is the uid in the typed path against the login's own uid. So a mismatch
+says *"that socket is in another user's runtime directory … did you mean /run/user/<login>/…"*, and
+**no start is offered for it**: a daemon started for this login would still not serve that path.
+**It runs without a question** — the operator's decision, recorded in `doc/decisions.md` — and every
+way it fails is null, so a trial that cannot learn the uid says what it said before rather than
+guessing one.
+
+**Starting a daemon** (`Tunnels.startSokarOn`, met and retired on 2026-09-13) runs a line there that
+changes something, which is a step further in, so:
 
 - **Never without being asked**, in either place it is offered — the dialog's trial and a watched
   machine's menu. The line is shown in full before the yes, and run unchanged after it.

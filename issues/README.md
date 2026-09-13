@@ -50,14 +50,13 @@ an issue — the operator's rule, 2026-09-12 — so a row is as true as the work
 says whose answer it waits for, and **Blocked by** names it — a Sokar number, or a decision when
 the answer is nobody's work but the operator's — so a dependency reads the same from both ends as
 Sokar's own *Blocks* column. **A finished issue is deleted, file and row together** — this
-index holds what is still to do and nothing else, so there is no status for *met*. Three of these
-four are built and carry only open questions; what each of them measured is written down before the
+index holds what is still to do and nothing else, so there is no status for *met*. A row that is built and still carries open questions stays until
+they are answered or moved into an issue of their own; what it measured is written down before the
 file goes, in [AGENTS.md](../AGENTS.md) or in one of the documents under `doc/`.
 
 | # | Status | Blocked by | What must be true | Open questions | What the backend is short of |
 |---|---|---|---|---|---|
 | [F28](F28-One-View-Of-What-Needs-A-Person.md) | in progress — built, questions open | | Opening the window answers whether anything needs a person, for every connected machine at once. | 3 | |
-| [F29](F29-Try-A-Machine-Before-Watching-It.md) | in progress — built, questions open | | Adding a machine can try the connection first, and says what stood in the way when it fails. | 1 | |
 | [F33](F33-Stop-The-Daemon-On-A-Machine-You-Can-Reach.md) | **blocked** | Sokar B54 | A person can stop the daemon on a machine reached over ssh, told first exactly what stopping costs. | 1 | a stop that leaves the tasks it started running, and a way to know which running tasks a stop would affect |
 | [F31](F31-A-Consent-Granted-Once-Outside-The-Interface.md) | **blocked** | Sokar B31 | When a machine needs a person to grant an authorization in a browser, the link is shown whole, opened on request, and waited for visibly. | 1 | the whole flow: no method or event for a pending consent |
 | [F32](F32-The-Ranked-Review-Of-What-Got-Through.md) | **blocked** | Sokar B38 | What got through is shown most far-reaching first, each entry saying how far it can get. | 1 | the ranking itself |
