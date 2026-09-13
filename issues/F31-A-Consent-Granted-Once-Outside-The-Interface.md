@@ -5,25 +5,37 @@ on 2026-09-13. **Blocked by Sokar B31**, which itself waits on B28 and B30.
 
 ## What must be true
 
-**When a machine needs a person to grant an authorization in a browser, the interface shows the
-link whole, opens it on request, and waits visibly for something that finishes outside it.**
+**When work needs an authorization nobody has granted, the interface asks the person as a question
+with a link — naming the service, the project and the task — shows that link whole, opens it on
+request, and waits visibly for a grant that finishes outside it.**
+
+Sokar's B31 states the whole of it as *a person grants an authorization once, where a person
+actually is, and every task afterwards uses it without holding it and without asking again*. The
+criteria below are the ones that reach the interface, taken from B31 as Agent Sokar quoted them on
+2026-09-13.
 
 ## Acceptance
 
-- The consent link is shown **whole** — never shortened, wrapped into something unselectable or
-  elided in the middle — and can be selected and copied as it came. A link that was truncated is a
-  grant that cannot be made.
-- It can be opened in the person's browser with one action, and is still shown after opening, for
-  a person whose browser is on another device.
-- The wait says what it is waiting for and that it ends **outside the interface**. It is never a
-  spinner that implies the interface is doing the work.
-- The wait ends when the machine says the grant is complete, and says so; it also ends, in words,
-  when the machine says it failed or expired.
+- **A missing grant is a question, not an authentication failure.** It names the service, the
+  project and the task, and carries the link to grant it.
+- **An expired or revoked grant reads as needing authorization again** — distinct from a wrong
+  credential and from an expired task token, which are different problems with different fixes.
+- **The link arrives whole and is shown whole**: one string from the machine, rendered and opened as
+  it came, never assembled here from parts, never shortened or elided. It can be selected and
+  copied, and stays on screen after opening for a person whose browser is on another device.
+- **The wait says what it waits for and that it ends outside the interface** — never a spinner that
+  implies the interface is doing the work. It ends, in words, when the machine reports the grant
+  complete, failed or expired.
+- **Who granted it is shown** where the grant is shown, from the machine's record, which outlives the
+  task.
+- It is raised the way a clearance question already is — *a question raised by work that is now
+  blocked, answered by somebody who may not be looking* — so it reaches **Needs you** and a person
+  who is not at the window. What it adds is a link to open and an ending the interface does not see.
 
 ## What the backend is short of
 
-The whole of it: Sokar B31 has not built the flow yet, and there is no method or event on the wire
-for a pending consent. This file exists so the interface half is recorded where it will be built.
+**The wire shape, all of it.** B31 has no method for the link or for the grant record yet, and no
+event for a pending consent, so nothing here can be built until B31's half is. This file exists so the interface half is recorded where it will be built.
 
 ## To be checked
 
