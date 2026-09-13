@@ -5,6 +5,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
 import 'machines.dart';
+import 'operations.dart';
 import 'settings.dart';
 
 /// Why a tile sits where it does. Earlier is more urgent.
@@ -70,14 +71,25 @@ class Tile {
 /// here would be two answers to one question.
 class Attention extends ChangeNotifier {
   /// Constructor taking the machines to read across.
-  Attention(this._machines, [this._settings]) {
+  Attention(this._machines, [this._settings, this._operations]) {
     _machines.addListener(_follow);
     _settings?.addListener(notifyListeners);
+    _operations?.addListener(notifyListeners);
     _follow();
   }
 
   final Machines _machines;
   final Settings? _settings;
+  final Operations? _operations;
+
+  /// Operations a person started that failed and that nobody has opened since, oldest first.
+  ///
+  /// **Waiting until seen**, the operator's decision on 2026-09-13: a start that failed while its
+  /// view was closed was found only by going to that machine, and nobody looked there.
+  List<Operation> get failedUnseen => <Operation>[
+        for (final operation in _operations?.all ?? const <Operation>[])
+          if (operation.failed && !operation.seen) operation,
+      ];
   final Set<Listenable> _following = <Listenable>{};
 
   /// Every machine that is not answering. Said about the machine, above the tiles, never as one:
@@ -193,9 +205,12 @@ class Attention extends ChangeNotifier {
     return out;
   }
 
-  /// How many things need somebody now: an open question, or a machine that cannot say.
+  /// How many things need somebody now: an open question, a machine that cannot say, or a failure
+  /// nobody has seen.
   int get needingSomebody =>
-      tiles.where((tile) => tile.demand == Demand.question).length + silent.length;
+      tiles.where((tile) => tile.demand == Demand.question).length +
+      silent.length +
+      failedUnseen.length;
 
   /// Why one piece of work sits where it does.
   static Demand demandOf(Task task, List<Prompt> questions) {
@@ -261,6 +276,7 @@ class Attention extends ChangeNotifier {
   void dispose() {
     _machines.removeListener(_follow);
     _settings?.removeListener(notifyListeners);
+    _operations?.removeListener(notifyListeners);
     for (final each in _following) {
       each.removeListener(_changed);
     }

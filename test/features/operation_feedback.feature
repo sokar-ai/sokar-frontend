@@ -69,3 +69,42 @@ Feature: Running long operations without blocking the frame
     And I show what this session has run
     Then the record shows {'Nothing ran, and nothing was created'}
 
+  # Somebody who closed the view before it failed has not seen it, and nothing else would say so.
+  Scenario: a failure nobody watched waits under what needs a person until it is opened
+    When I choose the command {'Show what this project would open, creating nothing'}
+    And the operation prints {'could not read project.yml'}
+    And I close what is open
+    And the operation fails
+    And I go to what needs a person
+    Then a failed operation waits saying {'would open'}
+    And the count of what needs a person is {'1 need you'}
+    When I open the failed operation from what needs a person
+    Then the operation shows {'could not read project.yml'}
+    When I close what is open
+    And I go to what needs a person
+    Then no failed operation waits
+    And the count of what needs a person is {'nothing needs you'}
+
+  Scenario: a failure watched as it happened does not wait
+    When I choose the command {'Show what this project would open, creating nothing'}
+    And the operation fails
+    And I close what is open
+    And I go to what needs a person
+    Then no failed operation waits
+
+  Scenario: an operation that finished never waits
+    When I choose the command {'Show what this project would open, creating nothing'}
+    And I close what is open
+    And the operation finishes
+    And I go to what needs a person
+    Then no failed operation waits
+
+  Scenario: a failure opened from the session record no longer waits
+    When I choose the command {'Show what this project would open, creating nothing'}
+    And I close what is open
+    And the operation fails
+    And I show what this session has run
+    And I open the last operation
+    And I close what is open
+    And I go to what needs a person
+    Then no failed operation waits

@@ -26,6 +26,9 @@ import './step/i_start_sokar_there.dart';
 import './step/the_machine_was_asked_to_start.dart';
 import './step/starting_sokar_will_fail_with.dart';
 import './step/the_start_says.dart';
+import './step/i_cancel_the_dialog.dart';
+import './step/i_go_to_what_needs_a_person.dart';
+import './step/a_failed_operation_waits_saying.dart';
 import './step/the_forwarded_socket_is.dart';
 import './step/the_machine_serves_nothing_this_build_knows.dart';
 import './step/nothing_was_raised_for_the_trial.dart';
@@ -144,6 +147,21 @@ void main() {
       await iTryTheConnection(tester);
       await iStartSokarThere(tester);
       await theStartSays(tester, 'no sokard is installed there');
+    });
+    testWidgets(
+        '''a start that failed in the dialog waits under what needs a person once it is closed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await nothingAnswersOnThatMachine(tester);
+      await startingSokarWillFailWith(tester, 'no sokard is installed there');
+      await iChoose(tester, 'Raise the forward for me');
+      await iSayItIsAt(tester, 'user@build.example.test');
+      await itsSocketThereIs(tester, '/run/user/1001/sokar/sokard.sock');
+      await iTryTheConnection(tester);
+      await iStartSokarThere(tester);
+      await iCancelTheDialog(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await aFailedOperationWaitsSaying(tester, 'no sokard is installed there');
     });
     testWidgets('''a forward ssh could not raise is never offered a start''',
         (tester) async {

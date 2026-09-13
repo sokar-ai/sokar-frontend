@@ -194,7 +194,7 @@ class _ShellState extends State<Shell> {
   @override
   void initState() {
     super.initState();
-    _attention = Attention(widget.machines, widget.settings);
+    _attention = Attention(widget.machines, widget.settings, widget.operations);
     // Closing the window is how the interface ends, so the forwards it raised end with it.
     _leaving = AppLifecycleListener(onExitRequested: _letGo);
     widget.shell.addListener(_moveKeyboard);
@@ -706,13 +706,31 @@ class _ShellState extends State<Shell> {
     if (widget.gate.problem == null) widget.shell.openGate();
   }
 
+  /// A start asked for in the dialog, recorded as one from the menu is. The dialog shows what came
+  /// back; the record is what keeps a failure once the dialog is closed.
+  Future<Started> _startAskedInTheDialog(Machine machine) async {
+    final started = await widget.machines.startSokarOn(machine);
+    widget.operations.run(
+      title: 'Start Sokar on ${machine.host}',
+      machine: machine.name,
+      output: _saidByAStart(machine, started),
+    );
+    return started;
+  }
+
+  Stream<String> _saidByAStart(Machine machine, Started started) async* {
+    yield Tunnels.startCommandFor(machine).join(' ');
+    yield started.words;
+    if (!started.went) throw FailedSaying(started.words);
+  }
+
   /// Asks for another machine to watch, starts watching it, and goes there.
   Future<void> _addAMachine() async {
     final machine = await askForAMachine(
       context,
       taken: widget.machines.all.map((each) => each.name),
       trying: widget.machines.tryMachine,
-      starting: widget.machines.startSokarOn,
+      starting: _startAskedInTheDialog,
     );
     if (machine == null) return;
     await widget.machines.add(machine);
@@ -778,13 +796,13 @@ class _ShellState extends State<Shell> {
     yield Tunnels.startCommandFor(machine).join(' ');
     final started = await widget.machines.startSokarOn(machine);
     yield started.words;
-    if (!started.went) throw StateError(started.words);
+    if (!started.went) throw FailedSaying(started.words);
     await widget.machines.raiseAgainIfNeeded(machine);
     await widget.machines.of(machine).connect();
     final answering =
         widget.machines.of(machine).reachability == Reachability.connected;
     yield answering ? 'It answers now.' : 'It still does not answer.';
-    if (!answering) throw StateError('It was started, and still nothing answers.');
+    if (!answering) throw const FailedSaying('It was started, and still nothing answers.');
   }
 
   /// Asks which log, then opens it. Reading starts whether or not it stays on screen.
@@ -1075,6 +1093,7 @@ class _ShellState extends State<Shell> {
         onDecide: (tile, prompt, {required allow}) => tile.fleet.clearance
             .decide(tile.fleet.backend, prompt, allow: allow),
         onPutAway: (tile, prompt) => tile.fleet.clearance.forget(prompt),
+        onOpenOperation: (operation) => widget.shell.openOperation(operation.id),
         actionsFor: _tileActions,
         onSelect: _goToWork,
         onReview: (tile) {
@@ -1363,6 +1382,11 @@ class _ShellState extends State<Shell> {
       case OperationOpened(:final id):
         final operation = widget.operations.byId(id);
         if (operation == null) return null;
+        // Open is seen, wherever it was opened from and whether it failed before or while it was.
+        // Not now: this runs while the frame is drawn, and seeing it redraws the frame.
+        if (operation.failed && !operation.seen) {
+          scheduleMicrotask(() => widget.operations.see(operation));
+        }
         return OperationOutputView(
           operation: operation,
           onBack: widget.shell.openOperations,

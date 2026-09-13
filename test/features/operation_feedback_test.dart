@@ -23,6 +23,11 @@ import './step/the_operation_fails.dart';
 import './step/the_record_marks_it_as_failed.dart';
 import './step/the_operation_runs_out_of_time.dart';
 import './step/the_run_is_refused_before_it_begins.dart';
+import './step/i_go_to_what_needs_a_person.dart';
+import './step/a_failed_operation_waits_saying.dart';
+import './step/the_count_of_what_needs_a_person_is.dart';
+import './step/i_open_the_failed_operation_from_what_needs_a_person.dart';
+import './step/no_failed_operation_waits.dart';
 
 void main() {
   group('''Running long operations without blocking the frame''', () {
@@ -119,6 +124,57 @@ void main() {
       await iCloseWhatIsOpen(tester);
       await iShowWhatThisSessionHasRun(tester);
       await theRecordShows(tester, 'Nothing ran, and nothing was created');
+    });
+    testWidgets(
+        '''a failure nobody watched waits under what needs a person until it is opened''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await theOperationPrints(tester, 'could not read project.yml');
+      await iCloseWhatIsOpen(tester);
+      await theOperationFails(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await aFailedOperationWaitsSaying(tester, 'would open');
+      await theCountOfWhatNeedsAPersonIs(tester, '1 need you');
+      await iOpenTheFailedOperationFromWhatNeedsAPerson(tester);
+      await theOperationShows(tester, 'could not read project.yml');
+      await iCloseWhatIsOpen(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await noFailedOperationWaits(tester);
+      await theCountOfWhatNeedsAPersonIs(tester, 'nothing needs you');
+    });
+    testWidgets('''a failure watched as it happened does not wait''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await theOperationFails(tester);
+      await iCloseWhatIsOpen(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await noFailedOperationWaits(tester);
+    });
+    testWidgets('''an operation that finished never waits''', (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await iCloseWhatIsOpen(tester);
+      await theOperationFinishes(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await noFailedOperationWaits(tester);
+    });
+    testWidgets('''a failure opened from the session record no longer waits''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await iCloseWhatIsOpen(tester);
+      await theOperationFails(tester);
+      await iShowWhatThisSessionHasRun(tester);
+      await iOpenTheLastOperation(tester);
+      await iCloseWhatIsOpen(tester);
+      await iGoToWhatNeedsAPerson(tester);
+      await noFailedOperationWaits(tester);
     });
   });
 }

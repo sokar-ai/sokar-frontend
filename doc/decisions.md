@@ -56,6 +56,14 @@ it* on its tile. The operator's decision the same day: a question that ran out w
 would otherwise leave the view without a trace, and the confirmation of an answer would vanish with
 the click that gave it.
 
+**An operation somebody started that failed waits there too, until it has been opened** — from its
+card, from the session record, or by having been open while it failed. The operator's decision the
+same day, after a failed start was found only by going to its machine. **No dialog reports an
+outcome**: the question before something runs on another machine stays, and afterwards a failure
+goes to Needs you and a success to the status line. A start from *Watch another machine* still
+shows its outcome in that dialog, where somebody is waiting for the trial, and a failure there is
+recorded as well, so closing the dialog does not lose it.
+
 **What would change the answer:** a state that needs a person and is neither a question nor the
 gate — an agent that ended with a question of its own, once the machine can say so (Sokar B47) —
 joins this view rather than waiting in a machine's area.

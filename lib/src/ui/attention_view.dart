@@ -7,8 +7,10 @@ import '../app/attention.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
 import '../app/machines.dart';
+import '../app/operations.dart';
 import 'command_menu.dart';
 import 'how_long.dart';
+import 'operations.dart';
 import 'panes.dart';
 import 'tokens.dart';
 
@@ -25,6 +27,7 @@ class AttentionView extends StatefulWidget {
     required this.onReview,
     this.onPutAway,
     this.onSelect,
+    this.onOpenOperation,
     super.key,
   });
 
@@ -45,6 +48,9 @@ class AttentionView extends StatefulWidget {
 
   /// Puts away the outcome of a question, on the machine that asked it.
   final void Function(Tile tile, Prompt prompt)? onPutAway;
+
+  /// Opens what a failed operation printed, which is what puts it away.
+  final void Function(Operation operation)? onOpenOperation;
 
   @override
   State<AttentionView> createState() => _AttentionViewState();
@@ -77,6 +83,7 @@ class _AttentionViewState extends State<AttentionView> {
     builder: (context, _) {
       final tiles = widget.attention.needing;
       final silent = widget.attention.silent;
+      final failed = widget.attention.failedUnseen;
       final needing = widget.attention.needingSomebody;
       _keepTicking(
         tiles.any(
@@ -99,7 +106,7 @@ class _AttentionViewState extends State<AttentionView> {
             ),
           ),
           Expanded(
-            child: tiles.isEmpty && silent.isEmpty
+            child: tiles.isEmpty && silent.isEmpty && failed.isEmpty
                 ? const Center(
                     // Not "no work": the work that needs nobody is still there, in its machine.
                     child: Text(
@@ -124,19 +131,18 @@ class _AttentionViewState extends State<AttentionView> {
                           spacing: Space.normal,
                           runSpacing: Space.normal,
                           children: <Widget>[
+                            // A question can still be answered, so it comes before a failure.
                             for (final tile in tiles)
-                              TaskTile(
-                                tile: tile,
-                                actions: tile.task == null
-                                    ? const <Command>[]
-                                    : widget.actionsFor(tile),
-                                onDecide: widget.onDecide,
-                                onReview: widget.onReview,
-                                onPutAway: widget.onPutAway,
-                                onSelect: widget.onSelect == null
+                              if (tile.demand == Demand.question) _tile(tile),
+                            for (final operation in failed)
+                              _FailedOperation(
+                                operation: operation,
+                                onOpen: widget.onOpenOperation == null
                                     ? null
-                                    : () => widget.onSelect!(tile),
+                                    : () => widget.onOpenOperation!(operation),
                               ),
+                            for (final tile in tiles)
+                              if (tile.demand != Demand.question) _tile(tile),
                           ],
                         ),
                       ],
@@ -147,6 +153,67 @@ class _AttentionViewState extends State<AttentionView> {
       );
     },
   );
+}
+
+extension on _AttentionViewState {
+  Widget _tile(Tile tile) => TaskTile(
+        tile: tile,
+        actions: tile.task == null ? const <Command>[] : widget.actionsFor(tile),
+        onDecide: widget.onDecide,
+        onReview: widget.onReview,
+        onPutAway: widget.onPutAway,
+        onSelect: widget.onSelect == null ? null : () => widget.onSelect!(tile),
+      );
+}
+
+/// An operation somebody started that failed, waiting until they have opened it.
+class _FailedOperation extends StatelessWidget {
+  const _FailedOperation({required this.operation, required this.onOpen});
+
+  final Operation operation;
+
+  /// Opens what it printed.
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return SizedBox(
+      width: 320,
+      child: Card(
+        key: ValueKey<String>('failed-operation ${operation.id}'),
+        color: scheme.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(Space.normal),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                operation.machine.isEmpty ? 'this window' : operation.machine,
+                key: const Key('failed-operation-machine'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: Space.small),
+              Row(
+                children: <Widget>[
+                  OperationMark(operation: operation),
+                  const SizedBox(width: Space.small),
+                  Expanded(child: Text(operation.title, style: text.bodyLarge)),
+                ],
+              ),
+              Text(operation.summary, style: text.bodySmall),
+              TextButton(
+                key: const Key('failed-operation-open'),
+                onPressed: onOpen,
+                child: const Text('Open what it printed'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// A machine that is not answering, said about the machine: it is not work, so it is not a tile.

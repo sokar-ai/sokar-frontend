@@ -57,6 +57,25 @@ class Operation {
 
   /// Whether it finished badly. Reported in the same place success would have been.
   bool get failed => state == OperationState.failed;
+
+  /// Whether a person has had it open since it failed. A failure nobody has seen waits under Needs
+  /// you; one that was open while it failed was watched failing.
+  bool seen = false;
+}
+
+/// Why an operation failed, in the words of whatever refused, and nothing else.
+///
+/// An operation's summary is the error's text, and a `StateError` would put *"Bad state:"* in front
+/// of a sentence somebody reads on a tile.
+class FailedSaying implements Exception {
+  /// Constructor taking what came back.
+  const FailedSaying(this.words);
+
+  /// What came back.
+  final String words;
+
+  @override
+  String toString() => words;
 }
 
 /// Every long operation started in this session, in the order they were started.
@@ -82,6 +101,13 @@ class Operations extends ChangeNotifier {
 
   /// The most recently started one, or null when nothing has run.
   Operation? get latest => _all.isEmpty ? null : _all.last;
+
+  /// Marks one as seen by a person, which is what puts a failure away from Needs you.
+  void see(Operation operation) {
+    if (operation.seen) return;
+    operation.seen = true;
+    _notify();
+  }
 
   /// One by [id], or null when this session never had it.
   Operation? byId(String id) {

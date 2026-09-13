@@ -93,6 +93,19 @@ Feature: Trying a machine from the dialog, before it is watched
     And I start Sokar there
     Then the start says {'no sokard is installed there'}
 
+  # The dialog shows what came back, and closing it must not lose a failure.
+  Scenario: a start that failed in the dialog waits under what needs a person once it is closed
+    Given nothing answers on that machine
+    And starting Sokar will fail with {'no sokard is installed there'}
+    When I choose {'Raise the forward for me'}
+    And I say it is at {'user@build.example.test'}
+    And its socket there is {'/run/user/1001/sokar/sokard.sock'}
+    And I try the connection
+    And I start Sokar there
+    And I cancel the dialog
+    And I go to what needs a person
+    Then a failed operation waits saying {'no sokard is installed there'}
+
   # A forward that never came up is a different problem, and starting something cannot answer it.
   Scenario: a forward ssh could not raise is never offered a start
     Given raising a forward will fail with {'Host key verification failed.'}
