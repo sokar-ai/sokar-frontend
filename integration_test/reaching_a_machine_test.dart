@@ -14,6 +14,7 @@ import './step/i_try_the_test_machine_from_the_dialog.dart';
 import './step/the_trial_says.dart';
 import './step/no_forward_raised_for_the_trial_is_left.dart';
 import './step/i_put_the_dialog_away.dart';
+import './step/i_try_the_test_machine_from_the_dialog_with_a_socket_beside_its_own_that_nobody_serves.dart';
 import './step/i_try_the_test_machine_from_the_dialog_with_the_socket.dart';
 
 void main() {
@@ -49,10 +50,20 @@ void main() {
         '''a socket nobody serves on the test machine is found by trying it''',
         (tester) async {
       await bddSetUp(tester);
+      await iTryTheTestMachineFromTheDialogWithASocketBesideItsOwnThatNobodyServes(
+          tester);
+      await theTrialSays(tester, 'nothing answers at');
+      await theTrialSays(tester, 'none.sock on that machine');
+      await noForwardRaisedForTheTrialIsLeft(tester);
+      await iPutTheDialogAway(tester);
+    });
+    testWidgets(
+        '''a socket in another user's runtime directory on the test machine is named as that''',
+        (tester) async {
+      await bddSetUp(tester);
       await iTryTheTestMachineFromTheDialogWithTheSocket(
           tester, '/run/user/0/sokar/none.sock');
-      await theTrialSays(tester,
-          'nothing answers at /run/user/0/sokar/none.sock on that machine');
+      await theTrialSays(tester, 'runtime directory (uid 0)');
       await noForwardRaisedForTheTrialIsLeft(tester);
       await iPutTheDialogAway(tester);
     });
