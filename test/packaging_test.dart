@@ -119,6 +119,16 @@ void main() {
       expect(workflow, contains('sokar-dist-rpm/snapshots/'));
     });
 
+    // The operator's decision on 2026-09-14: a Markdown-only push leased a machine and published a
+    // snapshot. Only documentation may be skipped, and nothing that builds or tests.
+    test('a push that changes only documentation starts no build, and nothing else is skipped', () {
+      final ignored = RegExp(r"paths-ignore:\n((?:\s+- '[^']+'\n)+)").firstMatch(workflow);
+      expect(ignored, isNotNull, reason: 'every Markdown push runs the whole build');
+      final patterns = RegExp(r"- '([^']+)'").allMatches(ignored!.group(1)!).map((m) => m.group(1)).toSet();
+      expect(patterns, <String>{'**.md', 'doc/**', 'issues/**'});
+      expect(workflow, contains('workflow_dispatch:'), reason: 'a run must always be forceable');
+    });
+
     test('every action is pinned to a commit, never to a tag that can move', () {
       // A tag is a name somebody else can repoint. These jobs hold the publishing token and the
       // credentials for a leased machine, and one of them uploads what another publishes — so an

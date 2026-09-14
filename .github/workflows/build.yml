@@ -4,10 +4,17 @@ name: Build
 # `snapshots` distribution. A consumer puts that word in their sources.list, so snapshots and a
 # future stable release can never mix.
 #
-# `workflow_dispatch` ignores the path filter, so a run can always be forced.
+# **A push that changes only documentation starts nothing**: every run leases a machine and publishes
+# a snapshot, and Markdown changes neither the package nor what it does. The docs are checked by
+# test/docs_test.dart before such a commit is made. A push that changes code and docs together runs
+# in full. `workflow_dispatch` ignores the path filter, so a run can always be forced.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - 'issues/**'
   workflow_dispatch:
 
 permissions:

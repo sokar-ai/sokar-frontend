@@ -6,6 +6,7 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-14 | [A push that changes only documentation starts no build](#2026-09-14--a-push-that-changes-only-documentation-starts-no-build) |
 | 2026-09-13 | [What was run is kept for thirty days in one owner-only file, and an unseen failure still waits](#2026-09-13--what-was-run-is-kept-for-thirty-days-in-one-owner-only-file) |
 | 2026-09-13 | [A unit that refuses is a failure, and a start without one is watched for two seconds](#2026-09-13--a-unit-that-refuses-is-a-failure-and-a-start-without-one-is-watched-for-two-seconds) |
 | 2026-09-13 | [Needs you shows only what needs a person; everything else stays in its machine's area](#2026-09-13--needs-you-shows-only-what-needs-a-person) |
@@ -20,6 +21,17 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-14 — A push that changes only documentation starts no build
+
+The operator's decision, after the push of an issue file started the whole workflow: the build,
+a leased machine for the integration tests, the installs and a published snapshot of an unchanged
+package. `build.yml` ignores pushes whose every change is under `**.md`, `doc/**` or `issues/**`; a
+push that changes code as well runs in full, and `workflow_dispatch` still forces a run.
+
+**The cost is that CI no longer checks such a push**: the decisions index, dead links and retired
+issue ids are held by `test/docs_test.dart` run before the commit, not after the push.
+`test/packaging_test.dart` fails if the filter goes or grows to cover anything but documentation.
 
 ## 2026-09-13 — What was run is kept for thirty days in one owner-only file
 
