@@ -326,6 +326,12 @@ is a parallel runner whose scenarios never reach JUnit XML, and most of them pre
   as guards named for what they test. (Earlier versions of this file described a
   `test/requirements_coverage_test.dart` with `pending` and `retired` lists; no such test exists in
   this repository's history, so that rule never held.)
+- **Long input through a terminal is tested in raw mode, and counted at the far end.** A pty
+  starts in canonical mode: the kernel hands a program at most 4095 characters of one line, and
+  drops echo it cannot get rid of when the reader falls behind. Measured on 2026-09-14 under CPU
+  load, 200,000 characters through `cat` came back as anything from 120,542 to 204,095 while every
+  byte had been sent, and `stty raw -echo` with the count taken at the far end read 200,000 every
+  time. A real session is tmux in raw mode, so canonical mode measures the kernel, not the product.
 - **Every guard must be proven to fail.** A test that has never failed is a test nobody has
   checked. When adding a rule, violate it once deliberately and watch it break. This is not
   ceremony: it has already paid for itself here. Removing the "a stream that ends without a final

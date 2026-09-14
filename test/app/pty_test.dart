@@ -75,17 +75,23 @@ void main() {
   test('a long paste arrives whole, rather than as much as one write took', () async {
     // A pty master takes what fits and reports that. Believing the call loses the tail of a
     // paste, silently — which reads as an agent that ignored half of what it was told.
-    final pty = Pty.start('sh', <String>['-c', 'cat']);
+    //
+    // **Counted at the far end, in raw mode.** The first version sent it through `cat` in the
+    // terminal's default canonical mode and counted what came back, echo included. Measured on
+    // 2026-09-14 under CPU load: canonical mode hands a program at most 4095 characters of one line,
+    // and the kernel drops echo it cannot get rid of, so that count moved between 120,542 and
+    // 204,095 while every byte had been sent. A session is tmux in raw mode, where neither applies.
+    final pty = Pty.start('sh', <String>['-c', r"stty raw -echo; head -c 200001 | tr -cd x | wc -c"]);
     final printed = whatItPrinted(pty);
-    final long = '${'x' * 200000}\n';
+    // stty has to have run before the paste, or the start of it meets canonical mode after all.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
 
-    pty.send(long);
-    // `cat` ends at end of input, which is what the terminal sends for ctrl-D.
-    pty.send(String.fromCharCode(4));
-    final said = await printed;
+    pty.send('${'x' * 200000}\n');
+    // Inside the test's own 30 seconds, so a lost tail fails with this sentence, not a timeout.
+    final said = await printed.timeout(const Duration(seconds: 20),
+        onTimeout: () => fail('the far end never received the whole paste'));
 
-    // The far end echoes as well as prints, so what comes back is at least what went out.
-    expect(said.split('x').length - 1, greaterThanOrEqualTo(200000),
+    expect(int.tryParse(said.trim().split(RegExp(r'\s+')).last), 200000,
         reason: 'part of what was typed went nowhere');
   });
 
