@@ -57,7 +57,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await theWorkCannotBeSeen(tester, 'sokar-checkout-shell');
-      await theTileSays(tester, 'sokar-checkout-shell', 'Cannot be seen');
+      await theTileSays(tester, 'sokar-checkout-shell', 'Running');
       await theTileIsNotMarkedAsAGuess(tester, 'sokar-checkout-shell');
     });
     testWidgets(

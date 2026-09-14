@@ -25,7 +25,7 @@ Feature: What a piece of work is doing, and how long it has been
 
   Scenario: work nothing can see is not reported as idle
     Given the work {'sokar-checkout-shell'} cannot be seen
-    Then the work {'sokar-checkout-shell'} is shown as {'Cannot be seen'}
+    Then the work {'sokar-checkout-shell'} is shown as {'Running'}
     And the work {'sokar-checkout-shell'} is not shown as {'Quiet'}
 
   Scenario: a change of activity arrives without anybody asking for it

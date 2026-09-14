@@ -77,6 +77,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Changed
 
+- **Running work nothing can see into is headed *Running***, instead of *Cannot be seen from here*,
+  which read like a problem with the connection. It says only that the work runs, never that it is
+  busy or idle.
 - **One console at a time, kept where it was opened.** Working by hand in other work leaves the
   console that was open; going to another place and back finds the console as it was; *Leave* is its
   only button.

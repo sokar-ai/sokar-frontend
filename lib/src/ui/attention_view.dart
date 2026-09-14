@@ -583,7 +583,8 @@ class TaskTile extends StatelessWidget {
       Demand.gate => 'Its work waits for review',
       Demand.working => 'Working$forHowLong',
       Demand.quiet => 'Quiet$forHowLong',
-      Demand.unseen => 'Cannot be seen from here',
+      // Only that it runs: nothing here can see what it is doing, and nothing claims to.
+      Demand.unseen => 'Running$forHowLong',
       Demand.stopped => 'Not running',
     };
   }

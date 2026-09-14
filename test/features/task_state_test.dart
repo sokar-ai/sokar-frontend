@@ -55,7 +55,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await theWorkCannotBeSeen(tester, 'sokar-checkout-shell');
-      await theWorkIsShownAs(tester, 'sokar-checkout-shell', 'Cannot be seen');
+      await theWorkIsShownAs(tester, 'sokar-checkout-shell', 'Running');
       await theWorkIsNotShownAs(tester, 'sokar-checkout-shell', 'Quiet');
     });
     testWidgets(

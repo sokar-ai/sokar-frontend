@@ -16,7 +16,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
 
   Scenario: work nothing can see is never drawn as quiet
     Given the work {'sokar-checkout-shell'} cannot be seen
-    Then the tile {'sokar-checkout-shell'} says {'Cannot be seen'}
+    Then the tile {'sokar-checkout-shell'} says {'Running'}
     And the tile {'sokar-checkout-shell'} is not marked as a guess
 
   # The operator's report: opened from Running and put away, it came back to the work's project.
