@@ -96,6 +96,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Fixed
 
+- **Acting on work from a tile no longer moves you to its project.** A session opened from Running
+  and put away came back to the work's project instead of Running; now every tile action leaves the
+  view where it was, and continuing or reviewing finds the project through the work itself.
 - **A task name is checked in the dialog against Sokar's rule**, before anything is sent: lowercase
   letters, digits and inner hyphens, not only digits, and short enough for its project. A name with
   a space was accepted, the image was built, and only then did podman refuse the container name.

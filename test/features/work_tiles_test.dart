@@ -17,12 +17,14 @@ import './step/i_work_in_by_hand_from_its_tile.dart';
 import './step/the_session_runs.dart';
 import './step/i_put_the_session_away.dart';
 import './step/the_view_shown_is_the_work.dart';
+import './step/no_project_is_selected.dart';
+import './step/i_select_the_project.dart';
+import './step/the_project_is_selected.dart';
 import './step/the_name_on_the_tile_can_be_copied.dart';
 import './step/i_open_the_menu_of_the_tile.dart';
 import './step/the_menu_offers.dart';
 import './step/i_click_the_tile_with_the_right_button.dart';
 import './step/the_work_has_stopped.dart';
-import './step/i_select_the_project.dart';
 import './step/i_choose_from_the_menu_of_the_tile.dart';
 import './step/was_started_again.dart';
 import './step/starting_it_again_will_be_refused_because_the_vault_is_locked.dart';
@@ -59,13 +61,24 @@ void main() {
       await theTileIsNotMarkedAsAGuess(tester, 'sokar-checkout-shell');
     });
     testWidgets(
-        '''work is opened by hand from its tile, and putting it away comes back to its machine''',
+        '''work is opened by hand from Running, and putting it away comes back to Running''',
         (tester) async {
       await bddSetUp(tester);
       await iWorkInByHandFromItsTile(tester, 'sokar-checkout-shell');
       await theSessionRuns(tester, 'sokar task attach sokar-checkout-shell');
       await iPutTheSessionAway(tester);
       await theViewShownIsTheWork(tester);
+      await noProjectIsSelected(tester);
+    });
+    testWidgets(
+        '''work opened by hand from its project comes back to that project''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSelectTheProject(tester, 'checkout');
+      await iWorkInByHandFromItsTile(tester, 'sokar-checkout-shell');
+      await iPutTheSessionAway(tester);
+      await theViewShownIsTheWork(tester);
+      await theProjectIsSelected(tester, 'checkout');
     });
     testWidgets('''the name on a tile can be selected and copied''',
         (tester) async {

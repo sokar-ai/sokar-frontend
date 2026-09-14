@@ -275,7 +275,7 @@ class _ShellState extends State<Shell> {
     askWhichLog: _askWhichLog,
     openSession: _openSession,
     openDetail: _openWork,
-    continueTheWork: (_) => _continueTheWork(),
+    continueTheWork: _continueTheWork,
     recreate: _recreate,
     nameTheWork: _nameTheWork,
     widenTheWork: (_) => _widenTheWork(),
@@ -344,17 +344,31 @@ class _ShellState extends State<Shell> {
       askToRemove: _askToRemove,
       askWhichLog: _askWhichLog,
       openSession: _openSession,
-      continueTheWork: (_) => _continueTheWork(),
+      continueTheWork: _continueTheWork,
       recreate: _recreate,
       nameTheWork: _nameTheWork,
       widenTheWork: (_) => _widenTheWork(),
       enforceOnTheWork: (_) => _enforceOnTheWork(),
       narrowTheWork: (_) => _narrowTheWork(),
     ))
-      command.after(() => _select(tile)),
+      command.after(() => _actOn(tile)),
   ];
 
-  /// Makes a tile's machine and work the ones being acted on.
+  /// Makes a tile's machine and work the ones being acted on, **and changes nothing about where
+  /// somebody is**: acting on work from Running leaves Running on screen, and from a project that
+  /// project. The operator's report on 2026-09-14: a session opened from Running and put away came
+  /// back to the work's project, because acting narrowed to it.
+  void _actOn(Tile tile) {
+    widget.machines.select(tile.machine);
+    final task = tile.task;
+    if (task != null) tile.fleet.selectTask(task.name);
+  }
+
+  /// The project [work] belongs to, as this machine lists it, without selecting it.
+  ProjectOnScreen? _projectOf(Task work) =>
+      _fleet.projects.where((project) => project.name == work.project).firstOrNull;
+
+  /// Goes to where a tile's work lives: its machine, its project, the work itself.
   void _select(Tile tile) {
     widget.machines.select(tile.machine);
     final task = tile.task;
@@ -371,9 +385,9 @@ class _ShellState extends State<Shell> {
     widget.shell.goTo(Section.machine);
   }
 
-  /// Opens what is waiting at the selected project's gate.
-  Future<void> _openTheGate() async {
-    final project = _fleet.selectedProject?.project;
+  /// Opens what is waiting at a project's gate: [work]'s own, or the selected project's.
+  Future<void> _openTheGate([Task? work]) async {
+    final project = (work == null ? _fleet.selectedProject : _projectOf(work))?.project;
     if (project == null) return;
     widget.shell.openGate();
     await widget.gate.lookAt(_fleet.backend, project);
@@ -600,9 +614,9 @@ class _ShellState extends State<Shell> {
   }
 
   /// Continues a finished unattended run, with what it was asked to do last time in the box.
-  Future<void> _continueTheWork() async {
-    final task = _fleet.selectedTask;
-    final project = _fleet.selectedProject?.project;
+  Future<void> _continueTheWork([Task? work]) async {
+    final task = work ?? _fleet.selectedTask;
+    final project = (task == null ? null : _projectOf(task))?.project ?? _fleet.selectedProject?.project;
     if (task == null || project == null) return;
     await widget.starting.continueFrom(_fleet.backend, project, task);
     if (!mounted) return;
@@ -1097,8 +1111,8 @@ class _ShellState extends State<Shell> {
         actionsFor: _tileActions,
         onSelect: _goToWork,
         onReview: (tile) {
-          _select(tile);
-          unawaited(_openTheGate());
+          _actOn(tile);
+          unawaited(_openTheGate(tile.task));
         },
       ),
     );
@@ -1198,8 +1212,8 @@ class _ShellState extends State<Shell> {
                         onPutAway: (tile, prompt) =>
                             tile.fleet.clearance.forget(prompt),
                         onReview: (tile) {
-                          _select(tile);
-                          unawaited(_openTheGate());
+                          _actOn(tile);
+                          unawaited(_openTheGate(tile.task));
                         },
                         selected:
                             tile.task != null &&

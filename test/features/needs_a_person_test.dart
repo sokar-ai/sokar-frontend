@@ -29,6 +29,8 @@ import './step/the_command_finder_is_open.dart';
 import './step/the_machine_is_the_same_node.dart';
 import './step/the_same_question_arrives_through_both.dart';
 import './step/tile_asks_to_reach.dart';
+import './step/i_choose_from_the_menu_of_the_tile.dart';
+import './step/what_to_ask_it_says.dart';
 import './step/i_review_the_work_from_its_tile.dart';
 import './step/i_open_the_waiting_push.dart';
 import './step/the_review_shows_the_file.dart';
@@ -39,7 +41,6 @@ import './step/the_tile_does_not_say.dart';
 import './step/other_work_is_blocked_reaching_with_minutes_left.dart';
 import './step/i_open_the_menu_of_the_tile.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
-import './step/i_choose_from_the_menu_of_the_tile.dart';
 import './step/was_stopped_on_the_machine.dart';
 import './step/nothing_was_stopped_on_this_machine.dart';
 import './step/the_tile_is_headed.dart';
@@ -141,6 +142,14 @@ void main() {
       await iWatchAnotherMachineCalled(tester, 'elsewhere');
       await theSameQuestionArrivesThroughBoth(tester);
       await tileAsksToReach(tester, 1, 'api.example.test');
+    });
+    testWidgets(
+        '''a finished run is continued from its tile, without going to its project''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseFromTheMenuOfTheTile(tester,
+          'Continue this work with a new prompt', 'sokar-checkout-migrate');
+      await whatToAskItSays(tester, 'Fix the rounding in Money.pennies');
     });
     testWidgets(
         '''work waiting at the gate is reviewed from its tile, over the view''',

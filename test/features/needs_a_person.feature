@@ -72,6 +72,11 @@ Feature: What needs a person on every machine, without going anywhere
     And the same question arrives through both
     Then {1} tile asks to reach {'api.example.test'}
 
+  # Nothing is narrowed here, so the run to continue finds its project through the work itself.
+  Scenario: a finished run is continued from its tile, without going to its project
+    When I choose {'Continue this work with a new prompt'} from the menu of the tile {'sokar-checkout-migrate'}
+    Then what to ask it says {'Fix the rounding in Money.pennies'}
+
   Scenario: work waiting at the gate is reviewed from its tile, over the view
     When I review the work {'sokar-checkout-migrate'} from its tile
     And I open the waiting push
