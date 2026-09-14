@@ -107,19 +107,6 @@ class ReviewOpened extends Opened {
   const ReviewOpened();
 }
 
-/// A shell inside one running task.
-///
-/// Only the task, and not the session itself: what is open over the frame is a *place*, and the
-/// session outlives being looked at. Holding the object here would tie a running session to
-/// whether somebody is currently looking at it.
-class SessionOpened extends Opened {
-  /// Constructor taking which task's session.
-  const SessionOpened(this.task);
-
-  /// The container.
-  final String task;
-}
-
 /// One of a task's logs.
 class LogOpened extends Opened {
   /// Constructor taking which log of which task.
@@ -205,9 +192,6 @@ class ShellModel extends ChangeNotifier {
   /// Opens one of a task's logs.
   void openLog(String task, String log) => _open(LogOpened(task, log));
 
-  /// Opens the session inside one running task.
-  void openSession(String task) => _open(SessionOpened(task));
-
   /// Opens what is waiting at the selected project's gate.
   void openGate() => _open(const GateOpened());
 
@@ -245,8 +229,7 @@ class ShellModel extends ChangeNotifier {
       (OperationOpened(:final id), OperationOpened(id: final next)) => id == next,
       (LogOpened(:final task, :final log), LogOpened(task: final t, log: final l)) =>
         task == t && log == l,
-      (SessionOpened(:final task), SessionOpened(task: final next)) => task == next,
-      (OperationOpened() || LogOpened() || SessionOpened(), _) => false,
+      (OperationOpened() || LogOpened(), _) => false,
       _ => open.runtimeType == what.runtimeType,
     };
     if (same && _highlight == null) return;

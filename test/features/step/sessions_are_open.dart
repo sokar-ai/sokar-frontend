@@ -4,5 +4,5 @@ import '../support/world.dart';
 
 /// Usage: {2} sessions are open
 Future<void> sessionsAreOpen(WidgetTester tester, int count) async {
-  expect(World.sessions.all, hasLength(count));
+  expect(World.sessions.current == null ? 0 : 1, count);
 }

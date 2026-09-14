@@ -7,6 +7,7 @@ import 'package:xterm/xterm.dart';
 
 import 'machines.dart';
 import 'pty.dart';
+import 'shell_model.dart';
 
 /// How a terminal is opened. Injectable, so everything above it runs without a process.
 typedef OpenTerminal = SessionChannel Function(
@@ -77,8 +78,8 @@ class Session extends ChangeNotifier {
   /// Which container, as `List` reports it and as every other method takes it.
   final String task;
 
-  /// Which machine it is on. Named on screen because several sessions can be open at once and
-  /// two machines can have a task of the same name.
+  /// Which machine it is on. Named on screen because two machines can have a task of the same
+  /// name.
   final Machine machine;
 
   final OpenTerminal _open;
@@ -218,19 +219,58 @@ class Session extends ChangeNotifier {
 /// were opened and each is named by its task and its machine, because two machines can have a
 /// task called the same thing and *"which of these am I typing into"* is the question this list
 /// exists to answer.
+/// Where a session was opened: the place it belongs to, and the only place it is shown.
+///
+/// **A place, not a screen**: *Needs you*, or one machine's Running, or one project on a machine.
+/// Going somewhere else leaves the session running and out of sight; coming back finds it as it was.
+@immutable
+class ConsolePlace {
+  /// Constructor taking the section, and for a machine which one and which project, if any.
+  const ConsolePlace({required this.section, this.machine = '', this.project});
+
+  /// Needs you, or a machine.
+  final Section section;
+
+  /// The machine's name, empty under Needs you.
+  final String machine;
+
+  /// The project it was narrowed to, or null for Running.
+  final String? project;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ConsolePlace &&
+      other.section == section &&
+      other.machine == machine &&
+      other.project == project;
+
+  @override
+  int get hashCode => Object.hash(section, machine, project);
+}
+
+/// The one session that is open, and where it belongs.
+///
+/// **One at a time**, the operator's decision on 2026-09-14: several open at once, drawn as chips
+/// over one terminal, made leaving one look like leaving all. Opening another leaves this one — the
+/// work behind it carries on, and opening it again shows its last lines.
 class Sessions extends ChangeNotifier {
   /// Constructor. [openTerminal] stands in for a real one in tests.
   Sessions({this.openTerminal});
 
   /// How a terminal is opened. Null means a real pty.
   final OpenTerminal? openTerminal;
-  final List<Session> _sessions = <Session>[];
 
-  /// What is open, oldest first.
-  List<Session> get all => List<Session>.unmodifiable(_sessions);
+  Session? _current;
+  ConsolePlace? _place;
 
-  /// Whether anything is open.
-  bool get any => _sessions.isNotEmpty;
+  /// The session that is open, or null.
+  Session? get current => _current;
+
+  /// Where it was opened, and so the only place it is shown. Null when none is open.
+  ConsolePlace? get place => _place;
+
+  /// Whether one is open.
+  bool get any => _current != null;
 
   /// Why [task] cannot be worked in by hand, or null when it can.
   ///
@@ -254,42 +294,51 @@ class Sessions extends ChangeNotifier {
     return null;
   }
 
-  /// The session against [task] on [machine], opening one if there is none.
+  /// Opens the session against [task] on [machine] at [at], and returns it.
   ///
-  /// **Opening the same work twice returns what is already there.** One container holds one
-  /// session, so a second way in to it would draw the same screen twice and let somebody type
-  /// into either — which is the confusion the criterion about telling sessions apart is about.
-  Session openOn(String task, Machine machine) {
-    final already = find(task, machine);
-    if (already != null) return already;
+  /// **The same work again returns what is there**, moved to where it was asked for: one container
+  /// holds one session, and a second way in would draw the same screen twice. **Other work leaves
+  /// the one that was open** without asking — nothing at the far end stops.
+  Session openOn(String task, Machine machine, {required ConsolePlace at}) {
+    final open = _current;
+    if (open != null && open.task == task && open.machine == machine) {
+      if (_place != at) {
+        _place = at;
+        notifyListeners();
+      }
+      return open;
+    }
+    if (open != null) unawaited(_end(open));
     final session = Session(task: task, machine: machine, open: openTerminal);
-    _sessions.add(session);
-    session.addListener(notifyListeners);
+    _current = session;
+    _place = at;
     notifyListeners();
     return session;
   }
 
-  /// The session against [task] on [machine], or null.
-  Session? find(String task, Machine machine) {
-    for (final session in _sessions) {
-      if (session.task == task && session.machine == machine) return session;
-    }
-    return null;
+  /// Closes the way in. The work it reached carries on.
+  Future<void> leave() async {
+    final open = _current;
+    if (open == null) return;
+    _current = null;
+    _place = null;
+    notifyListeners();
+    await _end(open);
   }
 
-  /// Closes one way in. The work it reached carries on.
-  Future<void> leave(Session session) async {
-    _sessions.remove(session);
-    session.removeListener(notifyListeners);
+  /// Closes the way in, for a window that is being shut.
+  Future<void> leaveAll() => leave();
+
+  Future<void> _end(Session session) async {
     await session.leave();
     session.dispose();
-    notifyListeners();
   }
 
-  /// Closes every way in, for a window that is being shut.
-  Future<void> leaveAll() async {
-    for (final session in List<Session>.of(_sessions)) {
-      await leave(session);
-    }
+  @override
+  void dispose() {
+    final open = _current;
+    _current = null;
+    if (open != null) unawaited(_end(open));
+    super.dispose();
   }
 }

@@ -12,22 +12,16 @@ import 'tokens.dart';
 /// the sentences on this screen exist only to say that, because an interface that people think
 /// ends their work when they leave it is one they do not leave.
 class SessionView extends StatelessWidget {
-  /// Constructor taking the session, the others that are open, and the ways out.
+  /// Constructor taking the session and the way out.
   const SessionView({
     required this.session,
-    required this.others,
     required this.focusNode,
-    required this.onGoTo,
     required this.onLeave,
-    required this.onClose,
     super.key,
   });
 
   /// The session being typed into.
   final Session session;
-
-  /// Everything else that is open, so it is always clear which is which.
-  final List<Session> others;
 
   /// The frame's keyboard for what is open — **handed to the terminal itself**.
   ///
@@ -38,14 +32,11 @@ class SessionView extends StatelessWidget {
   /// assuming.
   final FocusNode focusNode;
 
-  /// Goes to another open session.
-  final void Function(Session session) onGoTo;
-
   /// Ends this way in. The work at the far end carries on.
+  ///
+  /// **The only way out on this screen**: going to another place in the rail leaves the session
+  /// open and out of sight, and coming back finds it.
   final VoidCallback onLeave;
-
-  /// Puts the session away without ending it.
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -57,25 +48,13 @@ class SessionView extends StatelessWidget {
             children: <Widget>[
               PaneHeader(
                 title: '${session.task} · ${session.machine.name}',
-                trailing: Row(
-                  children: <Widget>[
-                    // "Leave" ends the way in; closing does not. Two different things one press
-                    // apart, so both say what they do rather than being an X and an X.
-                    TextButton.icon(
-                      key: const Key('leave-session'),
-                      onPressed: onLeave,
-                      icon: const Icon(Icons.logout, size: Sizes.rowIcon),
-                      label: const Text('Leave'),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Put it away, without leaving it',
-                      onPressed: onClose,
-                    ),
-                  ],
+                trailing: TextButton.icon(
+                  key: const Key('leave-session'),
+                  onPressed: onLeave,
+                  icon: const Icon(Icons.logout, size: Sizes.rowIcon),
+                  label: const Text('Leave'),
                 ),
               ),
-              if (others.length > 1) _Which(sessions: others, here: session, onGoTo: onGoTo),
               if (session.problem != null)
                 Container(
                   width: double.infinity,
@@ -133,31 +112,3 @@ class SessionView extends StatelessWidget {
 }
 
 /// Which sessions are open, and which one this is.
-class _Which extends StatelessWidget {
-  const _Which({required this.sessions, required this.here, required this.onGoTo});
-
-  final List<Session> sessions;
-  final Session here;
-  final void Function(Session session) onGoTo;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-            horizontal: Space.normal, vertical: Space.tight),
-        child: Wrap(
-          spacing: Space.small,
-          children: <Widget>[
-            for (final session in sessions)
-              ChoiceChip(
-                key: Key('open-session-${session.task}'),
-                selected: session == here,
-                onSelected: (_) => onGoTo(session),
-                // The machine as well as the task: two machines can have a task of the same
-                // name, and this list is the one place that has to be unambiguous.
-                label: Text('${session.task} · ${session.machine.name}'),
-              ),
-          ],
-        ),
-      );
-}

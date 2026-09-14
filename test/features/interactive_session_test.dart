@@ -28,15 +28,20 @@ import './step/the_work_is_dead.dart';
 import './step/the_command_is_unavailable_because.dart';
 import './step/the_session_is_on_screen.dart';
 import './step/the_work_pane_is_not_shown.dart';
-import './step/i_put_the_session_away.dart';
+import './step/i_go_to_what_needs_a_person.dart';
+import './step/the_session_is_not_on_screen.dart';
+import './step/i_leave_the_session.dart';
 import './step/the_work_is_still_selected.dart';
 import './step/i_close_what_is_open.dart';
 import './step/sessions_are_open.dart';
-import './step/the_session_names.dart';
+import './step/i_show_what_is_running.dart';
+import './step/i_work_in_by_hand_from_its_tile.dart';
+import './step/the_session_on_screen_is.dart';
+import './step/the_first_session_was_left.dart';
+import './step/the_work_was_never_stopped.dart';
+import './step/only_one_terminal_was_ever_opened.dart';
 import './step/it_says.dart';
 import './step/the_session_ends_with.dart';
-import './step/the_work_was_never_stopped.dart';
-import './step/i_leave_the_session.dart';
 import './step/no_session_is_open.dart';
 
 void main() {
@@ -115,21 +120,23 @@ void main() {
           'Starting it again brings back the workspace');
     });
     testWidgets(
-        '''a session takes the machine's place, and leaving gives it back''',
+        '''a session stays where it was opened, and going elsewhere and back finds it there''',
         (tester) async {
       await bddSetUp(tester);
       await iWorkInItByHand(tester);
       await theSessionIsOnScreen(tester);
       await theWorkPaneIsNotShown(tester);
-      await iPutTheSessionAway(tester);
-      await theWorkIsStillSelected(tester, 'sokar-billing-shell');
+      await iGoToWhatNeedsAPerson(tester);
+      await theSessionIsNotOnScreen(tester);
+      await iGoToTheWork(tester);
+      await theSessionIsOnScreen(tester);
     });
     testWidgets(
         '''leaving a session puts somebody back where they were, with the same work selected''',
         (tester) async {
       await bddSetUp(tester);
       await iWorkInItByHand(tester);
-      await iPutTheSessionAway(tester);
+      await iLeaveTheSession(tester);
       await theWorkIsStillSelected(tester, 'sokar-billing-shell');
     });
     testWidgets(
@@ -142,25 +149,29 @@ void main() {
       await sessionsAreOpen(tester, 1);
     });
     testWidgets(
-        '''two sessions are open at once, and each says which work it is''',
+        '''opening a session elsewhere leaves the one that was open, and opens where it was asked''',
         (tester) async {
       await bddSetUp(tester);
       await iWorkInItByHand(tester);
-      await iPutTheSessionAway(tester);
-      await iSelectTheWork(tester, 'sokar-billing-audit');
-      await iWorkInItByHand(tester);
-      await sessionsAreOpen(tester, 2);
-      await theSessionNames(tester, 'sokar-billing-shell');
-      await theSessionNames(tester, 'sokar-billing-audit');
+      await iShowWhatIsRunning(tester);
+      await iWorkInByHandFromItsTile(tester, 'sokar-billing-audit');
+      await sessionsAreOpen(tester, 1);
+      await theSessionOnScreenIs(tester, 'sokar-billing-audit');
+      await theFirstSessionWasLeft(tester);
+      await theWorkWasNeverStopped(tester);
+      await iSelectTheProject(tester, 'billing');
+      await theSessionIsNotOnScreen(tester);
     });
     testWidgets(
-        '''asking for a session twice returns to the one that is already open''',
+        '''asking for the same session again returns to it, where it was asked for''',
         (tester) async {
       await bddSetUp(tester);
       await iWorkInItByHand(tester);
-      await iPutTheSessionAway(tester);
-      await iWorkInItByHand(tester);
+      await iShowWhatIsRunning(tester);
+      await iWorkInByHandFromItsTile(tester, 'sokar-billing-shell');
       await sessionsAreOpen(tester, 1);
+      await onlyOneTerminalWasEverOpened(tester);
+      await theSessionOnScreenIs(tester, 'sokar-billing-shell');
     });
     testWidgets(
         '''the screen says that closing the window leaves the session running''',

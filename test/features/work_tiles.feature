@@ -20,17 +20,17 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     And the tile {'sokar-checkout-shell'} is not marked as a guess
 
   # The operator's report: opened from Running and put away, it came back to the work's project.
-  Scenario: work is opened by hand from Running, and putting it away comes back to Running
+  Scenario: work is opened by hand from Running, and leaving it comes back to Running
     When I work in {'sokar-checkout-shell'} by hand from its tile
     Then the session runs {'sokar task attach sokar-checkout-shell'}
-    When I put the session away
+    When I leave the session
     Then the view shown is the work
     And no project is selected
 
   Scenario: work opened by hand from its project comes back to that project
     When I select the project {'checkout'}
     And I work in {'sokar-checkout-shell'} by hand from its tile
-    And I put the session away
+    And I leave the session
     Then the view shown is the work
     And the project {'checkout'} is selected
 

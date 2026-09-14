@@ -15,7 +15,7 @@ import './step/the_work_cannot_be_seen.dart';
 import './step/the_tile_says.dart';
 import './step/i_work_in_by_hand_from_its_tile.dart';
 import './step/the_session_runs.dart';
-import './step/i_put_the_session_away.dart';
+import './step/i_leave_the_session.dart';
 import './step/the_view_shown_is_the_work.dart';
 import './step/no_project_is_selected.dart';
 import './step/i_select_the_project.dart';
@@ -61,12 +61,12 @@ void main() {
       await theTileIsNotMarkedAsAGuess(tester, 'sokar-checkout-shell');
     });
     testWidgets(
-        '''work is opened by hand from Running, and putting it away comes back to Running''',
+        '''work is opened by hand from Running, and leaving it comes back to Running''',
         (tester) async {
       await bddSetUp(tester);
       await iWorkInByHandFromItsTile(tester, 'sokar-checkout-shell');
       await theSessionRuns(tester, 'sokar task attach sokar-checkout-shell');
-      await iPutTheSessionAway(tester);
+      await iLeaveTheSession(tester);
       await theViewShownIsTheWork(tester);
       await noProjectIsSelected(tester);
     });
@@ -76,7 +76,7 @@ void main() {
       await bddSetUp(tester);
       await iSelectTheProject(tester, 'checkout');
       await iWorkInByHandFromItsTile(tester, 'sokar-checkout-shell');
-      await iPutTheSessionAway(tester);
+      await iLeaveTheSession(tester);
       await theViewShownIsTheWork(tester);
       await theProjectIsSelected(tester, 'checkout');
     });

@@ -65,17 +65,19 @@ Feature: Working inside a container by hand, locally or over ssh
     And I open the command finder
     Then the command {'Work in it by hand'} is unavailable because {'Starting it again brings back the workspace'}
 
-  # Opened over the machine's place like everything else, with the rail still there.
-  Scenario: a session takes the machine's place, and leaving gives it back
+  # Opened where it was asked for and kept there: going elsewhere and back finds it as it was.
+  Scenario: a session stays where it was opened, and going elsewhere and back finds it there
     When I work in it by hand
     Then the session is on screen
     And the work pane is not shown
-    When I put the session away
-    Then the work {'sokar-billing-shell'} is still selected
+    When I go to what needs a person
+    Then the session is not on screen
+    When I go to the work
+    Then the session is on screen
 
   Scenario: leaving a session puts somebody back where they were, with the same work selected
     When I work in it by hand
-    And I put the session away
+    And I leave the session
     Then the work {'sokar-billing-shell'} is still selected
 
   # Found by asking where the key went rather than by assuming: the frame's `Escape` closed the
@@ -86,22 +88,27 @@ Feature: Working inside a container by hand, locally or over ssh
     Then the session is on screen
     And {1} sessions are open
 
-  Scenario: two sessions are open at once, and each says which work it is
+  # The operator's decision: one at a time. A second way in leaves the first; its work carries on.
+  Scenario: opening a session elsewhere leaves the one that was open, and opens where it was asked
     When I work in it by hand
-    And I put the session away
-    And I select the work {'sokar-billing-audit'}
-    And I work in it by hand
-    Then {2} sessions are open
-    And the session names {'sokar-billing-shell'}
-    And the session names {'sokar-billing-audit'}
+    And I show what is running
+    And I work in {'sokar-billing-audit'} by hand from its tile
+    Then {1} sessions are open
+    And the session on screen is {'sokar-billing-audit'}
+    And the first session was left
+    And the work was never stopped
+    When I select the project {'billing'}
+    Then the session is not on screen
 
   # One container holds one session, so asking again returns to the one that is there. A second
   # way in to the same work would draw the same screen twice and let somebody type into either.
-  Scenario: asking for a session twice returns to the one that is already open
+  Scenario: asking for the same session again returns to it, where it was asked for
     When I work in it by hand
-    And I put the session away
-    And I work in it by hand
+    And I show what is running
+    And I work in {'sokar-billing-shell'} by hand from its tile
     Then {1} sessions are open
+    And only one terminal was ever opened
+    And the session on screen is {'sokar-billing-shell'}
 
   Scenario: the screen says that closing the window leaves the session running
     When I work in it by hand

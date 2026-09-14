@@ -77,6 +77,9 @@ distribution, so an entry below has reached an operator only if they follow that
 
 ### Changed
 
+- **One console at a time, kept where it was opened.** Working by hand in other work leaves the
+  console that was open; going to another place and back finds the console as it was; *Leave* is its
+  only button.
 - **Needs you lists only what needs a person**: open questions, work waiting at the gate, and a
   question that was answered or ran out, which stays with its outcome until *Got it* puts it away.
   Work that needs nobody is in its machine's area, under Running or its project. An operation

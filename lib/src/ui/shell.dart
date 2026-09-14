@@ -198,6 +198,7 @@ class _ShellState extends State<Shell> {
     // Closing the window is how the interface ends, so the forwards it raised end with it.
     _leaving = AppLifecycleListener(onExitRequested: _letGo);
     widget.shell.addListener(_moveKeyboard);
+    widget.sessions.addListener(_moveKeyboard);
     widget.settings.addListener(_keepRefreshing);
     _keepRefreshing();
   }
@@ -249,7 +250,8 @@ class _ShellState extends State<Shell> {
 
   void _moveKeyboard() {
     if (!mounted) return;
-    final open = widget.shell.anythingOpen;
+    // A session shown where it belongs holds the keyboard as much as anything opened over the frame.
+    final open = widget.shell.anythingOpen || _consoleIsHere;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (open) {
@@ -1098,7 +1100,7 @@ class _ShellState extends State<Shell> {
 
   /// What needs a person. A tile leads to where its work lives.
   Widget _needsYou() {
-    final opened = _opened();
+    final opened = _opened() ?? _console();
     if (opened != null) return opened;
     return Focus(
       focusNode: _openedFocus,
@@ -1118,6 +1120,29 @@ class _ShellState extends State<Shell> {
     );
   }
 
+  /// Where somebody is now, as a place a session can belong to.
+  ConsolePlace get _here => widget.shell.section == Section.attention
+      ? const ConsolePlace(section: Section.attention)
+      : ConsolePlace(
+          section: Section.machine,
+          machine: widget.machines.current.name,
+          project: _fleet.selectedProject?.name,
+        );
+
+  /// Whether the open session belongs to where somebody is.
+  bool get _consoleIsHere => widget.sessions.current != null && widget.sessions.place == _here;
+
+  /// The open session, when somebody is where it was opened; nothing anywhere else.
+  Widget? _console() {
+    final session = widget.sessions.current;
+    if (session == null || !_consoleIsHere) return null;
+    return SessionView(
+      session: session,
+      focusNode: _openedFocus,
+      onLeave: () => unawaited(widget.sessions.leave()),
+    );
+  }
+
   /// One machine: its title and menu, then its projects and work, then what it ran.
   Widget _machineArea() {
     final machine = widget.machines.current;
@@ -1128,7 +1153,7 @@ class _ShellState extends State<Shell> {
     final refusal = fleet.refusal;
     final opened = refusal != null
         ? RefusalView(refusal: refusal, fleet: fleet)
-        : _opened();
+        : _opened() ?? _console();
     return Column(
       children: <Widget>[
         MachineTitle(
@@ -1350,21 +1375,6 @@ class _ShellState extends State<Shell> {
           onApprove: _approve,
           onReject: _reject,
         );
-      case SessionOpened(:final task):
-        final session = widget.sessions.find(task, widget.machines.current);
-        // Gone because the machine was switched, or because it was left.
-        if (session == null) return null;
-        return SessionView(
-          session: session,
-          others: widget.sessions.all,
-          focusNode: _openedFocus,
-          onGoTo: (other) => widget.shell.openSession(other.task),
-          onLeave: () async {
-            await widget.sessions.leave(session);
-            widget.shell.close();
-          },
-          onClose: widget.shell.close,
-        );
       case LogOpened(:final task, :final log):
         final tail = widget.logs.find(task, log);
         if (tail == null) return null;
@@ -1432,14 +1442,21 @@ class _ShellState extends State<Shell> {
   }.toList();
 
   /// Opens a shell inside running work, or goes back to the one that is already open.
+  /// Opens a session on [task] where somebody is, leaving the one that was open: **one at a time**.
   void _openSession(Task task) {
-    widget.sessions.openOn(task.name, widget.machines.current);
-    widget.shell.openSession(task.name);
+    final machine = widget.machines.current;
+    final before = widget.sessions.current;
+    widget.sessions.openOn(task.name, machine, at: _here);
+    if (before != null && (before.task != task.name || before.machine != machine)) {
+      _fleet.say('Left the session in ${before.task}; the work there carries on.');
+    }
+    widget.shell.close();
   }
 
   @override
   void dispose() {
     widget.shell.removeListener(_moveKeyboard);
+    widget.sessions.removeListener(_moveKeyboard);
     widget.settings.removeListener(_keepRefreshing);
     _refreshing?.cancel();
     _leaving.dispose();

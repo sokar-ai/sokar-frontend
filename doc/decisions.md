@@ -6,6 +6,7 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-14 | [One session at a time, shown only where it was opened](#2026-09-14--one-session-at-a-time-shown-only-where-it-was-opened) |
 | 2026-09-14 | [A push that changes only documentation starts no build](#2026-09-14--a-push-that-changes-only-documentation-starts-no-build) |
 | 2026-09-13 | [What was run is kept for thirty days in one owner-only file, and an unseen failure still waits](#2026-09-13--what-was-run-is-kept-for-thirty-days-in-one-owner-only-file) |
 | 2026-09-13 | [A unit that refuses is a failure, and a start without one is watched for two seconds](#2026-09-13--a-unit-that-refuses-is-a-failure-and-a-start-without-one-is-watched-for-two-seconds) |
@@ -21,6 +22,19 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-14 — One session at a time, shown only where it was opened
+
+The operator's decision, after two sessions drawn as chips over one terminal made *Leave* on one look
+like leaving both, a session filled Running so no second one could be opened, and going to another
+place and back lost it from view.
+
+- **One session is open at a time.** Working by hand in other work leaves the one that was open,
+  without asking: nothing at the far end stops, and opening it again shows its last lines. The status
+  line says which was left.
+- **It belongs to the place it was opened** — Needs you, a machine's Running, or one project — and is
+  shown only there. Going elsewhere leaves it running out of sight; coming back finds it as it was.
+- **Leave is the only way out of it.** The chips and *Put it away* are gone.
 
 ## 2026-09-14 — A push that changes only documentation starts no build
 
