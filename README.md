@@ -7,6 +7,8 @@ declares, no credential the agent can read, and nothing leaves the machine witho
 approving it. Everything it can do is reachable from a CLI today. This is the interface that
 makes it reachable without one.
 
+![The interface: the work running on a machine reached over ssh](doc/sokar-frontend.gif)
+
 ## Start here
 
 1. **[Backend API](doc/Backend-API.md)** — how to talk to the daemon. One unix socket, JSON
