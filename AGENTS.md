@@ -7,21 +7,22 @@ doing anything and the long form before changing anything.
 There is no other `AGENT*` file: `AGENTS.md` is this, checked in and shared, and `.AGENTS.md` holds
 what is only true on one machine and is never committed.
 
-## Shared with the other Sokar repositories
+## Shared across the Sokar repositories
 
-- **The operator pushes.** Agents commit. Never `git push`.
+The same text in `sokar`, `sokar-frontend`, the three agent repositories and
+`sokar-message-sluice`. Change it in the channel first, not in one copy.
+
+- **The operator pushes. Agents commit and stop.** A push starts a build that costs metered minutes
+  and can cancel one already running. Say what is ready and let him decide when.
 - **Everyone stays in their own repository and asks for what they need from another.** Ruled by
-  the operator on 2026-09-13: an agent neither reads nor writes another agent's repository — what
+  the operator on 2026-09-13: an agent neither reads nor writes another agent's repository - what
   it needs from there, it asks that repository's agent for in the channel, with the reason. The
   one exception is the backend agent, who coordinates and may **read** the other repositories.
   **Writing is always the job of the agent responsible for the repository**, with no exception.
-- **The channel is append-only.** One heading per entry
-  (`## <date -u> — Agent Frontend`), appended at the bottom. **Never edit or delete what another
-  agent wrote** — correct a mistake in a new entry, not in place; your own entry is yours to fix.
-  Take the timestamp from `date -u` rather than from your sense of the time. A question is marked
-  with the asker's prefix and a number — `QF<n>` from here, `QB<n>` from the backend — and an
-  answer is `**A:** to <timestamp>`, so the file says who is owed one. Check `git status` before
-  committing after reading it: another agent's edits can be in this working tree.
+- **The channel is append-only.** One heading per entry,
+  `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
+  marker only past somebody else's entry, and never rewrite what is there. A question carries a
+  prefix naming who is owed the answer, so a reader scanning the file can see it.
 - **Re-read the channel immediately before appending to it.** An entry that landed between your
   read and your append makes what you are about to write answer a state that no longer exists —
   Agent Smith published advice for an experiment that had been settled four minutes earlier, and
@@ -34,32 +35,47 @@ what is only true on one machine and is never committed.
   silently. Keep the last heading you read and compare against that. Both sides had this defect on
   2026-09-07, fixed it the same afternoon, and this agent reintroduced it on 2026-09-12 by counting
   headings at re-arm time.
-- **A secret never appears in a command line**, and reaches a process through its environment or
-  its standard input — `/proc/<pid>/cmdline` is world-readable. Where one is stored, it is
-  encrypted at rest and readable only by its owner; in CI it is never written to a filesystem at
-  all. Nothing in the operator's key directory is ever printed or copied — `.AGENTS.md` says where
-  it is on this machine, because an absolute path is a fact about one machine and this file is
-  shared. (Sokar's wording, 2026-09-12: the
-  earlier *"never written to a file"* was false in a repository whose vault is a file, and a rule
-  that is visibly broken on line one gets ignored whole.)
-- **The test machine is shared.** Change nothing on it that was not asked for, name what you
-  remove rather than sweeping what you do not recognise, and say in the channel before restarting
-  it.
-- **Say what a run does to a shared machine before starting it, not what you believe it does.**
-  Sokar's acceptance suite was described as rebooting nothing while three of its scenarios existed
-  to reboot the machine, and it took another agent's test run down with it on 2026-09-12.
-- **Link to a requirement by number and to the index, not to its file.** A finished requirement's
-  file is deleted — so a link to it breaks exactly when that requirement succeeds, which is the
-  worst moment for a reader to meet a 404.
+- **The file's order is the truth and the headings are a label.** An entry can sit behind ones
+  stamped later, because a heading is written when an entry is composed and the append happens when
+  it is finished - on 2026-09-12 a 17:21Z entry landed after a 17:31Z one. So take the timestamp at
+  append time rather than at composition, **compare against the position of the last entry you read
+  rather than against its time**, and never sort this file by heading to reconstruct what happened.
+- **A secret never appears in a command line, and reaches a process through its environment or its
+  standard input.** Where one is stored, it is encrypted at rest and readable only by its owner -
+  and in CI it is never written to a filesystem at all.
+- **The test machines are shared.** Name what you remove rather than sweeping "what I do not
+  recognise", and **announce a restart before you trigger one**. A reboot leaves no trace in the
+  work it interrupts, so the person whose run it killed cannot find out what happened.
+- **Say what a run does to a shared machine before starting it - what it does, not what you believe
+  it does.** Check first. A confident wrong answer costs somebody else an afternoon.
+- **Link to a requirement by its number and to the index, never to its file.** A finished
+  requirement is deleted, so a link to the file breaks exactly when that requirement succeeds.
 - **From "both are valid" it does not follow that both should exist.** Two indexes, two markers,
-  two manifests, the same skills in two repositories — every expensive defect of 2026-09-12 had
+  two manifests, the same skills in two repositories - every expensive defect of 2026-09-12 had
   that shape, and not one of them was a wrong fact. They were correct facts with one inference too
   many on top, and the second copy was always the one that quietly went stale. When a thing is
-  right in two forms, publish one and say why. (Settled between all three agents that day; the last
-  sentence is Agent Sokar's, and it is the half that would have stopped him.)
-- **Dot files and directories are not checked in.** The exceptions are listed in `.gitignore`, and
-  they are only what a build needs: `.github`, `.mvn` for the Maven wrapper, `.metadata` for
-  Flutter. Anything that applies only to this machine goes in `.AGENTS.md`, which that rule
+  right in two forms, publish one and say why.
+- **Measure before you claim.** "It works" means it was run. "It is not the cause" means the
+  counter-test was run too. A finding without a measurement is a guess wearing a fact's clothes.
+- **"I could not get X" is a claim about a method, not about the world**, and it is worth saying
+  out loud only once a second method has failed too. On 2026-09-12 a documentation page was
+  reported here as unreadable and its format as undeterminable; `curl` returns that site's chrome
+  and its article body is loaded afterwards, and a fetch that renders the page answered every
+  question about the format in one call. The first report was true about `curl` and false about
+  the page.
+- **Two agents agreeing on an inference is not evidence** - it is one inference with two names on
+  it. Agreement counts when each measured separately; when the second agent takes the first's
+  observation and adds a reason, the reason has been reviewed by nobody. On 2026-09-12 two of us
+  agreed that a catalogue field was missing, neither looked for the specification, and it was the
+  registry behaving as documented. **Say which part you measured and which part you inferred**, so
+  the other can agree with one and not the other.
+- **An issue is one task.** If it needs two answers or two changes that could land separately, it
+  is two issues. A dependency on an issue in another Sokar repository is named in the issue, with
+  the repository and the number, so nobody discovers it by starting.
+- **The documentation language is US English** - issues, decisions, changelog, comments, commit
+  messages. The channel too.
+- **Dot files and directories are not checked in.** `.gitignore` ignores `.*` and names only the
+  exceptions a build needs. Anything true of one machine goes in `.AGENTS.md`, which that rule
   ignores by itself.
 
 ## This repository
