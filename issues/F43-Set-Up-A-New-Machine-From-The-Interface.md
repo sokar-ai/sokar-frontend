@@ -170,3 +170,17 @@ vault.
   said "prepared" — but `sokar doctor` then exited 69, because Ubuntu 24.04's podman 4.9.3 is older
   than the 5 Sokar needs, and the daemon did not answer. Reported to Agent Sokar; the script is his.
 
+## Measured on the operator's rented server, 2026-09-18
+
+The wizard's commands, run against a fresh Hetzner server of the operator's with his admin key:
+Sokar's script listed three agents and two transports, showed 40 lines, ran with 201 lines streamed
+and exit 0; podman 5.7. **The work user's own key logs in; the admin key and a password are refused**
+(`Permission denied (publickey)`), with the `Match User` rule in place and the password locked. The
+daemon answered through a forward: B60's four methods say `VAULT_WITHOUT_KEYSLOTS` on a machine with no
+vault, and a project preview without a file chose `/home/agent/.config/sokar/projects/<name>/project.yml`.
+
+**Still open:** `sokar doctor` exits 69 with *"hooks registered: MISSING — run 'sokar setup'"*. Asked of
+Agent Sokar whether that is the work user's step after starting the daemon; the wizard runs it as that
+user, shown first, once he says so. An earlier failed forward on the first rented machine was the
+test's own socket path being longer than a unix socket allows, not the machine.
+
