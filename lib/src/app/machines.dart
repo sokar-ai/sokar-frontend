@@ -222,6 +222,10 @@ class Machines extends ChangeNotifier {
   Future<Trial> tryMachine(Machine machine) =>
       tryAMachine(machine, reach: _reach, tunnels: tunnels);
 
+  /// How many ways into [machine]'s vault there are, or null when it could not be asked.
+  Future<int?> keyslotsOn(Machine machine) =>
+      countKeyslots(machine, reach: _reach, tunnels: tunnels);
+
   /// Starts a daemon on [machine], for somebody who has been asked and said yes.
   Future<Started> startSokarOn(Machine machine) => tunnels.startSokarOn(machine);
 

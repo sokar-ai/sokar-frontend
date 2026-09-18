@@ -418,3 +418,32 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I set it up and connect
     Then it says {'sokar setup did not register what a task needs: podman: cannot write hooks.d'}
     And the wizard cannot go to the next step yet
+
+  # B64, the operator's decision: the passphrase goes keyboard → terminal → ssh → sokar, never
+  # through this program, and whether the vault is there is asked of the daemon, not read off the terminal.
+  Scenario: the vault is made in a terminal as the work user, and the daemon says it is there
+    Given a new machine whose root logs in
+    When I see what it can install
+    And I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    And I go to the next step
+    And I open the terminal to make the vault
+    Then the terminal runs {'ssh -t sokar-the-build-machine sokar vault init'}
+    When the terminal ends with {0}
+    Then it says {'The vault is there, and it opens with the passphrase typed.'}
+
+  Scenario: a terminal that ended without a vault says so, and it can be opened again
+    Given a new machine whose root logs in
+    And the machine has no vault
+    When I see what it can install
+    And I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    And I go to the next step
+    And I open the terminal to make the vault
+    And the terminal ends with {70}
+    Then it says {'There is no vault yet'}
+    And the terminal can be opened again

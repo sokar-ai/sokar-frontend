@@ -185,3 +185,13 @@ descriptors per user. The wizard now runs, as the work user, `enable --now`, the
 `sokar doctor`, and stops with what `sokar setup` said when it fails. An earlier failed forward on the first rented machine was the
 test's own socket path being longer than a unix socket allows, not the machine.
 
+## The vault, 2026-09-19 (Sokar B64, the operator's decision)
+
+A step of its own after reaching the machine: **a terminal opens in the wizard** — the same real pty
+as working in a task by hand — running `ssh -t <the work user's Host> sokar vault init`, and the
+person types the passphrase twice into it. It goes keyboard → terminal → ssh → sokar and never
+through this program. **Whether the vault is there is asked of the daemon** (`Keyslots`, through a
+forward of its own) when the terminal ends, never read off the terminal: no pty would have answered
+*"No passphrase available"* with exit 70, and the exit says only that the command ran. The step is
+optional; a vault can be made later at the machine.
+

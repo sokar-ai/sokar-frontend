@@ -110,3 +110,37 @@ int? _uidIn(String socket) {
   final match = RegExp(r'^/run/user/(\d+)/').firstMatch(socket);
   return match == null ? null : int.parse(match[1]!);
 }
+
+/// How many ways into [machine]'s vault there are, asked through a forward of its own taken down
+/// again, or null when it could not be asked. **Zero means there is no vault yet**: a machine
+/// without one answers no keyslots, and one made with a passphrase has at least that one.
+Future<int?> countKeyslots(
+  Machine machine, {
+  required FleetBackend Function(Machine machine) reach,
+  required Tunnels tunnels,
+  Duration within = const Duration(seconds: 10),
+}) async {
+  final target = machine.needsATunnel
+      ? Machine(
+          name: machine.name,
+          socketPath: Machine.endpointFor('${machine.name} vault'),
+          host: machine.host,
+          remoteSocket: machine.remoteSocket,
+        )
+      : machine;
+  Tunnel? tunnel;
+  try {
+    if (machine.needsATunnel) {
+      tunnel = await tunnels.trial(target);
+      if (tunnel.state != TunnelState.up) return null;
+    }
+    final backend = reach(target);
+    await backend.open().timeout(within);
+    return (await backend.keyslots().timeout(within)).length;
+  } on Object {
+    return null;
+  } finally {
+    await tunnel?.drop();
+  }
+}
+

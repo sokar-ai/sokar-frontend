@@ -830,6 +830,8 @@ class _ShellState extends State<Shell> {
       workUser: widget.settings.workUser,
       draft: widget.settings.setupDraft,
       remember: widget.settings.setSetupDraft,
+      openTerminal: widget.sessions.openTerminal,
+      countKeyslots: widget.machines.keyslotsOn,
     );
     if (machine == null) return;
     await widget.machines.add(machine);

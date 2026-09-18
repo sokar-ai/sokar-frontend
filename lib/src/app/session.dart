@@ -68,6 +68,7 @@ class Session extends ChangeNotifier {
     OpenTerminal? open,
     int columns = 80,
     int rows = 24,
+    this.run,
   }) : _open = open ?? Pty.start {
     terminal = Terminal(maxLines: scrollback)
       ..onOutput = _typed
@@ -83,6 +84,10 @@ class Session extends ChangeNotifier {
   final Machine machine;
 
   final OpenTerminal _open;
+
+  /// A command of its own instead of attaching to [task] — the wizard's `sokar vault init`, typed
+  /// into by a person so the passphrase never passes through this program.
+  final List<String>? run;
 
   /// What is on the screen at the far end.
   late final Terminal terminal;
@@ -115,9 +120,9 @@ class Session extends ChangeNotifier {
   /// There is deliberately **no `BatchMode=yes` here**, and the tunnel deliberately has one. A
   /// forward has no terminal, so a prompt there is a hang; this *is* a terminal, so a passphrase
   /// or an unknown host key can be answered by the person sitting in front of it.
-  List<String> get command => machine.needsATunnel
+  List<String> get command => run ?? (machine.needsATunnel
       ? <String>['ssh', '-t', machine.host, 'sokar', 'task', 'attach', task]
-      : <String>['sokar', 'task', 'attach', task];
+      : <String>['sokar', 'task', 'attach', task]);
 
   /// Sends what somebody typed. Does nothing once it is over, rather than throwing into a widget.
   void type(String input) {

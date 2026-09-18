@@ -99,6 +99,11 @@ import './step/i_am_warned_that_the_key_is_not_the_one_known_for_that_address.da
 import './step/nothing_is_shown_below_the_run_yet.dart';
 import './step/what_running_it_printed_is_shown_below_it.dart';
 import './step/registering_sokars_hooks_will_fail_with.dart';
+import './step/i_open_the_terminal_to_make_the_vault.dart';
+import './step/the_terminal_runs.dart';
+import './step/the_terminal_ends_with.dart';
+import './step/the_machine_has_no_vault.dart';
+import './step/the_terminal_can_be_opened_again.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -619,6 +624,41 @@ void main() {
       await itSays(tester,
           'sokar setup did not register what a task needs: podman: cannot write hooks.d');
       await theWizardCannotGoToTheNextStepYet(tester);
+    });
+    testWidgets(
+        '''the vault is made in a terminal as the work user, and the daemon says it is there''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await iGoToTheNextStep(tester);
+      await iOpenTheTerminalToMakeTheVault(tester);
+      await theTerminalRuns(
+          tester, 'ssh -t sokar-the-build-machine sokar vault init');
+      await theTerminalEndsWith(tester, 0);
+      await itSays(tester,
+          'The vault is there, and it opens with the passphrase typed.');
+    });
+    testWidgets(
+        '''a terminal that ended without a vault says so, and it can be opened again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await theMachineHasNoVault(tester);
+      await iSeeWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await iGoToTheNextStep(tester);
+      await iOpenTheTerminalToMakeTheVault(tester);
+      await theTerminalEndsWith(tester, 70);
+      await itSays(tester, 'There is no vault yet');
+      await theTerminalCanBeOpenedAgain(tester);
     });
   });
 }

@@ -8,6 +8,7 @@ import '../app/fleet_model.dart';
 import '../app/host_keys.dart';
 import '../app/machine_setup.dart';
 import '../app/machines.dart';
+import '../app/session.dart';
 import '../app/settings.dart';
 import '../app/setup_run.dart';
 import '../app/tunnel.dart';
@@ -96,7 +97,9 @@ Future<Machine?> askForAMachine(BuildContext context,
         String workUser = 'agent',
         MachineKind? only,
         Map<String, Object?>? draft,
-        Future<void> Function(Map<String, Object?>? draft)? remember}) =>
+        Future<void> Function(Map<String, Object?>? draft)? remember,
+        OpenTerminal? openTerminal,
+        Future<int?> Function(Machine machine)? countKeyslots}) =>
     showDialog<Machine>(
       context: context,
       builder: (context) => _AskForAMachine(
@@ -108,7 +111,9 @@ Future<Machine?> askForAMachine(BuildContext context,
           workUser: workUser,
           only: only,
           draft: draft,
-          remember: remember),
+          remember: remember,
+          openTerminal: openTerminal,
+          countKeyslots: countKeyslots),
     );
 
 class _AskForAMachine extends StatefulWidget {
@@ -122,6 +127,8 @@ class _AskForAMachine extends StatefulWidget {
     this.only,
     this.draft,
     this.remember,
+    this.openTerminal,
+    this.countKeyslots,
   });
 
   /// The names already watched. A second with the same name would never be added.
@@ -151,6 +158,12 @@ class _AskForAMachine extends StatefulWidget {
 
   /// Keeps an unfinished setup, or forgets it with null.
   final Future<void> Function(Map<String, Object?>? draft)? remember;
+
+  /// How the vault's terminal is opened; null means a real pty.
+  final OpenTerminal? openTerminal;
+
+  /// How many ways into a machine's vault there are, asked over its socket.
+  final Future<int?> Function(Machine machine)? countKeyslots;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -221,7 +234,8 @@ class _AskForAMachineState extends State<_AskForAMachine> {
                 setup: setup,
                 hostKeys: widget.hostKeys,
                 trying: widget.trying,
-                remember: widget.remember)) ??
+                remember: widget.remember,
+                countKeyslots: widget.countKeyslots)) ??
         SetupRun(
           name: _name.text.trim(),
           workUser: _user.text.trim(),
@@ -230,6 +244,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
           hostKeys: widget.hostKeys,
           trying: widget.trying,
           remember: widget.remember,
+          countKeyslots: widget.countKeyslots,
         );
     run.addListener(_runChanged);
     return run;
@@ -512,7 +527,8 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// What the chosen kind needs.
   List<Widget> _secondPage(BuildContext context) => <Widget>[
-        if (_makesAUser && _run != null) NewMachineSteps(run: _run!, onGrew: _showTheEnd),
+        if (_makesAUser && _run != null)
+          NewMachineSteps(run: _run!, onGrew: _showTheEnd, openTerminal: widget.openTerminal),
         const SizedBox(height: Space.normal),
         if (_raiseIt == true) ...<Widget>[
           TextField(

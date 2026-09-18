@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:xterm/xterm.dart' hide Terminal;
 
 import '../app/machine_setup.dart';
+import '../app/session.dart';
 import '../app/setup_run.dart';
 import 'host_key_dialog.dart';
 import 'tokens.dart';
@@ -11,13 +13,16 @@ import 'tokens.dart';
 /// losing a word; going back, on and finishing are the dialog's buttons.
 class NewMachineSteps extends StatefulWidget {
   /// Constructor taking the run and what to do when something new is printed.
-  const NewMachineSteps({required this.run, this.onGrew, super.key});
+  const NewMachineSteps({required this.run, this.onGrew, this.openTerminal, super.key});
 
   /// What was said and done, and what is being done.
   final SetupRun run;
 
   /// Called when output grew, so the dialog can scroll to it.
   final VoidCallback? onGrew;
+
+  /// How a terminal is opened; null means a real pty.
+  final OpenTerminal? openTerminal;
 
   @override
   State<NewMachineSteps> createState() => _NewMachineStepsState();
@@ -28,6 +33,9 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   late final _public = TextEditingController(text: widget.run.publicKey);
   late final _host = TextEditingController(text: widget.run.host);
   int _grown = 0;
+
+  /// The terminal the vault's passphrase is typed into, while it is open.
+  Session? _vault;
 
   /// The private keys in `~/.ssh`, read once when the steps are drawn.
   late final List<String> _keys = widget.run.setup.sshKeys();
@@ -61,8 +69,32 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
     setState(() {});
   }
 
+  /// Opens the terminal for `sokar vault init`. **The passphrase goes keyboard → terminal → ssh →
+  /// sokar**; this program never holds it. When the terminal ends, the daemon is asked.
+  void _openVault() {
+    final machine = run.ready;
+    if (machine == null) return;
+    final session = Session(
+      task: 'vault',
+      machine: machine,
+      open: widget.openTerminal,
+      run: run.vaultCommand,
+    );
+    var asked = false;
+    session.addListener(() {
+      if (!mounted) return;
+      setState(() {});
+      if (session.state == SessionState.over && !asked) {
+        asked = true;
+        run.checkVault();
+      }
+    });
+    setState(() => _vault = session);
+  }
+
   @override
   void dispose() {
+    _vault?.dispose();
     run.removeListener(_follow);
     _private.dispose();
     _public.dispose();
@@ -80,6 +112,7 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
             SetupStep.where => _whereStep(context),
             SetupStep.prepare => _prepareStep(context),
             SetupStep.reach => _reachStep(context),
+            SetupStep.vault => _vaultStep(context),
             SetupStep.harden => _hardenStep(context),
           },
           if (run.busy) ...<Widget>[
@@ -406,8 +439,49 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
         ],
       ];
 
+  List<Widget> _vaultStep(BuildContext context) {
+    final vault = _vault;
+    return <Widget>[
+      _title(context, '5. The vault'),
+      const SizedBox(height: Space.small),
+      Text(
+        'Credentials for work live in a vault on the machine, made with a passphrase you choose. '
+        "You type it twice into a terminal below, as ${run.workUser} — it goes straight to the "
+        'machine and never through this program. It opens later with that passphrase, or from '
+        'this device once it is enrolled.',
+      ),
+      const SizedBox(height: Space.normal),
+      Terminal(text: run.vaultCommand.join(' '), id: 'vault-command'),
+      const SizedBox(height: Space.small),
+      if (vault == null || vault.state == SessionState.over)
+        OutlinedButton.icon(
+          key: const Key('open-vault-terminal'),
+          onPressed: run.busy || (run.hasVault ?? false) ? null : _openVault,
+          icon: const Icon(Icons.terminal, size: Sizes.rowIcon),
+          label: Text(vault == null ? 'Open a terminal to make the vault' : 'Open it again'),
+        ),
+      if (vault != null) ...<Widget>[
+        const SizedBox(height: Space.small),
+        SizedBox(
+          height: 240,
+          child: ColoredBox(
+            color: const Color(0xFF1E1E1E),
+            child: TerminalView(
+              vault.terminal,
+              key: const Key('vault-terminal'),
+              autofocus: true,
+              readOnly: !vault.live,
+              padding: const EdgeInsets.all(Space.small),
+              textStyle: const TerminalStyle(fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    ];
+  }
+
   List<Widget> _hardenStep(BuildContext context) => <Widget>[
-        _title(context, '5. Closing the way root came in (optional)'),
+        _title(context, '6. Closing the way root came in (optional)'),
         const SizedBox(height: Space.small),
         Text(
           'This writes two lines into the ssh server\'s configuration there and reloads it: root can '

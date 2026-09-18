@@ -22,6 +22,9 @@ enum SetupStep {
   /// Reaching it as the work user.
   reach,
 
+  /// Making the vault, in a terminal the person types the passphrase into.
+  vault,
+
   /// Optionally turning off root and password login, then watching it.
   harden,
 }
@@ -56,6 +59,7 @@ class SetupRun extends ChangeNotifier {
     this.hostKeys,
     this.trying,
     this.remember,
+    this.countKeyslots,
   }) : keyFile = addingAUser
             ? (setup.existingKeys().firstOrNull ?? setup.sshKeys().firstOrNull ?? '')
             : '';
@@ -67,6 +71,7 @@ class SetupRun extends ChangeNotifier {
     HostKeys? hostKeys,
     Future<Trial> Function(Machine machine)? trying,
     Future<void> Function(Map<String, Object?>? draft)? remember,
+    Future<int?> Function(Machine machine)? countKeyslots,
   }) {
     String text(String key) => stored[key] is String ? stored[key] as String : '';
     if (text('name').isEmpty || text('workUser').isEmpty) return null;
@@ -78,6 +83,7 @@ class SetupRun extends ChangeNotifier {
       hostKeys: hostKeys,
       trying: trying,
       remember: remember,
+      countKeyslots: countKeyslots,
     );
     run
       ..publicKey = text('publicKey')
@@ -98,7 +104,7 @@ class SetupRun extends ChangeNotifier {
     run.step = run.kept == null ? SetupStep.key : (step ?? SetupStep.key);
     // Root has to log in again after a pause; that is cheap, and proves the key still works.
     if (run.step.index > SetupStep.where.index && !run.prepared) run.step = SetupStep.where;
-    if (run.step == SetupStep.harden) run.step = SetupStep.reach;
+    if (run.step.index > SetupStep.reach.index) run.step = SetupStep.reach;
     return run;
   }
 
@@ -122,6 +128,12 @@ class SetupRun extends ChangeNotifier {
 
   /// Keeps the run for later, or forgets it with null.
   final Future<void> Function(Map<String, Object?>? draft)? remember;
+
+  /// How many ways into a machine's vault there are, or null when it could not be asked.
+  final Future<int?> Function(Machine machine)? countKeyslots;
+
+  /// Whether the machine has a vault, as its daemon last said; null before it was asked.
+  bool? hasVault;
 
   SetupStep step = SetupStep.key;
 
@@ -202,6 +214,8 @@ class SetupRun extends ChangeNotifier {
         SetupStep.where => loggedInTo != null && loggedInTo == host.trim(),
         SetupStep.prepare => prepared,
         SetupStep.reach => ready != null,
+        // Optional: the vault can be made later at the machine, and the wizard says so.
+        SetupStep.vault => true,
         SetupStep.harden => false,
       };
 
@@ -383,6 +397,24 @@ class SetupRun extends ChangeNotifier {
         }
         ready = machine;
         return 'Ready to watch.';
+      });
+
+  /// The command the person runs in the terminal: as the work user, so the vault is that user's.
+  List<String> get vaultCommand => <String>['ssh', '-t', alias, 'sokar', 'vault', 'init'];
+
+  /// Asks the daemon whether the vault is there now. **Never read out of the terminal**: its exit
+  /// says only that the command ran, and `Keyslots` says what is true.
+  Future<void> checkVault() => _doing('Asking the machine whether its vault is there…', () async {
+        final count = countKeyslots;
+        final machine = ready;
+        if (count == null || machine == null) return null;
+        final slots = await count(machine);
+        if (slots == null) throw const MachineSetupFailed('The machine could not be asked about its vault.');
+        hasVault = slots > 0;
+        return hasVault!
+            ? 'The vault is there, and it opens with the passphrase typed.'
+            : 'There is no vault yet. Open the terminal again, or make it later at the machine with '
+                '`sokar vault init`.';
       });
 
   Future<void> harden() => _doing('Turning off root and password login…', () async {
