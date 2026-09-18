@@ -312,6 +312,7 @@ class _ShellState extends State<Shell> {
             .any((each) => widget.machines.of(each).reachability == Reachability.connected),
         vault: widget.vault,
         actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
+        askTheWorkUser: () => unawaited(_askTheWorkUser()),
   );
 
   /// The menu in the machine's title, for the machine being acted on.
@@ -801,6 +802,15 @@ class _ShellState extends State<Shell> {
     if (!started.went) throw FailedSaying(started.words);
   }
 
+  /// Asks which user a new machine runs work as: the one Sokar's setup script creates there.
+  Future<void> _askTheWorkUser() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => _WorkUserDialog(current: widget.settings.workUser),
+    );
+    if (name != null) await widget.settings.setWorkUser(name);
+  }
+
   /// Asks for another machine to watch, starts watching it, and goes there.
   Future<void> _addAMachine() async {
     final machine = await askForAMachine(
@@ -809,6 +819,8 @@ class _ShellState extends State<Shell> {
       trying: widget.machines.tryMachine,
       starting: _startAskedInTheDialog,
       hostKeys: widget.machines.hostKeys,
+      setup: widget.machines.setup,
+      workUser: widget.settings.workUser,
     );
     if (machine == null) return;
     await widget.machines.add(machine);
@@ -1544,4 +1556,56 @@ class _RunCommand extends Intent {
   const _RunCommand(this.id);
 
   final String id;
+}
+
+/// The user new machines run work as, checked as it is typed.
+class _WorkUserDialog extends StatefulWidget {
+  const _WorkUserDialog({required this.current});
+
+  final String current;
+
+  @override
+  State<_WorkUserDialog> createState() => _WorkUserDialogState();
+}
+
+class _WorkUserDialogState extends State<_WorkUserDialog> {
+  late final _name = TextEditingController(text: widget.current);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final valid = Settings.isUserName(_name.text.trim());
+    return AlertDialog(
+      title: const Text('New machines run work as'),
+      content: SizedBox(
+        width: 420,
+        child: TextField(
+          key: const Key('work-user'),
+          controller: _name,
+          autofocus: true,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            labelText: 'User',
+            helperText: "Created on a new machine by Sokar's setup script. Machines already set up "
+                'keep theirs.',
+            errorText: valid ? null : 'Lower-case letters, digits, _ and -, starting with a letter',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(
+          key: const Key('work-user-save'),
+          onPressed: valid ? () => Navigator.of(context).pop(_name.text.trim()) : null,
+          child: const Text('Keep it'),
+        ),
+      ],
+    );
+  }
 }

@@ -9,6 +9,7 @@ import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/host_keys.dart';
+import 'package:sokar_frontend/src/app/machine_setup.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/emergency_stop.dart';
@@ -1349,6 +1350,9 @@ class World {
   /// What `known_hosts` holds, as the machine dialog sees it.
   static late FakeHostKeys hostKeys;
 
+  /// Where a new machine's key goes, and what logging in to it as root answers.
+  static late FakeMachineSetup setup;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -1601,11 +1605,15 @@ class World {
     // One machine to begin with, and a second only when a scenario asks. Reaching several is
     // only the machine scenarios, and every scenario that does not care must not pay for it.
     hostKeys = FakeHostKeys();
+    final setupHome = Directory.systemTemp.createTempSync('world-setup-');
+    addTearDown(() => setupHome.deleteSync(recursive: true));
+    setup = FakeMachineSetup(setupHome);
     machines = Machines(
       settings,
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
       tunnels: FakeTunnels(),
       hostKeys: hostKeys,
+      setup: setup,
     );
     await machines.load();
     addTearDown(() => machines.dispose());
@@ -1754,6 +1762,15 @@ class World {
       narrowing: narrowing,
       held: held,
     ));
+    await settle(tester);
+  }
+
+  /// Taps what [key] names in a dialog, scrolled into view first: a long answer pushes the
+  /// buttons below the fold, and a tap there lands on nothing.
+  static Future<void> tapInView(WidgetTester tester, String key) async {
+    await tester.ensureVisible(find.byKey(Key(key)));
+    await tester.pump();
+    await tester.tap(find.byKey(Key(key)));
     await settle(tester);
   }
 
@@ -1919,6 +1936,74 @@ class FakeHostKeys implements HostKeys {
   Future<void> accept(HostKeyCheck check) async {
     written.add(check.host);
     unknown.remove(check.destination);
+  }
+}
+
+/// Preparing a new machine with the real `ssh-keygen`, into a home of its own, and a root login
+/// that does what the scenario says.
+class FakeMachineSetup extends MachineSetup {
+  FakeMachineSetup(this.home) : super(home: home.path, run: _atOnce);
+
+  /// The real programs, run synchronously: a widget test's clock never lets an asynchronous process
+  /// come back, and a synchronous one needs no clock at all.
+  static Future<ProcessResult> _atOnce(List<String> command, {String? input}) async =>
+      Process.runSync(command.first, command.sublist(1));
+
+  /// The home whose `~/.ssh` the keys go to.
+  final Directory home;
+
+  /// What logging in as root answers, or null for a login that works.
+  String? rootLoginFails;
+
+  /// Every root login tried: the host, and the key it used.
+  final List<({String host, String key})> rootLogins = <({String host, String key})>[];
+
+  @override
+  Future<String?> loginAsRoot(String host, String keyFile) async {
+    rootLogins.add((host: host, key: keyFile));
+    return rootLoginFails;
+  }
+
+  /// Every script run as root, in order.
+  final List<String> asRootRan = <String>[];
+
+  /// What allowing the key for the work user says when it fails, or null when it works.
+  String? allowFails;
+
+  /// How the setup script's `--show` ends, and how running it ends.
+  int showEnds = 0;
+  int prepareEnds = 0;
+
+  /// What the setup script's `--show` prints.
+  String shows = "useradd --create-home agents\napt-get install -y sokar\nloginctl enable-linger agents";
+
+  @override
+  Future<ProcessResult> asRoot(String host, String keyFile, String script) async {
+    asRootRan.add(script);
+    if (script.contains('--show')) {
+      return ProcessResult(0, showEnds, showEnds == 3 ? '' : shows,
+          showEnds == 3 ? 'This is Arch Linux, which this script does not know.' : '');
+    }
+    if (script.startsWith('bash /root/sokar-setup.sh')) {
+      return ProcessResult(0, prepareEnds, 'agents exists\nsokar installed', '');
+    }
+    if (script.contains('authorized_keys') && allowFails != null) {
+      return ProcessResult(0, 1, '', allowFails!);
+    }
+    return ProcessResult(0, 0, '', '');
+  }
+
+  /// Every command run as the work user.
+  final List<String> asUserRan = <String>[];
+
+  @override
+  Future<ProcessResult> asUser(String alias, String command) async {
+    asUserRan.add(command);
+    return switch (command) {
+      'id -u' => ProcessResult(0, 0, '1001\n', ''),
+      'sokar doctor' => ProcessResult(0, 0, 'ready', ''),
+      _ => ProcessResult(0, 0, '', ''),
+    };
   }
 }
 

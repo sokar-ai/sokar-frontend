@@ -30,6 +30,42 @@ import './step/the_trial_says.dart';
 import './step/i_do_not_trust_the_host_key.dart';
 import './step/no_host_key_was_written.dart';
 import './step/no_host_key_was_asked_about.dart';
+import './step/the_wizard_cannot_go_to_the_next_step_yet.dart';
+import './step/i_generate_a_key_pair.dart';
+import './step/i_keep_the_key.dart';
+import './step/the_key_was_kept_owneronly_as.dart';
+import './step/the_public_key_is_shown_to_copy.dart';
+import './step/i_paste_the_halves_of_two_different_key_pairs.dart';
+import './step/no_key_was_kept.dart';
+import './step/i_go_to_the_next_step.dart';
+import './step/i_say_the_new_machine_is_at.dart';
+import './step/i_try_logging_in_as_root.dart';
+import './step/root_logged_in_to_with.dart';
+import './step/logging_in_as_root_will_fail_with.dart';
+import './step/root_never_logged_in.dart';
+import './step/a_new_machine_whose_root_logs_in.dart';
+import './step/i_fetch_the_setup_script.dart';
+import './step/it_shows_what_the_setup_script_would_run.dart';
+import './step/the_setup_script_has_not_run_yet.dart';
+import './step/i_run_the_setup_script.dart';
+import './step/the_setup_script_ran_for.dart';
+import './step/the_setup_script_does_not_know_this_operating_system.dart';
+import './step/the_setup_script_cannot_be_run.dart';
+import './step/the_setup_script_will_end_with.dart';
+import './step/i_set_it_up_and_connect.dart';
+import './step/the_key_was_allowed_for.dart';
+import './step/ssh_config_reaches_as_with.dart';
+import './step/sokar_was_started_as_the_work_user.dart';
+import './step/i_watch_the_new_machine.dart';
+import './step/the_forward_was_raised_through_to.dart';
+import './step/root_login_was_not_turned_off.dart';
+import './step/i_turn_off_root_and_password_login.dart';
+import './step/root_login_was_turned_off.dart';
+import './step/new_machines_run_work_as.dart';
+import './step/the_setup_script_was_shown_for.dart';
+import './step/allowing_the_key_for_the_work_user_will_fail_with.dart';
+import './step/ssh_config_was_not_touched.dart';
+import './step/sokar_was_not_started.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -145,6 +181,180 @@ void main() {
       await iTryTheConnection(tester);
       await iWatchIt(tester);
       await noHostKeyWasAskedAbout(tester);
+    });
+    testWidgets(
+        '''a new machine starts with a key, kept owner-only, and its public half to copy''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await theWizardCannotGoToTheNextStepYet(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await theKeyWasKeptOwneronlyAs(tester, 'sokar-the-build-machine');
+      await itSays(tester,
+          'Give this public key to the provider when the server is created');
+      await thePublicKeyIsShownToCopy(tester);
+    });
+    testWidgets(
+        '''pasted halves of two different pairs are refused and nothing is kept''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iPasteTheHalvesOfTwoDifferentKeyPairs(tester);
+      await iKeepTheKey(tester);
+      await itSays(
+          tester, 'The public key does not belong to that private key.');
+      await noKeyWasKept(tester);
+      await theWizardCannotGoToTheNextStepYet(tester);
+    });
+    testWidgets('''root logs in with that key once its host key is trusted''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theHostKeyOfIsNotKnownYet(tester, 'root@203.0.113.10');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await iAmShownTheHostKey(
+          tester, 'SHA256:uNiQuEfInGeRpRiNtOfThEbUiLdMaChInE0123456789');
+      await iTrustTheHostKey(tester);
+      await rootLoggedInToWith(
+          tester, '203.0.113.10', 'sokar-the-build-machine');
+      await itSays(tester, 'Logged in as root on 203.0.113.10');
+      await iGoToTheNextStep(tester);
+      await itSays(tester, "Sokar's setup script runs as root");
+    });
+    testWidgets(
+        '''a root login that fails says what ssh said, and the wizard does not go on''',
+        (tester) async {
+      await bddSetUp(tester);
+      await loggingInAsRootWillFailWith(
+          tester, 'root@203.0.113.10: Permission denied (publickey).');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await itSays(tester, 'Permission denied (publickey).');
+      await theWizardCannotGoToTheNextStepYet(tester);
+    });
+    testWidgets('''a host key that is not trusted logs nothing in''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theHostKeyOfIsNotKnownYet(tester, 'root@203.0.113.10');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await iDoNotTrustTheHostKey(tester);
+      await itSays(tester, 'was not trusted, so nothing logged in');
+      await rootNeverLoggedIn(tester);
+    });
+    testWidgets(
+        '''the setup script shows what it would do before anything runs''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iFetchTheSetupScript(tester);
+      await itShowsWhatTheSetupScriptWouldRun(
+          tester, 'useradd --create-home agents');
+      await theSetupScriptHasNotRunYet(tester);
+      await iRunTheSetupScript(tester);
+      await itSays(tester, 'The machine is prepared.');
+      await theSetupScriptRanFor(tester, 'agents');
+    });
+    testWidgets(
+        '''an operating system the script does not know is said, and nothing can run''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await theSetupScriptDoesNotKnowThisOperatingSystem(tester);
+      await iFetchTheSetupScript(tester);
+      await itSays(tester, 'does not know this operating system');
+      await itSays(tester, 'Arch Linux');
+      await theSetupScriptCannotBeRun(tester);
+      await theSetupScriptHasNotRunYet(tester);
+    });
+    testWidgets('''a failed check leaves the wizard where it is''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await theSetupScriptWillEndWith(tester, 5);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await itSays(tester, 'A check failed and the machine is not usable yet');
+      await theWizardCannotGoToTheNextStepYet(tester);
+    });
+    testWidgets(
+        '''the prepared machine is reached as the work user and watched''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await theKeyWasAllowedFor(tester, 'agents');
+      await sshConfigReachesAsWith(tester, 'sokar-the-build-machine', 'agents',
+          'sokar-the-build-machine');
+      await sokarWasStartedAsTheWorkUser(tester);
+      await itSays(tester, 'Reached Sokar');
+      await iWatchTheNewMachine(tester);
+      await theForwardWasRaisedThroughTo(tester, 'sokar-the-build-machine',
+          '/run/user/1001/sokar/sokard.sock');
+    });
+    testWidgets(
+        '''turning off root login is offered, and done only when asked''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await rootLoginWasNotTurnedOff(tester);
+      await iTurnOffRootAndPasswordLogin(tester);
+      await itSays(tester, 'Logging in as root and with a password is off.');
+      await rootLoginWasTurnedOff(tester);
+    });
+    testWidgets('''the work user is the one the options name''',
+        (tester) async {
+      await bddSetUp(tester);
+      await newMachinesRunWorkAs(tester, 'builder');
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iFetchTheSetupScript(tester);
+      await theSetupScriptWasShownFor(tester, 'builder');
+    });
+    testWidgets(
+        '''a key that cannot be allowed for the work user stops before anything else is written''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await allowingTheKeyForTheWorkUserWillFailWith(
+          tester, 'getent: no such user');
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await itSays(tester,
+          'The key could not be allowed for agents: getent: no such user');
+      await sshConfigWasNotTouched(tester);
+      await sokarWasNotStarted(tester);
     });
   });
 }

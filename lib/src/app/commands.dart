@@ -568,6 +568,7 @@ List<Command> commandsFor({
   required bool anyAnswering,
   required Vault vault,
   required void Function(VaultAct act) actOnTheVault,
+  required VoidCallback askTheWorkUser,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
@@ -620,6 +621,13 @@ List<Command> commandsFor({
         checked: settings.refreshSeconds == seconds,
         run: () => settings.setRefreshSeconds(seconds),
       ),
+    Command(
+      id: 'setup.workUser',
+      label: 'New machines run work as: ${settings.workUser}…',
+      group: 'Options',
+      home: Home.appBar,
+      run: askTheWorkUser,
+    ),
     Command(
       id: 'refresh.all',
       label: 'Refresh every machine now',

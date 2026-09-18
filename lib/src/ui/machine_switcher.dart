@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import '../app/connection_trial.dart';
 import '../app/fleet_model.dart';
 import '../app/host_keys.dart';
+import '../app/machine_setup.dart';
 import '../app/machines.dart';
 import '../app/tunnel.dart';
 import 'host_key_dialog.dart';
+import 'new_machine.dart';
 import 'tokens.dart';
 
 /// What one machine says about itself: the kind of way in, and whether it is a second way in to
@@ -82,15 +84,29 @@ Future<Machine?> askForAMachine(BuildContext context,
         {Iterable<String> taken = const <String>[],
         Future<Trial> Function(Machine)? trying,
         Future<Started> Function(Machine)? starting,
-        HostKeys? hostKeys}) =>
+        HostKeys? hostKeys,
+        MachineSetup? setup,
+        String workUser = 'agents'}) =>
     showDialog<Machine>(
       context: context,
       builder: (context) => _AskForAMachine(
-          taken: taken.toList(), trying: trying, starting: starting, hostKeys: hostKeys),
+          taken: taken.toList(),
+          trying: trying,
+          starting: starting,
+          hostKeys: hostKeys,
+          setup: setup,
+          workUser: workUser),
     );
 
 class _AskForAMachine extends StatefulWidget {
-  const _AskForAMachine({required this.taken, this.trying, this.starting, this.hostKeys});
+  const _AskForAMachine({
+    required this.taken,
+    this.trying,
+    this.starting,
+    this.hostKeys,
+    this.setup,
+    this.workUser = 'agents',
+  });
 
   /// The names already watched. A second with the same name would never be added.
   final List<String> taken;
@@ -103,6 +119,12 @@ class _AskForAMachine extends StatefulWidget {
 
   /// Confirms the host key of a machine reached for the first time, or null where nothing can.
   final HostKeys? hostKeys;
+
+  /// Makes a new machine's key and logs in to it as root, or null where nothing can.
+  final MachineSetup? setup;
+
+  /// The user a new machine runs work as.
+  final String workUser;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -181,7 +203,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(_page == 0 ? 'Watch another machine' : 'Watch ${_described.name}'),
+        title: Text(_page == 0 ? 'Watch another machine' : 'Watch ${_name.text.trim()}'),
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
@@ -289,6 +311,15 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// What the chosen kind needs.
   List<Widget> _secondPage(BuildContext context) => <Widget>[
+        if (_kind == MachineKind.newMachine)
+          NewMachineSteps(
+            name: _name.text.trim(),
+            setup: widget.setup ?? MachineSetup(),
+            workUser: widget.workUser,
+            hostKeys: widget.hostKeys,
+            trying: widget.trying,
+            onWatch: (machine) => Navigator.of(context).pop(machine),
+          ),
         const SizedBox(height: Space.normal),
         if (_raiseIt == true) ...<Widget>[
           TextField(

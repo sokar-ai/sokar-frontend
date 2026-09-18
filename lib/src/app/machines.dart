@@ -8,6 +8,7 @@ import 'package:sokar_frontend/client.dart';
 import 'fleet_backend.dart';
 import 'fleet_model.dart';
 import 'host_keys.dart';
+import 'machine_setup.dart';
 import 'tunnel.dart';
 import 'settings.dart';
 
@@ -166,8 +167,10 @@ class Machines extends ChangeNotifier {
     this._lookFor,
     Future<bool> Function(String socket)? answers,
     HostKeys? hostKeys,
+    MachineSetup? setup,
   })  : _reach = reach ?? _overSocket,
         hostKeys = hostKeys ?? SshHostKeys(),
+        setup = setup ?? MachineSetup(),
         _answers = answers ?? _answersAt,
         tunnels = tunnels ?? Tunnels() {
     _adopt(<Machine>[Machine.local()]);
@@ -178,6 +181,9 @@ class Machines extends ChangeNotifier {
 
   /// Confirms a machine's host key before the first login.
   final HostKeys hostKeys;
+
+  /// Makes the key a new machine is reached with, and logs in to it as root.
+  final MachineSetup setup;
   final Machine? _lookFor;
   final Future<bool> Function(String socket) _answers;
 

@@ -93,3 +93,139 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I try the connection
     And I watch it
     Then no host key was asked about
+
+  # The key before the machine: one made afterwards cannot reach a machine that only knows root's.
+  Scenario: a new machine starts with a key, kept owner-only, and its public half to copy
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    Then the wizard cannot go to the next step yet
+    When I generate a key pair
+    And I keep the key
+    Then the key was kept owner-only as {'sokar-the-build-machine'}
+    And it says {'Give this public key to the provider when the server is created'}
+    And the public key is shown to copy
+
+  Scenario: pasted halves of two different pairs are refused and nothing is kept
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I paste the halves of two different key pairs
+    And I keep the key
+    Then it says {'The public key does not belong to that private key.'}
+    And no key was kept
+    And the wizard cannot go to the next step yet
+
+  Scenario: root logs in with that key once its host key is trusted
+    Given the host key of {'root@203.0.113.10'} is not known yet
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I generate a key pair
+    And I keep the key
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    Then I am shown the host key {'SHA256:uNiQuEfInGeRpRiNtOfThEbUiLdMaChInE0123456789'}
+    When I trust the host key
+    Then root logged in to {'203.0.113.10'} with {'sokar-the-build-machine'}
+    And it says {'Logged in as root on 203.0.113.10'}
+    When I go to the next step
+    Then it says {"Sokar's setup script runs as root"}
+
+  Scenario: a root login that fails says what ssh said, and the wizard does not go on
+    Given logging in as root will fail with {'root@203.0.113.10: Permission denied (publickey).'}
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I generate a key pair
+    And I keep the key
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    Then it says {'Permission denied (publickey).'}
+    And the wizard cannot go to the next step yet
+
+  Scenario: a host key that is not trusted logs nothing in
+    Given the host key of {'root@203.0.113.10'} is not known yet
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I generate a key pair
+    And I keep the key
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    And I do not trust the host key
+    Then it says {'was not trusted, so nothing logged in'}
+    And root never logged in
+
+  # What the person reads is the script's own --show, and nothing changes until they run it.
+  Scenario: the setup script shows what it would do before anything runs
+    Given a new machine whose root logs in
+    When I fetch the setup script
+    Then it shows what the setup script would run {'useradd --create-home agents'}
+    And the setup script has not run yet
+    When I run the setup script
+    Then it says {'The machine is prepared.'}
+    And the setup script ran for {'agents'}
+
+  Scenario: an operating system the script does not know is said, and nothing can run
+    Given a new machine whose root logs in
+    And the setup script does not know this operating system
+    When I fetch the setup script
+    Then it says {'does not know this operating system'}
+    And it says {'Arch Linux'}
+    And the setup script cannot be run
+    And the setup script has not run yet
+
+  Scenario: a failed check leaves the wizard where it is
+    Given a new machine whose root logs in
+    And the setup script will end with {5}
+    When I fetch the setup script
+    And I run the setup script
+    Then it says {'A check failed and the machine is not usable yet'}
+    And the wizard cannot go to the next step yet
+
+  # The Host entry is the work user's, never root's, and the forward is raised the way watching it will.
+  Scenario: the prepared machine is reached as the work user and watched
+    Given a new machine whose root logs in
+    When I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    Then the key was allowed for {'agents'}
+    And ssh config reaches {'sokar-the-build-machine'} as {'agents'} with {'sokar-the-build-machine'}
+    And Sokar was started as the work user
+    And it says {'Reached Sokar'}
+    When I watch the new machine
+    Then the forward was raised through {'sokar-the-build-machine'} to {'/run/user/1001/sokar/sokard.sock'}
+
+  Scenario: turning off root login is offered, and done only when asked
+    Given a new machine whose root logs in
+    When I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    Then root login was not turned off
+    When I turn off root and password login
+    Then it says {'Logging in as root and with a password is off.'}
+    And root login was turned off
+
+  Scenario: the work user is the one the options name
+    Given new machines run work as {'builder'}
+    And a new machine whose root logs in
+    When I fetch the setup script
+    Then the setup script was shown for {'builder'}
+
+
+  Scenario: a key that cannot be allowed for the work user stops before anything else is written
+    Given a new machine whose root logs in
+    And allowing the key for the work user will fail with {'getent: no such user'}
+    When I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    Then it says {'The key could not be allowed for agents: getent: no such user'}
+    And ssh config was not touched
+    And Sokar was not started
