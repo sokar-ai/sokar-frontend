@@ -71,7 +71,14 @@ Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
   );
   await pumpFor(tester);
   await tester.tap(find.byKey(const Key('try-it')));
-  await pumpFor(tester);
+  await pumpUntil(
+    tester,
+    () =>
+        find.byKey(const Key('host-key-accept')).evaluate().isNotEmpty ||
+        find.byKey(const Key('trial-result')).evaluate().isNotEmpty,
+    timeout: const Duration(seconds: 30),
+    what: 'the trial or the host key question',
+  );
   await trustTheHostKeyIfAsked(tester);
   await pumpUntil(
     tester,
@@ -95,6 +102,27 @@ Future<void> trustTheHostKeyIfAsked(WidgetTester tester) async {
   if (trust.evaluate().isEmpty) return;
   await tester.tap(trust);
   await pumpFor(tester);
+}
+
+/// Waits until the machine dialog has closed — it asks the host for its key first, which takes a
+/// real round trip — trusting that key if the wizard asks about it.
+Future<void> untilTheDialogCloses(WidgetTester tester) async {
+  await pumpUntil(
+    tester,
+    () {
+      if (find.byKey(const Key('host-key-accept')).evaluate().isNotEmpty) return true;
+      return find.byKey(const Key('watch-it')).evaluate().isEmpty;
+    },
+    timeout: const Duration(seconds: 30),
+    what: 'the machine dialog to close or ask about the host key',
+  );
+  await trustTheHostKeyIfAsked(tester);
+  await pumpUntil(
+    tester,
+    () => find.byKey(const Key('watch-it')).evaluate().isEmpty,
+    timeout: const Duration(seconds: 30),
+    what: 'the machine dialog to close',
+  );
 }
 
 /// Opens the dialog that adds a machine, from the menu bar where it lives.

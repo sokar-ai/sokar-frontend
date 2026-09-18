@@ -14,6 +14,5 @@ Future<void> iWatchTheTestMachineThroughAForwardRaisedHere(WidgetTester tester) 
   await tester.enterText(find.byKey(const Key('machine-remote-socket')), E2e.remoteSocket);
   await pumpFor(tester);
   await tester.tap(find.byKey(const Key('watch-it')));
-  await pumpFor(tester);
-  await trustTheHostKeyIfAsked(tester);
+  await untilTheDialogCloses(tester);
 }
