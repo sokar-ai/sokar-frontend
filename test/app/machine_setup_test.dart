@@ -162,6 +162,19 @@ void main() {
       expect(packages.map((each) => each.name), <String>['ok-1.0+b']);
     });
 
+    // Verbatim what Agent Sokar measured on the Ubuntu VM on 2026-09-18 (e582250): Agent Sluice's
+    // transport package, found because it declares Provides: sokar-transport.
+    test("the script's own answer, as measured on a real machine, is read", () {
+      final packages = MachineSetup.installableIn('{"packages":[{"name":"sokar-message-transport-local",'
+          '"kind":"transport","description":"Carries agent messages between mailboxes on one machine",'
+          '"installed":true,"version":"1.0.0~snapshot.0+local.20260918T100444"}]}');
+
+      expect(packages.single.name, 'sokar-message-transport-local');
+      expect(packages.single.kind, 'transport');
+      expect(packages.single.installed, isTrue);
+      expect(packages.single.version, '1.0.0~snapshot.0+local.20260918T100444');
+    });
+
     test('a shape this build does not read is said, not guessed at', () {
       expect(() => MachineSetup.installableIn('{"items": []}'), throwsA(isA<MachineSetupFailed>()));
     });
