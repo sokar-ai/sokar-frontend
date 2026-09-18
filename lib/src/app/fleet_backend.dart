@@ -139,7 +139,7 @@ abstract class FleetBackend {
 
   /// Creates a project file, having checked the answers against this machine.
   Future<Created> createProject({
-    required String file,
+    String? file,
     required String name,
     required String securityClass,
     required String baseImage,
@@ -413,7 +413,7 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Created> createProject({
-    required String file,
+    String? file,
     required String name,
     required String securityClass,
     required String baseImage,

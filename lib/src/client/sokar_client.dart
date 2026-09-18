@@ -513,7 +513,7 @@ class SokarClient {
   /// configuration, and this is the one operation that would replace it with nothing to restore
   /// from.
   Future<Created> createProject({
-    required String file,
+    String? file,
     required String name,
     required String securityClass,
     required String baseImage,
@@ -522,7 +522,8 @@ class SokarClient {
     bool? dryRun,
   }) async =>
       Created.from(await _call('CreateProject', {
-        'file': file,
+        // Left out rather than sent empty: the machine then chooses where its projects live (QF22).
+        'file': ?file,
         'name': name,
         'securityClass': securityClass,
         'baseImage': baseImage,

@@ -5,7 +5,6 @@ import '../support/world.dart';
 
 /// Usage: I answer the project questions
 Future<void> iAnswerTheProjectQuestions(WidgetTester tester) async {
-  await tester.enterText(find.byKey(const Key('project-file')), '/srv/new/project.yml');
   await tester.enterText(find.byKey(const Key('project-name')), 'new-thing');
   await tester.tap(find.byKey(const Key('class-guarded')));
   await tester.enterText(find.byKey(const Key('base-image')), 'ubuntu:24.04');

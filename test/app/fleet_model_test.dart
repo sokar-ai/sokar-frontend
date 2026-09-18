@@ -178,7 +178,7 @@ class _Wedged implements FleetBackend {
 
   @override
   Future<Created> createProject({
-    required String file,
+    String? file,
     required String name,
     required String securityClass,
     required String baseImage,
@@ -424,7 +424,7 @@ class _Machine implements FleetBackend {
 
   @override
   Future<Created> createProject({
-    required String file,
+    String? file,
     required String name,
     required String securityClass,
     required String baseImage,

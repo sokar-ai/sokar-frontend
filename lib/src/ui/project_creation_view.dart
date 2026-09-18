@@ -73,14 +73,6 @@ class ProjectCreationPanel extends StatelessWidget {
                     ),
                   if (!(made?.written ?? false)) ...<Widget>[
                     _Answer(
-                      id: 'project-file',
-                      label: 'Where the project file goes',
-                      hint: '/srv/checkout/project.yml',
-                      value: creation.file,
-                      onChanged: (typed) =>
-                          creation.answer(() => creation.file = typed),
-                    ),
-                    _Answer(
                       id: 'project-name',
                       label: 'What it is called',
                       hint: 'checkout',
@@ -88,6 +80,7 @@ class ProjectCreationPanel extends StatelessWidget {
                       onChanged: (typed) =>
                           creation.answer(() => creation.name = typed),
                     ),
+                    _WhereItGoes(creation: creation),
                     const SizedBox(height: Space.small),
                     Text(
                       'What its work may reach',
@@ -279,6 +272,59 @@ class ProjectCreationPanel extends StatelessWidget {
       );
     },
   );
+}
+
+/// Where the project file goes: **the machine's choice unless somebody wants it elsewhere**.
+///
+/// A path on a machine nobody sees from here is not a question a person can answer, and inventing
+/// one here would be the machine's layout written down twice. So the machine chooses and says
+/// where; a path of one's own — beside the code in a repository — is one click away.
+class _WhereItGoes extends StatefulWidget {
+  const _WhereItGoes({required this.creation});
+
+  final ProjectCreation creation;
+
+  @override
+  State<_WhereItGoes> createState() => _WhereItGoesState();
+}
+
+class _WhereItGoesState extends State<_WhereItGoes> {
+  late bool _elsewhere = widget.creation.file.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final creation = widget.creation;
+    final where = creation.whereItGoes;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: Space.tight),
+          child: Text(
+            where.isEmpty
+                ? 'Its file goes where the machine keeps projects.'
+                : 'Its file goes to $where.',
+            key: const Key('project-file-goes'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        if (_elsewhere)
+          _Answer(
+            id: 'project-file',
+            label: 'Put its file here instead',
+            hint: '/home/you/work/checkout/project.yml',
+            value: creation.file,
+            onChanged: (typed) => creation.answer(() => creation.file = typed),
+          )
+        else
+          TextButton(
+            key: const Key('project-file-elsewhere'),
+            onPressed: () => setState(() => _elsewhere = true),
+            child: const Text('Put it somewhere else'),
+          ),
+      ],
+    );
+  }
 }
 
 class _Answer extends StatefulWidget {

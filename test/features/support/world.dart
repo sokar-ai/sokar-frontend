@@ -706,7 +706,7 @@ class FakeBackend implements FleetBackend {
 
   @override
   Future<Created> createProject({
-    required String file,
+    String? file,
     required String name,
     required String securityClass,
     required String baseImage,
@@ -714,8 +714,10 @@ class FakeBackend implements FleetBackend {
     List<String> sets = const <String>[],
     bool? dryRun,
   }) async {
+    // As QF22 proposes: no file given, and the machine chooses where its projects live.
+    final chosen = file ?? '/home/somebody/.config/sokar/projects/$name/project.yml';
     creations.add((
-      file: file,
+      file: file ?? '',
       name: name,
       securityClass: securityClass,
       preview: dryRun == true,
@@ -728,7 +730,7 @@ class FakeBackend implements FleetBackend {
         Project.from(<String, dynamic>{
           'name': name,
           'securityClass': securityClass,
-          'file': file,
+          'file': chosen,
           'prepared': false,
           'preparedState': 'ABSENT',
           'behindReason': 'NEVER_CHECKED',
@@ -743,7 +745,7 @@ class FakeBackend implements FleetBackend {
           : dryRun == true
               ? 'PREVIEWED'
               : theCreationAnswers,
-      file: file,
+      file: chosen,
       content: 'project:\n  name: "$name"\n  security_class: "$securityClass"\n'
           'image:\n  base_image: "$baseImage"\n',
       problems: theCreationProblems,

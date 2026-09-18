@@ -849,8 +849,10 @@ class MockMachine {
   /// **The checking is what a client cannot do**: whether a class is spelled right, whether a set
   /// exists here, whether the name survives becoming an image tag and an nftables set name.
   Map<String, dynamic> _createProject(Map<String, dynamic> parameters) {
-    final file = parameters['file'] as String? ?? '';
     final name = parameters['name'] as String? ?? '';
+    // As QF22 proposes: no file given, and the machine chooses where its projects live.
+    final given = parameters['file'] as String? ?? '';
+    final file = given.isEmpty ? '/home/somebody/.config/sokar/projects/$name/project.yml' : given;
     final klass = parameters['securityClass'] as String? ?? '';
     final baseImage = parameters['baseImage'] as String? ?? '';
     final upstream = parameters['upstream'] as String? ?? '';

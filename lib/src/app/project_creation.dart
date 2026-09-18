@@ -15,7 +15,8 @@ import 'fleet_backend.dart';
 /// So every change asks the machine with `dryRun`, which **writes nothing**: what comes back is
 /// the file as it would be written, plus what is wrong with the answers.
 class ProjectCreation extends ChangeNotifier {
-  /// Where the project file goes.
+  /// Where the project file goes, **only when somebody wants it somewhere of their own** — beside the
+  /// code in a repository, say. Empty leaves it to the machine.
   String file = '';
 
   /// What it is called.
@@ -64,8 +65,10 @@ class ProjectCreation extends ChangeNotifier {
   ///
   /// Asking with half a form would produce a list of complaints about things somebody has not got
   /// to yet, which teaches people to ignore the list.
-  bool get worthChecking =>
-      file.isNotEmpty && name.isNotEmpty && securityClass.isNotEmpty && baseImage.isNotEmpty;
+  bool get worthChecking => name.isNotEmpty && securityClass.isNotEmpty && baseImage.isNotEmpty;
+
+  /// Where the file goes, as the machine last said: the path given, or the one it chose.
+  String get whereItGoes => created?.file ?? checked?.file ?? '';
 
   /// Whether an `online` project is missing the upstream it needs.
   bool get needsUpstream => securityClass == 'online' && upstream.isEmpty;
@@ -155,7 +158,8 @@ class ProjectCreation extends ChangeNotifier {
           'minutes, and starting work here would otherwise spend them.',
       // **A refusal and never an overwrite.** The file may be somebody's whole configuration, and
       // this is the one operation that would replace it with nothing to restore from.
-      'ALREADY_EXISTS' => 'There is already a project file at $file. Nothing was written.',
+      'ALREADY_EXISTS' =>
+        'There is already a project file at ${said.file.isEmpty ? file : said.file}. Nothing was written.',
       'INVALID' => 'The machine will not take these answers. Nothing was written.',
       'FAILED' => 'It could not be created. ${said.detail}'.trim(),
       _ => '${said.outcome}. ${said.detail}'.trim(),
@@ -181,7 +185,8 @@ class ProjectCreation extends ChangeNotifier {
   }
 
   Future<Created> _ask(FleetBackend backend, {bool? dryRun}) => backend.createProject(
-        file: file,
+        // Empty means the machine chooses (QF22): where a machine keeps its projects is its own.
+        file: file.isEmpty ? null : file,
         name: name,
         securityClass: securityClass,
         baseImage: baseImage,

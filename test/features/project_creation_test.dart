@@ -22,6 +22,9 @@ import './step/i_create_the_project.dart';
 import './step/creating_will_find_a_file_already_there.dart';
 import './step/i_am_done_with_the_new_project.dart';
 import './step/the_project_is_selected.dart';
+import './step/the_machine_was_asked_without_a_project_file.dart';
+import './step/i_put_the_project_file_at.dart';
+import './step/the_machine_was_asked_with_the_project_file.dart';
 
 void main() {
   group('''Creating a project, checked by the machine that will run it''', () {
@@ -36,7 +39,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iDescribeANewProject(tester);
-      await itSays(tester, 'Where the project file goes');
+      await itSays(tester, 'Its file goes where the machine keeps projects');
       await itSays(tester, 'What its work may reach');
       await theSetsOfferedAreTheOnesInstalledHere(tester);
     });
@@ -112,6 +115,28 @@ void main() {
       await iCreateTheProject(tester);
       await iAmDoneWithTheNewProject(tester);
       await theProjectIsSelected(tester, 'new-thing');
+    });
+    testWidgets(
+        '''the machine chooses where the project file goes, and says where''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iDescribeANewProject(tester);
+      await iAnswerTheProjectQuestions(tester);
+      await itSays(tester,
+          'Its file goes to /home/somebody/.config/sokar/projects/new-thing/project.yml');
+      await theMachineWasAskedWithoutAProjectFile(tester);
+    });
+    testWidgets('''a project file of one's own goes where it was put''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iDescribeANewProject(tester);
+      await iPutTheProjectFileAt(
+          tester, '/home/somebody/work/new-thing/project.yml');
+      await iAnswerTheProjectQuestions(tester);
+      await itSays(
+          tester, 'Its file goes to /home/somebody/work/new-thing/project.yml');
+      await theMachineWasAskedWithTheProjectFile(
+          tester, '/home/somebody/work/new-thing/project.yml');
     });
   });
 }

@@ -9,7 +9,7 @@ Feature: Creating a project, checked by the machine that will run it
 
   Scenario: every question is in one place, and the sets offered are the ones this machine has
     When I describe a new project
-    Then it says {'Where the project file goes'}
+    Then it says {'Its file goes where the machine keeps projects'}
     And it says {'What its work may reach'}
     And the sets offered are the ones installed here
 
@@ -76,3 +76,18 @@ Feature: Creating a project, checked by the machine that will run it
     And I create the project
     And I am done with the new project
     Then the project {'new-thing'} is selected
+
+  # A path on a machine nobody sees from here is not a question a person can answer (QF22).
+  Scenario: the machine chooses where the project file goes, and says where
+    When I describe a new project
+    And I answer the project questions
+    Then it says {'Its file goes to /home/somebody/.config/sokar/projects/new-thing/project.yml'}
+    And the machine was asked without a project file
+
+  Scenario: a project file of one's own goes where it was put
+    When I describe a new project
+    And I put the project file at {'/home/somebody/work/new-thing/project.yml'}
+    And I answer the project questions
+    Then it says {'Its file goes to /home/somebody/work/new-thing/project.yml'}
+    And the machine was asked with the project file {'/home/somebody/work/new-thing/project.yml'}
+
