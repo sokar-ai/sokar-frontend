@@ -94,6 +94,8 @@ import './step/it_shows_the_first_line_the_machine_printed.dart';
 import './step/only_cancel_is_offered.dart';
 import './step/the_machine_answers.dart';
 import './step/i_choose_the_existing_key.dart';
+import './step/the_host_key_of_changed_since_it_was_last_seen.dart';
+import './step/i_am_warned_that_the_key_is_not_the_one_known_for_that_address.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -567,6 +569,25 @@ void main() {
       await iSayTheNewMachineIsAt(tester, '203.0.113.10');
       await iTryLoggingInAsRoot(tester);
       await rootLoggedInToWith(tester, '203.0.113.10', 'id_ed25519');
+    });
+    testWidgets(
+        '''a host whose key changed is warned about, and the old key is replaced only when asked''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theHostKeyOfChangedSinceItWasLastSeen(tester, 'root@203.0.113.10');
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await iAmWarnedThatTheKeyIsNotTheOneKnownForThatAddress(tester);
+      await iTrustTheHostKey(tester);
+      await theHostKeyOfWasWritten(tester, '203.0.113.10');
+      await rootLoggedInToWith(
+          tester, '203.0.113.10', 'sokar-the-build-machine');
     });
   });
 }

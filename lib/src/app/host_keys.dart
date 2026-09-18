@@ -13,6 +13,8 @@ class HostKeyCheck {
     this.scanned = const <String>[],
     this.fingerprints = const <String>[],
     this.problem,
+    this.changed = false,
+    this.knownIn = const <String>[],
   });
 
   /// What was asked about: `user@host`, a host, or an alias from `~/.ssh/config`.
@@ -32,6 +34,13 @@ class HostKeyCheck {
 
   /// Why nothing could be found, in words, or null.
   final String? problem;
+
+  /// Whether a key *is* known for this host, and it is not one the host now shows: a rented
+  /// server's address given to a new machine, or somebody in the middle. Never decided here.
+  final bool changed;
+
+  /// The `known_hosts` files that hold the old key, to take it out of when a person replaces it.
+  final List<String> knownIn;
 }
 
 /// Confirming a machine's host key before the first login, **never silently**.
@@ -90,12 +99,18 @@ class SshHostKeys implements HostKeys {
     final port = settings['port'] ?? '22';
     final host = port == '22' ? hostname : '[$hostname]:$port';
     final files = (settings['userknownhostsfile'] ?? '~/.ssh/known_hosts').split(' ');
+    // What is known for it, as (type, key) pairs, and where.
+    final known = <String>{};
+    final knownIn = <String>[];
     for (final named in files) {
       // `ssh -G` expands a home it knows, but nothing here runs a shell to expand one it left.
       final file = named.startsWith('~/') ? '$_home${named.substring(1)}' : named;
       final found = await _run(<String>['ssh-keygen', '-F', host, '-f', file]);
-      if (found.exitCode == 0) {
-        return HostKeyCheck(destination: destination, host: host, known: true);
+      if (found.exitCode != 0) continue;
+      knownIn.add(file);
+      for (final line in '${found.stdout}'.split('\n')) {
+        if (line.trim().isEmpty || line.startsWith('#')) continue;
+        known.add(_keyOf(line));
       }
     }
     final scan = await _run(<String>['ssh-keyscan', '-T', '10', '-H', '-p', port, hostname]);
@@ -103,6 +118,9 @@ class SshHostKeys implements HostKeys {
       for (final line in '${scan.stdout}'.split('\n'))
         if (line.trim().isNotEmpty && !line.startsWith('#')) line.trim(),
     ];
+    if (knownIn.isNotEmpty && scanned.any((line) => known.contains(_keyOf(line)))) {
+      return HostKeyCheck(destination: destination, host: host, known: true);
+    }
     if (scanned.isEmpty) {
       return HostKeyCheck(
         destination: destination,
@@ -116,6 +134,8 @@ class SshHostKeys implements HostKeys {
       destination: destination,
       host: host,
       known: false,
+      changed: knownIn.isNotEmpty,
+      knownIn: knownIn,
       scanned: scanned,
       fingerprints: <String>[
         for (final line in '${printed.stdout}'.split('\n'))
@@ -124,8 +144,20 @@ class SshHostKeys implements HostKeys {
     );
   }
 
+  /// The type and the key of a `known_hosts` or `ssh-keyscan` line, whatever names the host.
+  static String _keyOf(String line) {
+    final fields = line.trim().split(RegExp(r'\s+'));
+    final start = fields.first.startsWith('@') ? 2 : 1;
+    return fields.length > start + 1 ? '${fields[start]} ${fields[start + 1]}' : line.trim();
+  }
+
   @override
   Future<void> accept(HostKeyCheck check) async {
+    // A replaced key goes, in every file that held it, before the one the person trusted is added:
+    // ssh reads the first match, and an old line left in place would go on refusing.
+    for (final file in check.knownIn) {
+      await _run(<String>['ssh-keygen', '-R', check.host, '-f', file]);
+    }
     final ssh = Directory('$_home/.ssh');
     if (!ssh.existsSync()) {
       ssh.createSync(recursive: true);

@@ -12,6 +12,9 @@ class _Ssh {
   /// Which `known_hosts` files know which hosts.
   final Map<String, Set<String>> knows = <String, Set<String>>{};
 
+  /// The key those files hold for them.
+  String knownKey = 'ssh-ed25519 AAAAC3Nza';
+
   String scanned = '|1|abc= ssh-ed25519 AAAAC3Nza\n# a comment ssh-keyscan prints\n';
   final List<List<String>> ran = <List<String>>[];
   String? given;
@@ -23,7 +26,8 @@ class _Ssh {
       case ['ssh', '-G', _]:
         return answer(0, config);
       case ['ssh-keygen', '-F', final host, '-f', final file]:
-        return answer((knows[file] ?? const <String>{}).contains(host) ? 0 : 1);
+        final found = (knows[file] ?? const <String>{}).contains(host);
+        return answer(found ? 0 : 1, found ? '# Host $host found: line 3\n|1|old= $knownKey\n' : '');
       case ['ssh-keyscan', ...]:
         return answer(0, scanned);
       case ['ssh-keygen', '-l', '-f', '-']:
@@ -49,13 +53,27 @@ void main() {
     expect(ssh.given, contains('ssh-ed25519 AAAAC3Nza'), reason: 'the fingerprints are of other keys');
   });
 
-  test('a host known in any of the files ssh reads is not scanned at all', () async {
+  test('a host known in any of the files ssh reads, with the key it shows, is not asked about', () async {
     final ssh = _Ssh()..knows['/home/somebody/.ssh/known_hosts2'] = <String>{'build.example.test'};
 
     final check = await SshHostKeys(run: ssh.run, home: '/home/somebody').check('build');
 
     expect(check.known, isTrue);
-    expect(ssh.ran.where((each) => each.first == 'ssh-keyscan'), isEmpty);
+    expect(check.changed, isFalse);
+  });
+
+  // A rented server's address given to a new machine: the old key is known, and it is not this one.
+  test('a known host showing another key is said to have changed, and nothing is decided', () async {
+    final ssh = _Ssh()
+      ..knows['/home/somebody/.ssh/known_hosts'] = <String>{'build.example.test'}
+      ..knownKey = 'ssh-ed25519 AAAAoldmachine';
+
+    final check = await SshHostKeys(run: ssh.run, home: '/home/somebody').check('build');
+
+    expect(check.known, isFalse);
+    expect(check.changed, isTrue);
+    expect(check.knownIn, <String>['/home/somebody/.ssh/known_hosts']);
+    expect(check.fingerprints.single, contains('SHA256:fingerprint'));
   });
 
   test('off port 22 the host is named the way known_hosts names it', () async {
@@ -109,4 +127,26 @@ void main() {
     expect(FileStat.statSync('${home.path}/.ssh').mode & 0x1FF, 0x1C0); // 700
     expect(FileStat.statSync('${home.path}/.ssh/known_hosts').mode & 0x1FF, 0x180); // 600
   });
+
+  test('replacing a changed key takes the old one out first, then keeps the new one', () async {
+    final home = Directory.systemTemp.createTempSync('host-keys-');
+    addTearDown(() => home.deleteSync(recursive: true));
+    final file = File('${(Directory('${home.path}/.ssh')..createSync()).path}/known_hosts')
+      ..writeAsStringSync('203.0.113.10 ssh-ed25519 AAAAoldmachine\nother.example ssh-ed25519 AAAAkeep\n');
+
+    await SshHostKeys(home: home.path).accept(HostKeyCheck(
+      destination: 'root@203.0.113.10',
+      host: '203.0.113.10',
+      known: false,
+      changed: true,
+      knownIn: <String>[file.path],
+      scanned: const <String>['203.0.113.10 ssh-ed25519 AAAAnewmachine'],
+    ));
+
+    final now = file.readAsStringSync();
+    expect(now, isNot(contains('AAAAoldmachine')));
+    expect(now, contains('other.example ssh-ed25519 AAAAkeep'), reason: 'another host was taken out');
+    expect(now, contains('AAAAnewmachine'));
+  });
 }
+

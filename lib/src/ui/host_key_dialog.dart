@@ -12,18 +12,31 @@ Future<bool> confirmHostKey(BuildContext context, HostKeyCheck check) async =>
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Trust ${check.host}?'),
+        title: Text(check.changed
+            ? 'The key of ${check.host} is not the one known for it'
+            : 'Trust ${check.host}?'),
         content: SizedBox(
           width: 560,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text(
-                'This machine has not been reached from here before. Compare its keys with what '
-                'the machine itself says — on a rented server, its console: '
-                '`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.',
-              ),
+              if (check.changed)
+                Text(
+                  'A different key is known for this address. On a rented server that is usual when '
+                  'the address was given to a new machine — one you just created, say. Otherwise it '
+                  'can be somebody in the middle. Compare the key below with what the machine itself '
+                  'says on its console before replacing the old one: '
+                  '`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.',
+                  key: const Key('host-key-changed'),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                )
+              else
+                const Text(
+                  'This machine has not been reached from here before. Compare its keys with what '
+                  'the machine itself says — on a rented server, its console: '
+                  '`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.',
+                ),
               const SizedBox(height: Space.normal),
               SelectableText(
                 check.fingerprints.join('\n'),
@@ -42,7 +55,7 @@ Future<bool> confirmHostKey(BuildContext context, HostKeyCheck check) async =>
           FilledButton(
             key: const Key('host-key-accept'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Trust these keys'),
+            child: Text(check.changed ? 'Replace the old key' : 'Trust these keys'),
           ),
         ],
       ),

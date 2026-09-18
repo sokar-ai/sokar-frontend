@@ -1913,6 +1913,9 @@ class FakeHostKeys implements HostKeys {
   /// Every destination asked about.
   final List<String> asked = <String>[];
 
+  /// Destinations for which another key than the one shown is known.
+  final Set<String> changed = <String>{};
+
   /// The fingerprint every unknown host shows.
   static const fingerprint = '256 SHA256:uNiQuEfInGeRpRiNtOfThEbUiLdMaChInE0123456789 (ED25519)';
 
@@ -1927,6 +1930,8 @@ class FakeHostKeys implements HostKeys {
       destination: destination,
       host: host,
       known: false,
+      changed: changed.contains(destination),
+      knownIn: changed.contains(destination) ? const <String>['~/.ssh/known_hosts'] : const <String>[],
       scanned: const <String>['|1|hashed ssh-ed25519 AAAA'],
       fingerprints: const <String>[fingerprint],
     );

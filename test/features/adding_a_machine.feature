@@ -381,3 +381,19 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I say the new machine is at {'203.0.113.10'}
     And I try logging in as root
     Then root logged in to {'203.0.113.10'} with {'id_ed25519'}
+
+  # A rented server's address given to a new machine: the old key is known, and it is not this one.
+  Scenario: a host whose key changed is warned about, and the old key is replaced only when asked
+    Given the host key of {'root@203.0.113.10'} changed since it was last seen
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I generate a key pair
+    And I keep the key
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    Then I am warned that the key is not the one known for that address
+    When I trust the host key
+    Then the host key of {'203.0.113.10'} was written
+    And root logged in to {'203.0.113.10'} with {'sokar-the-build-machine'}
