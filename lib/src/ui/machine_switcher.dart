@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -7,6 +9,7 @@ import '../app/host_keys.dart';
 import '../app/machine_setup.dart';
 import '../app/machines.dart';
 import '../app/settings.dart';
+import '../app/setup_run.dart';
 import '../app/tunnel.dart';
 import 'host_key_dialog.dart';
 import 'new_machine.dart';
@@ -91,7 +94,9 @@ Future<Machine?> askForAMachine(BuildContext context,
         HostKeys? hostKeys,
         MachineSetup? setup,
         String workUser = 'agent',
-        MachineKind? only}) =>
+        MachineKind? only,
+        Map<String, Object?>? draft,
+        Future<void> Function(Map<String, Object?>? draft)? remember}) =>
     showDialog<Machine>(
       context: context,
       builder: (context) => _AskForAMachine(
@@ -101,7 +106,9 @@ Future<Machine?> askForAMachine(BuildContext context,
           hostKeys: hostKeys,
           setup: setup,
           workUser: workUser,
-          only: only),
+          only: only,
+          draft: draft,
+          remember: remember),
     );
 
 class _AskForAMachine extends StatefulWidget {
@@ -113,6 +120,8 @@ class _AskForAMachine extends StatefulWidget {
     this.setup,
     this.workUser = 'agent',
     this.only,
+    this.draft,
+    this.remember,
   });
 
   /// The names already watched. A second with the same name would never be added.
@@ -136,6 +145,12 @@ class _AskForAMachine extends StatefulWidget {
   /// The one kind this wizard is for, or null to let the person choose: the second wizard, which
   /// only adds a user, is this dialog with [MachineKind.newUser] and nothing else offered.
   final MachineKind? only;
+
+  /// A setup a wizard started and did not finish, offered to be continued.
+  final Map<String, Object?>? draft;
+
+  /// Keeps an unfinished setup, or forgets it with null.
+  final Future<void> Function(Map<String, Object?>? draft)? remember;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -182,6 +197,76 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   late final _user = TextEditingController(text: widget.workUser);
 
   bool get _makesAUser => _kind == MachineKind.newMachine || _kind == MachineKind.newUser;
+
+  /// The run of a new machine or a new user: everything its steps said and did.
+  SetupRun? _run;
+
+  /// Whether the unfinished setup was put away rather than continued.
+  bool _draftDismissed = false;
+
+  /// The unfinished setup this wizard offers to continue, when there is one it can continue.
+  Map<String, Object?>? get _offeredDraft {
+    final draft = widget.draft;
+    if (draft == null || _run != null || _draftDismissed) return null;
+    final addsAUser = draft['addingAUser'] == true;
+    if (widget.only == MachineKind.newUser && !addsAUser) return null;
+    return draft;
+  }
+
+  SetupRun _newRun({Map<String, Object?>? from}) {
+    final setup = widget.setup ?? MachineSetup();
+    final run = (from == null
+            ? null
+            : SetupRun.fromStored(from,
+                setup: setup,
+                hostKeys: widget.hostKeys,
+                trying: widget.trying,
+                remember: widget.remember)) ??
+        SetupRun(
+          name: _name.text.trim(),
+          workUser: _user.text.trim(),
+          addingAUser: _kind == MachineKind.newUser,
+          setup: setup,
+          hostKeys: widget.hostKeys,
+          trying: widget.trying,
+          remember: widget.remember,
+        );
+    run.addListener(_runChanged);
+    return run;
+  }
+
+  void _runChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Goes to the second page, starting a run for the kinds that make a user — or keeping the one
+  /// there is, when the first page still says the same, so going back and on loses nothing.
+  void _goOn() {
+    if (_makesAUser) {
+      final run = _run;
+      final same = run != null &&
+          run.name == _name.text.trim() &&
+          run.workUser == _user.text.trim() &&
+          run.addingAUser == (_kind == MachineKind.newUser);
+      if (!same) {
+        run?.removeListener(_runChanged);
+        _run = _newRun();
+      }
+    }
+    setState(() => _page = 1);
+  }
+
+  /// Continues the unfinished setup where it stopped.
+  void _continue(Map<String, Object?> draft) {
+    final run = _newRun(from: draft);
+    _name.text = run.name;
+    _user.text = run.workUser;
+    setState(() {
+      _run = run;
+      _kind = run.addingAUser ? MachineKind.newUser : MachineKind.newMachine;
+      _page = 1;
+    });
+  }
 
   @override
   void initState() {
@@ -235,10 +320,21 @@ class _AskForAMachineState extends State<_AskForAMachine> {
           ),
         ),
         actions: <Widget>[
+          // While something runs on the machine only Cancel is offered: going back or on in the
+          // middle of it would draw a step that is not true yet.
           if (_page > 0)
             TextButton(
               key: const Key('wizard-back'),
-              onPressed: () => setState(() => _page = 0),
+              onPressed: _run?.busy ?? false
+                  ? null
+                  : () {
+                      final run = _run;
+                      if (_makesAUser && run != null && !run.isFirst) {
+                        run.previous();
+                      } else {
+                        setState(() => _page = 0);
+                      }
+                    },
               child: const Text('Back'),
             ),
           TextButton(
@@ -248,8 +344,26 @@ class _AskForAMachineState extends State<_AskForAMachine> {
           if (_page == 0)
             FilledButton(
               key: const Key('wizard-next'),
-              onPressed: _canGoOn ? () => setState(() => _page = 1) : null,
+              onPressed: _canGoOn ? _goOn : null,
               child: const Text('Next'),
+            )
+          else if (_makesAUser && _run != null && !_run!.isLast)
+            FilledButton(
+              key: const Key('setup-next'),
+              onPressed: _run!.canGoOn && !_run!.busy ? _run!.next : null,
+              child: const Text('Next step'),
+            )
+          else if (_makesAUser && _run != null)
+            FilledButton(
+              key: const Key('watch-new'),
+              onPressed: _run!.ready == null || _run!.busy
+                  ? null
+                  : () {
+                      final machine = _run!.ready!;
+                      unawaited(_run!.forget());
+                      Navigator.of(context).pop(machine);
+                    },
+              child: const Text('Watch it'),
             )
           else if (!_makesAUser)
             FilledButton(
@@ -262,6 +376,46 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// The name, and which kind of machine it is.
   List<Widget> _firstPage(BuildContext context) => <Widget>[
+        if (_offeredDraft case final draft?) ...<Widget>[
+          Container(
+            key: const Key('resume-setup'),
+            width: double.infinity,
+            padding: const EdgeInsets.all(Space.normal),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(Radii.small),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Setting up ${draft['name']}'
+                  '${'${draft['host'] ?? ''}'.isEmpty ? '' : ' (${draft['host']})'} was not finished.',
+                ),
+                const SizedBox(height: Space.small),
+                Wrap(
+                  spacing: Space.small,
+                  children: <Widget>[
+                    FilledButton(
+                      key: const Key('resume-setup-continue'),
+                      onPressed: () => _continue(draft),
+                      child: const Text('Continue where it stopped'),
+                    ),
+                    TextButton(
+                      key: const Key('resume-setup-discard'),
+                      onPressed: () {
+                        unawaited(widget.remember?.call(null));
+                        setState(() => _draftDismissed = true);
+                      },
+                      child: const Text('Discard it'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Space.wide),
+        ],
         // Always a tooltip, shown only when it has something to say: toggling the wrapper
         // would rebuild the field and take the cursor out of it mid-word.
         TooltipVisibility(
@@ -358,16 +512,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// What the chosen kind needs.
   List<Widget> _secondPage(BuildContext context) => <Widget>[
-        if (_makesAUser)
-          NewMachineSteps(
-            name: _name.text.trim(),
-            setup: widget.setup ?? MachineSetup(),
-            workUser: _user.text.trim(),
-            addingAUser: _kind == MachineKind.newUser,
-            hostKeys: widget.hostKeys,
-            trying: widget.trying,
-            onWatch: (machine) => Navigator.of(context).pop(machine),
-          ),
+        if (_makesAUser && _run != null) NewMachineSteps(run: _run!, onGrew: _showTheEnd),
         const SizedBox(height: Space.normal),
         if (_raiseIt == true) ...<Widget>[
           TextField(
@@ -667,6 +812,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     _host.dispose();
     _remote.dispose();
     _user.dispose();
+    _run?.removeListener(_runChanged);
     _nameFocus.dispose();
     super.dispose();
   }

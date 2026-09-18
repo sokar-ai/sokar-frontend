@@ -82,6 +82,17 @@ import './step/i_choose_the_command.dart';
 import './step/the_wizard_offers_no_kind_to_choose.dart';
 import './step/i_use_the_key_the_machine_already_knows.dart';
 import './step/nothing_asks_what_it_can_install.dart';
+import './step/the_new_machine_is_at.dart';
+import './step/i_copy_the_public_key.dart';
+import './step/what_was_copied_starts_with.dart';
+import './step/i_continue_the_unfinished_setup.dart';
+import './step/i_discard_the_unfinished_setup.dart';
+import './step/no_unfinished_setup_is_offered.dart';
+import './step/the_machine_takes_its_time_answering.dart';
+import './step/i_start_asking_what_it_can_install.dart';
+import './step/it_shows_the_first_line_the_machine_printed.dart';
+import './step/only_cancel_is_offered.dart';
+import './step/the_machine_answers.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -470,6 +481,74 @@ void main() {
           tester,
           'sokar-the-build-machine-as-other',
           '/run/user/1001/sokar/sokard.sock');
+    });
+    testWidgets(
+        '''going back and on again keeps the key and where the machine is''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iGoBack(tester);
+      await iGoBack(tester);
+      await iGoOn(tester);
+      await thePublicKeyIsShownToCopy(tester);
+      await iGoToTheNextStep(tester);
+      await theNewMachineIsAt(tester, '203.0.113.10');
+    });
+    testWidgets('''the public key can be copied from its field''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iCopyThePublicKey(tester);
+      await whatWasCopiedStartsWith(tester, 'ssh-ed25519 ');
+    });
+    testWidgets(
+        '''a setup that was not finished is offered to be continued where it stopped''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iCancelTheDialog(tester);
+      await iOpenTheMachineDialog(tester);
+      await itSays(tester,
+          'Setting up the build machine (203.0.113.10) was not finished.');
+      await iContinueTheUnfinishedSetup(tester);
+      await theNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await iGoToTheNextStep(tester);
+      await itSays(tester, "Sokar's setup script runs as root");
+    });
+    testWidgets(
+        '''an unfinished setup that is discarded is not offered again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iCancelTheDialog(tester);
+      await iOpenTheMachineDialog(tester);
+      await iDiscardTheUnfinishedSetup(tester);
+      await iCancelTheDialog(tester);
+      await iOpenTheMachineDialog(tester);
+      await noUnfinishedSetupIsOffered(tester);
+    });
+    testWidgets(
+        '''while a script runs it says what it is doing, and only Cancel is offered''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await theMachineTakesItsTimeAnswering(tester);
+      await iStartAskingWhatItCanInstall(tester);
+      await itSays(tester, 'Asking the machine what it can install');
+      await itShowsTheFirstLineTheMachinePrinted(tester);
+      await onlyCancelIsOffered(tester);
+      await theMachineAnswers(tester);
+      await itOffersThePackage(tester, 'sokar-agent-claude');
     });
   });
 }

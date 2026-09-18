@@ -128,6 +128,33 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
         '-o', 'ConnectTimeout=10', 'root@$host', 'bash', '-s',
       ], input: script);
 
+  /// [asRoot], with every line handed to [onLine] as it arrives, so a person watching a script that
+  /// takes minutes sees it working rather than a window that looks stuck.
+  Future<ProcessResult> asRootLive(
+    String host,
+    String keyFile,
+    String script,
+    void Function(String line) onLine,
+  ) async {
+    final process = await Process.start('ssh', <String>[
+      '-i', keyFile, '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+      '-o', 'ConnectTimeout=10', 'root@$host', 'bash', '-s',
+    ]);
+    process.stdin.write(script);
+    await process.stdin.close();
+    final out = StringBuffer();
+    final err = StringBuffer();
+    Future<void> follow(Stream<List<int>> stream, StringBuffer into) => stream
+        .transform(const SystemEncoding().decoder)
+        .transform(const LineSplitter())
+        .forEach((line) {
+      into.writeln(line);
+      onLine(line);
+    });
+    await Future.wait(<Future<void>>[follow(process.stdout, out), follow(process.stderr, err)]);
+    return ProcessResult(process.pid, await process.exitCode, '$out', '$err');
+  }
+
   /// Runs [command] as the work user through the `Host` entry [alias].
   Future<ProcessResult> asUser(String alias, String command) => _run(<String>[
         'ssh', '-n', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', alias, command,

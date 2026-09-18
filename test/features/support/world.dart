@@ -2008,6 +2008,28 @@ class FakeMachineSetup extends MachineSetup {
     return ProcessResult(0, 0, '', '');
   }
 
+  @override
+  Future<ProcessResult> asRootLive(
+    String host,
+    String keyFile,
+    String script,
+    void Function(String line) onLine,
+  ) async {
+    final hold = holdRoot;
+    if (hold != null) {
+      onLine('Reading package lists...');
+      await hold.future;
+    }
+    final result = await asRoot(host, keyFile, script);
+    for (final line in '${result.stdout}'.split('\n')) {
+      if (line.isNotEmpty) onLine(line);
+    }
+    return result;
+  }
+
+  /// Set to keep a root script running until it is completed.
+  Completer<void>? holdRoot;
+
   /// Every command run as the work user.
   final List<String> asUserRan = <String>[];
 

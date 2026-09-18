@@ -120,7 +120,17 @@ All three kinds are in the wizard. The new machine's steps, as built:
   something else never overwritten), `systemctl --user enable --now sokard` in that user's session,
   `sokar doctor`, and a trial through the new `Host` entry. **Watch it** then forwards as the work
   user, never root.
-- **Turning off root and password login** is offered after that, and runs only when asked.
+- **Turning off root and password login is a step of its own**, the last, explained before it is
+  offered: it writes `PermitRootLogin no` and `PasswordAuthentication no` and reloads ssh, deletes no
+  user and no key — and afterwards the wizard cannot add another user there, since that needs root.
+  It runs only when asked.
+- **After the operator's first try (2026-09-18):** the run is held apart from the screen, so going
+  back and on loses nothing, and it is **kept in the settings after every step** — never a private
+  key, only where a kept one lives — so a cancelled wizard or a closed window offers *"Setting up …
+  was not finished"* and continues where it stopped, root logging in again first. While anything runs
+  on the machine the wizard says what, shows the script's lines as they arrive in a terminal-looking
+  box that follows them, and offers only Cancel; Back and Next stay at the bottom of the dialog. The
+  public key has a copy button on its field.
 - The work user is an option (*New machines run work as*), `agents` by default, and a name `useradd`
   would refuse is never kept.
 

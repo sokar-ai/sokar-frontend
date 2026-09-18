@@ -118,6 +118,20 @@ class Settings extends ChangeNotifier {
   /// Whether [name] can be a user on a Linux machine: what `useradd` accepts by default.
   static bool isUserName(String name) => RegExp(r'^[a-z_][a-z0-9_-]{0,31}$').hasMatch(name);
 
+  /// A machine setup the wizard started and did not finish, as [SetupRun] stores it, or null.
+  ///
+  /// **Never a private key**: only where a kept key lives. Kept so a wizard that was cancelled, or
+  /// a window that was closed, picks up where it stopped rather than asking everything again.
+  Map<String, Object?>? get setupDraft => _setupDraft;
+  Map<String, Object?>? _setupDraft;
+
+  /// Keeps [draft] as the unfinished setup, or forgets it when null.
+  Future<void> setSetupDraft(Map<String, Object?>? draft) async {
+    _setupDraft = draft;
+    notifyListeners();
+    await _write();
+  }
+
   /// Sets the user new machines run work as, and keeps it for the next run.
   Future<void> setWorkUser(String name) async {
     if (!isUserName(name)) return;
@@ -134,6 +148,8 @@ class Settings extends ChangeNotifier {
     if (every is int && every >= 0) _refreshSeconds = every;
     final user = stored['workUser'];
     if (user is String && isUserName(user)) _workUser = user;
+    final draft = stored['setupDraft'];
+    if (draft is Map) _setupDraft = <String, Object?>{for (final e in draft.entries) '${e.key}': e.value};
     final place = stored['place'];
     if (place is Map) {
       _place = <String, String>{
@@ -272,6 +288,7 @@ class Settings extends ChangeNotifier {
   Future<void> _write() => _store.write(<String, Object?>{
         'refreshSeconds': _refreshSeconds,
         'workUser': _workUser,
+        'setupDraft': _setupDraft,
         'appearance': _appearance.name,
         'machines': _machines,
         'muted': _muted,

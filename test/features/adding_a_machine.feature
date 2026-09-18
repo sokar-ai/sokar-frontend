@@ -311,3 +311,58 @@ Feature: Adding a machine through a wizard that starts from what you have
     Then ssh config reaches {'sokar-the-build-machine-as-other'} as {'other'} with {'sokar-the-build-machine'}
     When I watch the new machine
     Then the forward was raised through {'sokar-the-build-machine-as-other'} to {'/run/user/1001/sokar/sokard.sock'}
+
+  Scenario: going back and on again keeps the key and where the machine is
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I generate a key pair
+    And I keep the key
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I go back
+    And I go back
+    And I go on
+    Then the public key is shown to copy
+    When I go to the next step
+    Then the new machine is at {'203.0.113.10'}
+
+  Scenario: the public key can be copied from its field
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I generate a key pair
+    And I copy the public key
+    Then what was copied starts with {'ssh-ed25519 '}
+
+  # Cancelled, or the window closed: nothing is asked twice, and nothing is done twice.
+  Scenario: a setup that was not finished is offered to be continued where it stopped
+    Given a new machine whose root logs in
+    When I cancel the dialog
+    And I open the machine dialog
+    Then it says {'Setting up the build machine (203.0.113.10) was not finished.'}
+    When I continue the unfinished setup
+    Then the new machine is at {'203.0.113.10'}
+    When I try logging in as root
+    And I go to the next step
+    Then it says {"Sokar's setup script runs as root"}
+
+  Scenario: an unfinished setup that is discarded is not offered again
+    Given a new machine whose root logs in
+    When I cancel the dialog
+    And I open the machine dialog
+    And I discard the unfinished setup
+    And I cancel the dialog
+    And I open the machine dialog
+    Then no unfinished setup is offered
+
+  # Going back or on in the middle of it would draw a step that is not true yet.
+  Scenario: while a script runs it says what it is doing, and only Cancel is offered
+    Given a new machine whose root logs in
+    And the machine takes its time answering
+    When I start asking what it can install
+    Then it says {'Asking the machine what it can install'}
+    And it shows the first line the machine printed
+    And only Cancel is offered
+    When the machine answers
+    Then it offers the package {'sokar-agent-claude'}
