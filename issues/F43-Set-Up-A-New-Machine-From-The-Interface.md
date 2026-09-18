@@ -155,8 +155,10 @@ vault.
   which is not built.
 - **Messaging between users is off unless the operator allows it for that machine** (his decision,
   2026-09-18, in Agent Sluice's QL10): a separate transport, and a dedicated option of Sokar's setup
-  script that is not a side effect of adding a user. When it exists, the wizard offers it as its own,
-  shown step — never ticked by default.
+  script that is not a side effect of adding a user. **It exists as `sokar-setup.sh --between-users
+  on|off`** (Agent Sokar, `cc60530`); the wizard is to offer it as its own, shown step — never ticked
+  by default. Its gap, from him: `on` makes no drop for users that already exist; each needs
+  `--user <name>` again, which the second wizard already runs.
 - **QF20, answered: `Node()` is one per user's daemon** (`$XDG_DATA_HOME/sokar/node-id`), so two
   users on one machine are two ids. The device's vault key, kept per node id, already keeps their
   vaults apart, and the "same node" hint never fires between them.
