@@ -224,9 +224,9 @@ void main() {
       await theWizardCannotGoToTheNextStepYet(tester);
       await iGenerateAKeyPair(tester);
       await iKeepTheKey(tester);
-      await theKeyWasKeptOwneronlyAs(tester, 'sokar-the-build-machine');
+      await theKeyWasKeptOwneronlyAs(tester, 'sokar-the-build-machine-admin');
       await itSays(tester,
-          'Give this public key to the provider when the server is created');
+          'Give this admin key to the provider when the server is created');
       await thePublicKeyIsShownToCopy(tester);
     });
     testWidgets(
@@ -259,7 +259,7 @@ void main() {
           tester, 'SHA256:uNiQuEfInGeRpRiNtOfThEbUiLdMaChInE0123456789');
       await iTrustTheHostKey(tester);
       await rootLoggedInToWith(
-          tester, '203.0.113.10', 'sokar-the-build-machine');
+          tester, '203.0.113.10', 'sokar-the-build-machine-admin');
       await itSays(tester, 'Logged in as root on 203.0.113.10');
       await iGoToTheNextStep(tester);
       await itSays(tester, "Sokar's setup script runs as root");
@@ -346,7 +346,7 @@ void main() {
       await iSetItUpAndConnect(tester);
       await theKeyWasAllowedFor(tester, 'agent');
       await sshConfigReachesAsWith(tester, 'sokar-the-build-machine', 'agent',
-          'sokar-the-build-machine');
+          'sokar-the-build-machine-agent');
       await sokarWasStartedAsTheWorkUser(tester);
       await itSays(tester, 'Reached Sokar');
       await iWatchTheNewMachine(tester);
@@ -480,7 +480,7 @@ void main() {
       await iGoToTheNextStep(tester);
       await iSetItUpAndConnect(tester);
       await sshConfigReachesAsWith(tester, 'sokar-the-build-machine-as-other',
-          'other', 'sokar-the-build-machine');
+          'other', 'sokar-the-build-machine-as-other-other');
       await iWatchTheNewMachine(tester);
       await theForwardWasRaisedThroughTo(
           tester,
@@ -589,7 +589,7 @@ void main() {
       await iTrustTheHostKey(tester);
       await theHostKeyOfWasWritten(tester, '203.0.113.10');
       await rootLoggedInToWith(
-          tester, '203.0.113.10', 'sokar-the-build-machine');
+          tester, '203.0.113.10', 'sokar-the-build-machine-admin');
     });
     testWidgets('''nothing is shown below the run until it was run''',
         (tester) async {

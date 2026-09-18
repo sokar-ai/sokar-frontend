@@ -90,6 +90,8 @@ class SetupRun extends ChangeNotifier {
         ..kept = kept
         ..keyFile = kept;
     }
+    final userKey = text('userKeyFile');
+    if (userKey.isNotEmpty && File(userKey).existsSync()) run.userKeyFile = userKey;
     final chosen = stored['chosen'];
     if (chosen is List) run.chosen.addAll(chosen.whereType<String>());
     final step = SetupStep.values.where((each) => each.name == text('step')).firstOrNull;
@@ -130,8 +132,14 @@ class SetupRun extends ChangeNotifier {
   /// The key file root logs in with, when adding a user.
   String keyFile;
 
-  /// Where the key was kept, once it was.
+  /// Where the admin key was kept, once it was.
   String? kept;
+
+  /// The work user's own key, chosen from `~/.ssh`, or null to have one made for it.
+  String? userKeyFile;
+
+  /// Its public half, once it is known.
+  String userPublicKey = '';
 
   /// The server's name or address, as typed.
   String host = '';
@@ -176,8 +184,11 @@ class SetupRun extends ChangeNotifier {
 
   bool get busy => doing != null;
 
-  /// The key's file name under `~/.ssh`.
-  String get keyName => 'sokar-${Machine.slug(name)}';
+  /// The admin key's file name under `~/.ssh`: root's, for setting up, never the daily one.
+  String get keyName => 'sokar-${Machine.slug(name)}-admin';
+
+  /// The work user's own key's file name: the only key its `Host` entry and the interface use.
+  String get userKeyName => 'sokar-${Machine.slug(name)}-${Machine.slug(workUser)}';
 
   /// The `Host` entry the machine is reached through.
   String get alias => 'sokar-${Machine.slug(name)}';
@@ -224,6 +235,7 @@ class SetupRun extends ChangeNotifier {
         'host': host,
         'prepared': prepared,
         'chosen': chosen.toList()..sort(),
+        'userKeyFile': userKeyFile ?? '',
       };
 
   void _keep() => remember?.call(toStored());
@@ -308,15 +320,34 @@ class SetupRun extends ChangeNotifier {
         return MachineSetup.whatTheScriptSaid(0);
       });
 
+  /// Chooses a key already in `~/.ssh` for the work user instead of having one made.
+  void useUserKey(String? file) {
+    userKeyFile = file;
+    userPublicKey = '';
+    changed();
+  }
+
   Future<void> reach() => _doing('Setting it up for $workUser and connecting…', () async {
         log.clear();
+        // The work user's own key: chosen, or made once and found again on a second run.
+        var userKey = userKeyFile;
+        if (userKey == null) {
+          final made = '${setup.sshDirectory}/$userKeyName';
+          if (!File(made).existsSync()) {
+            await setup.save(await setup.generate('sokar $name $workUser'), userKeyName);
+            _logged('Made a key of its own for $workUser: $made.');
+          }
+          userKey = made;
+          userKeyFile = made;
+        }
+        userPublicKey = await setup.publicKeyOf(userKey);
         final allowed = await setup.asRoot(
-            loggedInTo!, kept!, MachineSetup.authorize(workUser, publicKey.trim()));
+            loggedInTo!, kept!, MachineSetup.authorize(workUser, userPublicKey));
         if (allowed.exitCode != 0) {
           throw MachineSetupFailed('The key could not be allowed for $workUser: ${both(allowed)}');
         }
-        _logged('The key logs in as $workUser.');
-        _logged(await setup.addHostEntry(alias: alias, host: loggedInTo!, user: workUser, keyFile: kept!));
+        _logged('$workUser logs in with its own key only; its password stays locked.');
+        _logged(await setup.addHostEntry(alias: alias, host: loggedInTo!, user: workUser, keyFile: userKey));
         final started = await setup.asUser(alias, 'systemctl --user enable --now sokard');
         if (started.exitCode != 0) {
           throw MachineSetupFailed('Sokar did not start as $workUser: ${both(started)}');

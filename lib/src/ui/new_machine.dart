@@ -110,11 +110,12 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
       Text(words, style: Theme.of(context).textTheme.labelLarge);
 
   List<Widget> _knownKeyStep(BuildContext context) => <Widget>[
-        _title(context, '1. The key root logs in with'),
+        _title(context, '1. The admin key root logs in with'),
         const SizedBox(height: Space.small),
         Text(
-          'The key the machine already knows — for one this wizard prepared, ~/.ssh/sokar-<its '
-          'name>. It also becomes the key ${run.workUser} logs in with.',
+          'The key the machine already knows for root — for one this wizard prepared, '
+          '~/.ssh/sokar-<its name>-admin. It is used only to set ${run.workUser} up; '
+          '${run.workUser} gets a key of its own.',
         ),
         const SizedBox(height: Space.normal),
         _keyPicker(context, use: 'use-key'),
@@ -154,12 +155,13 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   }
 
   List<Widget> _keyStep(BuildContext context) => <Widget>[
-        _title(context, '1. The key it will be reached with'),
+        _title(context, '1. The admin key'),
         const SizedBox(height: Space.small),
         const Text(
-          'Generate a key pair, paste one, or use a key that is already in ~/.ssh. A generated or '
-          'pasted one is kept in ~/.ssh, owner-only. None may have a passphrase: this interface '
-          'never asks for one.',
+          "Root's key, for setting the machine up — by this wizard now, and by a person later. The "
+          'interface never uses it to reach the machine day to day: each user that runs work gets a '
+          'key of its own. Generate one, paste one, or use one already in ~/.ssh; none may have a '
+          'passphrase, since this interface never asks for one.',
         ),
         const SizedBox(height: Space.normal),
         TextField(
@@ -222,7 +224,7 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
           _keyPicker(context, use: 'use-existing-key'),
         ] else ...<Widget>[
           const Text(
-            'Give this public key to the provider when the server is created — for Hetzner, under '
+            'Give this admin key to the provider when the server is created — for Hetzner, under '
             "SSH keys. A key added afterwards cannot reach a machine that only knows root's.",
             key: Key('give-the-public-key'),
           ),
@@ -356,12 +358,41 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
         _title(context, '4. Reaching it as ${run.workUser}'),
         const SizedBox(height: Space.small),
         Text(
-          'Lets the key log in as ${run.workUser} (as root, below), adds Host ${run.alias} to '
-          "~/.ssh/config — as ${run.workUser}, never root — starts Sokar in ${run.workUser}'s own "
-          'session, asks sokar doctor, and connects the way watching it will.',
+          '${run.workUser} gets a key of its own, and logs in with it and nothing else: its password '
+          'stays locked, and ssh is told so for ${run.workUser} alone (as root, below). Then Host '
+          "${run.alias} goes into ~/.ssh/config with that key — as ${run.workUser}, never root — "
+          "Sokar starts in ${run.workUser}'s own session, sokar doctor is asked, and it connects "
+          'the way watching it will.',
         ),
         const SizedBox(height: Space.normal),
-        Terminal(text: MachineSetup.authorize(run.workUser, _public.text.trim()), id: 'authorize-script'),
+        Text('The key ${run.workUser} logs in with', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: Space.tight),
+        DropdownButton<String?>(
+          key: const Key('user-key'),
+          isExpanded: true,
+          value: run.userKeyFile,
+          onChanged: run.busy || run.ready != null ? null : run.useUserKey,
+          items: <DropdownMenuItem<String?>>[
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text('A new one: ~/.ssh/${run.userKeyName}', overflow: TextOverflow.ellipsis),
+            ),
+            for (final file in <String>{..._keys, ?run.userKeyFile})
+              if (file != run.kept)
+                DropdownMenuItem<String?>(
+                  value: file,
+                  child: Text(file.split('/').last, overflow: TextOverflow.ellipsis),
+                ),
+          ],
+        ),
+        const SizedBox(height: Space.normal),
+        Terminal(
+          text: MachineSetup.authorize(
+            run.workUser,
+            run.userPublicKey.isEmpty ? '<the public key of ${run.workUser}>' : run.userPublicKey,
+          ),
+          id: 'authorize-script',
+        ),
         const SizedBox(height: Space.small),
         FilledButton.icon(
           key: const Key('finish-setup'),

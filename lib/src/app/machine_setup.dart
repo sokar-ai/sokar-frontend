@@ -95,7 +95,11 @@ else wget -qO "\$f" '$setupScript'; fi
   /// Whether [name] can be a package name, so nothing else reaches a root command line.
   static bool _isPackageName(String name) => RegExp(r'^[a-z0-9][a-z0-9+.-]*$').hasMatch(name);
 
-  /// Lets [publicKey] log in as [user], once, owner-only.
+  /// Lets [publicKey] — **that user's own key, never the admin's** — log in as [user], once and
+  /// owner-only, and lets [user] log in with a key and nothing else: its password stays locked, and
+  /// sshd is told so for that user alone. The rule ends with `Match all`, so it cannot reach into
+  /// the rest of sshd's configuration, and sshd checks it before it is loaded: a rule it refuses is
+  /// taken out again rather than left to lock anybody out.
   static String authorize(String user, String publicKey) => '''set -e
 home=\$(getent passwd '$user' | cut -d: -f6)
 install -d -m 700 -o '$user' -g '$user' "\$home/.ssh"
@@ -103,6 +107,12 @@ touch "\$home/.ssh/authorized_keys"
 chown '$user:$user' "\$home/.ssh/authorized_keys"
 chmod 600 "\$home/.ssh/authorized_keys"
 grep -qxF '$publicKey' "\$home/.ssh/authorized_keys" || echo '$publicKey' >> "\$home/.ssh/authorized_keys"
+passwd -l '$user' >/dev/null
+mkdir -p /etc/ssh/sshd_config.d
+rule=/etc/ssh/sshd_config.d/20-sokar-$user.conf
+printf 'Match User %s\\n    AuthenticationMethods publickey\\n    PasswordAuthentication no\\n    KbdInteractiveAuthentication no\\nMatch all\\n' '$user' > "\$rule"
+if ! sshd -t; then rm -f "\$rule"; echo "sshd refused the rule for $user, so it was taken out again" >&2; exit 1; fi
+systemctl reload ssh 2>/dev/null || systemctl reload sshd
 ''';
 
   /// Turns off logging in as root and with a password, once the work user has logged in.

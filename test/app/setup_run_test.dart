@@ -39,7 +39,7 @@ void main() {
     await run.keep();
 
     expect(kept.toString(), isNot(contains('PRIVATE')));
-    expect(kept!['kept'], '${home.path}/.ssh/sokar-the-build-machine');
+    expect(kept!['kept'], '${home.path}/.ssh/sokar-the-build-machine-admin');
     expect(kept!['publicKey'], startsWith('ssh-ed25519 '));
   });
 

@@ -102,8 +102,8 @@ Feature: Adding a machine through a wizard that starts from what you have
     Then the wizard cannot go to the next step yet
     When I generate a key pair
     And I keep the key
-    Then the key was kept owner-only as {'sokar-the-build-machine'}
-    And it says {'Give this public key to the provider when the server is created'}
+    Then the key was kept owner-only as {'sokar-the-build-machine-admin'}
+    And it says {'Give this admin key to the provider when the server is created'}
     And the public key is shown to copy
 
   Scenario: pasted halves of two different pairs are refused and nothing is kept
@@ -128,7 +128,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I try logging in as root
     Then I am shown the host key {'SHA256:uNiQuEfInGeRpRiNtOfThEbUiLdMaChInE0123456789'}
     When I trust the host key
-    Then root logged in to {'203.0.113.10'} with {'sokar-the-build-machine'}
+    Then root logged in to {'203.0.113.10'} with {'sokar-the-build-machine-admin'}
     And it says {'Logged in as root on 203.0.113.10'}
     When I go to the next step
     Then it says {"Sokar's setup script runs as root"}
@@ -198,7 +198,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I go to the next step
     And I set it up and connect
     Then the key was allowed for {'agent'}
-    And ssh config reaches {'sokar-the-build-machine'} as {'agent'} with {'sokar-the-build-machine'}
+    And ssh config reaches {'sokar-the-build-machine'} as {'agent'} with {'sokar-the-build-machine-agent'}
     And Sokar was started as the work user
     And it says {'Reached Sokar'}
     When I watch the new machine
@@ -308,7 +308,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     Then the setup script ran for {'other'}
     When I go to the next step
     And I set it up and connect
-    Then ssh config reaches {'sokar-the-build-machine-as-other'} as {'other'} with {'sokar-the-build-machine'}
+    Then ssh config reaches {'sokar-the-build-machine-as-other'} as {'other'} with {'sokar-the-build-machine-as-other-other'}
     When I watch the new machine
     Then the forward was raised through {'sokar-the-build-machine-as-other'} to {'/run/user/1001/sokar/sokard.sock'}
 
@@ -396,7 +396,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     Then I am warned that the key is not the one known for that address
     When I trust the host key
     Then the host key of {'203.0.113.10'} was written
-    And root logged in to {'203.0.113.10'} with {'sokar-the-build-machine'}
+    And root logged in to {'203.0.113.10'} with {'sokar-the-build-machine-admin'}
 
   # What is shown before running is shown once, in its box; below "Run it as root" is only what running printed.
   Scenario: nothing is shown below the run until it was run
