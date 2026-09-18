@@ -43,6 +43,19 @@ class Machine {
     return Machine(name: socket.split('/').last, socketPath: socket);
   }
 
+  /// The mock, when somebody is working on the interface: where `SOKAR_SOCKET` points, or where
+  /// `tool/mock_daemon.dart` puts its socket by default.
+  factory Machine.mock({Map<String, String>? environment}) {
+    final socket = (environment ?? Platform.environment)['SOKAR_SOCKET'] ?? '';
+    if (socket.isEmpty || socket == defaultMockSocket) {
+      return const Machine(name: 'mock', socketPath: defaultMockSocket);
+    }
+    return Machine(name: socket.split('/').last, socketPath: socket);
+  }
+
+  /// Where `tool/mock_daemon.dart` puts its socket unless told otherwise.
+  static const String defaultMockSocket = '/tmp/sokar-mock.sock';
+
   /// Reads one back from what was stored.
   ///
   /// **Every field is checked rather than cast.** That file is a person's own JSON, editable by
@@ -141,14 +154,29 @@ class Machines extends ChangeNotifier {
   /// One machine exists from the moment this does, before anything is read back from disk. The
   /// frame is drawn before [load] can finish, and a frame with no machine behind it has nothing
   /// to draw — which it did, as a crash on the first frame.
-  Machines(this._settings, {FleetBackend Function(Machine)? reach, Tunnels? tunnels})
-      : _reach = reach ?? _overSocket,
+  ///
+  /// [lookFor] is a machine shown besides the stored ones **only while something answers at its
+  /// socket**, and never stored: the mock, so a person working on the interface does not have to
+  /// add it to every list they keep. [answers] says whether something does.
+  Machines(
+    this._settings, {
+    FleetBackend Function(Machine)? reach,
+    Tunnels? tunnels,
+    this._lookFor,
+    Future<bool> Function(String socket)? answers,
+  })  : _reach = reach ?? _overSocket,
+        _answers = answers ?? _answersAt,
         tunnels = tunnels ?? Tunnels() {
     _adopt(<Machine>[Machine.local()]);
   }
 
   final Settings _settings;
   final FleetBackend Function(Machine) _reach;
+  final Machine? _lookFor;
+  final Future<bool> Function(String socket) _answers;
+
+  /// Names shown but never stored.
+  final Set<String> _passing = <String>{};
 
   /// The forwards this interface raised. **Only the ones it raised** — a socket somebody else
   /// forwarded is opened as it always was, and is not in here to be taken down.
@@ -160,6 +188,20 @@ class Machines extends ChangeNotifier {
   final List<Machine> _machines = <Machine>[];
   String? _selected;
   bool _disposed = false;
+
+  /// Whether something accepts a connection at [socket] within a second.
+  static Future<bool> _answersAt(String socket) async {
+    try {
+      final connection = await Socket.connect(
+        InternetAddress(socket, type: InternetAddressType.unix),
+        0,
+      ).timeout(const Duration(seconds: 1));
+      connection.destroy();
+      return true;
+    } on Object {
+      return false;
+    }
+  }
 
   static FleetBackend _overSocket(Machine machine) =>
       SokarBackend(Backend(socketPath: machine.socketPath, label: machine.name));
@@ -210,11 +252,19 @@ class Machines extends ChangeNotifier {
   /// Reads the machines an earlier run stored and opens all of them.
   ///
   /// Nothing stored leaves the one this started with, which is the local daemon or whatever
-  /// `SOKAR_SOCKET` names.
+  /// `SOKAR_SOCKET` names. The machine to look for is added after either, when it answers.
   Future<void> load() async {
     final stored = await _settings.machines();
-    if (stored.isEmpty) return;
-    _adopt(stored);
+    if (stored.isNotEmpty) _adopt(stored);
+    final extra = _lookFor;
+    if (extra != null &&
+        !_machines.any((each) => each.socketPath == extra.socketPath || each.name == extra.name) &&
+        await _answers(extra.socketPath) &&
+        !_disposed) {
+      _machines.add(extra);
+      _passing.add(extra.name);
+      _open(extra);
+    }
     _notify();
   }
 
@@ -349,7 +399,10 @@ class Machines extends ChangeNotifier {
   /// somebody else raised, because nothing of theirs is in [tunnels].
   Future<void> letGoOfTheTunnels() => tunnels.dropEverything();
 
-  Future<void> _remember() => _settings.rememberMachines(_machines);
+  Future<void> _remember() => _settings.rememberMachines(<Machine>[
+        for (final machine in _machines)
+          if (!_passing.contains(machine.name)) machine,
+      ]);
 
   void _notify() {
     if (_disposed) return;

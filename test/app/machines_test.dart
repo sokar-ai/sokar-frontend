@@ -107,4 +107,61 @@ void main() {
 
     expect(machine.name, 'this machine');
   });
+
+  group('the mock, shown while it runs', () {
+    const mock = Machine(name: 'mock', socketPath: '/tmp/sokar-mock.sock');
+    final stored = <String, Object?>{
+      'machines': <Object?>[
+        <String, Object?>{'name': 'this machine', 'socket': '/run/user/1000/sokar/sokard.sock'},
+      ],
+    };
+
+    Machines machinesWith(Settings settings, {required bool running}) => Machines(
+          settings,
+          reach: (machine) => FakeBackend(const <Task>[]),
+          tunnels: FakeTunnels(),
+          lookFor: mock,
+          answers: (socket) async => running && socket == mock.socketPath,
+        );
+
+    test('a running mock is shown beside the stored machines, and never stored', () async {
+      final store = MemorySettingsStore(stored);
+      final machines = machinesWith(Settings(store), running: true);
+      addTearDown(machines.dispose);
+
+      await machines.load();
+      expect(machines.all.map((each) => each.name), <String>['this machine', 'mock']);
+
+      await machines.add(const Machine(name: 'other', socketPath: '/tmp/other.sock'));
+      final kept = await Settings(store).machines();
+      expect(kept.map((each) => each.name), <String>['this machine', 'other']);
+    });
+
+    test('a running mock is shown on a first run too, when nothing is stored yet', () async {
+      final machines = machinesWith(Settings(MemorySettingsStore()), running: true);
+      addTearDown(machines.dispose);
+
+      await machines.load();
+
+      // Once, whether or not SOKAR_SOCKET already opened it as the machine to start with.
+      expect(machines.all.where((each) => each.socketPath == mock.socketPath), hasLength(1));
+    });
+
+    test('a mock that is not running is not shown', () async {
+      final machines = machinesWith(Settings(MemorySettingsStore(stored)), running: false);
+      addTearDown(machines.dispose);
+
+      await machines.load();
+
+      expect(machines.all.map((each) => each.name), <String>['this machine']);
+    });
+
+    test('SOKAR_SOCKET moves where the mock is looked for', () {
+      expect(Machine.mock(environment: const <String, String>{}), mock);
+      expect(
+        Machine.mock(environment: const <String, String>{'SOKAR_SOCKET': '/tmp/other-mock.sock'}),
+        const Machine(name: 'other-mock.sock', socketPath: '/tmp/other-mock.sock'),
+      );
+    });
+  });
 }

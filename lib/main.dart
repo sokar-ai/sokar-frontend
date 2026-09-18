@@ -52,7 +52,7 @@ Future<SokarApp> _compose() async {
   // window opening does not wait on a file.
   final templates = Templates(settings);
   unawaited(templates.load());
-  final machines = Machines(settings);
+  final machines = Machines(settings, lookFor: Machine.mock());
 
   // Two interfaces watching the same machines raise every question twice and answer it from
   // whichever window somebody happened to see. A second launch asks the first to come forward and

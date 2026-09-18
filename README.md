@@ -63,8 +63,12 @@ real varlink, which the client cannot tell from `sokard`. In two terminals:
 
 ```
 dart tool/mock_daemon.dart                              # leave it running
-SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
+flutter run -d linux
 ```
+
+A running mock appears as the machine **mock**, beside any machines stored from earlier runs, and
+is never stored itself; it is looked for once, as the window opens. `SOKAR_SOCKET` moves where it
+is looked for.
 
 Pressing RETURN in the first terminal adds a task and pushes the change, so live updates can be
 watched arriving. A job worth repeating is kept from that same dialog and comes back as its own command (*Run nightly-tests in checkout*), with its prompt editable before it runs. `Ctrl+N` starts work — a name, an agent, one of the three modes, and a prompt when it is unattended, which makes the mock actually run an agent and stream what it writes; `Ctrl+K` → *Check that work can start here* runs a long operation against the

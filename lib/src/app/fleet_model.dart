@@ -218,6 +218,9 @@ class FleetModel extends ChangeNotifier {
       _reachability = Reachability.connected;
       _say('Connected to ${backend.label}, ${info.product} ${info.version}.');
       await _readOnce();
+      // Dropped while it was connecting — a stored list replacing the machine the window opened
+      // with does that. Following now would listen through what dispose() already closed.
+      if (_disposed) return;
       _follow();
       clearance
         ..addListener(_notify)

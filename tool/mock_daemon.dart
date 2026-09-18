@@ -4,7 +4,10 @@
 // Usage: dart tool/mock_daemon.dart [situation] [socket]
 //
 //   dart tool/mock_daemon.dart
-//   SOKAR_SOCKET=/tmp/sokar-mock.sock flutter run -d linux
+//   flutter run -d linux
+//
+// The interface shows a running mock as the machine "mock", beside any it has stored, and never
+// stores it. SOKAR_SOCKET moves where it looks.
 //
 // A second one, to try reaching several machines at once — the interface watches all of them,
 // lists each on the rail, and acts on the one whose place is open:
