@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/fleet_model.dart';
+import 'package:sokar_frontend/src/app/host_keys.dart';
 import 'package:sokar_frontend/src/app/egress.dart';
 import 'package:sokar_frontend/src/app/agent_inventory.dart';
 import 'package:sokar_frontend/src/app/emergency_stop.dart';
@@ -1345,6 +1346,9 @@ class World {
   /// Where this device keeps the keys that open a vault.
   static late MemoryDeviceKeyStore keys;
 
+  /// What `known_hosts` holds, as the machine dialog sees it.
+  static late FakeHostKeys hostKeys;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -1596,10 +1600,12 @@ class World {
 
     // One machine to begin with, and a second only when a scenario asks. Reaching several is
     // only the machine scenarios, and every scenario that does not care must not pay for it.
+    hostKeys = FakeHostKeys();
     machines = Machines(
       settings,
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
       tunnels: FakeTunnels(),
+      hostKeys: hostKeys,
     );
     await machines.load();
     addTearDown(() => machines.dispose());
@@ -1675,6 +1681,7 @@ class World {
       settings,
       reach: (machine) => machine.name == 'elsewhere' ? elsewhere : backend,
       tunnels: FakeTunnels(),
+      hostKeys: hostKeys,
     );
     await machines.load();
     whereYouWere = WhereYouWere(settings, machines, shell);
@@ -1874,6 +1881,44 @@ class _TrialTunnel extends Tunnel {
   Future<void> drop() async {
     World.trialForwards.remove(machine.name);
     state = TunnelState.idle;
+  }
+}
+
+/// Host keys as a person's `known_hosts` would have them: every host known, unless a scenario says
+/// one is not.
+class FakeHostKeys implements HostKeys {
+  /// Destinations whose host key is not known yet.
+  final Set<String> unknown = <String>{};
+
+  /// What was written to `known_hosts`, by host.
+  final List<String> written = <String>[];
+
+  /// Every destination asked about.
+  final List<String> asked = <String>[];
+
+  /// The fingerprint every unknown host shows.
+  static const fingerprint = '256 SHA256:uNiQuEfInGeRpRiNtOfThEbUiLdMaChInE0123456789 (ED25519)';
+
+  @override
+  Future<HostKeyCheck> check(String destination) async {
+    asked.add(destination);
+    final host = destination.split('@').last;
+    if (!unknown.contains(destination)) {
+      return HostKeyCheck(destination: destination, host: host, known: true);
+    }
+    return HostKeyCheck(
+      destination: destination,
+      host: host,
+      known: false,
+      scanned: const <String>['|1|hashed ssh-ed25519 AAAA'],
+      fingerprints: const <String>[fingerprint],
+    );
+  }
+
+  @override
+  Future<void> accept(HostKeyCheck check) async {
+    written.add(check.host);
+    unknown.remove(check.destination);
   }
 }
 

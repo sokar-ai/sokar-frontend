@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 
 import '../app/connection_trial.dart';
 import '../app/fleet_model.dart';
+import '../app/host_keys.dart';
 import '../app/machines.dart';
 import '../app/tunnel.dart';
+import 'host_key_dialog.dart';
 import 'tokens.dart';
 
 /// What one machine says about itself: the kind of way in, and whether it is a second way in to
@@ -79,15 +81,16 @@ enum MachineKind {
 Future<Machine?> askForAMachine(BuildContext context,
         {Iterable<String> taken = const <String>[],
         Future<Trial> Function(Machine)? trying,
-        Future<Started> Function(Machine)? starting}) =>
+        Future<Started> Function(Machine)? starting,
+        HostKeys? hostKeys}) =>
     showDialog<Machine>(
       context: context,
-      builder: (context) =>
-          _AskForAMachine(taken: taken.toList(), trying: trying, starting: starting),
+      builder: (context) => _AskForAMachine(
+          taken: taken.toList(), trying: trying, starting: starting, hostKeys: hostKeys),
     );
 
 class _AskForAMachine extends StatefulWidget {
-  const _AskForAMachine({required this.taken, this.trying, this.starting});
+  const _AskForAMachine({required this.taken, this.trying, this.starting, this.hostKeys});
 
   /// The names already watched. A second with the same name would never be added.
   final List<String> taken;
@@ -97,6 +100,9 @@ class _AskForAMachine extends StatefulWidget {
 
   /// Starts a daemon on it, when the trial found ssh working and nothing serving.
   final Future<Started> Function(Machine)? starting;
+
+  /// Confirms the host key of a machine reached for the first time, or null where nothing can.
+  final HostKeys? hostKeys;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -485,6 +491,10 @@ class _AskForAMachineState extends State<_AskForAMachine> {
       // The try that follows a start keeps it — they are one answer.
       if (!afterAStart) _startSaid = null;
     });
+    if (!await _hostKeyAccepted()) {
+      if (mounted && attempt == _attempt) setState(() => _trying = false);
+      return;
+    }
     final trial = await trying(_described);
     if (!mounted || attempt != _attempt) return;
     setState(() {
@@ -531,7 +541,40 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         : _socket.text.trim().isNotEmpty;
   }
 
-  void _watchIt() => Navigator.of(context).pop(_described);
+  Future<void> _watchIt() async {
+    if (!await _hostKeyAccepted() || !mounted) return;
+    Navigator.of(context).pop(_described);
+  }
+
+  /// Whether the host key of where it is is known, **asking the person when it is not**.
+  ///
+  /// Before a trial and before watching, because both log in with `BatchMode`, which fails on an
+  /// unknown key rather than asking — and accepting it without looking would be the one step a man
+  /// in the middle needs. A refusal, or a key that could not be fetched, is said where the trial's
+  /// answer goes.
+  Future<bool> _hostKeyAccepted() async {
+    final keys = widget.hostKeys;
+    if (keys == null || _raiseIt != true) return true;
+    final signature = _signature;
+    final check = await keys.check(_host.text.trim());
+    if (!mounted) return false;
+    if (check.known) return true;
+    var said = check.problem;
+    if (said == null) {
+      if (await confirmHostKey(context, check)) {
+        await keys.accept(check);
+        return true;
+      }
+      said = 'The host key of ${check.host} was not trusted, so nothing was tried.';
+    }
+    if (!mounted) return false;
+    setState(() {
+      _trial = Trial(reached: false, words: said!);
+      _triedFor = signature;
+    });
+    _showTheEnd();
+    return false;
+  }
 
   @override
   void dispose() {

@@ -808,6 +808,7 @@ class _ShellState extends State<Shell> {
       taken: widget.machines.all.map((each) => each.name),
       trying: widget.machines.tryMachine,
       starting: _startAskedInTheDialog,
+      hostKeys: widget.machines.hostKeys,
     );
     if (machine == null) return;
     await widget.machines.add(machine);
