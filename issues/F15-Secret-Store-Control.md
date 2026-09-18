@@ -52,6 +52,15 @@ they started. Locking cannot reach that memory. **It is said in the same breath 
 shut"***, never in a detail underneath, because reporting the store closed without it claims more
 than happened.
 
+## Updated, 2026-09-18, the screen
+
+**The explanations are gone, by the operator's decision.** Each criterion answered *"at the machine"*
+had a paragraph on the screen saying so; they are now one line — *`sokar vault unlock` opens it
+without a device, `sokar vault passphrase` changes its passphrase* — and the answer about key routing
+is no longer on the screen at all (it is still the answer: nothing routes keys to projects). Opening
+and shutting moved to a lock in the machine's title, beside the emergency stop (F38, F39); what
+locking could not reach is said in the dialog that shut it.
+
 ## Updated, 2026-09-18
 
 **The parked decision is taken, and not the way it was framed.** The question was whether unlocking

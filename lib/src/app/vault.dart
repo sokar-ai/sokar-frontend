@@ -5,6 +5,18 @@ import 'device_key.dart';
 import 'fleet_backend.dart';
 import 'vault_devices.dart';
 
+/// What the vault's button in the machine's title does right now.
+enum VaultAct {
+  /// Adds this device to the machine's vault, so it can open it from here.
+  enroll,
+
+  /// Opens the vault with this device's key.
+  open,
+
+  /// Shuts it.
+  shut,
+}
+
 /// The protected store: what it holds, by name, and the shutting of it.
 ///
 /// **Never a value.** `Credentials` answers names, kinds and lengths and nothing else, and that is
@@ -28,6 +40,9 @@ class Vault extends ChangeNotifier {
   /// What the last lock did, or null.
   Locked? shut;
 
+  /// Which machine [state] and [devices] describe, by name; empty before any was asked.
+  String about = '';
+
   /// Whether it is being asked right now.
   bool busy = false;
 
@@ -50,6 +65,71 @@ class Vault extends ChangeNotifier {
 
   /// What the store holds, by name.
   List<Credential> get credentials => state?.credentials ?? const <Credential>[];
+
+  /// What the lock in the machine's title does when pressed: shuts an open store, opens a shut one.
+  VaultAct get lockDoes => (state?.readable ?? false) ? VaultAct.shut : VaultAct.open;
+
+  /// Whether the lock can do it now.
+  bool get lockWorks => whyNot(lockDoes) == null;
+
+  /// What the lock says about the store, and why it does nothing when it does nothing.
+  String get lockSays {
+    final state = this.state;
+    if (state == null) return problem ?? 'Asking the machine about its store…';
+    if (!state.exists) return 'There is no protected store on this machine yet.';
+    if (state.readable) return 'The store is open. Shut it.';
+    if (devices.enrolledHere) return 'The store is shut. Open it with this device.';
+    return devices.canEnroll
+        ? 'The store is shut, and this device is not enrolled. Unlock it at the machine with '
+            '`sokar vault unlock`, then enroll this device.'
+        : 'The store is shut. Unlock it at the machine with `sokar vault unlock`.';
+  }
+
+  /// Whether enrolling is offered beside the lock: **only while this device is not enrolled** on a
+  /// machine that knows devices, and then it stays there, because until it is done the lock cannot
+  /// open the store from here.
+  bool get offersEnrolling => devices.canEnroll && !devices.enrolledHere;
+
+  /// What enrolling says, and why it cannot happen yet when it cannot.
+  String get enrollSays => whyNot(VaultAct.enroll) == null
+      ? 'This device cannot open the store yet. Enroll it so it can.'
+      : 'Enrolling needs the store open. Unlock it at the machine with `sokar vault unlock` first.';
+
+  /// Why [what] cannot be done now, or null when it can.
+  String? whyNot(VaultAct what) {
+    final state = this.state;
+    if (state == null) return problem ?? 'the machine has not said yet';
+    if (!state.exists) return 'there is no store on this machine yet';
+    return switch (what) {
+      VaultAct.enroll => !devices.canEnroll
+          ? devices.problem ?? 'this machine has not said whether it can'
+          : devices.enrolledHere
+              ? 'this device is enrolled already'
+              : !state.readable
+                  ? 'the store is shut, and a device is enrolled into an open one'
+                  : null,
+      VaultAct.open => !devices.enrolledHere
+          ? 'this device is not enrolled on this machine'
+          : state.readable
+              ? 'it is open already'
+              : null,
+      VaultAct.shut => state.readable ? null : 'it is shut already',
+    };
+  }
+
+  /// Reads the store and its devices for the machine called [machine].
+  ///
+  /// **Another machine's answer is forgotten first**, so the button never shows one machine's
+  /// store on another machine's title while the new answer is on its way.
+  Future<void> lookAt(FleetBackend backend, String machine) async {
+    if (machine != about) {
+      about = machine;
+      state = null;
+      shut = null;
+      devices.forget();
+    }
+    await Future.wait(<Future<void>>[look(backend), devices.look(backend)]);
+  }
 
   /// Reads what the store says about itself.
   Future<void> look(FleetBackend backend) async {

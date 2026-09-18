@@ -41,31 +41,14 @@ Feature: Seeing and shutting the secret store, without showing a value
     When I show the protected store
     Then it says {'It is open and holds nothing. That is a state, not a failure.'}
 
-  # Beside the button that shuts it, because that is where somebody looks for the one that opens
-  # it. The sentence says where it happens and stops short of "never": the reason given for never
-  # was partly that no secret crosses this socket, and that rule changed on 2026-09-08.
-  Scenario: opening it again is answered beside the button that shuts it
-    When I show the protected store
-    Then it says {'The store is unlocked where the machine is'}
-    And it says {'holds an ssh connection to that machine already'}
-
-  Scenario: the other three are said too, rather than left blank
+  # One line rather than a paragraph per thing: where each happens is all somebody needs.
+  Scenario: what happens at the machine instead is said in one line
     When I show the protected store
     And I read to the bottom of the store
-    Then it says {'sokar vault passphrase`, at the machine'}
-    And it says {'never reveals a stored value'}
-    And it says {'no default'}
+    Then it says {'`sokar vault unlock` opens it without a device'}
+    And it says {'`sokar vault passphrase` changes its passphrase'}
 
   Scenario: a slow answer never lands on top of a newer one
     Given reading the store is slow
     When I ask about the store twice
     Then the newer answer is the one on screen
-
-  # Asked before anything was built, and the answer dissolved the requirement: a credential is
-  # held under a provider's name and no project file names one, so there is no relation to edit.
-  # Restated correctly it is the agent roster, which a project does not have either.
-  Scenario: where somebody looks for key routing, they are told there is none
-    When I show the protected store
-    And I read to the bottom of the store
-    Then it says {'Nothing routes keys to projects, and nothing will'}
-    And it says {'there is no link here to make or unmake'}

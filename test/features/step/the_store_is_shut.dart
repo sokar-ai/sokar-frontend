@@ -12,4 +12,7 @@ Future<void> theStoreIsShut(WidgetTester tester) async {
     'credentials': <Map<String, dynamic>>[],
     'readable': false,
   });
+  // Shut after the title already asked, the way a person shuts it at the machine.
+  await World.vault.look(World.backend);
+  await World.settle(tester);
 }

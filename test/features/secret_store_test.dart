@@ -80,22 +80,13 @@ void main() {
       await itSays(tester,
           'It is open and holds nothing. That is a state, not a failure.');
     });
-    testWidgets(
-        '''opening it again is answered beside the button that shuts it''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iShowTheProtectedStore(tester);
-      await itSays(tester, 'The store is unlocked where the machine is');
-      await itSays(tester, 'holds an ssh connection to that machine already');
-    });
-    testWidgets('''the other three are said too, rather than left blank''',
+    testWidgets('''what happens at the machine instead is said in one line''',
         (tester) async {
       await bddSetUp(tester);
       await iShowTheProtectedStore(tester);
       await iReadToTheBottomOfTheStore(tester);
-      await itSays(tester, 'sokar vault passphrase`, at the machine');
-      await itSays(tester, 'never reveals a stored value');
-      await itSays(tester, 'no default');
+      await itSays(tester, '`sokar vault unlock` opens it without a device');
+      await itSays(tester, '`sokar vault passphrase` changes its passphrase');
     });
     testWidgets('''a slow answer never lands on top of a newer one''',
         (tester) async {
@@ -103,15 +94,6 @@ void main() {
       await readingTheStoreIsSlow(tester);
       await iAskAboutTheStoreTwice(tester);
       await theNewerAnswerIsTheOneOnScreen(tester);
-    });
-    testWidgets(
-        '''where somebody looks for key routing, they are told there is none''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iShowTheProtectedStore(tester);
-      await iReadToTheBottomOfTheStore(tester);
-      await itSays(tester, 'Nothing routes keys to projects, and nothing will');
-      await itSays(tester, 'there is no link here to make or unmake');
     });
   });
 }

@@ -14,6 +14,7 @@ import 'settings.dart';
 import 'shell_model.dart';
 import 'start_work.dart';
 import 'templates.dart';
+import 'vault.dart';
 import 'widening.dart';
 
 /// Where an action lives on screen, so the finder can go there and show it.
@@ -428,6 +429,8 @@ List<Command> machineCommands({
   required VoidCallback showAgents,
   required VoidCallback startTheDaemon,
   required VoidCallback forget,
+  required Vault vault,
+  required void Function(VaultAct act) actOnTheVault,
 }) {
   final connected = fleet.reachability == Reachability.connected;
   final notConnected = connected ? null : 'the machine is not answering';
@@ -470,6 +473,21 @@ List<Command> machineCommands({
       run: showTheVault,
       unavailable: notConnected,
     ),
+    // The same three the button beside the stop offers one at a time, so each is reachable whichever
+    // one the button shows: an open store on a device that is not enrolled still has to be shut.
+    for (final (act, id, label) in <(VaultAct, String, String)>[
+      (VaultAct.enroll, 'vault.enroll', 'Enroll this device on this machine'),
+      (VaultAct.open, 'vault.open', 'Open the protected store with this device'),
+      (VaultAct.shut, 'vault.shut', 'Shut the protected store'),
+    ])
+      Command(
+        id: id,
+        label: label,
+        group: 'Machine',
+        home: Home.machineMenu,
+        run: () => actOnTheVault(act),
+        unavailable: notConnected ?? vault.whyNot(act),
+      ),
     Command(
       id: 'agents.show',
       label: 'Show the agents installed here',
@@ -548,6 +566,8 @@ List<Command> commandsFor({
   required VoidCallback showAbout,
   required VoidCallback refreshAll,
   required bool anyAnswering,
+  required Vault vault,
+  required void Function(VaultAct act) actOnTheVault,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
@@ -646,6 +666,8 @@ List<Command> commandsFor({
       showAgents: showAgents,
       startTheDaemon: startTheDaemon,
       forget: forget,
+      vault: vault,
+      actOnTheVault: actOnTheVault,
     ),
     Command(
       id: 'project.create',

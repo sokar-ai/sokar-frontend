@@ -25,6 +25,10 @@ class VaultDevices extends ChangeNotifier {
   /// This device's key for the machine last looked at, or null when it is not enrolled there.
   DeviceKey? mine;
 
+  /// Whether the machine knows about devices at all: it answered `Keyslots`. False until it has,
+  /// and false for a Sokar from before B60.
+  bool canEnroll = false;
+
   /// Whether a call is outstanding.
   bool busy = false;
 
@@ -48,7 +52,20 @@ class VaultDevices extends ChangeNotifier {
         if (mine != _asked) return;
         this.slots = slots;
         this.mine = key;
+        canEnroll = true;
       });
+
+  /// Forgets what was known, for a machine other than the one this described.
+  void forget() {
+    _asked++;
+    slots = const <Keyslot>[];
+    mine = null;
+    canEnroll = false;
+    busy = false;
+    problem = null;
+    said = null;
+    notifyListeners();
+  }
 
   /// Enrolls this device under [name].
   ///
@@ -132,6 +149,7 @@ class VaultDevices extends ChangeNotifier {
       if (mine == _asked) problem = 'Lost contact with the machine: ${ex.message}';
     } on FeatureNotSupported {
       if (mine == _asked) {
+        canEnroll = false;
         problem = "This machine's Sokar cannot enroll devices yet: that arrives with Sokar B60.";
       }
     } finally {

@@ -5,7 +5,6 @@ import '../support/world.dart';
 
 /// Usage: I begin opening the store with this device
 Future<void> iBeginOpeningTheStoreWithThisDevice(WidgetTester tester) async {
-  await World.reach(tester, find.byKey(const Key('unlock-with-this-device')));
-  await tester.tap(find.byKey(const Key('unlock-with-this-device')));
+  await tester.tap(find.byKey(const Key('vault-act')));
   await World.settle(tester);
 }

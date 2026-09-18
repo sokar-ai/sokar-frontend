@@ -1,0 +1,295 @@
+import 'package:flutter/material.dart';
+import 'package:sokar_frontend/client.dart';
+
+import '../app/vault.dart';
+import '../app/vault_devices.dart';
+import 'tokens.dart';
+import 'window_size.dart';
+
+/// The vault's controls in the machine's title, beside the emergency stop: a lock that shows
+/// whether the store is open and opens or shuts it, and — **only while this device is not
+/// enrolled** — the button that enrolls it, filled so it is not missed.
+class VaultButtons extends StatelessWidget {
+  /// Constructor taking the vault and what pressing each does.
+  const VaultButtons({
+    required this.vault,
+    required this.onLock,
+    required this.onEnroll,
+    super.key,
+  });
+
+  /// What the store and its devices say.
+  final Vault vault;
+
+  /// Opens or shuts the store; null while the machine is not answering.
+  final VoidCallback? onLock;
+
+  /// Enrolls this device; null while the machine is not answering.
+  final VoidCallback? onEnroll;
+
+  @override
+  Widget build(BuildContext context) {
+    final open = vault.state?.readable ?? false;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (vault.offersEnrolling) _enroll(context),
+        Tooltip(
+          message: vault.lockSays,
+          child: IconButton(
+            key: const Key('vault-act'),
+            onPressed: vault.lockWorks ? onLock : null,
+            icon: Icon(open ? Icons.lock_open_outlined : Icons.lock_outline,
+                size: Sizes.rowIcon),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _enroll(BuildContext context) {
+    const key = Key('vault-enroll');
+    const icon = Icon(Icons.add_moderator_outlined, size: Sizes.rowIcon);
+    final pressed = vault.whyNot(VaultAct.enroll) == null ? onEnroll : null;
+    return Tooltip(
+      message: vault.enrollSays,
+      child: WindowSize.fromContext(context).statusLineShowsLabels
+          ? FilledButton.tonalIcon(
+              key: key,
+              onPressed: pressed,
+              icon: icon,
+              label: const Text('Enroll this device'),
+            )
+          : IconButton.filledTonal(
+              key: key,
+              onPressed: pressed,
+              icon: icon,
+              visualDensity: VisualDensity.compact,
+            ),
+    );
+  }
+}
+
+/// Asks, does it, then says what happened **in the same dialog**, like the emergency stop: an
+/// answer shown somewhere else is an answer nobody saw.
+abstract class _ActState<T extends StatefulWidget> extends State<T> {
+  String? _answer;
+  bool _doing = false;
+
+  String get title;
+  String get confirm;
+  bool get ready => true;
+  Widget ask(BuildContext context);
+  Future<void> doIt();
+  String answer();
+
+  Future<void> _go() async {
+    setState(() => _doing = true);
+    await doIt();
+    if (!mounted) return;
+    final said = answer();
+    setState(() {
+      _doing = false;
+      _answer = said.isEmpty ? 'Done.' : said;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 420,
+          child: _answer != null
+              ? Text(_answer!, key: const Key('vault-answer'))
+              : ask(context),
+        ),
+        actions: _answer != null
+            ? <Widget>[
+                FilledButton(
+                  key: const Key('vault-done'),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ]
+            : <Widget>[
+                TextButton(
+                  onPressed: _doing ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const Key('vault-confirm'),
+                  onPressed: ready && !_doing ? _go : null,
+                  child: Text(confirm),
+                ),
+              ],
+      );
+}
+
+/// Names this device and enrolls it, saying **before** what its key is kept in.
+class EnrollDialog extends StatefulWidget {
+  /// Constructor taking how this device keeps its key, what enrolling does and what it said.
+  const EnrollDialog({
+    required this.storage,
+    required this.onEnroll,
+    required this.answer,
+    this.suggested = '',
+    super.key,
+  });
+
+  /// How this device keeps its key.
+  final KeyslotStorage storage;
+
+  /// Enrolls it under a name.
+  final Future<void> Function(String name) onEnroll;
+
+  /// What enrolling said.
+  final String Function() answer;
+
+  /// The name offered, usually the host's.
+  final String suggested;
+
+  @override
+  State<EnrollDialog> createState() => _EnrollDialogState();
+}
+
+class _EnrollDialogState extends _ActState<EnrollDialog> {
+  late final TextEditingController _name = TextEditingController(text: widget.suggested);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  String get title => 'Enroll this device';
+
+  @override
+  String get confirm => 'Enroll';
+
+  @override
+  bool get ready => _name.text.trim().isNotEmpty;
+
+  @override
+  Future<void> doIt() => widget.onEnroll(_name.text.trim());
+
+  @override
+  String answer() => widget.answer();
+
+  @override
+  Widget ask(BuildContext context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          TextField(
+            key: const Key('device-name'),
+            controller: _name,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'What to call it'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: Space.normal),
+          Text('Its key: ${storageWords(widget.storage)}', key: const Key('enroll-storage')),
+        ],
+      );
+}
+
+/// How long an unlock lasts, including not bounding it.
+enum _For {
+  quarterHour(15, 'for 15 minutes'),
+  hour(60, 'for an hour'),
+  workday(480, 'for 8 hours'),
+  untilShut(null, 'until it is shut');
+
+  const _For(this.minutes, this.words);
+
+  final int? minutes;
+  final String words;
+}
+
+/// Opens the store with this device's key. **Nothing is chosen for the person** — a bound that
+/// crept in as a default would decide how often they are asked, and so would its absence.
+class OpenDialog extends StatefulWidget {
+  /// Constructor taking what opening does and what it said.
+  const OpenDialog({required this.onOpen, required this.answer, super.key});
+
+  /// Opens it for so many minutes, or until it is shut when null.
+  final Future<void> Function(int? minutes) onOpen;
+
+  /// What opening said.
+  final String Function() answer;
+
+  @override
+  State<OpenDialog> createState() => _OpenDialogState();
+}
+
+class _OpenDialogState extends _ActState<OpenDialog> {
+  _For? _chosen;
+
+  @override
+  String get title => 'Open the protected store';
+
+  @override
+  String get confirm => 'Open it';
+
+  @override
+  bool get ready => _chosen != null;
+
+  @override
+  Future<void> doIt() => widget.onOpen(_chosen!.minutes);
+
+  @override
+  String answer() => widget.answer();
+
+  @override
+  Widget ask(BuildContext context) => RadioGroup<_For>(
+        groupValue: _chosen,
+        onChanged: (chosen) => setState(() => _chosen = chosen),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (final each in _For.values)
+              RadioListTile<_For>(
+                key: Key('open-${each.name}'),
+                value: each,
+                title: Text(each.words),
+              ),
+          ],
+        ),
+      );
+}
+
+/// Shuts the store, and then says what locking could not reach.
+class ShutDialog extends StatefulWidget {
+  /// Constructor taking what shutting does and what it said.
+  const ShutDialog({required this.onShut, required this.answer, super.key});
+
+  /// Shuts it.
+  final Future<void> Function() onShut;
+
+  /// What shutting said.
+  final String Function() answer;
+
+  @override
+  State<ShutDialog> createState() => _ShutDialogState();
+}
+
+class _ShutDialogState extends _ActState<ShutDialog> {
+  @override
+  String get title => 'Shut the protected store';
+
+  @override
+  String get confirm => 'Shut it';
+
+  @override
+  Future<void> doIt() => widget.onShut();
+
+  @override
+  String answer() => widget.answer();
+
+  @override
+  Widget ask(BuildContext context) => const Text(
+        'Work that needs a credential cannot start until it is opened again.',
+      );
+}

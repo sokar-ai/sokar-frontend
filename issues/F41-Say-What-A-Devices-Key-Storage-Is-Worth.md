@@ -34,3 +34,10 @@ against and what it does not, from what the device declared, never from a guess.
 - **A stronger release per device** — the share derived at unlock time from a FIDO2 token's
   `hmac-secret` or a TPM2 object behind a PIN, so releasing it needs a touch or a PIN that same-user
   code cannot supply. B60 names it as optional; if it is to be built, it becomes an issue of its own.
+
+## Built against the proposal, 2026-09-18
+
+One sentence per class, said in the enroll dialog before the share is sent and per device in the
+list: a user-scoped key is *"readable by anything running as this user"*, and a class this build does
+not know claims nothing. **The lock beside the stop is the store's state, not the device's
+protection**, and is drawn the same for every class.

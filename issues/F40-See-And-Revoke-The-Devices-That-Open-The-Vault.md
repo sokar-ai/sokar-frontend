@@ -24,3 +24,11 @@ remains.**
 
 - **Whether the last way in may be revoked**, and what the passphrase keyslot is in this list. B60
   leaves both undecided; the screen must leave room for either answer.
+
+## Built against the proposal, 2026-09-18
+
+The list is in *Show the protected store*, under what it holds: name, storage words (F41), when it
+was enrolled and last used, **this device** marked from the slot id it keeps rather than from `self`,
+which is only known after an unlock. Revoking is confirmed by name; revoking this device also
+forgets its key here, and "Enroll this device" comes back beside the lock. **The recovery passphrase
+is listed and not revocable from here**: it is the way in when every device is gone.

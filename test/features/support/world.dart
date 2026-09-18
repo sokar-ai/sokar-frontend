@@ -427,8 +427,21 @@ class FakeBackend implements FleetBackend {
   @override
   Future<Locked> lock() async {
     storeAsked.add('lock');
+    // Shutting really shuts it, so the button beside the stop turns into the one that opens it.
+    if (theStoreIs.readable) {
+      _whileOpen = theStoreIs;
+      theStoreIs = VaultState.from(<String, dynamic>{
+        'vault': theStoreIs.vault,
+        'exists': true,
+        'credentials': <Map<String, dynamic>>[],
+        'readable': false,
+      });
+    }
     return nextLock;
   }
+
+  /// What the store held before it was shut, for a device to open it onto again.
+  VaultState? _whileOpen;
 
   /// What the next [canStart] answers. A scenario sets it to produce a locked vault or a missing
   /// credential, neither of which a contrived agent list can produce.
@@ -517,9 +530,11 @@ class FakeBackend implements FleetBackend {
     sharesSent.add(share);
     unlocksFor.add(minutes);
     final opens = keyslotsHeld.where((held) => held.share.isNotEmpty && held.share == share).firstOrNull;
-    return opens == null
-        ? const UnlockedWithShare(outcome: KeyslotOutcome.shareRejected, until: '', slot: null, detail: '')
-        : UnlockedWithShare(outcome: KeyslotOutcome.unlocked, until: '2026-09-18T08:30:00Z', slot: opens.slot, detail: '');
+    if (opens == null) {
+      return const UnlockedWithShare(outcome: KeyslotOutcome.shareRejected, until: '', slot: null, detail: '');
+    }
+    theStoreIs = _whileOpen ?? theStoreIs;
+    return UnlockedWithShare(outcome: KeyslotOutcome.unlocked, until: '2026-09-18T08:30:00Z', slot: opens.slot, detail: '');
   }
 
   /// A name this machine refuses, and its words, the way a daemon with a rule of its own would.

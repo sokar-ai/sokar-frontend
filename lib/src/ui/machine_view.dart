@@ -53,6 +53,7 @@ class MachineTitle extends StatelessWidget {
     required this.kind,
     required this.onStop,
     required this.menu,
+    this.vault,
     this.tunnel,
     this.highlight,
     this.onShown,
@@ -73,6 +74,10 @@ class MachineTitle extends StatelessWidget {
 
   /// What the machine can be told to do.
   final List<Command> menu;
+
+  /// The protected store's button, beside the stop: whether this device can open it matters as
+  /// much as being able to stop what runs.
+  final Widget? vault;
 
   /// The forward this interface raised for it, or null.
   final Tunnel? tunnel;
@@ -124,6 +129,7 @@ class MachineTitle extends StatelessWidget {
               style: theme.textTheme.bodySmall,
             ),
           ),
+          ?vault,
           Highlight(
             active: highlight == 'machine.panic',
             child: EmergencyStopButton(

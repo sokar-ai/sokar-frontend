@@ -5,6 +5,9 @@ import '../support/world.dart';
 
 /// Usage: I shut the store
 Future<void> iShutTheStore(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('lock-the-store')));
+  // The lock beside the stop; the answer stays in the dialog until it is closed.
+  await tester.tap(find.byKey(const Key('vault-act')));
+  await World.settle(tester);
+  await tester.tap(find.byKey(const Key('vault-confirm')));
   await World.settle(tester);
 }

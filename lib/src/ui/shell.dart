@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
@@ -46,6 +47,7 @@ import 'emergency_stop_view.dart';
 import 'project_creation_view.dart';
 import 'project_deletion_view.dart';
 import 'session_view.dart';
+import 'vault_actions.dart';
 import 'vault_view.dart';
 import 'start_work_view.dart';
 import 'widening_view.dart';
@@ -224,6 +226,9 @@ class _ShellState extends State<Shell> {
       if (fleet.reachability != Reachability.connected) continue;
       await fleet.refresh(quietly: quietly || fleet != _fleet);
     }
+    if (_fleet.reachability == Reachability.connected) {
+      await widget.vault.lookAt(_fleet.backend, widget.machines.current.name);
+    }
   }
 
   /// Asks before the window closes, naming what carries on without it, then lets go of the
@@ -305,6 +310,8 @@ class _ShellState extends State<Shell> {
         refreshAll: () => unawaited(_refreshAll()),
         anyAnswering: widget.machines.all
             .any((each) => widget.machines.of(each).reachability == Reachability.connected),
+        vault: widget.vault,
+        actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
   );
 
   /// The menu in the machine's title, for the machine being acted on.
@@ -318,6 +325,8 @@ class _ShellState extends State<Shell> {
     showAgents: _showAgents,
     startTheDaemon: () => unawaited(_startTheDaemon()),
     forget: _forget,
+    vault: widget.vault,
+    actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
   );
 
   /// A project card's menu, judged for that project and run with it selected.
@@ -560,16 +569,59 @@ class _ShellState extends State<Shell> {
   /// Shows what the protected store holds, asked every time it is opened.
   Future<void> _showTheVault() async {
     widget.shell.openVault();
-    await Future.wait(<Future<void>>[
-      widget.vault.look(_fleet.backend),
-      widget.vault.devices.look(_fleet.backend),
-    ]);
+    await widget.vault.lookAt(_fleet.backend, widget.machines.current.name);
   }
 
-  /// Opens the store with this device's key, and reads it again so what is on screen is true.
-  Future<void> _unlockWithThisDevice(int? minutes) async {
-    await widget.vault.devices.unlock(_fleet.backend, minutes: minutes);
-    await widget.vault.look(_fleet.backend);
+  /// Which machine, and in which state, the vault's button was last asked about.
+  String _vaultAskedFor = '';
+
+  /// Asks the machine in the title about its store whenever it becomes the one shown or answers
+  /// again, so the button beside the stop is never a guess.
+  void _keepTheVaultButtonTrue(Machine machine, FleetModel fleet) {
+    final asking = '${machine.name}/${fleet.reachability.name}';
+    if (asking == _vaultAskedFor) return;
+    _vaultAskedFor = asking;
+    if (fleet.reachability != Reachability.connected) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(widget.vault.lookAt(fleet.backend, machine.name));
+    });
+  }
+
+  /// Enrolls this device, opens the store with it, or shuts it: the button's act, or a menu's.
+  Future<void> _actOnTheVault(VaultAct act) async {
+    final vault = widget.vault;
+    final backend = _fleet.backend;
+    String devicesSaid() => vault.devices.problem ?? vault.devices.said ?? '';
+    await showDialog<void>(
+      context: context,
+      builder: (context) => switch (act) {
+        VaultAct.enroll => EnrollDialog(
+            storage: vault.devices.store.storage,
+            suggested: _hostName(),
+            onEnroll: (name) => vault.devices.enroll(backend, name),
+            answer: devicesSaid,
+          ),
+        VaultAct.open => OpenDialog(
+            onOpen: (minutes) async {
+              await vault.devices.unlock(backend, minutes: minutes);
+              await vault.look(backend);
+            },
+            answer: devicesSaid,
+          ),
+        VaultAct.shut => ShutDialog(
+            onShut: () => vault.lock(backend),
+            answer: () => vault.problem ?? vault.shut?.words ?? '',
+          ),
+      },
+    );
+  }
+
+  static String _hostName() {
+    try {
+      return Platform.localHostname;
+    } on Object {
+      return '';
+    }
   }
 
   /// Shows what agents this machine has, asked every time it is opened.
@@ -1163,6 +1215,7 @@ class _ShellState extends State<Shell> {
     final opened = refusal != null
         ? RefusalView(refusal: refusal, fleet: fleet)
         : _opened() ?? _console();
+    _keepTheVaultButtonTrue(machine, fleet);
     return Column(
       children: <Widget>[
         MachineTitle(
@@ -1171,6 +1224,15 @@ class _ShellState extends State<Shell> {
           tunnel: widget.machines.tunnels.of(machine),
           kind: machineKind(widget.machines, machine),
           onStop: _stopEverything,
+          vault: VaultButtons(
+            vault: widget.vault,
+            onLock: fleet.reachability == Reachability.connected
+                ? () => unawaited(_actOnTheVault(widget.vault.lockDoes))
+                : null,
+            onEnroll: fleet.reachability == Reachability.connected
+                ? () => unawaited(_actOnTheVault(VaultAct.enroll))
+                : null,
+          ),
           menu: _machineMenu(),
           highlight: highlight,
           onShown: widget.shell.shown,
@@ -1324,9 +1386,6 @@ class _ShellState extends State<Shell> {
       case VaultOpened():
         return VaultView(
           vault: widget.vault,
-          onLock: () => widget.vault.lock(_fleet.backend),
-          onEnroll: (name) => widget.vault.devices.enroll(_fleet.backend, name),
-          onUnlock: _unlockWithThisDevice,
           onRevoke: (slot) => widget.vault.devices.revoke(_fleet.backend, slot),
           onClose: widget.shell.close,
         );
