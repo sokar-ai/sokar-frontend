@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
+import 'package:sokar_frontend/src/app/fleet_backend.dart';
 import 'package:sokar_frontend/src/app/gate.dart';
 
 import 'fleet_model_test.dart' show aBackendThatRefusesEverything;
@@ -21,4 +22,57 @@ void main() {
     expect(gate.problem, contains('No project file is recorded'));
     expect(gate.waiting, isEmpty);
   });
+
+  test('a push forwarded is said to be, even when another repository could not be read', () async {
+    final backend = _OneOfTwoGatesReadable();
+    final gate = Gate();
+
+    await gate.lookAt(
+      backend,
+      Project.from(const <String, dynamic>{
+        'name': 'checkout',
+        'file': '/srv/checkout/project.yml',
+        'repositories': <String>['checkout', 'payments-api'],
+      }),
+    );
+    expect(gate.problem, contains('payments-api could not be read'));
+    expect(gate.waiting.single.repository, 'checkout');
+
+    await gate.look(backend, gate.waiting.single);
+    final said = await gate.approve(backend, 'fix-rounding');
+
+    expect(said, contains('was forwarded to fix-rounding'));
+    expect(backend.approvedIn, <String?>['checkout']);
+  });
+}
+
+/// The project's own repository answers; the other's mirror is gone.
+class _OneOfTwoGatesReadable implements FleetBackend {
+  final approvedIn = <String?>[];
+
+  @override
+  Future<GateState> gateOf(String projectFile, {String? repository}) async {
+    if (repository == 'payments-api') {
+      throw const VarlinkException(
+          'org.fuin.sokar.Tasks1.Failed', <String, dynamic>{'message': 'the mirror is missing'});
+    }
+    return GateState.from(const <String, dynamic>{
+      'mode': 'gatekeeping',
+      'pending': <Map<String, dynamic>>[
+        <String, dynamic>{'name': 'migrate', 'commit': '9a3c1f2', 'subject': 'Round', 'waiting': '1 minute'},
+      ],
+    });
+  }
+
+  @override
+  Future<({String diff, String log})> reviewOf(String projectFile, String name,
+          {String? against, String? repository}) async =>
+      (diff: '', log: '');
+
+  @override
+  Future<void> approve(String projectFile, String name, String branch, {String? repository}) async =>
+      approvedIn.add(repository);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sokar_frontend/client.dart';
 
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
@@ -380,11 +381,19 @@ class ProjectHeader extends StatelessWidget {
     required this.menu,
     this.highlight,
     this.onShown,
+    this.onSync,
+    this.onBackups,
     super.key,
   });
 
   /// The project.
   final ProjectOnScreen project;
+
+  /// Asks one repository's upstream how far behind it is, now.
+  final void Function(String repository)? onSync;
+
+  /// Shows what has been backed up of one repository.
+  final void Function(String repository)? onBackups;
 
   /// Whether nothing about it is notified.
   final bool muted;
@@ -456,8 +465,18 @@ class ProjectHeader extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,
                   ),
+                // **One line per repository once there is more than one** (Sokar B67): each has
+                // its own upstream, gate and backups, and one number for all of them was the
+                // project's own shown against every other.
+                if (p.repositoryStates.length > 1)
+                  for (final repository in p.repositoryStates)
+                    _RepositoryLine(
+                      repository: repository,
+                      onSync: project.canBeActedOn ? onSync : null,
+                      onBackups: project.canBeActedOn ? onBackups : null,
+                    )
                 // How far behind, with the age of the measurement in the same sentence.
-                if (p.behindReason.isNotEmpty)
+                else if (p.behindReason.isNotEmpty)
                   Text(
                     p.behindWords,
                     key: const Key('project-behind'),
@@ -486,6 +505,57 @@ class ProjectHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One of a project's repositories: how far it has got, and its own sync and backups.
+class _RepositoryLine extends StatelessWidget {
+  const _RepositoryLine({required this.repository, this.onSync, this.onBackups});
+
+  final Repository repository;
+
+  final void Function(String repository)? onSync;
+
+  final void Function(String repository)? onBackups;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final name = repository.name;
+    final sync = onSync;
+    final backups = onBackups;
+    return Row(
+      key: Key('repository-$name'),
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            <String>[
+              repository.own ? '$name, its own' : name,
+              if (repository.pending > 0) '${repository.pending} waiting at the gate',
+              if (repository.behindReason.isNotEmpty) repository.behindWords,
+            ].join(' · '),
+            overflow: TextOverflow.ellipsis,
+            style: repository.hasFallenBehind
+                ? theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.tertiary)
+                : theme.textTheme.bodySmall,
+          ),
+        ),
+        IconButton(
+          key: Key('sync-$name'),
+          icon: const Icon(Icons.sync, size: Sizes.rowIcon),
+          visualDensity: VisualDensity.compact,
+          tooltip: "Ask $name's upstream how far behind it is, now",
+          onPressed: sync == null ? null : () => sync(name),
+        ),
+        IconButton(
+          key: Key('backups-$name'),
+          icon: const Icon(Icons.inventory_2_outlined, size: Sizes.rowIcon),
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Backups of $name',
+          onPressed: backups == null ? null : () => backups(name),
+        ),
+      ],
     );
   }
 }

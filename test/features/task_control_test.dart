@@ -43,6 +43,9 @@ import './step/i_ask_to_recreate_the_selected_work.dart';
 import './step/i_agree_to_recreate_it.dart';
 import './step/the_launch_was_called.dart';
 import './step/nothing_was_started.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/the_work_works_in_the_repository.dart';
+import './step/the_launch_was_in_the_repository.dart';
 
 void main() {
   group(
@@ -215,6 +218,18 @@ void main() {
       await iAgreeToRecreateIt(tester);
       await whatIsHeldIsShown(tester);
       await nothingWasStarted(tester);
+    });
+    testWidgets(
+        '''recreating starts the same work again in the repository it worked in''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theWorkWorksInTheRepository(
+          tester, 'sokar-checkout-shell', 'payments-api');
+      await iAskToRecreateTheSelectedWork(tester);
+      await iAgreeToRecreateIt(tester);
+      await theLaunchWasInTheRepository(tester, 'payments-api');
     });
   });
 }

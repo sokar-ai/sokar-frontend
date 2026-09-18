@@ -25,6 +25,14 @@ import './step/nothing_was_restored.dart';
 import './step/restoring_would_destroy.dart';
 import './step/i_restore_from_it.dart';
 import './step/restoring_from_the_missing_backup_is_not_offered.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/the_repository_is_behind_with_waiting.dart';
+import './step/the_repository_says.dart';
+import './step/i_sync_the_repository.dart';
+import './step/the_upstream_was_asked_about_the_repository.dart';
+import './step/i_show_the_backups_of_the_repository.dart';
+import './step/the_backups_and_the_restore_were_about_the_repository.dart';
+import './step/no_repository_was_named_for_the_backups_or_the_upstream.dart';
 
 void main() {
   group('''Backups of a mirror: listing, removing, restoring, and upstream''',
@@ -149,6 +157,46 @@ void main() {
       await bddSetUp(tester);
       await iShowWhatHasBeenBackedUpHere(tester);
       await restoringFromTheMissingBackupIsNotOffered(tester);
+    });
+    testWidgets(
+        '''every repository says how far it has got, on a line of its own''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theRepositoryIsBehindWithWaiting(tester, 'payments-api', '4', '2');
+      await theRepositorySays(
+          tester, 'payments-api', '2 waiting at the gate · 4 behind');
+      await theRepositorySays(tester, 'checkout', 'checkout, its own');
+    });
+    testWidgets('''a repository's upstream is asked about on its own''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iSyncTheRepository(tester, 'payments-api');
+      await theUpstreamWasAskedAboutTheRepository(tester, 'payments-api');
+    });
+    testWidgets(
+        '''a repository's backups are its own, and are restored into it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iShowTheBackupsOfTheRepository(tester, 'payments-api');
+      await itSays(tester, 'Backups of checkout · payments-api');
+      await iConsiderRestoringTheFirstBackup(tester);
+      await iRestoreFromIt(tester);
+      await theBackupsAndTheRestoreWereAboutTheRepository(
+          tester, 'payments-api');
+    });
+    testWidgets('''a machine that names no repositories is asked about none''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iShowWhatHasBeenBackedUpHere(tester);
+      await iConsiderRestoringTheFirstBackup(tester);
+      await iAskTheUpstreamHowFarBehindThisProjectIs(tester);
+      await noRepositoryWasNamedForTheBackupsOrTheUpstream(tester);
     });
   });
 }

@@ -195,6 +195,7 @@ class SokarClient {
     String? model,
     int? maxTurns,
     int? minutes,
+    String? repository,
   }) {
     // Only what the caller named is sent, so the backend's own defaults stay the only defaults.
     // Restating them here would be a second place for them to drift.
@@ -216,6 +217,9 @@ class SokarClient {
       'model': ?model,
       'maxTurns': ?maxTurns,
       'minutes': ?minutes,
+      // Required by a Sokar with B67, with no default; sent only when named, so an older one never
+      // meets a parameter it does not know.
+      'repository': ?repository,
     };
     return _callMore('Start', parameters).map(StartProgress.from);
   }
@@ -403,6 +407,7 @@ class SokarClient {
     String? task,
     String? provider,
     String? credentialType,
+    String? repository,
   }) async =>
       Readiness.from(await _call('CanStart', {
         'project': ?project,
@@ -410,6 +415,7 @@ class SokarClient {
         'task': ?task,
         'provider': ?provider,
         'credentialType': ?credentialType,
+        'repository': ?repository,
       }));
 
   /// Stops every running task and its helpers at once.
@@ -459,8 +465,10 @@ class SokarClient {
   /// operator names it and nothing could work that out afterwards. Newest first, and **empty is an
   /// ordinary answer**: a project nobody has backed up, or one backed up by a Sokar older than the
   /// record. It never means no bundle exists.
-  Future<List<Backup>> backups(String project) async {
-    final reply = await _call('Backups', {'project': project});
+  ///
+  /// [repository] names one of the project's repositories; without one, the project's own.
+  Future<List<Backup>> backups(String project, {String? repository}) async {
+    final reply = await _call('Backups', {'project': project, 'repository': ?repository});
     final backups = reply['backups'];
     return backups is List
         ? backups.whereType<Map<String, dynamic>>().map(Backup.from).toList()
@@ -476,18 +484,22 @@ class SokarClient {
       HeldWork.from(await _call('WorkHeld', {'task': task}));
 
   /// Asks the upstream how far behind a project's mirror is, now.
-  Future<Synced> syncUpstream(String project) async =>
-      Synced.from(await _call('SyncUpstream', {'project': project}));
+  Future<Synced> syncUpstream(String project, {String? repository}) async => Synced.from(
+      await _call('SyncUpstream', {'project': project, 'repository': ?repository}));
 
   /// Restores a mirror from a backup, or says what restoring would take.
   ///
   /// **Refuses with `HOLDS_WORK` and names the refs.** Unreviewed pushes exist only in the mirror,
   /// so overwriting one destroys the only copy there has ever been.
+  ///
+  /// **[repository] is the one written into**, and a bundle is kept under the repository it was
+  /// taken of — restoring one into another would put one history over the other's.
   Future<Restored> restoreBackup(String project, String bundle,
-          {bool? dryRun, bool? force}) async =>
+          {bool? dryRun, bool? force, String? repository}) async =>
       Restored.from(await _call('RestoreBackup', {
         'project': project,
         'bundle': bundle,
+        'repository': ?repository,
         'dryRun': ?dryRun,
         'force': ?force,
       }));
@@ -638,20 +650,25 @@ class SokarClient {
   // --------------------------------------------------------------------- the gate
 
   /// What is waiting at a project's gate.
-  Future<GateState> gate(String project, {String? upstream}) async =>
+  ///
+  /// [repository] is one of `Project.repositories`; without one a Sokar answers the project's own
+  /// (B67), and an older one knows no other.
+  Future<GateState> gate(String project, {String? upstream, String? repository}) async =>
       GateState.from(await _call('Pending', {
         'project': project,
         'upstream': ?upstream,
+        'repository': ?repository,
       }));
 
   /// What a pending push contains, as a diff and a log.
   Future<(String, String)> review(String project, String name,
-      {String? upstream, String? against}) async {
+      {String? upstream, String? against, String? repository}) async {
     final reply = await _call('Review', {
       'project': project,
       'name': name,
       'upstream': ?upstream,
       'against': ?against,
+      'repository': ?repository,
     });
     final diff = reply['diff'];
     final log = reply['log'];
@@ -662,20 +679,23 @@ class SokarClient {
   ///
   /// The only call that sends anything anywhere, and it makes the caller name the branch.
   Future<void> approve(String project, String name, String branch,
-          {String? upstream}) async =>
+          {String? upstream, String? repository}) async =>
       _call('Approve', {
         'project': project,
         'name': name,
         'branch': branch,
         'upstream': ?upstream,
+        'repository': ?repository,
       });
 
   /// Drops a pending push. The work stays in the mirror; only the request is gone.
-  Future<void> reject(String project, String name, {String? upstream}) async =>
+  Future<void> reject(String project, String name,
+          {String? upstream, String? repository}) async =>
       _call('Reject', {
         'project': project,
         'name': name,
         'upstream': ?upstream,
+        'repository': ?repository,
       });
 
   // --------------------------------------------------------------------- clearance

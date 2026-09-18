@@ -29,12 +29,11 @@ gap here is a backend method that has to be added, not a workaround waiting to b
   `CreateProject` nor `Moderate` writes. Asked as QS8 and QF17; see
   [F42](../issues/README.md).
 
-- **Projects as repositories** (Sokar B65–B67, decided 2026-09-19, not built): `CreateProject`
-  returning the file rather than writing it — which supersedes QF22 —, a repository in every start,
-  follow state in `Projects()`, `follow` and `unfollow`. See [F44](../issues/README.md).
-
 ## On the wire, not used here yet
 
+- **Projects as repositories** (Sokar B66, B68): `CreateProject` rendering and returning the file,
+  `Follow`/`Unfollow` with `acceptRewrite`, the reconciliation state per account, and a repository's
+  own egress and limits through `SetEgress(repository)`. See [F44](../issues/README.md).
 - **`WatchProjects`**, a push for what `Projects` answers. The project row still asks again after
   anything that would change it; moving it onto the push makes its counts arrive rather than age.
 

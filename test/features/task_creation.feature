@@ -177,3 +177,44 @@ Feature: Starting work with an agent, a mode and a credential
     And I choose {'A shell, driven by hand'}
     Then it says {'a container you will have to clear up'}
 
+
+  # Sokar B67, the operator's decision: work always starts in a named repository, and none is chosen
+  # for anybody — not even when there is only one.
+  Scenario: work starts in a repository somebody chose, never in one chosen for them
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    Then no repository is chosen yet
+    And starting is not offered yet
+    And nothing warns about starting
+    When I choose the repository {'payments-api'}
+    Then the machine was asked whether work can start in {'payments-api'}
+    When I start it
+    Then the launch was in the repository {'payments-api'}
+
+  # A repository still to choose is not a refusal, even for a run nobody watches.
+  Scenario: an unattended run waiting for its repository is not told it would be refused
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'Unattended, against a prompt'}
+    And I ask it to {'Fix the rounding'}
+    Then starting is not offered yet
+    And nothing warns about starting
+
+  # A Sokar older than B67 names no repositories and is sent none.
+  Scenario: a machine that names no repositories is asked for none
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    And I start it
+    Then the launch named no repository
+
+  # Continuing is more of the same work, so it goes on where that work is — not a new choice.
+  Scenario: work continued goes on in the repository it worked in
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the work {'sokar-checkout-migrate'} works in the repository {'payments-api'}
+    When I select the work {'sokar-checkout-migrate'}
+    And I continue this work
+    Then the repository {'payments-api'} is chosen

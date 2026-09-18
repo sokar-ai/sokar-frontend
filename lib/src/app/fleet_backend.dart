@@ -62,6 +62,7 @@ abstract class FleetBackend {
     String? model,
     int? maxTurns,
     int? minutes,
+    String? repository,
   });
 
   /// Stops a task, keeping it and its workspace.
@@ -75,7 +76,9 @@ abstract class FleetBackend {
 
   /// Starts a listed task by its project file and its name within the project, and answers what
   /// Start did. Without waiting for a build, which `Tail` reads.
-  Future<StartProgress> startAgain({required String project, required String task});
+  ///
+  /// [repository] is the one the task works in; none is sent to a machine that names none.
+  Future<StartProgress> startAgain({required String project, required String task, String? repository});
 
   /// Sets or clears the caption a task reads by. **Nothing about its identity moves.**
   Future<Labelled> labelTask(String task, {String? label});
@@ -103,7 +106,7 @@ abstract class FleetBackend {
   Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes});
 
   /// Whether work can start, asked before anything is created.
-  Future<Readiness> canStart({String? project, String? agent, String? task});
+  Future<Readiness> canStart({String? project, String? agent, String? task, String? repository});
 
   /// Stops every running task and its helpers at once, or says what it would stop.
   ///
@@ -122,17 +125,17 @@ abstract class FleetBackend {
   });
 
   /// What backups have been taken of a project's mirror. Newest first.
-  Future<List<Backup>> backups(String project);
+  Future<List<Backup>> backups(String project, {String? repository});
 
   /// What a task holds that never reached the gate. Asked for one task, never on a listing.
   Future<HeldWork> workHeld(String task);
 
   /// Asks the upstream how far behind a project's mirror is, now.
-  Future<Synced> syncUpstream(String project);
+  Future<Synced> syncUpstream(String project, {String? repository});
 
   /// Restores a mirror from a backup, or says what restoring would take.
   Future<Restored> restoreBackup(String project, String bundle,
-      {bool? dryRun, bool? force});
+      {bool? dryRun, bool? force, String? repository});
 
   /// Removes a backup, or says what removing it would take.
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun});
@@ -223,7 +226,10 @@ abstract class FleetBackend {
   ///
   /// [projectFile] is `Project.file`, passed through unchanged. A project that has none can be
   /// listed and not asked about — that is a state to render, never a call to make anyway.
-  Future<GateState> gateOf(String projectFile);
+  ///
+  /// [repository] names one of the project's repositories; without one the daemon answers the
+  /// project's own.
+  Future<GateState> gateOf(String projectFile, {String? repository});
 
   /// What one waiting push contains, so it can be judged before it is forwarded.
   ///
@@ -232,16 +238,17 @@ abstract class FleetBackend {
     String projectFile,
     String name, {
     String? against,
+    String? repository,
   });
 
   /// Forwards a waiting push upstream, onto a branch the caller names.
   ///
   /// **The only thing in this interface that sends anything anywhere**, and the branch is never
   /// inferred: a push forwarded onto a guess is one nobody decided about.
-  Future<void> approve(String projectFile, String name, String branch);
+  Future<void> approve(String projectFile, String name, String branch, {String? repository});
 
   /// Drops the request. The work stays in the mirror; only the asking is gone.
-  Future<void> reject(String projectFile, String name);
+  Future<void> reject(String projectFile, String name, {String? repository});
 
   /// Which logs a task has, asked rather than assumed.
   ///
@@ -298,6 +305,7 @@ class SokarBackend implements FleetBackend {
     String? model,
     int? maxTurns,
     int? minutes,
+    String? repository,
   }) async* {
     // Streaming, so every line arrives as `line`; the contract's `output` list is for a caller
     // that did not ask to stream and is empty here.
@@ -313,6 +321,7 @@ class SokarBackend implements FleetBackend {
       model: model,
       maxTurns: maxTurns,
       minutes: minutes,
+      repository: repository,
     )) {
       final line = progress.line;
       if (line != null) yield line;
@@ -332,10 +341,11 @@ class SokarBackend implements FleetBackend {
       _opened().remove(task, rescue: rescue, force: force);
 
   @override
-  Future<StartProgress> startAgain({required String project, required String task}) async {
+  Future<StartProgress> startAgain({required String project, required String task, String? repository}) async {
     var last = const StartProgress();
     final printed = <String>[];
-    await for (final progress in _opened().start(project: project, task: task, now: true)) {
+    await for (final progress
+        in _opened().start(project: project, task: task, now: true, repository: repository)) {
       final line = progress.line;
       if (line != null) printed.add(line);
       last = progress;
@@ -374,8 +384,8 @@ class SokarBackend implements FleetBackend {
       _opened().unlockWithShare(share: share, minutes: minutes);
 
   @override
-  Future<Readiness> canStart({String? project, String? agent, String? task}) =>
-      _opened().canStart(project: project, agent: agent, task: task);
+  Future<Readiness> canStart({String? project, String? agent, String? task, String? repository}) =>
+      _opened().canStart(project: project, agent: agent, task: task, repository: repository);
 
   @override
   Future<Panicked> panic({bool? dryRun}) => _opened().panic(dryRun: dryRun);
@@ -394,18 +404,21 @@ class SokarBackend implements FleetBackend {
       _opened().narrowTask(task, domains, scope: scope, dryRun: dryRun);
 
   @override
-  Future<List<Backup>> backups(String project) => _opened().backups(project);
+  Future<List<Backup>> backups(String project, {String? repository}) =>
+      _opened().backups(project, repository: repository);
 
   @override
   Future<HeldWork> workHeld(String task) => _opened().workHeld(task);
 
   @override
-  Future<Synced> syncUpstream(String project) => _opened().syncUpstream(project);
+  Future<Synced> syncUpstream(String project, {String? repository}) =>
+      _opened().syncUpstream(project, repository: repository);
 
   @override
   Future<Restored> restoreBackup(String project, String bundle,
-          {bool? dryRun, bool? force}) =>
-      _opened().restoreBackup(project, bundle, dryRun: dryRun, force: force);
+          {bool? dryRun, bool? force, String? repository}) =>
+      _opened().restoreBackup(project, bundle,
+          dryRun: dryRun, force: force, repository: repository);
 
   @override
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) =>
@@ -495,26 +508,28 @@ class SokarBackend implements FleetBackend {
       _opened().widenTask(task, domains, scope: scope, dryRun: dryRun);
 
   @override
-  Future<GateState> gateOf(String projectFile) => _opened().gate(projectFile);
+  Future<GateState> gateOf(String projectFile, {String? repository}) =>
+      _opened().gate(projectFile, repository: repository);
 
   @override
   Future<({String diff, String log})> reviewOf(
     String projectFile,
     String name, {
     String? against,
+    String? repository,
   }) async {
-    final (diff, log) =
-        await _opened().review(projectFile, name, against: against);
+    final (diff, log) = await _opened()
+        .review(projectFile, name, against: against, repository: repository);
     return (diff: diff, log: log);
   }
 
   @override
-  Future<void> approve(String projectFile, String name, String branch) =>
-      _opened().approve(projectFile, name, branch);
+  Future<void> approve(String projectFile, String name, String branch, {String? repository}) =>
+      _opened().approve(projectFile, name, branch, repository: repository);
 
   @override
-  Future<void> reject(String projectFile, String name) =>
-      _opened().reject(projectFile, name);
+  Future<void> reject(String projectFile, String name, {String? repository}) =>
+      _opened().reject(projectFile, name, repository: repository);
 
   @override
   Future<List<Log>> logsOf(String task) => _opened().logsOf(task);

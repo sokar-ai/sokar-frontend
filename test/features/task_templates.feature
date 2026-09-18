@@ -46,3 +46,25 @@ Feature: Naming a job so it can be started again
     And I select the project {'checkout'}
     And I open the command finder
     Then the command finder names {'Run nightly-tests in checkout'}
+
+  # Every start names a repository, so a job keeps the one it was named with.
+  Scenario: a job keeps the repository it was named with, and starts there
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I choose {'Unattended, against a prompt'}
+    And I choose the repository {'payments-api'}
+    And I ask it to {'Run the nightly tests'}
+    And I keep it as {'nightly-tests'}
+    And I leave without starting
+    And I choose the command {'Run nightly-tests in checkout'}
+    Then the repository {'payments-api'} is chosen
+    When I start it
+    Then the launch was in the repository {'payments-api'}
+
+  Scenario: a job named without a repository has one chosen when it starts, not for it
+    Given the job {'nightly-tests'} is already named
+    And the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I choose the command {'Run nightly-tests in checkout'}
+    Then no repository is chosen yet
+

@@ -30,6 +30,14 @@ class StartWork extends ChangeNotifier {
   /// How somebody is meant to be involved. **Null until chosen.**
   Mode? mode;
 
+  /// Which of the project's repositories the work starts in. **Null until chosen, and never
+  /// chosen for somebody** (Sokar B67, the operator's decision): not even when there is one.
+  String? repository;
+
+  /// Whether a repository has to be chosen: whenever the machine named any. A machine older than
+  /// B67 names none and is sent none.
+  bool get needsARepository => (project?.repositories ?? const <String>[]).isNotEmpty;
+
   /// What an unattended run is asked to do.
   String prompt = '';
 
@@ -76,6 +84,7 @@ class StartWork extends ChangeNotifier {
       project != null &&
       agent != null &&
       mode != null &&
+      (!needsARepository || repository != null) &&
       (!takesAPrompt || prompt.trim().isNotEmpty) &&
       nameProblem == null &&
       !refusedOutright;
@@ -137,7 +146,16 @@ class StartWork extends ChangeNotifier {
   /// refused is better not offered. The interactive modes are offered anyway: a person is right
   /// there, may know something this does not, and the cost is said rather than hidden.
   bool get refusedOutright =>
-      takesAPrompt && readiness != null && !readiness!.ready && !readinessIsAboutTheName;
+      takesAPrompt &&
+      readiness != null &&
+      !readiness!.ready &&
+      !readinessIsAboutTheName &&
+      !readinessIsAboutTheRepository;
+
+  /// Whether the machine's answer is only that a repository has to be chosen — **the dialog's own
+  /// required choice**, never a refusal, and never a reason to warn about what starting costs.
+  bool get readinessIsAboutTheRepository =>
+      readiness?.outcome == StartOutcome.noRepositoryChosen && needsARepository;
 
   /// What starting would cost when it is offered in spite of a problem.
   ///
@@ -146,7 +164,13 @@ class StartWork extends ChangeNotifier {
   /// failed run is **kept** — so what is left is a container and a workspace to clear up by hand.
   String? get whatItWouldCost {
     final answer = readiness;
-    if (answer == null || answer.ready || takesAPrompt || readinessIsAboutTheName) return null;
+    if (answer == null ||
+        answer.ready ||
+        takesAPrompt ||
+        readinessIsAboutTheName ||
+        readinessIsAboutTheRepository) {
+      return null;
+    }
     return 'This will start a container you will have to clear up: the agent cannot '
         'authenticate, and a run that fails is kept rather than removed.';
   }
@@ -187,6 +211,9 @@ class StartWork extends ChangeNotifier {
     Template template,
   ) async {
     this.project = project;
+    // Where the job was named to start — unless the project no longer has that repository, when
+    // it is chosen again rather than sent to be refused.
+    repository = project.repositories.contains(template.repository) ? template.repository : null;
     continuing = null;
     from = template;
     templateName = template.name;
@@ -202,6 +229,7 @@ class StartWork extends ChangeNotifier {
   /// Opens it on a project, and reads what agents the machine has.
   Future<void> open(FleetBackend backend, Project project) async {
     this.project = project;
+    repository = null;
     continuing = null;
     from = null;
     templateName = '';
@@ -220,6 +248,8 @@ class StartWork extends ChangeNotifier {
   /// something more, and what that is only a person knows.
   Future<void> continueFrom(FleetBackend backend, Project project, Task task) async {
     this.project = project;
+    // Continued where it worked: the same repository, not a new choice.
+    repository = project.repositoryOf(task);
     continuing = task;
     from = null;
     templateName = '';
@@ -235,6 +265,7 @@ class StartWork extends ChangeNotifier {
   /// Closes it.
   void close() {
     project = null;
+    repository = null;
     continuing = null;
     notifyListeners();
   }
@@ -247,6 +278,16 @@ class StartWork extends ChangeNotifier {
     agent = name;
     readiness = null;
     notifyListeners();
+    final machine = _machine;
+    if (machine != null) unawaited(_askWhetherItCanStart(machine));
+  }
+
+  /// Chooses the repository the work starts in.
+  void chooseRepository(String name) {
+    repository = name;
+    readiness = null;
+    notifyListeners();
+    // Asked again: what the machine answers turns on which repository was chosen.
     final machine = _machine;
     if (machine != null) unawaited(_askWhetherItCanStart(machine));
   }
@@ -278,6 +319,7 @@ class StartWork extends ChangeNotifier {
       agent: which,
       mode: how,
       prompt: takesAPrompt ? prompt.trim() : '',
+      repository: repository ?? '',
     );
   }
 
@@ -312,6 +354,7 @@ class StartWork extends ChangeNotifier {
       mode: mode,
       // Only with `UNATTENDED`, and trimmed: a prompt of spaces is not a prompt.
       prompt: takesAPrompt ? prompt.trim() : null,
+      repository: repository,
     );
   }
 
@@ -335,7 +378,8 @@ class StartWork extends ChangeNotifier {
     final asking = ++_asked;
     final about = name.isEmpty || _localNameProblem != null ? null : name;
     try {
-      final answer = await backend.canStart(project: where.file, agent: agent, task: about);
+      final answer =
+          await backend.canStart(project: where.file, agent: agent, task: about, repository: repository);
       // Typing moves faster than a machine answers.
       if (asking != _asked) return;
       readiness = answer;

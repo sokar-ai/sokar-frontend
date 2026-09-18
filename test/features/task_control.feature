@@ -123,3 +123,11 @@ Feature: Stopping, removing, renaming and recreating work, and what it costs
     And I agree to recreate it
     Then what is held is shown
     And nothing was started
+
+  # Sokar B67: recreated where it worked, not in whichever repository a start would pick.
+  Scenario: recreating starts the same work again in the repository it worked in
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the work {'sokar-checkout-shell'} works in the repository {'payments-api'}
+    When I ask to recreate the selected work
+    And I agree to recreate it
+    Then the launch was in the repository {'payments-api'}

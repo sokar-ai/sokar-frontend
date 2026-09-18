@@ -313,6 +313,10 @@ class Task {
   /// What it is doing that takes minutes and shows nowhere else, such as `building`. Free text.
   final String phase;
 
+  /// Which of its project's repositories it works in (Sokar B67). **Empty is the project's own**:
+  /// a container created before Sokar said so, never an unknown one.
+  final String repository;
+
   /// What to say about this task's own work at the gate.
   ///
   /// Three answers, not two. **An `online` task has no gate at all** — its ref is
@@ -349,6 +353,7 @@ class Task {
     this.startAction = const StartAction(''),
     this.startDetail = '',
     this.phase = '',
+    this.repository = '',
   });
 
   /// Reads one from a reply.
@@ -375,6 +380,7 @@ class Task {
         startAction: StartAction(_string(map, 'startAction')),
         startDetail: _string(map, 'startDetail'),
         phase: _string(map, 'phase'),
+        repository: _string(map, 'repository'),
       );
 }
 
@@ -936,6 +942,23 @@ class Project {
   /// Prose for a person, only when [behindReason] is `FAILED`. Never parsed.
   final String behindDetail;
 
+  /// The repositories work can start in, by name: the project's own first, in the order to offer
+  /// them (Sokar B67). **Empty is not one repository**: it means the daemon could not read the
+  /// project file — or is older than B67 and says nothing — and a start then names none.
+  final List<String> repositories;
+
+  /// What the daemon says about each of [repositories], in the same order. A Sokar that answered
+  /// names only fills in nothing but the name.
+  final List<Repository> repositoryStates;
+
+  /// The project's own repository, or null where the machine names none.
+  String? get ownRepository =>
+      repositoryStates.where((each) => each.own).firstOrNull?.name ?? repositories.firstOrNull;
+
+  /// The repository [task] works in, as a start takes it: the project's own where the task says
+  /// nothing, which is what saying nothing means — and so null where the machine names none.
+  String? repositoryOf(Task task) => task.repository.isEmpty ? ownRepository : task.repository;
+
   /// Constructor taking every field.
   const Project({
     required this.name,
@@ -951,6 +974,8 @@ class Project {
     this.behindMeasured = '',
     this.behindReason = '',
     this.behindDetail = '',
+    this.repositories = const <String>[],
+    this.repositoryStates = const <Repository>[],
   });
 
   /// Reads one from a reply.
@@ -968,6 +993,8 @@ class Project {
         behindMeasured: _string(map, 'behindMeasured'),
         behindReason: _string(map, 'behindReason'),
         behindDetail: _string(map, 'behindDetail'),
+        repositories: <String>[for (final each in Repository.allIn(map)) each.name],
+        repositoryStates: Repository.allIn(map),
       );
 
   /// Whether this project is behind its upstream by an amount somebody can act on.
@@ -980,30 +1007,7 @@ class Project {
   ///
   /// The age is part of the sentence rather than a detail underneath it: the number is only as
   /// good as when it was taken, and a reader who cannot see that has to assume it is current.
-  String get behindWords => switch (behindReason) {
-        'MEASURED' when behind == 0 => 'Up to date$_asOf',
-        'MEASURED' => '$behind behind$_asOf',
-        // Not zero, and not up to date. The two are the same number and different sentences.
-        'NEVER_CHECKED' => 'Never checked against the upstream',
-        'NO_UPSTREAM' => 'No upstream to fall behind',
-        'OFFLINE' => 'Not checked: this project reaches nothing',
-        'FAILED' => behindDetail.isEmpty
-            ? 'The last check did not work'
-            : 'The last check did not work: $behindDetail',
-        // Added after this build shipped. Rendered, never thrown on.
-        '' => 'Nothing said how far behind it is',
-        _ => behindReason.toLowerCase().replaceAll('_', ' '),
-      };
-
-  String get _asOf {
-    final when = DateTime.tryParse(behindMeasured);
-    if (when == null) return '';
-    final ago = DateTime.now().difference(when);
-    if (ago.isNegative || ago.inMinutes < 1) return ', measured just now';
-    if (ago.inMinutes < 60) return ', as of ${ago.inMinutes} minutes ago';
-    if (ago.inHours < 48) return ', as of ${ago.inHours} hours ago';
-    return ', as of ${ago.inDays} days ago';
-  }
+  String get behindWords => _behindWords(behindReason, behind, behindMeasured, behindDetail);
 
   /// Whether anything can be done to it beyond looking at it.
   ///
@@ -2175,6 +2179,13 @@ class StartOutcome {
   /// name that would do. **Retyping the name**, nothing else.
   static const badTaskName = StartOutcome('BAD_TASK_NAME');
 
+  /// No repository was named, and Sokar never picks one (B67). **The start dialog's required
+  /// choice**, the way [severalAgents] is the agent's; `detail` names what there is.
+  static const noRepositoryChosen = StartOutcome('NO_REPOSITORY_CHOSEN');
+
+  /// A repository was named that the project does not have. `detail` lists what it has.
+  static const unknownRepository = StartOutcome('UNKNOWN_REPOSITORY');
+
   /// The values this build knows.
   static const known = <StartOutcome>[
     ready,
@@ -2189,6 +2200,8 @@ class StartOutcome {
     credentialMissing,
     credentialUnusable,
     vaultLocked,
+    noRepositoryChosen,
+    unknownRepository,
   ];
 
   /// Whether this build knows what it means.
@@ -2286,6 +2299,8 @@ class Readiness {
         'WRONG_DIALECT' => '$provider does not speak what $agent expects.',
         'NO_PROJECT_FILE' => 'No project file is recorded, and starting takes one.',
         'BAD_TASK_NAME' => detail.isEmpty ? 'This is not a name a task can have.' : detail,
+        'NO_REPOSITORY_CHOSEN' => 'Choose which repository the work starts in.',
+        'UNKNOWN_REPOSITORY' => detail.isEmpty ? 'The project has no repository of that name.' : detail,
         // Added after this build shipped: the daemon's own words rather than silence.
         _ => detail.isEmpty ? 'This cannot start, and nothing said why.' : detail,
       };
@@ -2416,6 +2431,11 @@ class PendingPush {
   /// When it arrived, ISO-8601.
   final String at;
 
+  /// Which of the project's repositories it waits in, or empty where the gate was asked about none.
+  ///
+  /// Not in the reply: the gate is asked one repository at a time, and this is which one it was.
+  final String repository;
+
   /// Constructor taking every field.
   const PendingPush({
     required this.name,
@@ -2423,7 +2443,22 @@ class PendingPush {
     required this.subject,
     required this.waiting,
     required this.at,
+    this.repository = '',
   });
+
+  /// The same push, waiting in [repository].
+  PendingPush inRepository(String repository) => PendingPush(
+        name: name,
+        commit: commit,
+        subject: subject,
+        waiting: waiting,
+        at: at,
+        repository: repository,
+      );
+
+  /// What tells it apart: the same ref name can wait in two repositories. A colon is not allowed
+  /// in a ref name, so it cannot be part of one.
+  String get id => repository.isEmpty ? name : '$repository:$name';
 
   /// Reads one from a reply.
   factory PendingPush.from(Map<String, dynamic> map) => PendingPush(
@@ -2718,4 +2753,111 @@ List<String> _strings(Map<String, dynamic> map, String key) {
 List<Map<String, dynamic>> _list(Map<String, dynamic> map, String key) {
   final value = map[key];
   return value is List ? value.whereType<Map<String, dynamic>>().toList() : const [];
+}
+
+/// One repository a project names (Sokar B67), and how far it has got.
+class Repository {
+  /// Its name, which `Start`, the gate methods, `Backups`, `RestoreBackup` and `SyncUpstream` take.
+  final String name;
+
+  /// Whether it is the project's own: its file, its planning, its issues.
+  final bool own;
+
+  /// Where it is followed from, or empty.
+  final String upstream;
+
+  /// Path to its bare mirror.
+  final String mirror;
+
+  /// How many pushes wait at its gate.
+  final int pending;
+
+  /// How many commits its mirror is behind its upstream. **Meaningless unless [behindReason] is
+  /// `MEASURED`**, exactly as on the project.
+  final int behind;
+
+  /// When [behind] was measured, RFC 3339. Empty when it never was.
+  final String behindMeasured;
+
+  /// Why [behind] says what it says, in the project's words for it.
+  final String behindReason;
+
+  /// Prose for a person, only when [behindReason] is `FAILED`. Never parsed.
+  final String behindDetail;
+
+  /// Whether it is behind its upstream by an amount somebody can act on.
+  bool get hasFallenBehind => behindReason == 'MEASURED' && behind > 0;
+
+  /// How far behind it is, in the same words as a project's.
+  String get behindWords => _behindWords(behindReason, behind, behindMeasured, behindDetail);
+
+  /// Constructor taking every field.
+  const Repository({
+    required this.name,
+    this.own = false,
+    this.upstream = '',
+    this.mirror = '',
+    this.pending = 0,
+    this.behind = 0,
+    this.behindMeasured = '',
+    this.behindReason = '',
+    this.behindDetail = '',
+  });
+
+  /// Reads one from a reply.
+  factory Repository.from(Map<String, dynamic> map) => Repository(
+        name: _string(map, 'name'),
+        own: map['own'] == true,
+        upstream: _string(map, 'upstream'),
+        mirror: _string(map, 'mirror'),
+        pending: _int(map, 'pending'),
+        behind: _int(map, 'behind'),
+        behindMeasured: _string(map, 'behindMeasured'),
+        behindReason: _string(map, 'behindReason'),
+        behindDetail: _string(map, 'behindDetail'),
+      );
+
+  /// A project's repositories, **the project's own first**, from either shape Sokar has answered:
+  /// names alone, as B67 first did, or an object each, as it does since. One without a name is
+  /// left out — nothing could be started in it or asked about it.
+  static List<Repository> allIn(Map<String, dynamic> project) {
+    final value = project['repositories'];
+    if (value is! List) return const <Repository>[];
+    final all = <Repository>[
+      for (final each in value)
+        if (each is String)
+          Repository(name: each)
+        else if (each is Map<String, dynamic>)
+          Repository.from(each),
+    ].where((each) => each.name.isNotEmpty).toList();
+    return <Repository>[...all.where((each) => each.own), ...all.where((each) => !each.own)];
+  }
+}
+
+/// How far behind its upstream something is, in one line — a project, or one of its repositories.
+String _behindWords(String reason, int behind, String measured, String detail) {
+  String asOf() {
+    final when = DateTime.tryParse(measured);
+    if (when == null) return '';
+    final ago = DateTime.now().difference(when);
+    if (ago.isNegative || ago.inMinutes < 1) return ', measured just now';
+    if (ago.inMinutes < 60) return ', as of ${ago.inMinutes} minutes ago';
+    if (ago.inHours < 48) return ', as of ${ago.inHours} hours ago';
+    return ', as of ${ago.inDays} days ago';
+  }
+
+  return switch (reason) {
+    'MEASURED' when behind == 0 => 'Up to date${asOf()}',
+    'MEASURED' => '$behind behind${asOf()}',
+    // Not zero, and not up to date. The two are the same number and different sentences.
+    'NEVER_CHECKED' => 'Never checked against the upstream',
+    'NO_UPSTREAM' => 'No upstream to fall behind',
+    'OFFLINE' => 'Not checked: this project reaches nothing',
+    'FAILED' => detail.isEmpty
+        ? 'The last check did not work'
+        : 'The last check did not work: $detail',
+    // Added after this build shipped. Rendered, never thrown on.
+    '' => 'Nothing said how far behind it is',
+    _ => reason.toLowerCase().replaceAll('_', ' '),
+  };
 }

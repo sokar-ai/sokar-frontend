@@ -1,0 +1,116 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sokar_frontend/client.dart';
+import 'package:sokar_frontend/src/mock/mock_daemon.dart';
+
+/// Sokar B67: a project names its repositories, and a start names the one it is in — sent only
+/// when named, so a daemon older than B67 never meets a parameter it does not know.
+void main() {
+  late MockDaemon daemon;
+
+  setUp(() async {
+    daemon = MockDaemon();
+    await daemon.start();
+  });
+
+  tearDown(() => daemon.stop());
+
+  Future<SokarClient> connect() =>
+      SokarClient.connect(Backend(socketPath: daemon.socketPath, label: 'mock'));
+
+  Future<Map<String, dynamic>> started({String? repository}) async {
+    Map<String, dynamic>? asked;
+    daemon.stream('Start', (parameters) {
+      asked = parameters;
+      return Stream.fromIterable(<Map<String, dynamic>>[
+        <String, dynamic>{'container': 'sokar-demo-shell-1', 'exitCode': 0},
+      ]);
+    });
+    await (await connect()).start(project: 'project.yml', repository: repository).toList();
+    return asked!;
+  }
+
+  test('a start in a repository names it', () async {
+    expect((await started(repository: 'payments-api'))['repository'], 'payments-api');
+  });
+
+  test('a start with no repository sends none at all', () async {
+    expect((await started()).containsKey('repository'), isFalse);
+  });
+
+  test("a project's repositories are read in the order given, its own first", () async {
+    daemon.method('Projects', (_) => <String, dynamic>{
+          'projects': <Map<String, dynamic>>[
+            <String, dynamic>{'name': 'checkout', 'repositories': <String>['checkout', 'payments-api']},
+            <String, dynamic>{'name': 'older'},
+          ],
+        });
+
+    final projects = await (await connect()).projects();
+
+    expect(projects.first.repositories, <String>['checkout', 'payments-api']);
+    expect(projects.last.repositories, isEmpty, reason: 'a daemon older than B67 says none');
+  });
+
+  test('repositories answered as objects are read, the own one first', () async {
+    daemon.method('Projects', (_) => <String, dynamic>{
+          'projects': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'name': 'checkout',
+              'pending': 3,
+              'repositories': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'name': 'payments-api',
+                  'own': false,
+                  'upstream': 'git@example.org:payments-api.git',
+                  'mirror': '/srv/checkout/.sokar/repositories/payments-api',
+                  'pending': 2,
+                  'behind': 4,
+                  'behindMeasured': '2026-09-18T22:00:00Z',
+                  'behindReason': 'MEASURED',
+                },
+                <String, dynamic>{'name': 'checkout', 'own': true, 'pending': 1},
+              ],
+            },
+          ],
+        });
+
+    final project = (await (await connect()).projects()).single;
+
+    expect(project.repositories, <String>['checkout', 'payments-api']);
+    final other = project.repositoryStates.last;
+    expect(other.own, isFalse);
+    expect(other.pending, 2);
+    expect(other.behind, 4);
+    expect(other.behindReason, 'MEASURED');
+    expect(other.upstream, 'git@example.org:payments-api.git');
+  });
+
+  group('each repository has a gate of its own', () {
+    Future<Map<String, String?>> asked({String? repository}) async {
+      final names = <String, String?>{};
+      Map<String, dynamic> answer(String method, Map<String, dynamic> parameters) {
+        names[method] = parameters['repository'] as String?;
+        if (!parameters.containsKey('repository')) names[method] = 'none sent';
+        return <String, dynamic>{};
+      }
+
+      for (final method in <String>['Pending', 'Review', 'Approve', 'Reject']) {
+        daemon.method(method, (parameters) => answer(method, parameters));
+      }
+      final client = await connect();
+      await client.gate('project.yml', repository: repository);
+      await client.review('project.yml', 'migrate', repository: repository);
+      await client.approve('project.yml', 'migrate', 'fix', repository: repository);
+      await client.reject('project.yml', 'migrate', repository: repository);
+      return names;
+    }
+
+    test('asking about one names it, in every gate call', () async {
+      expect((await asked(repository: 'payments-api')).values, everyElement('payments-api'));
+    });
+
+    test('asking about none sends none, which an older Sokar can take', () async {
+      expect((await asked()).values, everyElement('none sent'));
+    });
+  });
+}

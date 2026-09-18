@@ -123,4 +123,18 @@ void main() {
 
     expect(templates.all.map((job) => job.name), <String>['weekly-audit']);
   });
+
+  test('a template keeps the repository it starts in, and one named before keeps none', () {
+    const inPayments = Template(
+      name: 'nightly-tests',
+      project: 'checkout',
+      agent: 'an-agent',
+      mode: Mode.unattended,
+      prompt: 'Run the nightly tests',
+      repository: 'payments-api',
+    );
+
+    expect(Template.fromStored(inPayments.stored).repository, 'payments-api');
+    expect(Template.fromStored(nightly.stored).repository, isEmpty);
+  });
 }

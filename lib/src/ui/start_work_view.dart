@@ -113,6 +113,11 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                       ),
                       onChanged: starting.callIt,
                     ),
+                    if (starting.needsARepository) ...<Widget>[
+                      const SizedBox(height: Space.wide),
+                      Text('Which repository', style: Theme.of(context).textTheme.labelLarge),
+                      _WhichRepository(starting: starting),
+                    ],
                     const SizedBox(height: Space.wide),
                     Text('Which agent', style: Theme.of(context).textTheme.labelLarge),
                     if (starting.busy)
@@ -182,7 +187,8 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                     // saying nothing would.
                     if (starting.readiness != null &&
                         !starting.readiness!.ready &&
-                        !starting.readinessIsAboutTheName) ...<Widget>[
+                        !starting.readinessIsAboutTheName &&
+                        !starting.readinessIsAboutTheRepository) ...<Widget>[
                       const SizedBox(height: Space.wide),
                       _NotReady(starting: starting),
                     ],
@@ -211,6 +217,38 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
           );
         },
       );
+}
+
+/// The project's repositories, the project's own first, with **none chosen** until somebody
+/// chooses — not even when there is only one (Sokar B67, the operator's decision).
+class _WhichRepository extends StatelessWidget {
+  const _WhichRepository({required this.starting});
+
+  final StartWork starting;
+
+  @override
+  Widget build(BuildContext context) {
+    final project = starting.project!;
+    return RadioGroup<String>(
+      groupValue: starting.repository,
+      onChanged: (chosen) => chosen == null ? null : starting.chooseRepository(chosen),
+      child: Column(
+        children: <Widget>[
+          for (final name in project.repositories)
+            RadioListTile<String>(
+              key: Key('start-repository-$name'),
+              value: name,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(name),
+              subtitle: name == project.name
+                  ? const Text("The project's own: its file, its planning, its issues.")
+                  : null,
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The three ways of being involved, with nothing chosen until somebody chooses.

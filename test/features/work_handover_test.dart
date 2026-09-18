@@ -28,6 +28,13 @@ import './step/the_work_holds_unpushed_commits_and_changed_files.dart';
 import './step/nobody_could_look_inside_the_work.dart';
 import './step/the_work_held_unpushed_commits_when_it_stopped.dart';
 import './step/the_machine_knows_no_such_task.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/waits_in_the_repository.dart';
+import './step/it_was_reviewed_in_the_repository.dart';
+import './step/it_was_forwarded_from_the_repository.dart';
+import './step/the_gate_of_the_repository_cannot_be_read.dart';
+import './step/the_gate_was_asked_about_no_repository.dart';
+import './step/the_work_works_in_the_repository.dart';
 
 void main() {
   group('''Reviewing what work pushed, and what it holds back''', () {
@@ -161,6 +168,53 @@ void main() {
       await iSelectTheWork(tester, 'sokar-checkout-shell');
       await iOpenTheSelection(tester);
       await itSays(tester, 'does not know a task called');
+    });
+    testWidgets(
+        '''what waits in every repository is shown, and each push is decided where it waits''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await waitsInTheRepository(
+          tester, 'Retry a declined card once', 'payments-api');
+      await iReviewWhatIsWaitingAtTheGate(tester);
+      await itSays(tester, 'Round to the nearest penny, not away from zero');
+      await itSays(tester, 'Retry a declined card once');
+      await itSays(tester, 'in payments-api');
+      await iOpenTheWaitingPush(tester, 'Retry a declined card once');
+      await itWasReviewedInTheRepository(tester, 'payments-api');
+      await iForwardItOntoTheBranch(tester, 'retry-once');
+      await itWasForwardedFromTheRepository(tester, 'payments-api');
+    });
+    testWidgets(
+        '''a repository whose gate cannot be read is named, and does not hide the others''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theGateOfTheRepositoryCannotBeRead(tester, 'payments-api');
+      await iReviewWhatIsWaitingAtTheGate(tester);
+      await itSays(tester, 'Round to the nearest penny, not away from zero');
+      await itSays(tester, 'payments-api could not be read');
+    });
+    testWidgets('''a machine that names no repositories is asked about none''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iReviewWhatIsWaitingAtTheGate(tester);
+      await iOpenTheWaitingPush(tester);
+      await iForwardItOntoTheBranch(tester, 'fix-rounding');
+      await theGateWasAskedAboutNoRepository(tester);
+    });
+    testWidgets('''work names the repository it works in on its detail''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theWorkWorksInTheRepository(
+          tester, 'sokar-checkout-migrate', 'payments-api');
+      await iSelectTheWork(tester, 'sokar-checkout-migrate');
+      await iOpenTheSelection(tester);
+      await itSays(tester, 'payments-api');
     });
   });
 }

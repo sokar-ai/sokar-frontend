@@ -339,11 +339,17 @@ class FleetModel extends ChangeNotifier {
   Future<void> startAgain(Task task) async {
     final file = projectFileOf(task);
     if (file == null || task.task.isEmpty) return;
+    final repository = projectOf(task)?.repositoryOf(task);
     await _acting(about: task.name, () async {
-      _say(startWords(task.name, await backend.startAgain(project: file, task: task.task)));
+      _say(startWords(task.name,
+          await backend.startAgain(project: file, task: task.task, repository: repository)));
       await _readOnce();
     });
   }
+
+  /// The project [task] belongs to, or null when nothing here knows it.
+  Project? projectOf(Task task) =>
+      projects.where((each) => each.name == task.project).map((each) => each.project).firstOrNull;
 
   /// The file of the project [task] belongs to, or null when nothing here knows it.
   String? projectFileOf(Task task) => projects

@@ -439,11 +439,13 @@ class _ShellState extends State<Shell> {
   }
 
   /// Shows what has been backed up of the selected project.
-  Future<void> _showTheBackups() async {
+  ///
+  /// [repository] is one of the project's; without one, the project's own.
+  Future<void> _showTheBackups({String? repository}) async {
     final project = _fleet.selectedProject;
     if (project == null) return;
     widget.shell.openBackups();
-    await widget.backups.look(_fleet.backend, project.name);
+    await widget.backups.look(_fleet.backend, project.name, repository: repository);
   }
 
   /// Restores the mirror from the backup being considered, and says what that did.
@@ -454,10 +456,13 @@ class _ShellState extends State<Shell> {
   }
 
   /// Asks the upstream how far behind this project is, now.
-  Future<void> _syncTheUpstream() async {
+  ///
+  /// [repository] is one of the project's; without one, the project's own.
+  Future<void> _syncTheUpstream({String? repository}) async {
     final project = _fleet.selectedProject;
     if (project == null) return;
-    final said = await widget.backups.syncFor(_fleet.backend, project.name);
+    final said =
+        await widget.backups.syncFor(_fleet.backend, project.name, repository: repository);
     // Refreshed first: a refresh announces itself, and the answer should be said last.
     await _fleet.refresh();
     if (said.isNotEmpty) _fleet.say(said);
@@ -955,6 +960,7 @@ class _ShellState extends State<Shell> {
         agent: task.agent.isEmpty ? null : task.agent,
         mode: task.mode.recognized ? task.mode : null,
         prompt: task.prompt.isEmpty ? null : task.prompt,
+        repository: _fleet.projectOf(task)?.repositoryOf(task),
       ),
     );
     widget.shell.openOperation(operation.id);
@@ -1298,6 +1304,8 @@ class _ShellState extends State<Shell> {
             menu: _projectMenu(narrowed),
             highlight: highlight,
             onShown: widget.shell.shown,
+            onSync: (repository) => unawaited(_syncTheUpstream(repository: repository)),
+            onBackups: (repository) => unawaited(_showTheBackups(repository: repository)),
           ),
         Expanded(
           child: SingleChildScrollView(
@@ -1404,6 +1412,7 @@ class _ShellState extends State<Shell> {
         if (task == null) return null;
         return WorkDetail(
           task: task,
+          repository: _fleet.projectOf(task)?.repositoryOf(task),
           held: widget.held,
           onClose: widget.shell.close,
         );

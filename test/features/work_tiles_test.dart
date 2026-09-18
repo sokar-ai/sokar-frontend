@@ -33,6 +33,10 @@ import './step/the_machine_says_starting_needs_the_vault_unlocked.dart';
 import './step/the_menu_offers_as_unavailable_because.dart';
 import './step/the_machine_says_was_started_before_the_machine_restarted.dart';
 import './step/the_machine_says_has_a_name_from_before_one_container_per_task.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/the_work_works_in_the_repository.dart';
+import './step/it_was_started_again_in_the_repository.dart';
+import './step/it_was_started_again_in_no_repository.dart';
 
 void main() {
   group('''Work in its machine's area, as tiles that carry their own actions''',
@@ -168,6 +172,51 @@ void main() {
       await iOpenTheMenuOfTheTile(tester, 'sokar-checkout-shell');
       await theMenuOffersAsUnavailableBecause(
           tester, 'Start it again', 'can only be removed');
+    });
+    testWidgets(
+        '''a tile names the repository its work is in, once there is more than one''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theWorkWorksInTheRepository(
+          tester, 'sokar-checkout-shell', 'payments-api');
+      await theTileSays(tester, 'sokar-checkout-shell', 'in payments-api');
+    });
+    testWidgets('''work started again starts in the repository it worked in''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theWorkWorksInTheRepository(
+          tester, 'sokar-checkout-shell', 'payments-api');
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await iSelectTheProject(tester, 'checkout');
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Start it again', 'sokar-checkout-shell');
+      await itWasStartedAgainInTheRepository(tester, 'payments-api');
+    });
+    testWidgets('''work that names no repository is in the project's own''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await iSelectTheProject(tester, 'checkout');
+      await theTileSays(tester, 'sokar-checkout-shell', 'in checkout');
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Start it again', 'sokar-checkout-shell');
+      await itWasStartedAgainInTheRepository(tester, 'checkout');
+    });
+    testWidgets(
+        '''a machine that names no repositories is started again in none''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theWorkHasStopped(tester, 'sokar-checkout-shell');
+      await iSelectTheProject(tester, 'checkout');
+      await iChooseFromTheMenuOfTheTile(
+          tester, 'Start it again', 'sokar-checkout-shell');
+      await itWasStartedAgainInNoRepository(tester);
     });
   });
 }

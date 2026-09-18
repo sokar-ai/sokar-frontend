@@ -110,3 +110,38 @@ Feature: Reviewing what work pushed, and what it holds back
     When I select the work {'sokar-checkout-shell'}
     And I open the selection
     Then it says {'does not know a task called'}
+
+  # Sokar B67: every repository a project names has a gate of its own. Work a task did in one that
+  # is not the project's own waits there — and asking only the project's own would never show it.
+  Scenario: what waits in every repository is shown, and each push is decided where it waits
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And {'Retry a declined card once'} waits in the repository {'payments-api'}
+    When I review what is waiting at the gate
+    Then it says {'Round to the nearest penny, not away from zero'}
+    And it says {'Retry a declined card once'}
+    And it says {'in payments-api'}
+    When I open the waiting push {'Retry a declined card once'}
+    Then it was reviewed in the repository {'payments-api'}
+    When I forward it onto the branch {'retry-once'}
+    Then it was forwarded from the repository {'payments-api'}
+
+  Scenario: a repository whose gate cannot be read is named, and does not hide the others
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the gate of the repository {'payments-api'} cannot be read
+    When I review what is waiting at the gate
+    Then it says {'Round to the nearest penny, not away from zero'}
+    And it says {'payments-api could not be read'}
+
+  # A Sokar older than B67 names no repositories and knows no repository field.
+  Scenario: a machine that names no repositories is asked about none
+    When I review what is waiting at the gate
+    And I open the waiting push
+    And I forward it onto the branch {'fix-rounding'}
+    Then the gate was asked about no repository
+
+  Scenario: work names the repository it works in on its detail
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the work {'sokar-checkout-migrate'} works in the repository {'payments-api'}
+    When I select the work {'sokar-checkout-migrate'}
+    And I open the selection
+    Then it says {'payments-api'}

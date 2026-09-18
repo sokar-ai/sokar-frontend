@@ -55,7 +55,9 @@ class BackupsView extends StatelessWidget {
           return Column(
             children: <Widget>[
               PaneHeader(
-                title: 'Backups of ${backups.project}',
+                title: backups.repository == null
+                    ? 'Backups of ${backups.project}'
+                    : 'Backups of ${backups.project} · ${backups.repository}',
                 trailing: IconButton(
                   icon: const Icon(Icons.close),
                   tooltip: 'Close (Esc)',

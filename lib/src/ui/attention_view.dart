@@ -616,9 +616,15 @@ class TaskTile extends StatelessWidget {
 
   static String _where(Tile tile) {
     final task = tile.task;
+    final project = task == null ? null : tile.fleet.projectOf(task);
+    // Named once there is more than one to tell apart; a project of one repository says nothing new.
+    final repository = task == null || project == null || project.repositories.length < 2
+        ? null
+        : project.repositoryOf(task);
     return <String>[
       if (tile.machine.host.isNotEmpty) tile.machine.host,
       if (task != null && task.project.isNotEmpty) task.project,
+      if (repository != null) 'in $repository',
       if (task != null && task.agent.isNotEmpty) task.agent,
     ].join(' · ');
   }

@@ -54,11 +54,15 @@ class WorkDetail extends StatelessWidget {
     required this.task,
     required this.held,
     required this.onClose,
+    this.repository,
     super.key,
   });
 
   /// What is open.
   final Task task;
+
+  /// The repository it works in, or null where its machine names none.
+  final String? repository;
 
   /// What it holds that never reached the gate, asked when this opened.
   final WorkHeld held;
@@ -100,6 +104,7 @@ class WorkDetail extends StatelessWidget {
                 name: 'Project',
                 value: task.project.isEmpty ? '—' : task.project,
               ),
+              if (repository != null) _Field(name: 'Repository', value: repository!),
               _Field(
                 name: 'Security class',
                 value: task.securityClass.isEmpty ? '—' : task.securityClass,

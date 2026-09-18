@@ -91,3 +91,32 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     When I select the project {'checkout'}
     And I open the menu of the tile {'sokar-checkout-shell'}
     Then the menu offers {'Start it again'} as unavailable because {'can only be removed'}
+
+  # Sokar B67: work says which of its project's repositories it is in, and saying nothing means the
+  # project's own — a container from before it said so, never an unknown one.
+  Scenario: a tile names the repository its work is in, once there is more than one
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the work {'sokar-checkout-shell'} works in the repository {'payments-api'}
+    Then the tile {'sokar-checkout-shell'} says {'in payments-api'}
+
+  Scenario: work started again starts in the repository it worked in
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the work {'sokar-checkout-shell'} works in the repository {'payments-api'}
+    And the work {'sokar-checkout-shell'} has stopped
+    When I select the project {'checkout'}
+    And I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
+    Then it was started again in the repository {'payments-api'}
+
+  Scenario: work that names no repository is in the project's own
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the work {'sokar-checkout-shell'} has stopped
+    When I select the project {'checkout'}
+    Then the tile {'sokar-checkout-shell'} says {'in checkout'}
+    When I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
+    Then it was started again in the repository {'checkout'}
+
+  Scenario: a machine that names no repositories is started again in none
+    Given the work {'sokar-checkout-shell'} has stopped
+    When I select the project {'checkout'}
+    And I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
+    Then it was started again in no repository

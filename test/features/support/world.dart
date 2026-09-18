@@ -78,9 +78,9 @@ class FakeBackend implements FleetBackend {
 
   /// Every launch, as it was asked for. What mode and prompt went down the socket is the whole
   /// of it — a screen that offered one and sent another would be wrong invisibly.
-  final List<({String? task, String? project, String? agent, Mode? mode, String? prompt})>
+  final List<({String? task, String? project, String? agent, Mode? mode, String? prompt, String? repository})>
       starts =
-      <({String? task, String? project, String? agent, Mode? mode, String? prompt})>[];
+      <({String? task, String? project, String? agent, Mode? mode, String? prompt, String? repository})>[];
 
   /// What `Agents` answers, and what could not be read.
   List<Agent> theAgentsItHas = <Agent>[
@@ -225,9 +225,10 @@ class FakeBackend implements FleetBackend {
     String? model,
     int? maxTurns,
     int? minutes,
+    String? repository,
   }) {
     launched.add(dryRun);
-    starts.add((task: task, project: project, agent: agent, mode: mode, prompt: prompt));
+    starts.add((task: task, project: project, agent: agent, mode: mode, prompt: prompt, repository: repository));
     launch = StreamController<String>();
     return launch.stream;
   }
@@ -300,13 +301,14 @@ class FakeBackend implements FleetBackend {
   );
 
   /// Every start of a listed task, by the project file and the name within it that were sent.
-  final List<({String project, String task})> startedAgain = <({String project, String task})>[];
+  final List<({String project, String task, String? repository})> startedAgain =
+      <({String project, String task, String? repository})>[];
 
   /// Acts like [removeTask]: a task started again goes on listed as running, or a screen that
   /// ignored the answer would pass.
   @override
-  Future<StartProgress> startAgain({required String project, required String task}) async {
-    startedAgain.add((project: project, task: task));
+  Future<StartProgress> startAgain({required String project, required String task, String? repository}) async {
+    startedAgain.add((project: project, task: task, repository: repository));
     if (nextStart.action == StartAction.resume) {
       _tasks = <Task>[
         for (final each in _tasks)
@@ -545,9 +547,25 @@ class FakeBackend implements FleetBackend {
   /// Every name `CanStart` was asked about, null where none was sent.
   final List<String?> askedAboutNames = <String?>[];
 
+  /// Every repository `CanStart` was asked about, null where none was sent.
+  final List<String?> askedAboutRepositories = <String?>[];
+
   @override
-  Future<Readiness> canStart({String? project, String? agent, String? task}) async {
+  Future<Readiness> canStart({String? project, String? agent, String? task, String? repository}) async {
     askedAboutNames.add(task);
+    askedAboutRepositories.add(repository);
+    // As a Sokar with B67 answers: a project that names repositories needs one chosen.
+    final named = theProjectsItHas.where((each) => each.file == project).firstOrNull?.repositories;
+    if (repository == null && named != null && named.isNotEmpty) {
+      return Readiness(
+        ready: false,
+        outcome: StartOutcome.noRepositoryChosen,
+        agent: agent ?? '',
+        provider: '',
+        credential: '',
+        detail: 'choose one of: ${named.join(', ')}',
+      );
+    }
     final refused = refusedName;
     if (refused != null && task == refused.name) {
       return Readiness(
@@ -595,7 +613,19 @@ class FakeBackend implements FleetBackend {
   ];
 
   @override
-  Future<List<Backup>> backups(String project) async => theBackupsItHas;
+  Future<List<Backup>> backups(String project, {String? repository}) async {
+    backupsAskedIn.add(repository);
+    return theBackupsItHas;
+  }
+
+  /// Every repository the backups were asked for, null where none was sent.
+  final List<String?> backupsAskedIn = <String?>[];
+
+  /// Every repository a sync was asked for, null where none was sent.
+  final List<String?> syncedIn = <String?>[];
+
+  /// Every repository a restore was asked to write into, null where none was sent.
+  final List<String?> restoredIn = <String?>[];
 
   /// What a task holds. Set by the scenario.
   ///
@@ -629,8 +659,9 @@ class FakeBackend implements FleetBackend {
   final List<String> syncs = <String>[];
 
   @override
-  Future<Synced> syncUpstream(String project) async {
+  Future<Synced> syncUpstream(String project, {String? repository}) async {
     syncs.add(project);
+    syncedIn.add(repository);
     return theSyncAnswers;
   }
 
@@ -643,7 +674,8 @@ class FakeBackend implements FleetBackend {
 
   @override
   Future<Restored> restoreBackup(String project, String bundle,
-      {bool? dryRun, bool? force}) async {
+      {bool? dryRun, bool? force, String? repository}) async {
+    restoredIn.add(repository);
     restores.add((
       bundle: bundle,
       preview: dryRun == true,
@@ -983,9 +1015,22 @@ diff --git a/lib/money.dart b/lib/money.dart
  }
 ''';
 
-  /// What was approved, and onto which branch.
-  final List<({String name, String branch})> approvals =
-      <({String name, String branch})>[];
+  /// What was approved, onto which branch, and from which repository — null where none was named.
+  final List<({String name, String branch, String? repository})> approvals =
+      <({String name, String branch, String? repository})>[];
+
+  /// What each repository's gate holds, where the project names repositories. One that is not here
+  /// answers [theGate] for the project's own and nothing for any other.
+  final Map<String, GateState> theGatesIn = <String, GateState>{};
+
+  /// Repositories whose gate refuses to be read.
+  final Map<String, VarlinkException> refuseTheGateIn = <String, VarlinkException>{};
+
+  /// Every repository the gate was asked about, null where none was sent.
+  final List<String?> gateAskedIn = <String?>[];
+
+  /// Every repository `Review` was asked about, null where none was sent.
+  final List<String?> reviewedIn = <String?>[];
 
   /// What was rejected.
   final List<String> rejections = <String>[];
@@ -1160,10 +1205,16 @@ diff --git a/lib/money.dart b/lib/money.dart
   }
 
   @override
-  Future<GateState> gateOf(String projectFile) async {
-    final refusal = refuseTheGate;
+  Future<GateState> gateOf(String projectFile, {String? repository}) async {
+    gateAskedIn.add(repository);
+    final refusal = refuseTheGate ?? refuseTheGateIn[repository];
     if (refusal != null) throw refusal;
-    return theGate;
+    final own = theProjectsItHas.where((each) => each.file == projectFile).firstOrNull?.repositories;
+    if (repository == null || own == null || own.isEmpty || repository == own.first) {
+      return theGatesIn[repository] ?? theGate;
+    }
+    return theGatesIn[repository] ??
+        GateState.from(const <String, dynamic>{'mode': 'gatekeeping', 'pending': <Object>[]});
   }
 
   @override
@@ -1171,14 +1222,17 @@ diff --git a/lib/money.dart b/lib/money.dart
     String projectFile,
     String name, {
     String? against,
-  }) async =>
-      (diff: theDiff, log: 'commit 9a3c1f2\n\n    Round to the nearest penny');
+    String? repository,
+  }) async {
+    reviewedIn.add(repository);
+    return (diff: theDiff, log: 'commit 9a3c1f2\n\n    Round to the nearest penny');
+  }
 
   @override
-  Future<void> approve(String projectFile, String name, String branch) async {
+  Future<void> approve(String projectFile, String name, String branch, {String? repository}) async {
     final refusal = refuseTheGate;
     if (refusal != null) throw refusal;
-    approvals.add((name: name, branch: branch));
+    approvals.add((name: name, branch: branch, repository: repository));
     theGate = GateState.from(const <String, dynamic>{
       'mirror': '/srv/checkout/.sokar/mirror',
       'mode': 'gatekeeping',
@@ -1188,8 +1242,8 @@ diff --git a/lib/money.dart b/lib/money.dart
   }
 
   @override
-  Future<void> reject(String projectFile, String name) async {
-    rejections.add(name);
+  Future<void> reject(String projectFile, String name, {String? repository}) async {
+    rejections.add(repository == null ? name : '$repository:$name');
     theGate = GateState.from(const <String, dynamic>{
       'mirror': '/srv/checkout/.sokar/mirror',
       'mode': 'gatekeeping',
@@ -1519,6 +1573,7 @@ class World {
             'since': since,
             'activity': activity,
             'waitingFor': waitingFor,
+            'repository': was.repository,
           }),
     ]);
   }
@@ -2163,4 +2218,5 @@ Map<String, dynamic> wire(Task task) => <String, dynamic>{
       'startAction': task.startAction.name,
       'startDetail': task.startDetail,
       'phase': task.phase,
+      'repository': task.repository,
     };

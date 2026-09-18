@@ -22,6 +22,7 @@ class Template {
     required this.agent,
     required this.mode,
     required this.prompt,
+    this.repository = '',
   });
 
   /// What somebody calls this job.
@@ -39,6 +40,10 @@ class Template {
   /// What an unattended run is asked to do. Empty for the other modes.
   final String prompt;
 
+  /// The repository it starts in, by name. Empty where none was chosen — a job named before
+  /// repositories existed, or on a machine that names none.
+  final String repository;
+
   /// Reads one from what was stored.
   ///
   /// Tolerant in the same way a reply is: a template stored by a later build with fields this one
@@ -49,6 +54,7 @@ class Template {
         agent: _text(stored['agent']),
         mode: Mode(_text(stored['mode'])),
         prompt: _text(stored['prompt']),
+        repository: _text(stored['repository']),
       );
 
   /// How it is written down.
@@ -58,6 +64,7 @@ class Template {
         'agent': agent,
         'mode': mode.name,
         'prompt': prompt,
+        if (repository.isNotEmpty) 'repository': repository,
       };
 
   /// Whether this template could start anything at all.

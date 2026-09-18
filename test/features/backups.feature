@@ -104,3 +104,33 @@ Feature: Backups of a mirror: listing, removing, restoring, and upstream
   Scenario: a bundle that is not there any more cannot be restored from
     When I show what has been backed up here
     Then restoring from the missing backup is not offered
+
+  # Sokar B67: every repository has its own upstream, gate and backups. One number for all of them
+  # was the project's own, shown against every other.
+  Scenario: every repository says how far it has got, on a line of its own
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the repository {'payments-api'} is {'4'} behind with {'2'} waiting
+    Then the repository {'payments-api'} says {'2 waiting at the gate · 4 behind'}
+    And the repository {'checkout'} says {'checkout, its own'}
+
+  Scenario: a repository's upstream is asked about on its own
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I sync the repository {'payments-api'}
+    Then the upstream was asked about the repository {'payments-api'}
+
+  # A bundle is kept under the repository it was taken of. Restored into another, it would put one
+  # history over the other's and destroy pushes that exist nowhere else.
+  Scenario: a repository's backups are its own, and are restored into it
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I show the backups of the repository {'payments-api'}
+    Then it says {'Backups of checkout · payments-api'}
+    When I consider restoring the first backup
+    And I restore from it
+    Then the backups and the restore were about the repository {'payments-api'}
+
+  Scenario: a machine that names no repositories is asked about none
+    When I show what has been backed up here
+    And I consider restoring the first backup
+    And I ask the upstream how far behind this project is
+    Then no repository was named for the backups or the upstream
+

@@ -62,17 +62,22 @@ class GateView extends StatelessWidget {
           Expanded(
             child: SelectionList<PendingPush>(
               items: gate.waiting,
-              idOf: (push) => push.name,
-              selected: gate.looking?.name,
-              onSelect: (name) => onOpen(
-                  gate.waiting.firstWhere((push) => push.name == name)),
-              onActivate: (name) => onOpen(
-                  gate.waiting.firstWhere((push) => push.name == name)),
+              idOf: (push) => push.id,
+              selected: gate.looking?.id,
+              onSelect: (id) => onOpen(
+                  gate.waiting.firstWhere((push) => push.id == id)),
+              onActivate: (id) => onOpen(
+                  gate.waiting.firstWhere((push) => push.id == id)),
               focusNode: focusNode,
               emptyMessage: gate.problem != null
                   ? 'Nothing could be read.'
                   : 'Nothing is waiting. Everything this project pushed has been decided.',
-              rowOf: (context, push, selected) => _WaitingRow(push: push),
+              rowOf: (context, push, selected) => _WaitingRow(
+                push: push,
+                // Named where there is more than one to tell apart: each repository has a gate of
+                // its own, and a push is forwarded from the one it waits in.
+                repository: gate.repositories.length > 1 ? push.repository : null,
+              ),
             ),
           ),
           // **What the gate does not see, said where somebody would otherwise assume it is a
@@ -97,9 +102,11 @@ class GateView extends StatelessWidget {
 }
 
 class _WaitingRow extends StatelessWidget {
-  const _WaitingRow({required this.push});
+  const _WaitingRow({required this.push, this.repository});
 
   final PendingPush push;
+
+  final String? repository;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -112,7 +119,11 @@ class _WaitingRow extends StatelessWidget {
               children: <Widget>[
                 Text(push.subject, style: Theme.of(context).textTheme.bodyLarge),
                 Text(
-                  '${push.commit} · waiting ${push.waiting}',
+                  <String>[
+                    if (repository != null) 'in $repository',
+                    push.commit,
+                    'waiting ${push.waiting}',
+                  ].join(' · '),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

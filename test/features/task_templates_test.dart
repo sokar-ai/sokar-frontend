@@ -24,6 +24,11 @@ import './step/the_launch_asked_it_to.dart';
 import './step/what_to_ask_it_says.dart';
 import './step/the_command_finder_does_not_name.dart';
 import './step/the_app_is_restarted.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/i_choose_the_repository.dart';
+import './step/the_repository_is_chosen.dart';
+import './step/the_launch_was_in_the_repository.dart';
+import './step/no_repository_is_chosen_yet.dart';
 
 void main() {
   group('''Naming a job so it can be started again''', () {
@@ -85,6 +90,34 @@ void main() {
       await iSelectTheProject(tester, 'checkout');
       await iOpenTheCommandFinder(tester);
       await theCommandFinderNames(tester, 'Run nightly-tests in checkout');
+    });
+    testWidgets(
+        '''a job keeps the repository it was named with, and starts there''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'Unattended, against a prompt');
+      await iChooseTheRepository(tester, 'payments-api');
+      await iAskItTo(tester, 'Run the nightly tests');
+      await iKeepItAs(tester, 'nightly-tests');
+      await iLeaveWithoutStarting(tester);
+      await iChooseTheCommand(tester, 'Run nightly-tests in checkout');
+      await theRepositoryIsChosen(tester, 'payments-api');
+      await iStartIt(tester);
+      await theLaunchWasInTheRepository(tester, 'payments-api');
+    });
+    testWidgets(
+        '''a job named without a repository has one chosen when it starts, not for it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theJobIsAlreadyNamed(tester, 'nightly-tests');
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iChooseTheCommand(tester, 'Run nightly-tests in checkout');
+      await noRepositoryIsChosenYet(tester);
     });
   });
 }

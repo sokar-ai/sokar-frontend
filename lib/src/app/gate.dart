@@ -19,8 +19,13 @@ class Gate extends ChangeNotifier {
   /// offline, gatekeeping or online.
   String mode = '';
 
-  /// What is waiting, oldest answer first.
+  /// What is waiting, repository by repository — the project's own first — and within one in the
+  /// order the gate answered.
   List<PendingPush> waiting = const <PendingPush>[];
+
+  /// The repositories that were asked about and answered, the project's own first. Empty where the
+  /// machine names none, which a Sokar older than B67 does.
+  List<String> repositories = const <String>[];
 
   /// Whether something is being asked for right now.
   bool busy = false;
@@ -59,12 +64,7 @@ class Gate extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    await _asking(() async {
-      final gate = await backend.gateOf(project.file);
-      mirror = gate.mirror;
-      mode = gate.mode;
-      waiting = gate.pending;
-    });
+    await _asking(() => _readAgain(backend, project.file));
   }
 
   /// Opens one waiting push, so it can be judged before it is forwarded.
@@ -76,7 +76,8 @@ class Gate extends ChangeNotifier {
     final file = project?.file;
     if (file == null || file.isEmpty) return;
     await _asking(() async {
-      final review = await backend.reviewOf(file, push.name, against: against);
+      final review = await backend.reviewOf(file, push.name,
+          against: against, repository: _where(push));
       diff = review.diff;
       log = review.log;
     });
@@ -89,12 +90,14 @@ class Gate extends ChangeNotifier {
     if (file == null || push == null) return '';
     var said = '';
     await _asking(() async {
-      await backend.approve(file, push.name, branch);
+      await backend.approve(file, push.name, branch, repository: _where(push));
       said = '${push.subject} was forwarded to $branch.';
       looking = null;
       await _readAgain(backend, file);
     });
-    return problem ?? said;
+    // Once the call itself went through, that is what happened — whatever reading the gate again
+    // then found.
+    return said.isNotEmpty ? said : (problem ?? said);
   }
 
   /// Drops the request. The work stays in the mirror; only the asking is gone.
@@ -104,19 +107,67 @@ class Gate extends ChangeNotifier {
     if (file == null || push == null) return '';
     var said = '';
     await _asking(() async {
-      await backend.reject(file, push.name);
+      await backend.reject(file, push.name, repository: _where(push));
       said = '${push.subject} was dropped. The work is still in the mirror.';
       looking = null;
       await _readAgain(backend, file);
     });
-    return problem ?? said;
+    // Once the call itself went through, that is what happened — whatever reading the gate again
+    // then found.
+    return said.isNotEmpty ? said : (problem ?? said);
   }
 
+  /// The repository a push waits in, as a gate call takes it: none where none was asked about.
+  static String? _where(PendingPush push) => push.repository.isEmpty ? null : push.repository;
+
+  /// Asks every repository the project has, because **each has a gate of its own** (Sokar B67):
+  /// asking only the project's own would leave the work a task did anywhere else waiting where
+  /// nobody is shown it.
+  ///
+  /// One repository that cannot be read is named, and does not hide what the others hold.
   Future<void> _readAgain(FleetBackend backend, String file) async {
-    final gate = await backend.gateOf(file);
-    mirror = gate.mirror;
-    mode = gate.mode;
-    waiting = gate.pending;
+    final names = project?.repositories ?? const <String>[];
+    if (names.isEmpty) {
+      final gate = await backend.gateOf(file);
+      mirror = gate.mirror;
+      mode = gate.mode;
+      waiting = gate.pending;
+      repositories = const <String>[];
+      return;
+    }
+    final answers = await Future.wait(<Future<(String, GateState?, String?)>>[
+      for (final name in names) _gateIn(backend, file, name),
+    ]);
+    final read = <(String, GateState)>[
+      for (final (name, gate, _) in answers)
+        if (gate != null) (name, gate),
+    ];
+    final unread = <String>[
+      for (final (name, _, why) in answers)
+        if (why != null) '$name could not be read: $why',
+    ];
+    // Mirror and mode as the project's own repository answers them, or the first that did.
+    mirror = read.isEmpty ? '' : read.first.$2.mirror;
+    mode = read.isEmpty ? '' : read.first.$2.mode;
+    waiting = <PendingPush>[
+      for (final (name, gate) in read)
+        for (final push in gate.pending) push.inRepository(name),
+    ];
+    repositories = <String>[for (final (name, _) in read) name];
+    if (unread.isNotEmpty) problem = unread.join(' ');
+  }
+
+  Future<(String, GateState?, String?)> _gateIn(
+      FleetBackend backend, String file, String repository) async {
+    try {
+      return (repository, await backend.gateOf(file, repository: repository), null);
+    } on VarlinkException catch (refusal) {
+      return (repository, null, _wordsFor(refusal));
+    } on VarlinkDisconnected catch (ex) {
+      return (repository, null, 'lost contact with the machine: ${ex.message}');
+    } on FeatureNotSupported catch (ex) {
+      return (repository, null, '$ex');
+    }
   }
 
   Future<void> _asking(Future<void> Function() ask) async {

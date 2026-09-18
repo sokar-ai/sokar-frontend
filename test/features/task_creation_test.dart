@@ -38,6 +38,15 @@ import './step/the_vault_holds_no_credential_for_what_a_run_would_use.dart';
 import './step/nothing_was_started.dart';
 import './step/the_vault_is_locked.dart';
 import './step/the_agent_names_no_default_provider.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/no_repository_is_chosen_yet.dart';
+import './step/nothing_warns_about_starting.dart';
+import './step/i_choose_the_repository.dart';
+import './step/the_machine_was_asked_whether_work_can_start_in.dart';
+import './step/the_launch_was_in_the_repository.dart';
+import './step/the_launch_named_no_repository.dart';
+import './step/the_work_works_in_the_repository.dart';
+import './step/the_repository_is_chosen.dart';
 
 void main() {
   group('''Starting work with an agent, a mode and a credential''', () {
@@ -269,6 +278,56 @@ void main() {
       await iChooseTheAgent(tester, 'An Agent');
       await iChoose(tester, 'A shell, driven by hand');
       await itSays(tester, 'a container you will have to clear up');
+    });
+    testWidgets(
+        '''work starts in a repository somebody chose, never in one chosen for them''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await noRepositoryIsChosenYet(tester);
+      await startingIsNotOfferedYet(tester);
+      await nothingWarnsAboutStarting(tester);
+      await iChooseTheRepository(tester, 'payments-api');
+      await theMachineWasAskedWhetherWorkCanStartIn(tester, 'payments-api');
+      await iStartIt(tester);
+      await theLaunchWasInTheRepository(tester, 'payments-api');
+    });
+    testWidgets(
+        '''an unattended run waiting for its repository is not told it would be refused''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'Unattended, against a prompt');
+      await iAskItTo(tester, 'Fix the rounding');
+      await startingIsNotOfferedYet(tester);
+      await nothingWarnsAboutStarting(tester);
+    });
+    testWidgets('''a machine that names no repositories is asked for none''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iChoose(tester, 'A shell, driven by hand');
+      await iStartIt(tester);
+      await theLaunchNamedNoRepository(tester);
+    });
+    testWidgets('''work continued goes on in the repository it worked in''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theWorkWorksInTheRepository(
+          tester, 'sokar-checkout-migrate', 'payments-api');
+      await iSelectTheWork(tester, 'sokar-checkout-migrate');
+      await iContinueThisWork(tester);
+      await theRepositoryIsChosen(tester, 'payments-api');
     });
   });
 }

@@ -32,6 +32,7 @@ class _Wedged implements FleetBackend {
     String? model,
     int? maxTurns,
     int? minutes,
+    String? repository,
   }) =>
       const Stream<String>.empty();
 
@@ -44,7 +45,7 @@ class _Wedged implements FleetBackend {
       throw const VarlinkDisconnected('nothing there');
 
   @override
-  Future<StartProgress> startAgain({required String project, required String task}) async =>
+  Future<StartProgress> startAgain({required String project, required String task, String? repository}) async =>
       throw const VarlinkDisconnected('nothing there');
 
   @override
@@ -65,7 +66,7 @@ class _Wedged implements FleetBackend {
   Future<List<Log>> logsOf(String task) async => const <Log>[];
 
   @override
-  Future<GateState> gateOf(String projectFile) async =>
+  Future<GateState> gateOf(String projectFile, {String? repository}) async =>
       GateState.from(const <String, dynamic>{});
 
   @override
@@ -73,14 +74,15 @@ class _Wedged implements FleetBackend {
     String projectFile,
     String name, {
     String? against,
+    String? repository,
   }) async =>
       (diff: '', log: '');
 
   @override
-  Future<void> approve(String projectFile, String name, String branch) async {}
+  Future<void> approve(String projectFile, String name, String branch, {String? repository}) async {}
 
   @override
-  Future<void> reject(String projectFile, String name) async {}
+  Future<void> reject(String projectFile, String name, {String? repository}) async {}
 
   @override
   Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
@@ -160,17 +162,17 @@ class _Wedged implements FleetBackend {
       const HeldWork(readable: true, changedFiles: 0, unpushedCommits: 0);
 
   @override
-  Future<Synced> syncUpstream(String project) async => const Synced(
+  Future<Synced> syncUpstream(String project, {String? repository}) async => const Synced(
       outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
 
   @override
   Future<Restored> restoreBackup(String project, String bundle,
-          {bool? dryRun, bool? force}) async =>
+          {bool? dryRun, bool? force, String? repository}) async =>
       const Restored(
           outcome: 'RESTORED', mirror: '', unreviewed: <String>[], detail: '');
 
   @override
-  Future<List<Backup>> backups(String project) async => const <Backup>[];
+  Future<List<Backup>> backups(String project, {String? repository}) async => const <Backup>[];
 
   @override
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) async =>
@@ -217,7 +219,7 @@ class _Wedged implements FleetBackend {
           detail: '');
 
   @override
-  Future<Readiness> canStart({String? project, String? agent, String? task}) async => const Readiness(
+  Future<Readiness> canStart({String? project, String? agent, String? task, String? repository}) async => const Readiness(
         ready: true,
         outcome: StartOutcome.ready,
         agent: '',
@@ -280,6 +282,7 @@ class _Machine implements FleetBackend {
     String? model,
     int? maxTurns,
     int? minutes,
+    String? repository,
   }) =>
       const Stream<String>.empty();
 
@@ -291,7 +294,7 @@ class _Machine implements FleetBackend {
       throw UnimplementedError();
 
   @override
-  Future<StartProgress> startAgain({required String project, required String task}) async =>
+  Future<StartProgress> startAgain({required String project, required String task, String? repository}) async =>
       throw UnimplementedError();
 
   @override
@@ -312,7 +315,7 @@ class _Machine implements FleetBackend {
   Future<List<Log>> logsOf(String task) async => const <Log>[];
 
   @override
-  Future<GateState> gateOf(String projectFile) async =>
+  Future<GateState> gateOf(String projectFile, {String? repository}) async =>
       GateState.from(const <String, dynamic>{});
 
   @override
@@ -320,14 +323,15 @@ class _Machine implements FleetBackend {
     String projectFile,
     String name, {
     String? against,
+    String? repository,
   }) async =>
       (diff: '', log: '');
 
   @override
-  Future<void> approve(String projectFile, String name, String branch) async {}
+  Future<void> approve(String projectFile, String name, String branch, {String? repository}) async {}
 
   @override
-  Future<void> reject(String projectFile, String name) async {}
+  Future<void> reject(String projectFile, String name, {String? repository}) async {}
 
   @override
   Stream<Prompt> prompts() => const Stream<Prompt>.empty();
@@ -406,17 +410,17 @@ class _Machine implements FleetBackend {
       const HeldWork(readable: true, changedFiles: 0, unpushedCommits: 0);
 
   @override
-  Future<Synced> syncUpstream(String project) async => const Synced(
+  Future<Synced> syncUpstream(String project, {String? repository}) async => const Synced(
       outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
 
   @override
   Future<Restored> restoreBackup(String project, String bundle,
-          {bool? dryRun, bool? force}) async =>
+          {bool? dryRun, bool? force, String? repository}) async =>
       const Restored(
           outcome: 'RESTORED', mirror: '', unreviewed: <String>[], detail: '');
 
   @override
-  Future<List<Backup>> backups(String project) async => const <Backup>[];
+  Future<List<Backup>> backups(String project, {String? repository}) async => const <Backup>[];
 
   @override
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun}) async =>
@@ -463,7 +467,7 @@ class _Machine implements FleetBackend {
           detail: '');
 
   @override
-  Future<Readiness> canStart({String? project, String? agent, String? task}) async => const Readiness(
+  Future<Readiness> canStart({String? project, String? agent, String? task, String? repository}) async => const Readiness(
         ready: true,
         outcome: StartOutcome.ready,
         agent: '',

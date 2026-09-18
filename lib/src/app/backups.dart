@@ -15,6 +15,10 @@ class Backups extends ChangeNotifier {
   /// Which project these belong to.
   String project = '';
 
+  /// Which of its repositories, or null for the project's own — all a machine that names none has.
+  /// **Backups are kept per repository**, so this is part of what a bundle is, not a filter.
+  String? repository;
+
   /// What has been taken, newest first.
   List<Backup> taken = const <Backup>[];
 
@@ -44,15 +48,16 @@ class Backups extends ChangeNotifier {
   bool _read = false;
 
   /// Reads what has been taken.
-  Future<void> look(FleetBackend backend, String name) async {
+  Future<void> look(FleetBackend backend, String name, {String? repository}) async {
     project = name;
+    this.repository = repository;
     busy = true;
     problem = null;
     considering = null;
     removed = null;
     notifyListeners();
     try {
-      taken = await backend.backups(name);
+      taken = await backend.backups(name, repository: repository);
       _read = true;
     } on VarlinkDisconnected catch (ex) {
       problem = 'Lost contact with the machine: ${ex.message}';
@@ -65,8 +70,9 @@ class Backups extends ChangeNotifier {
   }
 
   /// Asks the upstream about one project by name, without the listing being open.
-  Future<String> syncFor(FleetBackend backend, String name) async {
+  Future<String> syncFor(FleetBackend backend, String name, {String? repository}) async {
     project = name;
+    this.repository = repository;
     return sync(backend);
   }
 
@@ -78,7 +84,7 @@ class Backups extends ChangeNotifier {
   Future<String> sync(FleetBackend backend) async {
     var said = '';
     await _asking(() async {
-      final answer = await backend.syncUpstream(project);
+      final answer = await backend.syncUpstream(project, repository: repository);
       said = _whatTheSyncSaid(answer);
     });
     return said;
@@ -90,7 +96,8 @@ class Backups extends ChangeNotifier {
     removed = null;
     considering = null;
     await _asking(() async {
-      restoring = await backend.restoreBackup(project, backup.bundle, dryRun: true);
+      restoring = await backend.restoreBackup(project, backup.bundle,
+          dryRun: true, repository: repository);
     });
   }
 
@@ -99,8 +106,9 @@ class Backups extends ChangeNotifier {
     final path = restoringFrom;
     if (path == null) return;
     await _asking(() async {
-      restoring = await backend.restoreBackup(project, path, force: force ? true : null);
-      if (restoring?.done ?? false) taken = await backend.backups(project);
+      restoring = await backend.restoreBackup(project, path,
+          force: force ? true : null, repository: repository);
+      if (restoring?.done ?? false) taken = await backend.backups(project, repository: repository);
     });
   }
 
@@ -151,7 +159,7 @@ class Backups extends ChangeNotifier {
     await _asking(() async {
       removed = await backend.deleteBackup(project, path);
       considering = null;
-      if (removed?.gone ?? false) taken = await backend.backups(project);
+      if (removed?.gone ?? false) taken = await backend.backups(project, repository: repository);
     });
   }
 
