@@ -61,12 +61,11 @@ Feature: Watching several machines at once, and telling nodes apart
     And I open the machine list
     Then no machine is shown as the same node
 
-  # The socket is filled in, so the name is the only thing left that can keep the button off.
+  # A kind is chosen, so the name is the only thing left that can keep the wizard from going on.
   Scenario: a name already watched is marked when the field is left, and nothing is added
     When I start watching another machine
     And I say it is called {'this machine'}
     And I leave the name field
-    And I name the socket {'/tmp/sokar-second.sock'}
     Then the name is marked as taken by {'this machine'}
     And the machine cannot be watched yet
 

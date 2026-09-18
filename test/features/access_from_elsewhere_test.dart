@@ -122,7 +122,6 @@ void main() {
       await iStartWatchingAnotherMachine(tester);
       await iSayItIsCalled(tester, 'this machine');
       await iLeaveTheNameField(tester);
-      await iNameTheSocket(tester, '/tmp/sokar-second.sock');
       await theNameIsMarkedAsTakenBy(tester, 'this machine');
       await theMachineCannotBeWatchedYet(tester);
     });

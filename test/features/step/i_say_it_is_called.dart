@@ -5,6 +5,6 @@ import '../support/world.dart';
 
 /// Usage: I say it is called {'the build machine'}
 Future<void> iSayItIsCalled(WidgetTester tester, String name) async {
-  await tester.enterText(find.byType(TextField).first, name);
+  await tester.enterText(find.byKey(const Key('machine-name')), name);
   await World.settle(tester);
 }

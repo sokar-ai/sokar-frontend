@@ -5,6 +5,7 @@ import '../support/world.dart';
 
 /// Usage: I try the connection
 Future<void> iTryTheConnection(WidgetTester tester) async {
+  await World.onTheWizardsSecondPage(tester);
   await tester.tap(find.byKey(const Key('try-it')));
   await World.settle(tester);
 }

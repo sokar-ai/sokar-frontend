@@ -1,6 +1,6 @@
 # F43 — Set Up A New Machine From The Interface
 
-Opened on 2026-09-18 at the operator's request. **Blocked by a setup script from Sokar** (QF18) for
+Opened on 2026-09-18 at the operator's request. **Blocked by Sokar B62**, the setup script (QF18), for
 its third path; the first two are buildable now.
 
 ## What is wrong today
@@ -35,18 +35,22 @@ machine end to end, with root used once, only in the wizard, and every command s
 2. **Where it is:** server name or IP. The wizard connects as root with that key.
 3. **The host key, confirmed.** The fingerprint is shown and accepted explicitly before it is written
    to `known_hosts`; never accepted silently. The same step appears for kind 2 on a host not yet known.
-4. **The user that runs work** — `agents` unless the base settings name another. Created if missing,
-   with `linger` on and `subuid`/`subgid` ranges for rootless podman, and the key authorized for it.
-   **Before anything is installed**, because Sokar runs as this user's service.
-5. **The packages**, from Sokar's own setup script for that operating system (QF18), read from
-   `/etc/os-release`. The script is fetched on the machine, **shown before it runs**, and its output
-   streamed.
+4. **Sokar's setup script, run as root** (QF18): one script that reads `/etc/os-release`, published
+   beside the packages and versioned with them. It is fetched on the machine, **shown before it
+   runs**, and its output streamed. **It creates the user that runs work** — `agents` unless the base
+   settings name another — with `linger`, `subuid` and `subgid`, *before* it installs anything,
+   because Sokar runs as that user's service; the wizard hands it the name and authorizes the key
+   for that user. Exit 3 is an operating system it does not know, with one sentence naming what it
+   found. It is safe to run twice.
+5. *(folded into 4: Sokar owns creating the user, at its own request, because linger and the
+   subordinate id ranges are where a hand-rolled version goes subtly wrong.)*
 6. **`~/.ssh/config`**: a `Host` entry for the machine, **as the work user, never root**, pointing at
    the private key. Appended, never overwriting an existing `Host` of that name; the file backed up
    first and kept at 600.
-7. **The daemon** started as that user, its socket path taken from that user's uid, and a connection
-   tried the way watching it will. What the machine still lacks is shown from the daemon's own
-   readiness check.
+7. **The daemon** started as that user, in that user's own session — a root script cannot sensibly
+   start another user's service — its socket path taken from that user's uid, and a connection tried
+   the way watching it will. **Success is `sokar doctor` over the daemon's socket**; the script's exit
+   code says only that its steps ran.
 8. **At the end, offered, not done:** `PermitRootLogin no` and `PasswordAuthentication no`, after a
    connection as the work user has been proven, so nobody locks themselves out. And the vault: created
    at the machine with a passphrase, after which *Enroll this device* is offered (F38).
@@ -74,11 +78,13 @@ machine end to end, with root used once, only in the wizard, and every command s
   `/etc`, which is root on the node. It is bounded by the acceptance above: only in the wizard, never
   stored, every command shown first.
 - **The key is made or pasted before the machine exists**, as two fields.
-- **The work user comes before the packages**, and is named in the base settings.
+- **The work user comes before the packages**, and is named in the base settings. Agent Sokar's
+  answer to QF18 moved creating it into his script, which the wizard hands the name.
 
 ## What the backend is short of
 
-- **QF18: a setup script per operating system, published by Sokar.** It cannot be a daemon method:
+- **QF18: a setup script, published by Sokar** — agreed on 2026-09-18, to be written as an issue on
+  his side; the kind of machine it serves waits for it. It cannot be a daemon method:
   a new machine has no daemon to ask. It has to be a versioned file published beside the packages,
   which the wizard fetches on the machine (`curl -L`), shows and runs. Installing the package source,
   the packages and what podman needs is Sokar's knowledge; written down a second time here it would go

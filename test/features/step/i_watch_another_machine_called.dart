@@ -9,9 +9,10 @@ import '../support/world.dart';
 Future<void> iWatchAnotherMachineCalled(WidgetTester tester, String name) async {
   await iStartWatchingAnotherMachine(tester);
 
-  await tester.enterText(find.byType(TextField).first, name);
+  await tester.enterText(find.byKey(const Key('machine-name')), name);
   await World.settle(tester);
-  await tester.enterText(find.byType(TextField).last, '/tmp/$name.sock');
+  await World.onTheWizardsSecondPage(tester);
+  await tester.enterText(find.byKey(const Key('machine-socket')), '/tmp/$name.sock');
   await World.settle(tester);
   await tester.tap(find.byKey(const Key('watch-it')));
   await World.settle(tester);

@@ -5,6 +5,7 @@ import '../support/world.dart';
 
 /// Usage: I watch it
 Future<void> iWatchIt(WidgetTester tester) async {
+  await World.onTheWizardsSecondPage(tester);
   await tester.tap(find.byKey(const Key('watch-it')));
   await World.settle(tester);
 }

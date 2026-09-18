@@ -57,9 +57,22 @@ class ReachIcon extends StatelessWidget {
   }
 }
 
-/// Asks for another machine to watch.
+/// How a machine is reached, chosen on the wizard's first page.
+enum MachineKind {
+  /// Its socket is already forwarded, by somebody else.
+  forwarded,
+
+  /// This interface raises the forward.
+  raiseIt,
+
+  /// A machine just rented, prepared by the wizard.
+  newMachine,
+}
+
+/// Asks for another machine to watch, as a wizard: its name and kind first, then what that kind
+/// needs.
 ///
-/// **Two kinds, and the difference is who raises the forward.** A socket somebody else forwarded
+/// **The first two kinds differ in who raises the forward.** A socket somebody else forwarded
 /// is opened exactly as it always was — that path has no credential handling in it at all and
 /// must keep working untouched. A machine described by where it *is* has its forward raised here,
 /// supervised, and taken down when the window closes.
@@ -111,10 +124,20 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   String? _startSaid;
   bool _starting = false;
 
-  /// Whether this interface raises the forward. **Nothing is preselected**: the two are different
-  /// commitments — one of them starts a process and owns it — and a default would make that
-  /// choice for somebody.
-  bool? _raiseIt;
+  /// Which kind of machine it is. **Nothing is preselected**: the kinds are different
+  /// commitments — one starts a process and owns it, one logs in as root — and a default would
+  /// make that choice for somebody.
+  MachineKind? _kind;
+
+  /// Whether this interface raises the forward, for the two kinds that have one to reach.
+  bool? get _raiseIt => switch (_kind) {
+        MachineKind.forwarded => false,
+        MachineKind.raiseIt => true,
+        _ => null,
+      };
+
+  /// Which page of the wizard is showing: the name and kind, or what that kind needs.
+  int _page = 0;
 
   @override
   void initState() {
@@ -152,7 +175,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Watch another machine'),
+        title: Text(_page == 0 ? 'Watch another machine' : 'Watch ${_described.name}'),
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
@@ -160,126 +183,157 @@ class _AskForAMachineState extends State<_AskForAMachine> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Always a tooltip, shown only when it has something to say: toggling the wrapper
-                // would rebuild the field and take the cursor out of it mid-word.
-                TooltipVisibility(
-                  visible: _takenBy != null,
-                  child: Tooltip(
-                    message: 'A machine called ${_takenBy ?? ''} is already watched',
-                    child: TextField(
-                      key: const Key('machine-name'),
-                      controller: _name,
-                      focusNode: _nameFocus,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        labelText: 'What to call it',
-                        hintText: 'the build machine',
-                        errorText: _nameLeft && _takenBy != null ? 'Already taken' : null,
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: Space.wide),
-                Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
-                RadioGroup<bool>(
-                  groupValue: _raiseIt,
-                  onChanged: (chosen) => setState(() => _raiseIt = chosen),
-                  child: const Column(
-                    children: <Widget>[
-                      RadioListTile<bool>(
-                        key: Key('machine-already-forwarded'),
-                        value: false,
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('Its socket is already forwarded'),
-                        subtitle: Text(
-                          'Nothing is raised and nothing is managed. This is the way in with no '
-                          'credential handling anywhere near it.',
-                        ),
-                      ),
-                      RadioListTile<bool>(
-                        key: Key('machine-raise-it'),
-                        value: true,
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('Raise the forward for me'),
-                        subtitle: Text(
-                          'An ssh forward, started here and taken down when this window closes. '
-                          'It never asks for a passphrase: use an agent, and accept the host key '
-                          'once in a shell.',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: Space.normal),
-                if (_raiseIt == true) ...<Widget>[
-                  TextField(
-                    controller: _host,
-                    key: const Key('machine-host'),
-                    decoration: const InputDecoration(
-                      labelText: 'Where it is',
-                      hintText: 'user@build.example.test',
-                      helperText: 'Given to ssh as it stands, so anything in your ssh config '
-                          'works — including a Host alias.',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: Space.normal),
-                  TextField(
-                    controller: _remote,
-                    key: const Key('machine-remote-socket'),
-                    decoration: const InputDecoration(
-                      labelText: 'Its socket, on that machine',
-                      hintText: '/run/user/<uid>/sokar/sokard.sock',
-                      helperText: 'The uid is that of the user you log in as, on that machine.',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ] else if (_raiseIt == false) ...<Widget>[
-                  TextField(
-                    controller: _socket,
-                    key: const Key('machine-socket'),
-                    decoration: const InputDecoration(
-                      labelText: 'Forwarded socket',
-                      hintText: '/tmp/sokard-remote.sock',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: Space.normal),
-                  Text(
-                    'Forward it first, and this opens it:',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: Space.tight),
-                  _Recipe(command: _recipe),
-                  const SizedBox(height: Space.normal),
-                  Text(
-                    'A remote Sokar is its own socket, forwarded — same calls, same replies, same '
-                    'code.',
-                    key: const Key('how-to-forward'),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-                if (_raiseIt != null && widget.trying != null) ..._trialRow(context),
-              ],
+              children: _page == 0 ? _firstPage(context) : _secondPage(context),
             ),
           ),
         ),
         actions: <Widget>[
+          if (_page > 0)
+            TextButton(
+              key: const Key('wizard-back'),
+              onPressed: () => setState(() => _page = 0),
+              child: const Text('Back'),
+            ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            key: const Key('watch-it'),
-            onPressed: _ready ? _watchIt : null,
-            child: const Text('Watch it'),
-          ),
+          if (_page == 0)
+            FilledButton(
+              key: const Key('wizard-next'),
+              onPressed: _canGoOn ? () => setState(() => _page = 1) : null,
+              child: const Text('Next'),
+            )
+          else if (_kind != MachineKind.newMachine)
+            FilledButton(
+              key: const Key('watch-it'),
+              onPressed: _ready ? _watchIt : null,
+              child: const Text('Watch it'),
+            ),
         ],
       );
+
+  /// The name, and which kind of machine it is.
+  List<Widget> _firstPage(BuildContext context) => <Widget>[
+        // Always a tooltip, shown only when it has something to say: toggling the wrapper
+        // would rebuild the field and take the cursor out of it mid-word.
+        TooltipVisibility(
+          visible: _takenBy != null,
+          child: Tooltip(
+            message: 'A machine called ${_takenBy ?? ''} is already watched',
+            child: TextField(
+              key: const Key('machine-name'),
+              controller: _name,
+              focusNode: _nameFocus,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'What to call it',
+                hintText: 'the build machine',
+                errorText: _nameLeft && _takenBy != null ? 'Already taken' : null,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: Space.wide),
+        Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
+        RadioGroup<MachineKind>(
+          groupValue: _kind,
+          onChanged: (chosen) => setState(() => _kind = chosen),
+          child: const Column(
+            children: <Widget>[
+              RadioListTile<MachineKind>(
+                key: Key('machine-already-forwarded'),
+                value: MachineKind.forwarded,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text('Its socket is already forwarded'),
+                subtitle: Text(
+                  'Nothing is raised and nothing is managed. This is the way in with no '
+                  'credential handling anywhere near it.',
+                ),
+              ),
+              RadioListTile<MachineKind>(
+                key: Key('machine-raise-it'),
+                value: MachineKind.raiseIt,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text('Raise the forward for me'),
+                subtitle: Text(
+                  'An ssh forward, started here and taken down when this window closes. '
+                  'It never asks for a passphrase: use an agent, and accept the host key '
+                  'once in a shell.',
+                ),
+              ),
+              RadioListTile<MachineKind>(
+                key: Key('machine-new'),
+                value: MachineKind.newMachine,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text('A new machine'),
+                subtitle: Text(
+                  'Just rented. The wizard makes a key, then logs in as root once to '
+                  'prepare it, showing every command before it runs.',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+
+  /// What the chosen kind needs.
+  List<Widget> _secondPage(BuildContext context) => <Widget>[
+        const SizedBox(height: Space.normal),
+        if (_raiseIt == true) ...<Widget>[
+          TextField(
+            controller: _host,
+            key: const Key('machine-host'),
+            decoration: const InputDecoration(
+              labelText: 'Where it is',
+              hintText: 'user@build.example.test',
+              helperText: 'Given to ssh as it stands, so anything in your ssh config '
+                  'works — including a Host alias.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: Space.normal),
+          TextField(
+            controller: _remote,
+            key: const Key('machine-remote-socket'),
+            decoration: const InputDecoration(
+              labelText: 'Its socket, on that machine',
+              hintText: '/run/user/<uid>/sokar/sokard.sock',
+              helperText: 'The uid is that of the user you log in as, on that machine.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ] else if (_raiseIt == false) ...<Widget>[
+          TextField(
+            controller: _socket,
+            key: const Key('machine-socket'),
+            decoration: const InputDecoration(
+              labelText: 'Forwarded socket',
+              hintText: '/tmp/sokard-remote.sock',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: Space.normal),
+          Text(
+            'Forward it first, and this opens it:',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: Space.tight),
+          _Recipe(command: _recipe),
+          const SizedBox(height: Space.normal),
+          Text(
+            'A remote Sokar is its own socket, forwarded — same calls, same replies, same '
+            'code.',
+            key: const Key('how-to-forward'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        if (_raiseIt != null && widget.trying != null) ..._trialRow(context),
+      ];
 
   /// The button that tries it, and what the last try found while the fields still say the same.
   List<Widget> _trialRow(BuildContext context) {
@@ -412,7 +466,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// What the fields describe, so an answer about other fields is never shown against these.
   String get _signature =>
-      '$_raiseIt|${_host.text.trim()}|${_remote.text.trim()}|${_socket.text.trim()}';
+      '$_kind|${_host.text.trim()}|${_remote.text.trim()}|${_socket.text.trim()}';
 
   bool get _canTry {
     if (_raiseIt == null) return false;
@@ -466,6 +520,9 @@ class _AskForAMachineState extends State<_AskForAMachine> {
           )
         : Machine(name: name, socketPath: _socket.text.trim());
   }
+
+  /// Whether the first page is answered: a name nobody else has, and a kind.
+  bool get _canGoOn => _name.text.trim().isNotEmpty && _kind != null && _takenBy == null;
 
   bool get _ready {
     if (_name.text.trim().isEmpty || _raiseIt == null || _takenBy != null) return false;

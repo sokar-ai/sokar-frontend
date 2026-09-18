@@ -1750,6 +1750,15 @@ class World {
     await settle(tester);
   }
 
+  /// Goes on to the machine wizard's second page when its first is still showing, so a step that
+  /// fills in where a machine is works whichever page a scenario left open.
+  static Future<void> onTheWizardsSecondPage(WidgetTester tester) async {
+    final next = find.byKey(const Key('wizard-next'));
+    if (next.evaluate().isEmpty) return;
+    await tester.tap(next);
+    await settle(tester);
+  }
+
   /// Scrolls the last pane from its top until [target] is on screen. A pane's list builds only
   /// what is near the view, so a control scrolled away is not there to be found, let alone tapped.
   static Future<void> reach(WidgetTester tester, Finder target) async {
