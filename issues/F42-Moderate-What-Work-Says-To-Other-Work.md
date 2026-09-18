@@ -24,6 +24,10 @@ an agent would.**
 - A held message is **read before it is decided**: its text is shown, and releasing or refusing it
   is a separate, deliberate act. A held message is released or refused, **never edited**. `AMBIGUOUS`
   and `NO_SUCH_MESSAGE` are said in words.
+- **A message the filter refused is never shown by its text**, only by the filter's answer: the
+  rules it broke, where, and a masked excerpt. Its original may hold a secret, and reading it through
+  a forwarded socket would be it leaving the machine after all (Agent Sluice, 2026-09-18). Only a
+  message that passed the filter and waits is read in full.
 - Per task, its peers: name, trust, the day's budget used in both directions (`perDay`), the
   moderation mode, and whether anything to that peer is held right now. **A peer is never shown as
   available while every message to it waits.**
