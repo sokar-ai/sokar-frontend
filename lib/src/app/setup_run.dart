@@ -41,7 +41,9 @@ class SetupRun extends ChangeNotifier {
     this.hostKeys,
     this.trying,
     this.remember,
-  }) : keyFile = addingAUser ? (setup.existingKeys().firstOrNull ?? '') : '';
+  }) : keyFile = addingAUser
+            ? (setup.existingKeys().firstOrNull ?? setup.sshKeys().firstOrNull ?? '')
+            : '';
 
   /// Picks a run up again from what [toStored] kept, or null when it is not one.
   static SetupRun? fromStored(

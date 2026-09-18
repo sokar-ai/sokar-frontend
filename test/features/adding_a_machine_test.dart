@@ -93,6 +93,7 @@ import './step/i_start_asking_what_it_can_install.dart';
 import './step/it_shows_the_first_line_the_machine_printed.dart';
 import './step/only_cancel_is_offered.dart';
 import './step/the_machine_answers.dart';
+import './step/i_choose_the_existing_key.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -549,6 +550,23 @@ void main() {
       await onlyCancelIsOffered(tester);
       await theMachineAnswers(tester);
       await itOffersThePackage(tester, 'sokar-agent-claude');
+    });
+    testWidgets(
+        '''a key already in ~/.ssh can be chosen by name and used as it is''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aKeyTheMachineAlreadyKnowsIsKeptAs(tester, 'id_ed25519');
+      await iCancelTheDialog(tester);
+      await iOpenTheMachineDialog(tester);
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await iGoOn(tester);
+      await iChooseTheExistingKey(tester, 'id_ed25519');
+      await thePublicKeyIsShownToCopy(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await rootLoggedInToWith(tester, '203.0.113.10', 'id_ed25519');
     });
   });
 }

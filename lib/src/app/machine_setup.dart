@@ -225,7 +225,7 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
         final file = File('${directory.path}/key')..createSync();
         await _run(<String>['chmod', '600', file.path]);
         file.writeAsStringSync(_ending(pair.privateKey));
-        final derived = await _run(<String>['ssh-keygen', '-y', '-f', file.path]);
+        final derived = await _run(<String>['ssh-keygen', '-y', '-P', '', '-f', file.path]);
         if (derived.exitCode != 0) {
           return 'That private key cannot be read. It needs to be an OpenSSH private key with no '
               'passphrase.';
@@ -276,9 +276,37 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     ]..sort();
   }
 
+  /// Every private key in `~/.ssh`, by path: a file beside its `.pub`, or one that begins as a
+  /// private key does. **Only the first line of a file is read**, and nothing of it is shown.
+  List<String> sshKeys() {
+    final directory = Directory(sshDirectory);
+    if (!directory.existsSync()) return const <String>[];
+    bool looksPrivate(File file) {
+      RandomAccessFile? handle;
+      try {
+        handle = file.openSync();
+        return String.fromCharCodes(handle.readSync(64)).contains('PRIVATE KEY');
+      } on FileSystemException {
+        return false;
+      } finally {
+        handle?.closeSync();
+      }
+    }
+
+    return <String>[
+      for (final file in directory.listSync().whereType<File>())
+        if (!file.path.endsWith('.pub') &&
+            (File('${file.path}.pub').existsSync() || looksPrivate(file)))
+          file.path,
+    ]..sort();
+  }
+
   /// The public half of the private key at [keyFile], as `ssh-keygen` derives it.
+  ///
+  /// `-P ''` so a key with a passphrase is refused rather than asked about: nothing here takes a
+  /// passphrase, and a prompt on a terminal nobody watches would hang the wizard.
   Future<String> publicKeyOf(String keyFile) async {
-    final derived = await _run(<String>['ssh-keygen', '-y', '-f', keyFile]);
+    final derived = await _run(<String>['ssh-keygen', '-y', '-P', '', '-f', keyFile]);
     if (derived.exitCode != 0) {
       throw MachineSetupFailed('$keyFile cannot be read as a private key with no passphrase: '
           '${'${derived.stderr}'.trim()}');
@@ -352,4 +380,3 @@ class InstallablePackage {
   /// The version the index offers, or empty.
   final String version;
 }
-

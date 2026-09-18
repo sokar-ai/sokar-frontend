@@ -186,5 +186,30 @@ void main() {
           "bash /root/sokar-setup.sh --user 'agents' --with 'sokar-agent-claude'\n");
     });
   });
+
+  group('the keys already in ~/.ssh', () {
+    test('every private key is offered, and nothing that is not one', () async {
+      final ssh = Directory('${home.path}/.ssh')..createSync();
+      await setup.save(await setup.generate('a'), 'id_ed25519');
+      File('${ssh.path}/lonely').writeAsStringSync('-----BEGIN OPENSSH PRIVATE KEY-----\nx\n');
+      File('${ssh.path}/known_hosts').writeAsStringSync('host ssh-ed25519 AAAA\n');
+      File('${ssh.path}/config').writeAsStringSync('Host x\n');
+      File('${ssh.path}/authorized_keys').writeAsStringSync('ssh-ed25519 AAAA\n');
+
+      expect(setup.sshKeys().map((path) => path.split('/').last), <String>['id_ed25519', 'lonely']);
+    });
+
+    test('a key with a passphrase is refused, never asked about', () async {
+      final ssh = Directory('${home.path}/.ssh')..createSync();
+      final made = await Process.run(
+          'ssh-keygen', <String>['-q', '-t', 'ed25519', '-N', 'secret', '-f', '${ssh.path}/locked']);
+      expect(made.exitCode, 0);
+
+      await expectLater(
+        setup.publicKeyOf('${ssh.path}/locked').timeout(const Duration(seconds: 10)),
+        throwsA(isA<MachineSetupFailed>()),
+      );
+    });
+  });
 }
 

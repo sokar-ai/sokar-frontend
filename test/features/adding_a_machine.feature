@@ -366,3 +366,18 @@ Feature: Adding a machine through a wizard that starts from what you have
     And only Cancel is offered
     When the machine answers
     Then it offers the package {'sokar-agent-claude'}
+
+  # The third way to a key: one already in ~/.ssh, used where it is rather than copied.
+  Scenario: a key already in ~/.ssh can be chosen by name and used as it is
+    Given a key the machine already knows is kept as {'id_ed25519'}
+    When I cancel the dialog
+    And I open the machine dialog
+    And I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    And I go on
+    And I choose the existing key {'id_ed25519'}
+    Then the public key is shown to copy
+    When I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    Then root logged in to {'203.0.113.10'} with {'id_ed25519'}

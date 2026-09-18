@@ -27,8 +27,10 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   late final _private = TextEditingController(text: widget.run.privateKey);
   late final _public = TextEditingController(text: widget.run.publicKey);
   late final _host = TextEditingController(text: widget.run.host);
-  late final _keyFile = TextEditingController(text: widget.run.keyFile);
   int _grown = 0;
+
+  /// The private keys in `~/.ssh`, read once when the steps are drawn.
+  late final List<String> _keys = widget.run.setup.sshKeys();
 
   SetupRun get run => widget.run;
 
@@ -43,7 +45,6 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
       run.host = _host.text;
       run.changed();
     });
-    _keyFile.addListener(() => setState(() => run.keyFile = _keyFile.text));
     run.addListener(_follow);
   }
 
@@ -66,7 +67,6 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
     _private.dispose();
     _public.dispose();
     _host.dispose();
-    _keyFile.dispose();
     super.dispose();
   }
 
@@ -117,31 +117,49 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
           'name>. It also becomes the key ${run.workUser} logs in with.',
         ),
         const SizedBox(height: Space.normal),
-        TextField(
-          key: const Key('root-key-file'),
-          controller: _keyFile,
-          enabled: run.kept == null,
-          decoration: const InputDecoration(
-            labelText: 'Private key file',
-            hintText: '~/.ssh/sokar-the-build-machine',
-            border: OutlineInputBorder(),
-          ),
+        _keyPicker(context, use: 'use-key'),
+      ];
+
+  /// The keys in `~/.ssh` to choose from, by name, and the button that uses the chosen one.
+  Widget _keyPicker(BuildContext context, {required String use}) {
+    if (_keys.isEmpty) {
+      return const Text('There is no key in ~/.ssh yet.', key: Key('no-existing-key'));
+    }
+    final chosen = _keys.contains(run.keyFile) ? run.keyFile : null;
+    return Wrap(
+      spacing: Space.small,
+      runSpacing: Space.small,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        DropdownButton<String>(
+          key: const Key('existing-key'),
+          value: chosen,
+          hint: const Text('Choose a key'),
+          onChanged: run.kept != null || run.busy
+              ? null
+              : (file) => setState(() => run.keyFile = file ?? ''),
+          items: <DropdownMenuItem<String>>[
+            for (final file in _keys)
+              DropdownMenuItem<String>(value: file, child: Text(file.split('/').last)),
+          ],
         ),
-        const SizedBox(height: Space.normal),
         if (run.kept == null)
           FilledButton.tonal(
-            key: const Key('use-key'),
-            onPressed: run.busy || _keyFile.text.trim().isEmpty ? null : run.useKey,
+            key: Key(use),
+            onPressed: run.busy || chosen == null ? null : run.useKey,
             child: const Text('Use this key'),
           ),
-      ];
+      ],
+    );
+  }
 
   List<Widget> _keyStep(BuildContext context) => <Widget>[
         _title(context, '1. The key it will be reached with'),
         const SizedBox(height: Space.small),
         const Text(
-          'Paste a key pair you have, or generate one. Either way it is kept in ~/.ssh, owner-only. '
-          'It has no passphrase: this interface never asks for one.',
+          'Generate a key pair, paste one, or use a key that is already in ~/.ssh. A generated or '
+          'pasted one is kept in ~/.ssh, owner-only. None may have a passphrase: this interface '
+          'never asks for one.',
         ),
         const SizedBox(height: Space.normal),
         TextField(
@@ -196,8 +214,13 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
                 child: Text('Keep it as ~/.ssh/${run.keyName}'),
               ),
             ],
-          )
-        else ...<Widget>[
+          ),
+        if (run.kept == null) ...<Widget>[
+          const SizedBox(height: Space.normal),
+          Text('Or use a key you already have', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: Space.tight),
+          _keyPicker(context, use: 'use-existing-key'),
+        ] else ...<Widget>[
           const Text(
             'Give this public key to the provider when the server is created — for Hetzner, under '
             "SSH keys. A key added afterwards cannot reach a machine that only knows root's.",
