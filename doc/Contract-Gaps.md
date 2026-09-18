@@ -24,6 +24,11 @@ gap here is a backend method that has to be added, not a workaround waiting to b
   questions only. The backend will observe working and quiet from outside for every agent, and let
   each agent declare waiting where it can; until then a quiet task is shown as a guess.
 
+- **A held message's text, and declaring a peer.** Sokar B14's `Talk` never carries text, and a
+  project's `mail.peers` and `unread_work_may_leave` live in its project file, which neither
+  `CreateProject` nor `Moderate` writes. Asked as QS8 and QF17; see
+  [F42](../issues/README.md).
+
 ## On the wire, not used here yet
 
 - **`WatchProjects`**, a push for what `Projects` answers. The project row still asks again after
