@@ -26,6 +26,21 @@ enum SetupStep {
   harden,
 }
 
+/// What a root script is run for, so its lines are shown where that action is.
+enum RootAction {
+  /// Asking what the machine could install.
+  list,
+
+  /// Asking what the setup script would do.
+  show,
+
+  /// Running the setup script.
+  prepare,
+
+  /// Closing root's way in.
+  harden,
+}
+
 /// One run of the machine wizard: what was said, what was done, and what is being done now.
 ///
 /// **Held apart from the screen** so going back and forth never loses anything, and **kept in the
@@ -136,6 +151,9 @@ class SetupRun extends ChangeNotifier {
 
   /// What the running script printed so far, line by line.
   final List<String> output = <String>[];
+
+  /// Which action [output] belongs to, so it is shown with that action and no other.
+  RootAction? outputOf;
 
   /// Whether the setup script prepared the machine.
   bool prepared = false;
@@ -259,7 +277,7 @@ class SetupRun extends ChangeNotifier {
       });
 
   Future<void> listPackages() => _doing('Asking the machine what it can install…', () async {
-        final listed = await _root(MachineSetup.listInstallable());
+        final listed = await _root(RootAction.list, MachineSetup.listInstallable());
         if (listed.exitCode != 0) {
           throw MachineSetupFailed(
               '${MachineSetup.whatTheScriptSaid(listed.exitCode)}\n${both(listed)}'.trim());
@@ -273,7 +291,7 @@ class SetupRun extends ChangeNotifier {
   Future<void> show() => _doing("Fetching Sokar's setup script and asking what it would do…", () async {
         shown = null;
         final now = choice;
-        final result = await _root(MachineSetup.show(workUser, chosen.toList()..sort()));
+        final result = await _root(RootAction.show, MachineSetup.show(workUser, chosen.toList()..sort()));
         final said = both(result);
         if (result.exitCode != 0) {
           throw MachineSetupFailed('${MachineSetup.whatTheScriptSaid(result.exitCode)}\n$said');
@@ -284,7 +302,7 @@ class SetupRun extends ChangeNotifier {
       });
 
   Future<void> prepare() => _doing("Running Sokar's setup script as root…", () async {
-        final ran = await _root(MachineSetup.prepare(workUser, chosen.toList()..sort()));
+        final ran = await _root(RootAction.prepare, MachineSetup.prepare(workUser, chosen.toList()..sort()));
         if (ran.exitCode != 0) throw MachineSetupFailed(MachineSetup.whatTheScriptSaid(ran.exitCode));
         prepared = true;
         return MachineSetup.whatTheScriptSaid(0);
@@ -329,15 +347,16 @@ class SetupRun extends ChangeNotifier {
       });
 
   Future<void> harden() => _doing('Turning off root and password login…', () async {
-        final done = await _root(MachineSetup.harden);
+        final done = await _root(RootAction.harden, MachineSetup.harden);
         if (done.exitCode != 0) throw MachineSetupFailed('Root login is still on: ${both(done)}');
         hardened = true;
         return 'Logging in as root and with a password is off.';
       });
 
   /// A root script, its lines shown as they arrive.
-  Future<ProcessResult> _root(String script) {
+  Future<ProcessResult> _root(RootAction action, String script) {
     output.clear();
+    outputOf = action;
     return setup.asRootLive(loggedInTo!, kept!, script, (line) {
       output.add(line);
       notifyListeners();

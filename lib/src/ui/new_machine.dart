@@ -338,7 +338,15 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
               label: const Text('Run it as root'),
             ),
         ],
-        if (run.output.isNotEmpty && (run.busy || run.shown != null)) ...<Widget>[
+        // Lines as they arrive while it is asking; once it has answered, the answer is shown where
+        // it belongs — the packages above, the commands in their box — and not a second time.
+        if (run.busy && run.output.isNotEmpty &&
+            (run.outputOf == RootAction.list || run.outputOf == RootAction.show)) ...<Widget>[
+          const SizedBox(height: Space.normal),
+          Terminal(text: run.output.join('\n'), id: 'asking-output'),
+        ],
+        // What running it printed: nothing until it was run, and kept once it has.
+        if (run.outputOf == RootAction.prepare && run.output.isNotEmpty) ...<Widget>[
           const SizedBox(height: Space.normal),
           Terminal(text: run.output.join('\n'), id: 'setup-output'),
         ],
@@ -387,7 +395,7 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
           icon: const Icon(Icons.shield_outlined, size: Sizes.rowIcon),
           label: const Text('Turn off root and password login'),
         ),
-        if (run.output.isNotEmpty && run.hardened) ...<Widget>[
+        if (run.outputOf == RootAction.harden && run.output.isNotEmpty) ...<Widget>[
           const SizedBox(height: Space.normal),
           Terminal(text: run.output.join('\n'), id: 'harden-output'),
         ],

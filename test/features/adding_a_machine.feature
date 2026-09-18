@@ -397,3 +397,13 @@ Feature: Adding a machine through a wizard that starts from what you have
     When I trust the host key
     Then the host key of {'203.0.113.10'} was written
     And root logged in to {'203.0.113.10'} with {'sokar-the-build-machine'}
+
+  # What is shown before running is shown once, in its box; below "Run it as root" is only what running printed.
+  Scenario: nothing is shown below the run until it was run
+    Given a new machine whose root logs in
+    When I see what it can install
+    And I fetch the setup script
+    Then it shows what the setup script would run {'useradd --create-home agent'}
+    And nothing is shown below the run yet
+    When I run the setup script
+    Then what running it printed is shown below it {'sokar installed'}
