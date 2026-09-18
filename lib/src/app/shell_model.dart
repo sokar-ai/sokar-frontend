@@ -127,7 +127,7 @@ class ShellModel extends ChangeNotifier {
   Section _section = Section.attention;
   Opened _opened = const NothingOpened();
   String? _highlight;
-  final Set<String> _collapsed = <String>{};
+  final Set<String> _expanded = <String>{};
 
   /// Where in the product you are.
   Section get section => _section;
@@ -144,12 +144,14 @@ class ShellModel extends ChangeNotifier {
   /// The command the finder went to, marked where it lives until something else happens.
   String? get highlight => _highlight;
 
-  /// Whether a machine's projects are shown under it on the left. Open until somebody closes it.
-  bool isExpanded(String machine) => !_collapsed.contains(machine);
+  /// Whether a machine's projects are shown under it on the left. **Closed when the window opens**
+  /// (the operator's choice, 2026-09-18): the list of machines is what is read first, and it is
+  /// opened where somebody goes.
+  bool isExpanded(String machine) => _expanded.contains(machine);
 
   /// Shows a machine's projects under it, or hides them.
   void setExpanded(String machine, {required bool expanded}) {
-    final changed = expanded ? _collapsed.remove(machine) : _collapsed.add(machine);
+    final changed = expanded ? _expanded.add(machine) : _expanded.remove(machine);
     if (changed) notifyListeners();
   }
 
