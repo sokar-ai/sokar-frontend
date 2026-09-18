@@ -54,7 +54,10 @@ person to the machine.
 Agent Sokar registered the four methods on `Tasks1` with the names and fields this was built against
 (`d7d4ab8`, unpushed), with two differences taken up here: `UnlockWithShare` has no keyslot id, and
 `BAD_SHARE` and `VAULT_WITHOUT_KEYSLOTS` can each answer more than one call, so their words no longer
-say which. **A share-unlocked vault already serves starting work with a credential**; importing a
-credential and changing the passphrase still want the passphrase at the machine. **Still to do before
+say which. **A share-unlocked vault serves everything the vault is opened for** (`7bf8288`): starting work
+with a credential, importing one, the per-task credential agent. **Only changing the passphrase
+still wants the current passphrase**, on purpose — a device proves it may read the vault, and letting
+it rotate the recovery credential would let a stolen one lock out the owner. `lastUsed` is written
+at each unlock, so the device list shows one that has not been near the machine in months. **Still to do before
 this is done: check the names against a real daemon once B60 is pushed.**
 
