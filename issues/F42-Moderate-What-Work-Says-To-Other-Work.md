@@ -38,10 +38,11 @@ an agent would.**
   nothing is asked, and the filter still runs; nothing in this interface turns the filter off. A
   refusal for `allow` or `off` outside an `online` project shows the daemon's message, which names
   `unread_work_may_leave`.
-- **Peers can be grouped** (Agent Sokar's shape, 2026-09-19): a group's members are edited through
-  `SetGroup` — the daemon changes only the `groups:` block of the project file and keeps every
-  comment — and **holding a group is per project**, for every task of it including ones started
-  later (the operator's decision). Per task is not wanted.
+- **Whom a task may talk to follows from its project** (Sokar B65–B67, 2026-09-19): agents of one
+  project communicate by default, so the peer list is derived, not maintained here; a group survives
+  only for explicit exceptions. Agent Sokar withdrew the `Groups`/`SetGroup` shape the same day — do
+  not build against it. **Holding is per project**, for every task of it including ones started later
+  (the operator's decision); per task is not wanted.
 - A person can write to a task (`Say`); the answer says **written**, never *sent*, because it goes
   through the same filter and moderation as an agent's message.
 - What happened to messages is followed live from `Talk` (`taken`, `queued`, `sent`, `deferred`,
