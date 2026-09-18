@@ -158,6 +158,11 @@ class ProjectCreation extends ChangeNotifier {
           'minutes, and starting work here would otherwise spend them.',
       // **A refusal and never an overwrite.** The file may be somebody's whole configuration, and
       // this is the one operation that would replace it with nothing to restore from.
+      // No path sent and none answered: a Sokar from before QF22, which read the missing path as an
+      // empty one — the directory it runs in, which of course exists. Said as what it is.
+      'ALREADY_EXISTS' when said.file.isEmpty && file.isEmpty =>
+        "This machine's Sokar does not choose a place for the project file yet — that came with a "
+            'newer Sokar. Nothing was written. Put it somewhere else below, or update Sokar there.',
       'ALREADY_EXISTS' =>
         'There is already a project file at ${said.file.isEmpty ? file : said.file}. Nothing was written.',
       'INVALID' => 'The machine will not take these answers. Nothing was written.',

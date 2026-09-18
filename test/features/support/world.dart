@@ -700,6 +700,9 @@ class FakeBackend implements FleetBackend {
   /// What the machine says is wrong with the answers. Set by the scenario.
   List<Problem> theCreationProblems = const <Problem>[];
 
+  /// Set for a Sokar from before QF22, which does not choose where a project file goes.
+  bool choosesNoPlace = false;
+
   /// Every creation asked for.
   final List<({String file, String name, String securityClass, bool preview})> creations =
       <({String file, String name, String securityClass, bool preview})>[];
@@ -714,8 +717,10 @@ class FakeBackend implements FleetBackend {
     List<String> sets = const <String>[],
     bool? dryRun,
   }) async {
-    // As QF22 proposes: no file given, and the machine chooses where its projects live.
-    final chosen = file ?? '/home/somebody/.config/sokar/projects/$name/project.yml';
+    // As QF22 proposes: no file given, and the machine chooses where its projects live. A Sokar from
+    // before it reads the missing path as the directory it runs in, which exists.
+    final chosen = file ?? (choosesNoPlace ? '' : '/home/somebody/.config/sokar/projects/$name/project.yml');
+    final answers = file == null && choosesNoPlace ? 'ALREADY_EXISTS' : theCreationAnswers;
     creations.add((
       file: file ?? '',
       name: name,
@@ -724,7 +729,7 @@ class FakeBackend implements FleetBackend {
     ));
     final blocked = theCreationProblems.any((problem) => problem.fatal);
     // Acts, like every other stand-in here: a project made is listed afterwards.
-    if (dryRun != true && !blocked && theCreationAnswers == 'CREATED') {
+    if (dryRun != true && !blocked && answers == 'CREATED') {
       theProjectsItHas = <Project>[
         ...theProjectsItHas,
         Project.from(<String, dynamic>{
@@ -744,12 +749,12 @@ class FakeBackend implements FleetBackend {
           ? 'INVALID'
           : dryRun == true
               ? 'PREVIEWED'
-              : theCreationAnswers,
+              : answers,
       file: chosen,
       content: 'project:\n  name: "$name"\n  security_class: "$securityClass"\n'
           'image:\n  base_image: "$baseImage"\n',
       problems: theCreationProblems,
-      detail: theCreationAnswers == 'ALREADY_EXISTS'
+      detail: answers == 'ALREADY_EXISTS'
           ? 'a project file is already there'
           : '',
     );

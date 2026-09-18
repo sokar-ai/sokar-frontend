@@ -91,3 +91,12 @@ Feature: Creating a project, checked by the machine that will run it
     Then it says {'Its file goes to /home/somebody/work/new-thing/project.yml'}
     And the machine was asked with the project file {'/home/somebody/work/new-thing/project.yml'}
 
+
+  # A Sokar from before QF22 reads a missing path as an empty one, which "already exists".
+  Scenario: a Sokar that does not choose a place yet says so, rather than claiming a file is there
+    Given the machine does not choose a place for project files yet
+    When I describe a new project
+    And I answer the project questions
+    And I create the project
+    Then it says {"This machine's Sokar does not choose a place for the project file yet"}
+    And it says {'Put it somewhere else'}

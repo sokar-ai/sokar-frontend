@@ -25,6 +25,7 @@ import './step/the_project_is_selected.dart';
 import './step/the_machine_was_asked_without_a_project_file.dart';
 import './step/i_put_the_project_file_at.dart';
 import './step/the_machine_was_asked_with_the_project_file.dart';
+import './step/the_machine_does_not_choose_a_place_for_project_files_yet.dart';
 
 void main() {
   group('''Creating a project, checked by the machine that will run it''', () {
@@ -137,6 +138,18 @@ void main() {
           tester, 'Its file goes to /home/somebody/work/new-thing/project.yml');
       await theMachineWasAskedWithTheProjectFile(
           tester, '/home/somebody/work/new-thing/project.yml');
+    });
+    testWidgets(
+        '''a Sokar that does not choose a place yet says so, rather than claiming a file is there''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineDoesNotChooseAPlaceForProjectFilesYet(tester);
+      await iDescribeANewProject(tester);
+      await iAnswerTheProjectQuestions(tester);
+      await iCreateTheProject(tester);
+      await itSays(tester,
+          "This machine's Sokar does not choose a place for the project file yet");
+      await itSays(tester, 'Put it somewhere else');
     });
   });
 }
