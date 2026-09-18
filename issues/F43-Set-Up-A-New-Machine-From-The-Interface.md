@@ -143,6 +143,10 @@ vault.
   refuses a mailbox of another Unix user, on purpose — two users are two Sokar installations
   (Agent Sluice, 2026-09-18). Between them it takes a transport that carries between installations,
   which is not built.
+- **Messaging between users is off unless the operator allows it for that machine** (his decision,
+  2026-09-18, in Agent Sluice's QL10): a separate transport, and a dedicated option of Sokar's setup
+  script that is not a side effect of adding a user. When it exists, the wizard offers it as its own,
+  shown step — never ticked by default.
 - **QF20, open:** whether `Node()` is one per machine or per user's daemon. The device's vault key is
   kept per node id, so two users' vaults on one machine would share one entry if it is per machine.
   **QF21, open:** whether the setup script run with another `--user` on a prepared machine only adds
