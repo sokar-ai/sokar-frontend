@@ -147,8 +147,14 @@ vault.
   2026-09-18, in Agent Sluice's QL10): a separate transport, and a dedicated option of Sokar's setup
   script that is not a side effect of adding a user. When it exists, the wizard offers it as its own,
   shown step — never ticked by default.
-- **QF20, open:** whether `Node()` is one per machine or per user's daemon. The device's vault key is
-  kept per node id, so two users' vaults on one machine would share one entry if it is per machine.
-  **QF21, open:** whether the setup script run with another `--user` on a prepared machine only adds
-  that user.
+- **QF20, answered: `Node()` is one per user's daemon** (`$XDG_DATA_HOME/sokar/node-id`), so two
+  users on one machine are two ids. The device's vault key, kept per node id, already keeps their
+  vaults apart, and the "same node" hint never fires between them.
+- **QF21, answered and measured by Agent Sokar**: the setup script run with another `--user` on a
+  prepared machine only creates that user (linger, subuid, subgid) and says "already" to the rest.
+- **For whoever builds the undo**: linger starts that user's `systemd --user` at once, so `userdel`
+  refuses; removing such a user is `loginctl disable-linger`, `terminate-user`, then `userdel`.
+- **Measured on a rented Ubuntu 24.04 (2026-09-18)**: every command of the wizard ran, and the script
+  said "prepared" — but `sokar doctor` then exited 69, because Ubuntu 24.04's podman 4.9.3 is older
+  than the 5 Sokar needs, and the daemon did not answer. Reported to Agent Sokar; the script is his.
 
