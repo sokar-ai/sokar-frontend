@@ -1,8 +1,9 @@
 # F15 — Secret Store Control
 
-**Status:** open — three of seven criteria built here, and **the other four are answered somewhere
-by design rather than left undone.** Two will never be possible over this interface; two happen at
-the machine. The requirement says which is which, and the screen says it where somebody looks.
+**Status:** blocked on Sokar B60 — three of seven criteria built here, and the other four answered
+somewhere by design: **unlocking comes through an enrolled device (F39)**, one will never be possible
+over this interface, and two happen at the machine. The requirement says which is which, and the
+screen says it where somebody looks.
 
 The protected store holding credentials has states a person must be able to see and
 change: locked, unlocked, and how its unlocking is remembered between sessions.
@@ -37,7 +38,7 @@ cannot be done"*.
 | criterion | |
 |---|---|
 | the state is visible without acting on it | **built** |
-| unlocked **and** locked again | shutting is built. **Unlocking will never be possible here**: a daemon has no terminal to take a passphrase at, so it can shut the store and can never open it. Said beside the button that shuts it, which is where somebody looks for the one that opens it. |
+| unlocked **and** locked again | shutting is built. **Unlocking comes through an enrolled device**, F39, once Sokar B60 is built; a passphrase is still never typed here — a daemon has no terminal to take one at, and it stays the recovery path at the machine. |
 | how the unlocking is remembered, an explicit choice | **built, at the machine**: `sokar vault unlock --for 30m`, with the kernel doing the discarding so nothing has to remember. **No default** — a bound that crept in would start asking people for a passphrase they never used to be asked for. |
 | the recovery secret revealed once, and acknowledged | **never over this interface.** `Credentials` answers names, kinds and lengths and no value — the whole promise of the method — on a socket that can be forwarded over ssh. If a recovery secret is ever introduced it belongs at the machine, with a person present. |
 | the passphrase can be changed | **built, at the machine**: `sokar vault passphrase`. It re-encrypts under the new one inside the lock `update()` already holds, verifies the old one *before* asking for the new one twice, and drops the cached passphrase — which is now the wrong one, and would otherwise turn the next command into a failure that reads like a damaged store. |
@@ -50,6 +51,15 @@ cannot be done"*.
 they started. Locking cannot reach that memory. **It is said in the same breath as *"the store is
 shut"***, never in a detail underneath, because reporting the store closed without it claims more
 than happened.
+
+## Updated, 2026-09-18
+
+**The parked decision is taken, and not the way it was framed.** The question was whether unlocking
+could ever be a daemon method; Sokar B60, *keyslots*, decided by the operator on 2026-09-18, answers
+it without a passphrase at all: a device enrolls once with a share kept in its platform's keystore,
+and releasing that share opens the vault for a session. What that asks of this interface is four
+issues: enrolling a device (F38), unlocking with it (F39), seeing and revoking devices (F40) and
+saying what a device's storage is worth (F41). The recovery secret stays never-over-this-interface.
 
 ## Updated, 2026-09-08
 
