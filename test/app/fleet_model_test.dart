@@ -48,6 +48,20 @@ class _Wedged implements FleetBackend {
       throw const VarlinkDisconnected('nothing there');
 
   @override
+  Future<Enrolled> enrollDevice({required String name, required String share, required KeyslotStorage storage}) async =>
+      throw const VarlinkDisconnected('nothing there');
+
+  @override
+  Future<List<Keyslot>> keyslots() async => throw const VarlinkDisconnected('nothing there');
+
+  @override
+  Future<Revoked> revokeKeyslot(String id) async => throw const VarlinkDisconnected('nothing there');
+
+  @override
+  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async =>
+      throw const VarlinkDisconnected('nothing there');
+
+  @override
   Future<List<Log>> logsOf(String task) async => const <Log>[];
 
   @override
@@ -278,6 +292,20 @@ class _Machine implements FleetBackend {
 
   @override
   Future<StartProgress> startAgain({required String project, required String task}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Enrolled> enrollDevice({required String name, required String share, required KeyslotStorage storage}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<Keyslot>> keyslots() async => throw UnimplementedError();
+
+  @override
+  Future<Revoked> revokeKeyslot(String id) async => throw UnimplementedError();
+
+  @override
+  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async =>
       throw UnimplementedError();
 
   @override

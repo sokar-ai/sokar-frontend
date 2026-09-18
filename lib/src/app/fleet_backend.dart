@@ -86,6 +86,22 @@ abstract class FleetBackend {
   /// Shuts the protected store. There is no `Unlock`: a daemon has no terminal for a passphrase.
   Future<Locked> lock();
 
+  /// Enrolls this device as a keyslot. Proposed in Sokar B60.
+  Future<Enrolled> enrollDevice({
+    required String name,
+    required String share,
+    required KeyslotStorage storage,
+  });
+
+  /// Every credential that can open the vault. Proposed in Sokar B60.
+  Future<List<Keyslot>> keyslots();
+
+  /// Revokes one keyslot. Proposed in Sokar B60.
+  Future<Revoked> revokeKeyslot(String id);
+
+  /// Opens the vault with this device's share. Proposed in Sokar B60.
+  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes});
+
   /// Whether work can start, asked before anything is created.
   Future<Readiness> canStart({String? project, String? agent, String? task});
 
@@ -338,6 +354,24 @@ class SokarBackend implements FleetBackend {
 
   @override
   Future<Locked> lock() => _opened().lock();
+
+  @override
+  Future<Enrolled> enrollDevice({
+    required String name,
+    required String share,
+    required KeyslotStorage storage,
+  }) =>
+      _opened().enrollDevice(name: name, share: share, storage: storage);
+
+  @override
+  Future<List<Keyslot>> keyslots() => _opened().keyslots();
+
+  @override
+  Future<Revoked> revokeKeyslot(String id) => _opened().revokeKeyslot(id);
+
+  @override
+  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) =>
+      _opened().unlockWithShare(share: share, slot: slot, minutes: minutes);
 
   @override
   Future<Readiness> canStart({String? project, String? agent, String? task}) =>

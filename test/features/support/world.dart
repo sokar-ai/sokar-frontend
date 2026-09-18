@@ -433,6 +433,77 @@ class FakeBackend implements FleetBackend {
   /// credential, neither of which a contrived agent list can produce.
   Readiness? nextReadiness;
 
+  /// The vault's keyslots, as Sokar B60 proposes them: the recovery passphrase, and every device
+  /// enrolled here. Behaves like the node — a share it has seen opens its slot, nothing else does —
+  /// so a screen that ignored an answer would fail a scenario rather than pass one.
+  final List<({Keyslot slot, String share})> keyslotsHeld = <({Keyslot slot, String share})>[
+    (
+      slot: const Keyslot(
+        id: 'slot-0',
+        name: 'recovery passphrase',
+        storage: KeyslotStorage(''),
+        enrolled: '2026-09-01T10:00:00Z',
+        lastUsed: '',
+        self: false,
+        recovery: true,
+      ),
+      share: '',
+    ),
+  ];
+
+  /// Every share that was sent here, to check nothing was sent twice or kept.
+  final List<String> sharesSent = <String>[];
+
+  @override
+  Future<Enrolled> enrollDevice({
+    required String name,
+    required String share,
+    required KeyslotStorage storage,
+  }) async {
+    sharesSent.add(share);
+    if (!storage.recognized) {
+      return const Enrolled(outcome: KeyslotOutcome.unknownStorage, slot: null, detail: '');
+    }
+    final known = keyslotsHeld.where((held) => held.share == share).firstOrNull;
+    if (known != null) {
+      return Enrolled(outcome: KeyslotOutcome.alreadyEnrolled, slot: known.slot, detail: '');
+    }
+    final slot = Keyslot(
+      id: 'slot-${keyslotsHeld.length}',
+      name: name,
+      storage: storage,
+      enrolled: '2026-09-18T08:00:00Z',
+      lastUsed: '',
+      self: false,
+      recovery: false,
+    );
+    keyslotsHeld.add((slot: slot, share: share));
+    return Enrolled(outcome: KeyslotOutcome.enrolled, slot: slot, detail: '');
+  }
+
+  @override
+  Future<List<Keyslot>> keyslots() async => <Keyslot>[for (final held in keyslotsHeld) held.slot];
+
+  @override
+  Future<Revoked> revokeKeyslot(String id) async {
+    final before = keyslotsHeld.length;
+    keyslotsHeld.removeWhere((held) => held.slot.id == id);
+    return Revoked(
+      outcome: keyslotsHeld.length == before ? KeyslotOutcome.noSuchSlot : KeyslotOutcome.revoked,
+      remaining: <Keyslot>[for (final held in keyslotsHeld) held.slot],
+      detail: '',
+    );
+  }
+
+  @override
+  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async {
+    sharesSent.add(share);
+    final opens = keyslotsHeld.where((held) => held.share.isNotEmpty && held.share == share).firstOrNull;
+    return opens == null
+        ? const UnlockedWithShare(outcome: KeyslotOutcome.shareRejected, until: '', slot: null, detail: '')
+        : UnlockedWithShare(outcome: KeyslotOutcome.unlocked, until: '2026-09-18T08:30:00Z', slot: opens.slot, detail: '');
+  }
+
   /// A name this machine refuses, and its words, the way a daemon with a rule of its own would.
   ({String name, String words})? refusedName;
 

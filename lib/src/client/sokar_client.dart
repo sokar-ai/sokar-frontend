@@ -342,10 +342,55 @@ class SokarClient {
 
   /// Shuts the protected store.
   ///
-  /// **There is deliberately no `Unlock`.** A daemon has no terminal to take a passphrase at, so
-  /// it can shut the vault and can never open it — that asymmetry is the design, not a missing
-  /// method, and it belongs on the screen where somebody looks for the button.
+  /// **There is deliberately no passphrase `Unlock`.** A daemon has no terminal to take a passphrase
+  /// at, so it can shut the vault and never open it with one. A device that enrolled a keyslot opens
+  /// it with a share instead — [unlockWithShare] — and the passphrase stays the recovery path at the
+  /// machine.
   Future<Locked> lock() async => Locked.from(await _call('Lock'));
+
+  /// Enrolls this device as a keyslot, sending its [share] once.
+  ///
+  /// **Proposed in Sokar B60, not on `Tasks1` yet**: until it is built, this answers
+  /// [FeatureNotSupported]. The share is base64 of 32 random bytes, is sent here and in
+  /// [unlockWithShare] only, and appears in no reply.
+  Future<Enrolled> enrollDevice({
+    required String name,
+    required String share,
+    required KeyslotStorage storage,
+  }) async =>
+      Enrolled.from(await _call('EnrollDevice', {
+        'name': name,
+        'share': share,
+        'storage': storage.name,
+      }));
+
+  /// Every credential that can open the vault. **Proposed in Sokar B60.**
+  Future<List<Keyslot>> keyslots() async {
+    final reply = await _call('Keyslots');
+    final slots = reply['slots'];
+    return slots is List
+        ? slots.whereType<Map<String, dynamic>>().map(Keyslot.from).toList()
+        : const <Keyslot>[];
+  }
+
+  /// Revokes one keyslot by [id]. **Proposed in Sokar B60.**
+  Future<Revoked> revokeKeyslot(String id) async =>
+      Revoked.from(await _call('RevokeKeyslot', {'id': id}));
+
+  /// Opens the vault with this device's [share], for [minutes] or the node's own bound.
+  ///
+  /// **Proposed in Sokar B60.** [slot] only saves the node trying each keyslot in turn; a device
+  /// that lost its id still opens the vault.
+  Future<UnlockedWithShare> unlockWithShare({
+    required String share,
+    String? slot,
+    int? minutes,
+  }) async =>
+      UnlockedWithShare.from(await _call('UnlockWithShare', {
+        'share': share,
+        'slot': ?slot,
+        'minutes': ?minutes,
+      }));
 
   /// Whether work can start, asked **before anything is created**.
   ///

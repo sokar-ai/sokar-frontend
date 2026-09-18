@@ -598,6 +598,239 @@ class Locked {
   }
 }
 
+/// How a device keeps the share that opens a vault, as the device declared it.
+///
+/// **Proposed in Sokar B60, not on `Tasks1` yet.** A closed set on the node, which refuses an
+/// unknown value rather than recording it; a string here by the rule every other value follows, so
+/// one added later renders rather than throws.
+class KeyslotStorage {
+  /// Constructor taking the name as the contract spells it.
+  const KeyslotStorage(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// A store that unlocks at login, such as a Secret Service keyring or DPAPI: **anything running as
+  /// this user can ask for the share.** What Linux and Windows offer.
+  static const userScoped = KeyslotStorage('USER_SCOPED');
+
+  /// A store only this application can read: iOS, Android, a signed macOS application.
+  static const applicationScoped = KeyslotStorage('APPLICATION_SCOPED');
+
+  /// Derived at unlock from a FIDO2 token's `hmac-secret`, so releasing it needs a touch.
+  static const fido2 = KeyslotStorage('FIDO2');
+
+  /// Derived at unlock from a TPM2 object behind a PIN.
+  static const tpm2 = KeyslotStorage('TPM2');
+
+  /// The values this build knows.
+  static const known = <KeyslotStorage>[userScoped, applicationScoped, fido2, tpm2];
+
+  /// Whether this build knows what it means.
+  bool get recognized => known.contains(this);
+
+  @override
+  bool operator ==(Object other) => other is KeyslotStorage && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// What a keyslot call answered. **Proposed in Sokar B60, not on `Tasks1` yet.**
+///
+/// One set for the three calls, because they share most of it; each call answers only its own.
+class KeyslotOutcome {
+  /// Constructor taking the name as the contract spells it.
+  const KeyslotOutcome(this.name);
+
+  /// The value as it came.
+  final String name;
+
+  /// The device is a keyslot now.
+  static const enrolled = KeyslotOutcome('ENROLLED');
+
+  /// The share given opens a keyslot that already exists: this device was enrolled before.
+  static const alreadyEnrolled = KeyslotOutcome('ALREADY_ENROLLED');
+
+  /// The storage class is not one the node records.
+  static const unknownStorage = KeyslotOutcome('UNKNOWN_STORAGE');
+
+  /// The share is not 32 bytes of base64.
+  static const badShare = KeyslotOutcome('BAD_SHARE');
+
+  /// The vault is shut, so nothing can be wrapped or revoked.
+  static const vaultLocked = KeyslotOutcome('VAULT_LOCKED');
+
+  /// This vault predates keyslots.
+  static const vaultWithoutKeyslots = KeyslotOutcome('VAULT_WITHOUT_KEYSLOTS');
+
+  /// The keyslot is gone.
+  static const revoked = KeyslotOutcome('REVOKED');
+
+  /// No keyslot has that id.
+  static const noSuchSlot = KeyslotOutcome('NO_SUCH_SLOT');
+
+  /// Revoking it would leave nothing that opens the vault.
+  static const lastWayIn = KeyslotOutcome('LAST_WAY_IN');
+
+  /// The vault is open, until the time the reply names.
+  static const unlocked = KeyslotOutcome('UNLOCKED');
+
+  /// No keyslot opens with this share: the device was revoked, or never enrolled here.
+  static const shareRejected = KeyslotOutcome('SHARE_REJECTED');
+
+  /// It was open already.
+  static const alreadyOpen = KeyslotOutcome('ALREADY_OPEN');
+
+  /// Something went wrong that is none of the above; the detail says what.
+  static const failed = KeyslotOutcome('FAILED');
+
+  /// The values this build knows.
+  static const known = <KeyslotOutcome>[
+    enrolled, alreadyEnrolled, unknownStorage, badShare, vaultLocked, vaultWithoutKeyslots,
+    revoked, noSuchSlot, lastWayIn, unlocked, shareRejected, alreadyOpen, failed,
+  ];
+
+  /// Whether this build knows what it means.
+  bool get recognized => known.contains(this);
+
+  @override
+  bool operator ==(Object other) => other is KeyslotOutcome && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
+
+  @override
+  String toString() => name;
+}
+
+/// One credential allowed to open a vault: a device, or the recovery passphrase.
+///
+/// **Proposed in Sokar B60, not on `Tasks1` yet.** Holds no secret: the node discarded the share at
+/// enrollment, and nothing about it comes back.
+class Keyslot {
+  /// Assigned by the node, and kept by the device beside its share.
+  final String id;
+
+  /// What a person called the device. Shown, never an identifier.
+  final String name;
+
+  /// How the device keeps its share, as it declared it.
+  final KeyslotStorage storage;
+
+  /// When it was enrolled.
+  final String enrolled;
+
+  /// When it last opened the vault, or empty when it has not since it was enrolled.
+  final String lastUsed;
+
+  /// Whether this session was unlocked with it. **Knowable only after an unlock.**
+  final bool self;
+
+  /// Whether it is the recovery passphrase, keyslot 0, rather than a device.
+  final bool recovery;
+
+  /// Constructor taking every field.
+  const Keyslot({
+    required this.id,
+    required this.name,
+    required this.storage,
+    required this.enrolled,
+    required this.lastUsed,
+    required this.self,
+    required this.recovery,
+  });
+
+  /// Reads one from a reply.
+  factory Keyslot.from(Map<String, dynamic> map) => Keyslot(
+        id: _string(map, 'id'),
+        name: _string(map, 'name'),
+        storage: KeyslotStorage(_string(map, 'storage')),
+        enrolled: _string(map, 'enrolled'),
+        lastUsed: _string(map, 'lastUsed'),
+        self: map['self'] == true,
+        recovery: map['recovery'] == true,
+      );
+}
+
+/// What enrolling a device did. **Proposed in Sokar B60.**
+class Enrolled {
+  /// What happened.
+  final KeyslotOutcome outcome;
+
+  /// The keyslot, when there is one.
+  final Keyslot? slot;
+
+  /// Prose for a person. Never parsed, and never carrying the share.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Enrolled({required this.outcome, required this.slot, required this.detail});
+
+  /// Reads one from a reply.
+  factory Enrolled.from(Map<String, dynamic> map) => Enrolled(
+        outcome: KeyslotOutcome(_string(map, 'outcome')),
+        slot: map['slot'] is Map<String, dynamic> ? Keyslot.from(map['slot'] as Map<String, dynamic>) : null,
+        detail: _string(map, 'detail'),
+      );
+}
+
+/// What revoking a keyslot did. **Proposed in Sokar B60.**
+class Revoked {
+  /// What happened.
+  final KeyslotOutcome outcome;
+
+  /// What can still open the vault afterwards, so a screen says it without asking again.
+  final List<Keyslot> remaining;
+
+  /// Prose for a person. Never parsed.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Revoked({required this.outcome, required this.remaining, required this.detail});
+
+  /// Reads one from a reply.
+  factory Revoked.from(Map<String, dynamic> map) => Revoked(
+        outcome: KeyslotOutcome(_string(map, 'outcome')),
+        remaining: _list(map, 'remaining').map(Keyslot.from).toList(),
+        detail: _string(map, 'detail'),
+      );
+}
+
+/// What unlocking with a share did. **Proposed in Sokar B60.**
+class UnlockedWithShare {
+  /// What happened.
+  final KeyslotOutcome outcome;
+
+  /// Until when it stays open, or empty.
+  final String until;
+
+  /// The keyslot that opened it, when one did.
+  final Keyslot? slot;
+
+  /// Prose for a person. Never parsed, and never carrying the share.
+  final String detail;
+
+  /// Constructor taking every field.
+  const UnlockedWithShare({
+    required this.outcome,
+    required this.until,
+    required this.slot,
+    required this.detail,
+  });
+
+  /// Reads one from a reply.
+  factory UnlockedWithShare.from(Map<String, dynamic> map) => UnlockedWithShare(
+        outcome: KeyslotOutcome(_string(map, 'outcome')),
+        until: _string(map, 'until'),
+        slot: map['slot'] is Map<String, dynamic> ? Keyslot.from(map['slot'] as Map<String, dynamic>) : null,
+        detail: _string(map, 'detail'),
+      );
+}
+
 /// One project on the machine.
 ///
 /// Assembled by the daemon from the gate mirrors, the tasks that exist and the project files task
