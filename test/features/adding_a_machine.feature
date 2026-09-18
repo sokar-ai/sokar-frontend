@@ -407,3 +407,14 @@ Feature: Adding a machine through a wizard that starts from what you have
     And nothing is shown below the run yet
     When I run the setup script
     Then what running it printed is shown below it {'sokar installed'}
+
+  Scenario: hooks that cannot be registered stop the wizard before anything is watched
+    Given a new machine whose root logs in
+    And registering Sokar's hooks will fail with {'podman: cannot write hooks.d'}
+    When I see what it can install
+    And I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    Then it says {'sokar setup did not register what a task needs: podman: cannot write hooks.d'}
+    And the wizard cannot go to the next step yet

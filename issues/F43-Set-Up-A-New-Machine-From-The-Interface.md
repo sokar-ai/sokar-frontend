@@ -179,8 +179,9 @@ and exit 0; podman 5.7. **The work user's own key logs in; the admin key and a p
 daemon answered through a forward: B60's four methods say `VAULT_WITHOUT_KEYSLOTS` on a machine with no
 vault, and a project preview without a file chose `/home/agent/.config/sokar/projects/<name>/project.yml`.
 
-**Still open:** `sokar doctor` exits 69 with *"hooks registered: MISSING — run 'sokar setup'"*. Asked of
-Agent Sokar whether that is the work user's step after starting the daemon; the wizard runs it as that
-user, shown first, once he says so. An earlier failed forward on the first rented machine was the
+**Answered and built:** `sokar doctor` exited 69 with *"hooks registered: MISSING — run 'sokar setup'"*.
+Agent Sokar: `sokar setup` is the work user's step, never root's, because podman reads its hook
+descriptors per user. The wizard now runs, as the work user, `enable --now`, then `sokar setup`, then
+`sokar doctor`, and stops with what `sokar setup` said when it fails. An earlier failed forward on the first rented machine was the
 test's own socket path being longer than a unix socket allows, not the machine.
 

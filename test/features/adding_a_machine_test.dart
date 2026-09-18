@@ -98,6 +98,7 @@ import './step/the_host_key_of_changed_since_it_was_last_seen.dart';
 import './step/i_am_warned_that_the_key_is_not_the_one_known_for_that_address.dart';
 import './step/nothing_is_shown_below_the_run_yet.dart';
 import './step/what_running_it_printed_is_shown_below_it.dart';
+import './step/registering_sokars_hooks_will_fail_with.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -602,6 +603,22 @@ void main() {
       await nothingIsShownBelowTheRunYet(tester);
       await iRunTheSetupScript(tester);
       await whatRunningItPrintedIsShownBelowIt(tester, 'sokar installed');
+    });
+    testWidgets(
+        '''hooks that cannot be registered stop the wizard before anything is watched''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await registeringSokarsHooksWillFailWith(
+          tester, 'podman: cannot write hooks.d');
+      await iSeeWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await itSays(tester,
+          'sokar setup did not register what a task needs: podman: cannot write hooks.d');
+      await theWizardCannotGoToTheNextStepYet(tester);
     });
   });
 }

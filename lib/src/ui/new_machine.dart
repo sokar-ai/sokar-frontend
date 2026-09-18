@@ -361,8 +361,8 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
           '${run.workUser} gets a key of its own, and logs in with it and nothing else: its password '
           'stays locked, and ssh is told so for ${run.workUser} alone (as root, below). Then Host '
           "${run.alias} goes into ~/.ssh/config with that key — as ${run.workUser}, never root — "
-          "Sokar starts in ${run.workUser}'s own session, sokar doctor is asked, and it connects "
-          'the way watching it will.',
+          "Sokar starts in ${run.workUser}'s own session, sokar setup registers its hooks there, "
+          'sokar doctor is asked, and it connects the way watching it will.',
         ),
         const SizedBox(height: Space.normal),
         Text('The key ${run.workUser} logs in with', style: Theme.of(context).textTheme.labelMedium),

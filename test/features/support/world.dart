@@ -2042,6 +2042,9 @@ class FakeMachineSetup extends MachineSetup {
   /// Set to keep a root script running until it is completed.
   Completer<void>? holdRoot;
 
+  /// What `sokar setup` says when it fails, or null when it works.
+  String? registeringFails;
+
   /// Every command run as the work user.
   final List<String> asUserRan = <String>[];
 
@@ -2049,6 +2052,7 @@ class FakeMachineSetup extends MachineSetup {
   Future<ProcessResult> asUser(String alias, String command) async {
     asUserRan.add(command);
     return switch (command) {
+      'sokar setup' when registeringFails != null => ProcessResult(0, 1, '', registeringFails!),
       'id -u' => ProcessResult(0, 0, '1001\n', ''),
       'sokar doctor' => ProcessResult(0, 0, 'ready', ''),
       _ => ProcessResult(0, 0, '', ''),

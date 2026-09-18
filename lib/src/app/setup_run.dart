@@ -353,6 +353,14 @@ class SetupRun extends ChangeNotifier {
           throw MachineSetupFailed('Sokar did not start as $workUser: ${both(started)}');
         }
         _logged('Sokar runs as $workUser.');
+        // The work user's step, never root's: podman reads its hook descriptors per user, so only
+        // that account knows whose configuration to write. Without it a task runs with no firewall
+        // until the first start registers them, and `sokar doctor` says so.
+        final registered = await setup.asUser(alias, 'sokar setup');
+        if (registered.exitCode != 0) {
+          throw MachineSetupFailed('sokar setup did not register what a task needs: ${both(registered)}');
+        }
+        _logged("Sokar's hooks are registered for $workUser.");
         final uid = await setup.asUser(alias, 'id -u');
         final id = '${uid.stdout}'.trim();
         if (uid.exitCode != 0 || int.tryParse(id) == null) {
