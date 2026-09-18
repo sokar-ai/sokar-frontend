@@ -83,7 +83,7 @@ void main() {
 
     final unlocked = await (await connect()).unlockWithShare(share: 'c2hhcmU=', minutes: 30);
 
-    expect(asked, <String, dynamic>{'share': 'c2hhcmU=', 'minutes': 30}, reason: 'no slot was given, so none is sent');
+    expect(asked, <String, dynamic>{'share': 'c2hhcmU=', 'minutes': 30}, reason: 'B60 as built takes no keyslot id, so none is sent');
     expect(unlocked.outcome, KeyslotOutcome.shareRejected);
     expect(unlocked.slot, isNull);
   });

@@ -110,11 +110,7 @@ class VaultDevices extends ChangeNotifier {
               'with.';
           return;
         }
-        final answer = await backend.unlockWithShare(
-          share: key.share,
-          slot: key.slot.isEmpty ? null : key.slot,
-          minutes: minutes,
-        );
+        final answer = await backend.unlockWithShare(share: key.share, minutes: minutes);
         said = keyslotWords(answer.outcome, until: clockTime(answer.until), detail: answer.detail);
       });
 
@@ -181,11 +177,11 @@ String keyslotWords(KeyslotOutcome outcome, {String name = '', String until = ''
       'ALREADY_ENROLLED' => 'This device was enrolled already, as "$name".',
       'UNKNOWN_STORAGE' =>
         'The machine does not know how this device keeps its key, so it enrolled nothing.',
-      'BAD_SHARE' => 'The machine refused the key this device made. Nothing was enrolled.',
+      'BAD_SHARE' => 'The machine refused the key this device holds: it is not a key it can read.',
       'VAULT_LOCKED' =>
         'The vault is locked. A device is enrolled into an open vault, so unlock it at the machine '
             'first.',
-      'VAULT_WITHOUT_KEYSLOTS' => "This machine's vault predates devices, so nothing was enrolled.",
+      'VAULT_WITHOUT_KEYSLOTS' => 'This machine has no vault that devices can open.',
       'REVOKED' => '"$name" can no longer open the vault.',
       'NO_SUCH_SLOT' => '"$name" was already gone.',
       'LAST_WAY_IN' => '"$name" is the last way into the vault, so the machine kept it.',

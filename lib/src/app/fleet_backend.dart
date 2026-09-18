@@ -100,7 +100,7 @@ abstract class FleetBackend {
   Future<Revoked> revokeKeyslot(String id);
 
   /// Opens the vault with this device's share. Proposed in Sokar B60.
-  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes});
+  Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes});
 
   /// Whether work can start, asked before anything is created.
   Future<Readiness> canStart({String? project, String? agent, String? task});
@@ -370,8 +370,8 @@ class SokarBackend implements FleetBackend {
   Future<Revoked> revokeKeyslot(String id) => _opened().revokeKeyslot(id);
 
   @override
-  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) =>
-      _opened().unlockWithShare(share: share, slot: slot, minutes: minutes);
+  Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes}) =>
+      _opened().unlockWithShare(share: share, minutes: minutes);
 
   @override
   Future<Readiness> canStart({String? project, String? agent, String? task}) =>

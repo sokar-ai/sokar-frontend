@@ -1050,7 +1050,7 @@ void main() {
     expect((await client.keyslots()).map((slot) => slot.id), <String>['slot-0', id]);
 
     await client.lock();
-    final opened = await client.unlockWithShare(share: share, slot: id);
+    final opened = await client.unlockWithShare(share: share);
     expect(opened.outcome, KeyslotOutcome.unlocked);
     expect(opened.until, isEmpty, reason: 'no bound was asked for');
     expect((await client.credentials()).readable, isTrue);

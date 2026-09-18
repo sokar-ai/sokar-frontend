@@ -43,7 +43,18 @@ each dialog.
 
 The lock opens a shut store with this device's key after asking how long — 15 minutes, an hour,
 8 hours or until it is shut, **none chosen beforehand** — and says until when in the same dialog.
-It sends the slot id kept beside the share.
+It sends the share and the bound, and no keyslot id: B60 as built (2026-09-18) finds the slot the
+share opens, so the id kept beside the share only marks this device in the list.
 
 **Still open:** offering it from a start refused with `VAULT_LOCKED`; that sentence still sends a
 person to the machine.
+
+## B60 built, 2026-09-18
+
+Agent Sokar registered the four methods on `Tasks1` with the names and fields this was built against
+(`d7d4ab8`, unpushed), with two differences taken up here: `UnlockWithShare` has no keyslot id, and
+`BAD_SHARE` and `VAULT_WITHOUT_KEYSLOTS` can each answer more than one call, so their words no longer
+say which. **A share-unlocked vault already serves starting work with a credential**; importing a
+credential and changing the passphrase still want the passphrase at the machine. **Still to do before
+this is done: check the names against a real daemon once B60 is pushed.**
+

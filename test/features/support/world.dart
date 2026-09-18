@@ -527,7 +527,7 @@ class FakeBackend implements FleetBackend {
   }
 
   @override
-  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async {
+  Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes}) async {
     _b60('UnlockWithShare');
     sharesSent.add(share);
     unlocksFor.add(minutes);

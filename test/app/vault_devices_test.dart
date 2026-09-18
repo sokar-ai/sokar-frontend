@@ -60,11 +60,11 @@ class _Node implements FleetBackend {
     return Revoked(outcome: KeyslotOutcome.revoked, remaining: <Keyslot>[for (final each in held) each.slot], detail: '');
   }
 
-  ({String share, String? slot, int? minutes})? lastUnlock;
+  ({String share, int? minutes})? lastUnlock;
 
   @override
-  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async {
-    lastUnlock = (share: share, slot: slot, minutes: minutes);
+  Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes}) async {
+    lastUnlock = (share: share, minutes: minutes);
     final opens = held.where((each) => each.share == share).firstOrNull;
     return opens == null
         ? const UnlockedWithShare(outcome: KeyslotOutcome.shareRejected, until: '', slot: null, detail: '')
@@ -128,13 +128,12 @@ void main() {
     expect(node.held.single.slot.storage, KeyslotStorage.applicationScoped);
   });
 
-  test('unlocking sends the kept share and slot for the time asked, and says until when', () async {
+  test('unlocking sends the kept share for the time asked, and says until when', () async {
     await devices.enroll(node, 'laptop');
 
     await devices.unlock(node, minutes: 30);
 
     expect(node.lastUnlock?.share, node.sent.single);
-    expect(node.lastUnlock?.slot, 'slot-1');
     expect(node.lastUnlock?.minutes, 30);
     expect(devices.said, 'The vault is open until 08:30.');
   });

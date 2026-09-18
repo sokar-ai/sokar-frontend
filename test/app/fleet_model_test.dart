@@ -58,7 +58,7 @@ class _Wedged implements FleetBackend {
   Future<Revoked> revokeKeyslot(String id) async => throw const VarlinkDisconnected('nothing there');
 
   @override
-  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async =>
+  Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes}) async =>
       throw const VarlinkDisconnected('nothing there');
 
   @override
@@ -305,7 +305,7 @@ class _Machine implements FleetBackend {
   Future<Revoked> revokeKeyslot(String id) async => throw UnimplementedError();
 
   @override
-  Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async =>
+  Future<UnlockedWithShare> unlockWithShare({required String share, int? minutes}) async =>
       throw UnimplementedError();
 
   @override

@@ -379,16 +379,14 @@ class SokarClient {
 
   /// Opens the vault with this device's [share], for [minutes] or the node's own bound.
   ///
-  /// **Proposed in Sokar B60.** [slot] only saves the node trying each keyslot in turn; a device
-  /// that lost its id still opens the vault.
+  /// **Sokar B60**, as built on 2026-09-18: the share and an optional bound, and no keyslot id —
+  /// the node finds the slot the share opens, so a device that lost its id still opens the vault.
   Future<UnlockedWithShare> unlockWithShare({
     required String share,
-    String? slot,
     int? minutes,
   }) async =>
       UnlockedWithShare.from(await _call('UnlockWithShare', {
         'share': share,
-        'slot': ?slot,
         'minutes': ?minutes,
       }));
 
