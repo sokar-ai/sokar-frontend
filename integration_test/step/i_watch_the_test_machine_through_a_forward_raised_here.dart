@@ -6,12 +6,14 @@ import '../support/e2e.dart';
 /// Usage: I watch the test machine through a forward raised here
 Future<void> iWatchTheTestMachineThroughAForwardRaisedHere(WidgetTester tester) async {
   await watchAnotherMachine(tester);
-  await tester.enterText(find.byType(TextField).first, E2e.name);
+  await tester.enterText(find.byKey(const Key('machine-name')), E2e.name);
   await tester.tap(find.byKey(const Key('machine-raise-it')));
   await pumpFor(tester);
+  await goOnInTheWizard(tester);
   await tester.enterText(find.byKey(const Key('machine-host')), E2e.host);
   await tester.enterText(find.byKey(const Key('machine-remote-socket')), E2e.remoteSocket);
   await pumpFor(tester);
   await tester.tap(find.byKey(const Key('watch-it')));
   await pumpFor(tester);
+  await trustTheHostKeyIfAsked(tester);
 }

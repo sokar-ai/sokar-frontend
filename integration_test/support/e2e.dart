@@ -63,6 +63,7 @@ Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
   await tester.enterText(find.byKey(const Key('machine-name')), 'e2e trial');
   await tester.tap(find.byKey(const Key('machine-raise-it')));
   await pumpFor(tester);
+  await goOnInTheWizard(tester);
   await tester.enterText(find.byKey(const Key('machine-host')), E2e.host);
   await tester.enterText(
     find.byKey(const Key('machine-remote-socket')),
@@ -70,12 +71,30 @@ Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
   );
   await pumpFor(tester);
   await tester.tap(find.byKey(const Key('try-it')));
+  await pumpFor(tester);
+  await trustTheHostKeyIfAsked(tester);
   await pumpUntil(
     tester,
     () => find.byKey(const Key('trial-result')).evaluate().isNotEmpty,
     timeout: const Duration(seconds: 30),
     what: 'the trial to say something',
   );
+}
+
+/// Goes from the wizard's first page, a name and a kind, to what that kind needs.
+Future<void> goOnInTheWizard(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('wizard-next')));
+  await pumpFor(tester);
+}
+
+/// Trusts the test machine's host key when the wizard shows it. `tool/e2e.sh` writes it to
+/// `known_hosts` before the run, so it is normally not asked; if it is, this is a machine the run
+/// itself leased.
+Future<void> trustTheHostKeyIfAsked(WidgetTester tester) async {
+  final trust = find.byKey(const Key('host-key-accept'));
+  if (trust.evaluate().isEmpty) return;
+  await tester.tap(trust);
+  await pumpFor(tester);
 }
 
 /// Opens the dialog that adds a machine, from the menu bar where it lives.
