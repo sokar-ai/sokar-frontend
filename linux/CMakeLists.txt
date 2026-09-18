@@ -72,6 +72,12 @@ set_target_properties(${BINARY_NAME}
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# `jni` arrives through flutter_secure_storage -> path_provider -> path_provider_android, and is
+# registered as a Linux FFI plugin although nothing here calls Java. It builds `libdartjni.so` only
+# when it finds a JDK, and that library needs `libjvm.so` - so whether the package demanded a JVM
+# depended on whether the build machine happened to have one. Never looking for it makes the bundle
+# the same everywhere, and without the library.
+set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
 include(flutter/generated_plugins.cmake)
 
 

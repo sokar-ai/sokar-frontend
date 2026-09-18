@@ -17,7 +17,7 @@ import 'src/app/authentication.dart';
 import 'src/app/emergency_stop.dart';
 import 'src/app/start_work.dart';
 import 'src/app/templates.dart';
-import 'src/app/device_key.dart';
+import 'src/app/keystore.dart';
 import 'src/app/vault.dart';
 import 'src/app/widening.dart';
 import 'src/app/work_held.dart';
@@ -88,9 +88,7 @@ Future<SokarApp> _compose() async {
     inventory: AgentInventory(),
     templates: templates,
     stopping: EmergencyStop(),
-    // Held in memory until the platform keystore is wired: an enrolled key does not survive a
-    // restart yet, which is harmless while no daemon answers `EnrollDevice`.
-    vault: Vault(keys: MemoryDeviceKeyStore()),
+    vault: Vault(keys: PlatformDeviceKeyStore()),
     newerVersion: newerVersion,
     sessions: sessions,
     deleting: ProjectDeletion(),

@@ -62,6 +62,11 @@ Built against B60's proposal and a mock that answers it (`EnrollDevice`, `Keyslo
 - Enrolling is offered only into an **open** store; a shut one says to unlock it at the machine first.
 - The answer is said in the dialog that asked, like the emergency stop's.
 
-**Still open:** the key is held in memory until the platform keystore is wired
-(`flutter_secure_storage`, which needs `libsecret-1-dev` to build on Linux). Nothing is pushed
-before it is.
+**The keystore is the platform's**: `flutter_secure_storage`, on Linux the Secret Service's default
+collection through libsecret (`libsecret-1-dev` to build, `libsecret-1-0` derived into the package),
+one entry per node. A keystore that refuses — no Secret Service, a locked keyring — is said as that,
+and nothing is sent. Checked once against a real gnome-keyring: kept, read back, forgotten.
+
+**One thing it brought along:** `jni`, through `path_provider_android`, which builds a
+`libdartjni.so` needing `libjvm.so` whenever the build machine has a JDK. The Linux build no longer
+looks for one, so the package never asks for a JVM.

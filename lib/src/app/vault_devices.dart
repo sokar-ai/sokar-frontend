@@ -147,6 +147,11 @@ class VaultDevices extends ChangeNotifier {
       await doing(mine);
     } on VarlinkDisconnected catch (ex) {
       if (mine == _asked) problem = 'Lost contact with the machine: ${ex.message}';
+    } on DeviceKeyStoreFailed catch (ex) {
+      if (mine == _asked) {
+        problem = "This device's keystore refused (${ex.reason}), so no key could be kept or read. "
+            'Is a keyring running and unlocked?';
+      }
     } on FeatureNotSupported {
       if (mine == _asked) {
         canEnroll = false;

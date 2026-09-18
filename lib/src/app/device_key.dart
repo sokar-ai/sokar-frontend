@@ -22,6 +22,19 @@ class DeviceKey {
   String toString() => 'DeviceKey(slot: $slot)';
 }
 
+/// The platform's keystore refused, or is not there: no Secret Service running, a locked keyring
+/// nobody unlocked, a denied prompt.
+class DeviceKeyStoreFailed implements Exception {
+  /// Constructor taking what the keystore said, which never includes what was being written.
+  const DeviceKeyStoreFailed(this.reason);
+
+  /// What the keystore said.
+  final String reason;
+
+  @override
+  String toString() => "This device's keystore refused: $reason";
+}
+
 /// Where this device keeps its keys: one per machine, in the platform's keystore.
 ///
 /// Behind an interface so that everything above it runs in a test without a keyring, and so the

@@ -182,4 +182,18 @@ void main() {
     expect(storageWords(KeyslotStorage.userScoped), contains('anything running as this user can read it'));
     expect(storageWords(const KeyslotStorage('SOMETHING_NEW')), contains('nothing is claimed'));
   });
+
+  test('a keystore that refuses sends nothing, and says it was the keystore', () async {
+    final refusing = VaultDevices(_Refusing());
+
+    await refusing.enroll(node, 'laptop');
+
+    expect(node.sent, isEmpty, reason: 'a share nobody could keep was sent');
+    expect(refusing.problem, contains("keystore refused (locked)"));
+  });
+}
+
+class _Refusing extends MemoryDeviceKeyStore {
+  @override
+  Future<void> write(String node, DeviceKey key) async => throw const DeviceKeyStoreFailed('locked');
 }
