@@ -140,5 +140,38 @@ void main() {
     expect(script, contains("grep -qxF 'ssh-ed25519 AAAA laptop'"));
     expect(script, startsWith('set -e'));
   });
+
+  group('what a machine could install', () {
+    test('every field is read, and a missing one reads as nothing rather than failing', () {
+      final packages = MachineSetup.installableIn('{"packages": ['
+          '{"name": "sokar-agent-claude", "kind": "agent", "description": "Claude Code", '
+          '"installed": true, "version": "1.0"}, {"name": "sokar-agent-omp"}]}');
+
+      expect(packages.map((each) => each.name), <String>['sokar-agent-claude', 'sokar-agent-omp']);
+      expect(packages.first.kind, 'agent');
+      expect(packages.first.installed, isTrue);
+      expect(packages.first.version, '1.0');
+      expect(packages.last.installed, isFalse);
+      expect(packages.last.description, isEmpty);
+    });
+
+    test('a name that could not be a package never reaches a root command line', () {
+      final packages = MachineSetup.installableIn('{"packages": ['
+          '{"name": "x\'; rm -rf / #"}, {"name": "Upper"}, {"name": "ok-1.0+b"}]}');
+
+      expect(packages.map((each) => each.name), <String>['ok-1.0+b']);
+    });
+
+    test('a shape this build does not read is said, not guessed at', () {
+      expect(() => MachineSetup.installableIn('{"items": []}'), throwsA(isA<MachineSetupFailed>()));
+    });
+
+    test('the choice is carried into both showing and running, the same way', () {
+      expect(MachineSetup.show('agents', <String>['sokar-agent-claude']),
+          contains("--user 'agents' --with 'sokar-agent-claude' --show"));
+      expect(MachineSetup.prepare('agents', <String>['sokar-agent-claude']),
+          "bash /root/sokar-setup.sh --user 'agents' --with 'sokar-agent-claude'\n");
+    });
+  });
 }
 

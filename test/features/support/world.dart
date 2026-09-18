@@ -1974,17 +1974,32 @@ class FakeMachineSetup extends MachineSetup {
   int showEnds = 0;
   int prepareEnds = 0;
 
+  /// What the setup script's `--list --json` prints.
+  String lists = '{"packages": ['
+      '{"name": "sokar-agent-claude", "kind": "agent", "description": "Claude Code", '
+      '"installed": false, "version": "1.0.0~snapshot.12"}, '
+      '{"name": "sokar-agent-omp", "kind": "agent", "description": "oh-my-pi", '
+      '"installed": false, "version": ""}, '
+      '{"name": "sokar-message-transport-local", "kind": "transport", '
+      '"description": "Local transport", "installed": true, "version": "1.0.0"}]}';
+
   /// What the setup script's `--show` prints.
   String shows = "useradd --create-home agents\napt-get install -y sokar\nloginctl enable-linger agents";
 
   @override
   Future<ProcessResult> asRoot(String host, String keyFile, String script) async {
     asRootRan.add(script);
+    if (script.contains('--list --json')) {
+      if (showEnds == 3) {
+        return ProcessResult(0, 3, '', 'This is Arch Linux, which this script does not know.');
+      }
+      return ProcessResult(0, 0, lists, lists.contains('[]') ? 'nothing yet - no package declares it' : '');
+    }
     if (script.contains('--show')) {
       return ProcessResult(0, showEnds, showEnds == 3 ? '' : shows,
           showEnds == 3 ? 'This is Arch Linux, which this script does not know.' : '');
     }
-    if (script.startsWith('bash /root/sokar-setup.sh')) {
+    if (script.startsWith('bash /root/sokar-setup.sh --user')) {
       return ProcessResult(0, prepareEnds, 'agents exists\nsokar installed', '');
     }
     if (script.contains('authorized_keys') && allowFails != null) {

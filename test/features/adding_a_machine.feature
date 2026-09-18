@@ -163,7 +163,8 @@ Feature: Adding a machine through a wizard that starts from what you have
   # What the person reads is the script's own --show, and nothing changes until they run it.
   Scenario: the setup script shows what it would do before anything runs
     Given a new machine whose root logs in
-    When I fetch the setup script
+    When I see what it can install
+    And I fetch the setup script
     Then it shows what the setup script would run {'useradd --create-home agents'}
     And the setup script has not run yet
     When I run the setup script
@@ -173,7 +174,7 @@ Feature: Adding a machine through a wizard that starts from what you have
   Scenario: an operating system the script does not know is said, and nothing can run
     Given a new machine whose root logs in
     And the setup script does not know this operating system
-    When I fetch the setup script
+    When I see what it can install
     Then it says {'does not know this operating system'}
     And it says {'Arch Linux'}
     And the setup script cannot be run
@@ -182,7 +183,8 @@ Feature: Adding a machine through a wizard that starts from what you have
   Scenario: a failed check leaves the wizard where it is
     Given a new machine whose root logs in
     And the setup script will end with {5}
-    When I fetch the setup script
+    When I see what it can install
+    And I fetch the setup script
     And I run the setup script
     Then it says {'A check failed and the machine is not usable yet'}
     And the wizard cannot go to the next step yet
@@ -190,7 +192,8 @@ Feature: Adding a machine through a wizard that starts from what you have
   # The Host entry is the work user's, never root's, and the forward is raised the way watching it will.
   Scenario: the prepared machine is reached as the work user and watched
     Given a new machine whose root logs in
-    When I fetch the setup script
+    When I see what it can install
+    And I fetch the setup script
     And I run the setup script
     And I go to the next step
     And I set it up and connect
@@ -203,7 +206,8 @@ Feature: Adding a machine through a wizard that starts from what you have
 
   Scenario: turning off root login is offered, and done only when asked
     Given a new machine whose root logs in
-    When I fetch the setup script
+    When I see what it can install
+    And I fetch the setup script
     And I run the setup script
     And I go to the next step
     And I set it up and connect
@@ -215,17 +219,53 @@ Feature: Adding a machine through a wizard that starts from what you have
   Scenario: the work user is the one the options name
     Given new machines run work as {'builder'}
     And a new machine whose root logs in
-    When I fetch the setup script
+    When I see what it can install
+    And I fetch the setup script
     Then the setup script was shown for {'builder'}
 
 
   Scenario: a key that cannot be allowed for the work user stops before anything else is written
     Given a new machine whose root logs in
     And allowing the key for the work user will fail with {'getent: no such user'}
-    When I fetch the setup script
+    When I see what it can install
+    And I fetch the setup script
     And I run the setup script
     And I go to the next step
     And I set it up and connect
     Then it says {'The key could not be allowed for agents: getent: no such user'}
     And ssh config was not touched
     And Sokar was not started
+
+  # The machine's own package source is the catalogue (QF19); the interface never asks a repository.
+  Scenario: what it can install is offered as choices, and what is there is shown fixed
+    Given a new machine whose root logs in
+    When I see what it can install
+    Then it offers the package {'sokar-agent-claude'}
+    And it offers the package {'sokar-agent-omp'}
+    And the package {'sokar-message-transport-local'} is shown installed and cannot be unticked
+    And nothing was installed by asking
+
+  Scenario: a chosen agent is shown and run with the rest
+    Given a new machine whose root logs in
+    When I see what it can install
+    And I choose the package {'sokar-agent-claude'}
+    And I fetch the setup script
+    Then the setup script was shown with {'sokar-agent-claude'}
+    When I run the setup script
+    Then the setup script ran with {'sokar-agent-claude'}
+
+  # What runs is only ever what was shown.
+  Scenario: changing the choice after it was shown asks for it to be shown again
+    Given a new machine whose root logs in
+    When I see what it can install
+    And I fetch the setup script
+    And I choose the package {'sokar-agent-omp'}
+    Then it says {'Show it again before it runs'}
+    And the setup script cannot be run
+
+  Scenario: an empty catalogue says why
+    Given a new machine whose root logs in
+    And the machine's package source offers nothing yet
+    When I see what it can install
+    Then it says {'nothing yet'}
+

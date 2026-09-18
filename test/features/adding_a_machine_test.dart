@@ -44,6 +44,7 @@ import './step/root_logged_in_to_with.dart';
 import './step/logging_in_as_root_will_fail_with.dart';
 import './step/root_never_logged_in.dart';
 import './step/a_new_machine_whose_root_logs_in.dart';
+import './step/i_see_what_it_can_install.dart';
 import './step/i_fetch_the_setup_script.dart';
 import './step/it_shows_what_the_setup_script_would_run.dart';
 import './step/the_setup_script_has_not_run_yet.dart';
@@ -66,6 +67,13 @@ import './step/the_setup_script_was_shown_for.dart';
 import './step/allowing_the_key_for_the_work_user_will_fail_with.dart';
 import './step/ssh_config_was_not_touched.dart';
 import './step/sokar_was_not_started.dart';
+import './step/it_offers_the_package.dart';
+import './step/the_package_is_shown_installed_and_cannot_be_unticked.dart';
+import './step/nothing_was_installed_by_asking.dart';
+import './step/i_choose_the_package.dart';
+import './step/the_setup_script_was_shown_with.dart';
+import './step/the_setup_script_ran_with.dart';
+import './step/the_machines_package_source_offers_nothing_yet.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -270,6 +278,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await itShowsWhatTheSetupScriptWouldRun(
           tester, 'useradd --create-home agents');
@@ -284,7 +293,7 @@ void main() {
       await bddSetUp(tester);
       await aNewMachineWhoseRootLogsIn(tester);
       await theSetupScriptDoesNotKnowThisOperatingSystem(tester);
-      await iFetchTheSetupScript(tester);
+      await iSeeWhatItCanInstall(tester);
       await itSays(tester, 'does not know this operating system');
       await itSays(tester, 'Arch Linux');
       await theSetupScriptCannotBeRun(tester);
@@ -295,6 +304,7 @@ void main() {
       await bddSetUp(tester);
       await aNewMachineWhoseRootLogsIn(tester);
       await theSetupScriptWillEndWith(tester, 5);
+      await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await iRunTheSetupScript(tester);
       await itSays(tester, 'A check failed and the machine is not usable yet');
@@ -305,6 +315,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await iRunTheSetupScript(tester);
       await iGoToTheNextStep(tester);
@@ -323,6 +334,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await iRunTheSetupScript(tester);
       await iGoToTheNextStep(tester);
@@ -337,6 +349,7 @@ void main() {
       await bddSetUp(tester);
       await newMachinesRunWorkAs(tester, 'builder');
       await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await theSetupScriptWasShownFor(tester, 'builder');
     });
@@ -347,6 +360,7 @@ void main() {
       await aNewMachineWhoseRootLogsIn(tester);
       await allowingTheKeyForTheWorkUserWillFailWith(
           tester, 'getent: no such user');
+      await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await iRunTheSetupScript(tester);
       await iGoToTheNextStep(tester);
@@ -355,6 +369,47 @@ void main() {
           'The key could not be allowed for agents: getent: no such user');
       await sshConfigWasNotTouched(tester);
       await sokarWasNotStarted(tester);
+    });
+    testWidgets(
+        '''what it can install is offered as choices, and what is there is shown fixed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
+      await itOffersThePackage(tester, 'sokar-agent-claude');
+      await itOffersThePackage(tester, 'sokar-agent-omp');
+      await thePackageIsShownInstalledAndCannotBeUnticked(
+          tester, 'sokar-message-transport-local');
+      await nothingWasInstalledByAsking(tester);
+    });
+    testWidgets('''a chosen agent is shown and run with the rest''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
+      await iChooseThePackage(tester, 'sokar-agent-claude');
+      await iFetchTheSetupScript(tester);
+      await theSetupScriptWasShownWith(tester, 'sokar-agent-claude');
+      await iRunTheSetupScript(tester);
+      await theSetupScriptRanWith(tester, 'sokar-agent-claude');
+    });
+    testWidgets(
+        '''changing the choice after it was shown asks for it to be shown again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await iChooseThePackage(tester, 'sokar-agent-omp');
+      await itSays(tester, 'Show it again before it runs');
+      await theSetupScriptCannotBeRun(tester);
+    });
+    testWidgets('''an empty catalogue says why''', (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await theMachinesPackageSourceOffersNothingYet(tester);
+      await iSeeWhatItCanInstall(tester);
+      await itSays(tester, 'nothing yet');
     });
   });
 }

@@ -106,8 +106,14 @@ All three kinds are in the wizard. The new machine's steps, as built:
 - **The host key** is shown and trusted explicitly before root logs in — and before a trial or
   watching for kind 2, which had no such step.
 - **Root logs in** with exactly that key (`IdentitiesOnly`), and nothing else happens until it has.
-- **Sokar's script (B62)** is fetched on the machine and its own `--show` printed; running it is a
-  separate click. Its exits 0, 2, 3, 4, 5 are said in words.
+- **What it can install is chosen, from the machine's own package source** (QF19, decided by the
+  operator: the backend asks its source, never the interface, which may run where there is no apt at
+  all). The script's `--list --json` offers every package that `Provides: sokar-agent` or
+  `sokar-transport`; installed ones are shown ticked and fixed; an empty catalogue says why. Built
+  against the JSON shape proposed to Agent Sokar, not yet against his script.
+- **Sokar's script (B62)** is fetched on the machine and its own `--show` printed **for that
+  choice**; running it is a separate click, and a choice changed after showing has to be shown again
+  before it can run. Its exits 0, 2, 3, 4, 5 are said in words.
 - **Reaching it as the work user**: the key allowed for that user (the script is shown), a `Host`
   entry appended to `~/.ssh/config` (a copy of the old file kept, an entry of that name that says
   something else never overwritten), `systemctl --user enable --now sokard` in that user's session,

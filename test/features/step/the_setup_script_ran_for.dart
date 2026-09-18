@@ -4,5 +4,5 @@ import '../support/world.dart';
 
 /// Usage: the setup script ran for {'agents'}
 Future<void> theSetupScriptRanFor(WidgetTester tester, String user) async {
-  expect(World.setup.asRootRan.last, "bash /root/sokar-setup.sh --user '$user'\n");
+  expect(World.setup.asRootRan.last, startsWith("bash /root/sokar-setup.sh --user '$user'"));
 }

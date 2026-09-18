@@ -69,8 +69,19 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   /// Whether root logged in with the kept key, for the host as it is now typed.
   String? _loggedInTo;
 
+  /// What the machine could install, as its setup script listed it; null before it was asked.
+  List<InstallablePackage>? _offered;
+
+  /// The packages chosen besides what is always installed.
+  final Set<String> _chosen = <String>{};
+
   /// What the setup script's `--show` printed: the commands it would run.
   String? _shown;
+
+  /// Which choice [_shown] was printed for: a run only ever runs what was shown.
+  String? _shownFor;
+
+  String get _choice => (_chosen.toList()..sort()).join(' ');
 
   /// What running the setup script printed, and whether it prepared the machine.
   String? _ran;
@@ -307,28 +318,68 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
         const SizedBox(height: Space.small),
         Text(
           "Sokar's setup script runs as root. It creates the user ${widget.workUser}, which runs "
-          'work, and installs what Sokar needs. It is fetched first and shows every command it '
-          'would run; nothing changes on the machine until you run it.',
+          'work, and installs Sokar, its filter and the local transport, and whatever you choose '
+          'below. It shows every command before it runs; nothing changes until you run it.',
         ),
         const SizedBox(height: Space.normal),
-        _Script(text: MachineSetup.fetchAndShow(widget.workUser), id: 'fetch-script'),
-        const SizedBox(height: Space.small),
         OutlinedButton.icon(
-          key: const Key('show-setup'),
-          onPressed: _busy || _prepared ? null : _show,
-          icon: const Icon(Icons.visibility_outlined, size: Sizes.rowIcon),
-          label: const Text('Fetch it and show what it would do'),
+          key: const Key('list-packages'),
+          onPressed: _busy || _prepared ? null : _list,
+          icon: const Icon(Icons.checklist, size: Sizes.rowIcon),
+          label: const Text('See what it can install'),
         ),
+        if (_offered != null) ...<Widget>[
+          const SizedBox(height: Space.small),
+          for (final package in _offered!)
+            CheckboxListTile(
+              key: Key('package-${package.name}'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: package.installed || _chosen.contains(package.name),
+              // Already there is shown, ticked and fixed, rather than hidden: a person should see
+              // what the machine has.
+              onChanged: package.installed || _prepared
+                  ? null
+                  : (on) => setState(() => on == true
+                      ? _chosen.add(package.name)
+                      : _chosen.remove(package.name)),
+              title: Text(<String>[
+                package.name,
+                if (package.version.isNotEmpty) package.version,
+                if (package.installed) 'installed',
+              ].join(' · ')),
+              subtitle: Text(<String>[
+                if (package.kind.isNotEmpty) package.kind,
+                if (package.description.isNotEmpty) package.description,
+              ].join(': ')),
+            ),
+          const SizedBox(height: Space.normal),
+          _Script(text: MachineSetup.show(widget.workUser, _chosen.toList()..sort()), id: 'fetch-script'),
+          const SizedBox(height: Space.small),
+          OutlinedButton.icon(
+            key: const Key('show-setup'),
+            onPressed: _busy || _prepared ? null : _show,
+            icon: const Icon(Icons.visibility_outlined, size: Sizes.rowIcon),
+            label: const Text('Show what it would do'),
+          ),
+        ],
         if (_shown != null) ...<Widget>[
           const SizedBox(height: Space.normal),
           _Output(text: _shown!, id: 'setup-shown'),
           const SizedBox(height: Space.small),
-          FilledButton.icon(
-            key: const Key('run-setup'),
-            onPressed: _busy || _prepared ? null : _prepare,
-            icon: const Icon(Icons.play_arrow_outlined, size: Sizes.rowIcon),
-            label: const Text('Run it as root'),
-          ),
+          if (_shownFor != _choice && !_prepared)
+            const Text(
+              'The choice changed since this was shown. Show it again before it runs.',
+              key: Key('show-again'),
+            )
+          else
+            FilledButton.icon(
+              key: const Key('run-setup'),
+              onPressed: _busy || _prepared ? null : _prepare,
+              icon: const Icon(Icons.play_arrow_outlined, size: Sizes.rowIcon),
+              label: const Text('Run it as root'),
+            ),
         ],
         if (_ran != null) ...<Widget>[
           const SizedBox(height: Space.normal),
@@ -336,21 +387,35 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
         ],
       ];
 
+  Future<void> _list() => _doing(() async {
+        final listed = await widget.setup.asRoot(_loggedInTo!, _kept!, MachineSetup.listInstallable());
+        if (listed.exitCode != 0) {
+          throw MachineSetupFailed(
+              '${MachineSetup.whatTheScriptSaid(listed.exitCode)}\n${_both(listed)}'.trim());
+        }
+        _offered = MachineSetup.installableIn('${listed.stdout}');
+        _chosen.removeWhere((name) => !_offered!.any((each) => each.name == name));
+        final why = '${listed.stderr}'.trim();
+        return _offered!.isEmpty && why.isNotEmpty ? why : null;
+      });
+
   Future<void> _show() => _doing(() async {
         _shown = null;
-        final shown = await widget.setup
-            .asRoot(_loggedInTo!, _kept!, MachineSetup.fetchAndShow(widget.workUser));
+        final choice = _choice;
+        final shown = await widget.setup.asRoot(
+            _loggedInTo!, _kept!, MachineSetup.show(widget.workUser, _chosen.toList()..sort()));
         final said = _both(shown);
         if (shown.exitCode != 0) {
           throw MachineSetupFailed('${MachineSetup.whatTheScriptSaid(shown.exitCode)}\n$said');
         }
         _shown = said;
+        _shownFor = choice;
         return null;
       });
 
   Future<void> _prepare() => _doing(() async {
-        final ran = await widget.setup
-            .asRoot(_loggedInTo!, _kept!, MachineSetup.prepare(widget.workUser));
+        final ran = await widget.setup.asRoot(
+            _loggedInTo!, _kept!, MachineSetup.prepare(widget.workUser, _chosen.toList()..sort()));
         _ran = _both(ran);
         if (ran.exitCode != 0) throw MachineSetupFailed(MachineSetup.whatTheScriptSaid(ran.exitCode));
         _prepared = true;

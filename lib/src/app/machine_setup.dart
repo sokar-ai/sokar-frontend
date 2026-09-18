@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'host_keys.dart';
@@ -47,17 +48,52 @@ class MachineSetup {
   static const String setupScript =
       'https://fuinorg.jfrog.io/artifactory/sokar-dist-deb/setup/sokar-setup-latest.sh';
 
-  /// Fetches Sokar's setup script onto the machine and prints every command it would run, running
-  /// none. **What the person reads is the script's own `--show`**, not a summary written here.
-  static String fetchAndShow(String user) => '''set -e
+  /// Fetches Sokar's setup script onto the machine, where every later step runs it from.
+  static String _fetch() => '''set -e
 f=/root/sokar-setup.sh
 if command -v curl >/dev/null 2>&1; then curl -fsSL -o "\$f" '$setupScript'
 else wget -qO "\$f" '$setupScript'; fi
-bash "\$f" --user '$user' --show
 ''';
 
-  /// Runs the setup script fetched by [fetchAndShow]: it creates [user] and installs Sokar.
-  static String prepare(String user) => "bash /root/sokar-setup.sh --user '$user'\n";
+  /// Fetches the script and asks it what this machine could install, installing nothing: the
+  /// machine's own package source is the catalogue, never this interface (QF19).
+  static String listInstallable() => '${_fetch()}bash "\$f" --list --json\n';
+
+  /// Prints every command the setup script would run for [user] and the chosen [packages],
+  /// running none. **What the person reads is the script's own `--show`**, not a summary written
+  /// here.
+  static String show(String user, Iterable<String> packages) =>
+      '${_fetch()}bash "\$f" ${_arguments(user, packages)} --show\n';
+
+  /// Runs the setup script fetched by [show]: it creates [user] and installs Sokar and [packages].
+  static String prepare(String user, Iterable<String> packages) =>
+      'bash /root/sokar-setup.sh ${_arguments(user, packages)}\n';
+
+  static String _arguments(String user, Iterable<String> packages) =>
+      <String>["--user '$user'", for (final each in packages) "--with '$each'"].join(' ');
+
+  /// What `--list --json` answered: one entry per package this machine could have.
+  static List<InstallablePackage> installableIn(String json) {
+    final decoded = jsonDecode(json);
+    final packages = decoded is Map ? decoded['packages'] : null;
+    if (packages is! List) {
+      throw const MachineSetupFailed('The setup script answered its list in a shape this build does not read.');
+    }
+    return <InstallablePackage>[
+      for (final each in packages)
+        if (each is Map && each['name'] is String && _isPackageName(each['name'] as String))
+          InstallablePackage(
+            name: each['name'] as String,
+            kind: each['kind'] is String ? each['kind'] as String : '',
+            description: each['description'] is String ? each['description'] as String : '',
+            installed: each['installed'] == true,
+            version: each['version'] is String ? each['version'] as String : '',
+          ),
+    ];
+  }
+
+  /// Whether [name] can be a package name, so nothing else reaches a root command line.
+  static bool _isPackageName(String name) => RegExp(r'^[a-z0-9][a-z0-9+.-]*$').hasMatch(name);
 
   /// Lets [publicKey] log in as [user], once, owner-only.
   static String authorize(String user, String publicKey) => '''set -e
@@ -241,3 +277,31 @@ class MachineSetupFailed implements Exception {
   @override
   String toString() => message;
 }
+
+/// A package a machine could have, as its setup script lists it.
+class InstallablePackage {
+  /// Constructor taking what the list says.
+  const InstallablePackage({
+    required this.name,
+    required this.kind,
+    required this.description,
+    required this.installed,
+    required this.version,
+  });
+
+  /// The real package name, never a virtual one.
+  final String name;
+
+  /// `agent` or `transport`, or whatever a newer script names.
+  final String kind;
+
+  /// One line saying what it is.
+  final String description;
+
+  /// Whether the machine has it already.
+  final bool installed;
+
+  /// The version the index offers, or empty.
+  final String version;
+}
+
