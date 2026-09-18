@@ -29,9 +29,9 @@ gap here is a backend method that has to be added, not a workaround waiting to b
   `CreateProject` nor `Moderate` writes. Asked as QS8 and QF17; see
   [F42](../issues/README.md).
 
-- **`CreateProject` choosing where the project file goes** when none is given, and answering the
-  path in `Created.file`, `dryRun` included. Asked as QF22; the dialog already sends no file unless a
-  person puts it somewhere of their own.
+- **Projects as repositories** (Sokar B65–B67, decided 2026-09-19, not built): `CreateProject`
+  returning the file rather than writing it — which supersedes QF22 —, a repository in every start,
+  follow state in `Projects()`, `follow` and `unfollow`. See [F44](../issues/README.md).
 
 ## On the wire, not used here yet
 
