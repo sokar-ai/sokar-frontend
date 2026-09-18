@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 
+import 'device_key.dart';
 import 'fleet_backend.dart';
+import 'vault_devices.dart';
 
 /// The protected store: what it holds, by name, and the shutting of it.
 ///
@@ -14,6 +16,12 @@ import 'fleet_backend.dart';
 /// the store and can never open it. The screen says where, which is a different sentence from
 /// *this cannot be done*.
 class Vault extends ChangeNotifier {
+  /// Constructor taking where this device keeps the keys that open a vault.
+  Vault({required DeviceKeyStore keys}) : devices = VaultDevices(keys);
+
+  /// The devices that open it, this one among them.
+  final VaultDevices devices;
+
   /// What the store says about itself, or null before it has been asked.
   VaultState? state;
 

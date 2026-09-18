@@ -84,8 +84,8 @@ class VaultDevices extends ChangeNotifier {
         await _reread(backend, node);
       });
 
-  /// Opens the vault with this device's key for [minutes].
-  Future<void> unlock(FleetBackend backend, {required int minutes}) => _ask((mine) async {
+  /// Opens the vault with this device's key for [minutes], or until it is shut when null.
+  Future<void> unlock(FleetBackend backend, {required int? minutes}) => _ask((mine) async {
         final node = await backend.node();
         final key = node.isEmpty ? null : await store.read(node);
         if (key == null) {
@@ -98,7 +98,7 @@ class VaultDevices extends ChangeNotifier {
           slot: key.slot.isEmpty ? null : key.slot,
           minutes: minutes,
         );
-        said = keyslotWords(answer.outcome, until: answer.until, detail: answer.detail);
+        said = keyslotWords(answer.outcome, until: clockTime(answer.until), detail: answer.detail);
       });
 
   /// Revokes [slot]. **Revoking this device forgets its key here too**, since it opens nothing now.
@@ -141,6 +141,14 @@ class VaultDevices extends ChangeNotifier {
       }
     }
   }
+}
+
+/// An instant from the machine as a time of day here, or as it came when it is not one.
+String clockTime(String instant) {
+  final parsed = DateTime.tryParse(instant)?.toLocal();
+  if (parsed == null) return instant;
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(parsed.hour)}:${two(parsed.minute)}';
 }
 
 /// What a keyslot call did, as a sentence, for every outcome B60 proposes and any it adds later.

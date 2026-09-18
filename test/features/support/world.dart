@@ -17,6 +17,7 @@ import 'package:sokar_frontend/src/app/project_deletion.dart';
 import 'package:sokar_frontend/src/app/pty.dart';
 import 'package:sokar_frontend/src/app/session.dart';
 import 'package:sokar_frontend/src/app/vault.dart';
+import 'package:sokar_frontend/src/app/device_key.dart';
 import 'package:sokar_frontend/src/app/tunnel.dart';
 import 'package:sokar_frontend/src/app/widening.dart';
 import 'package:sokar_frontend/src/app/work_held.dart';
@@ -454,12 +455,23 @@ class FakeBackend implements FleetBackend {
   /// Every share that was sent here, to check nothing was sent twice or kept.
   final List<String> sharesSent = <String>[];
 
+  /// How long each unlock asked for, null where it asked for no bound.
+  final List<int?> unlocksFor = <int?>[];
+
+  /// Set for a Sokar from before B60, which does not know the four methods.
+  bool keyslotsUnknown = false;
+
+  void _b60(String method) {
+    if (keyslotsUnknown) throw FeatureNotSupported(method);
+  }
+
   @override
   Future<Enrolled> enrollDevice({
     required String name,
     required String share,
     required KeyslotStorage storage,
   }) async {
+    _b60('EnrollDevice');
     sharesSent.add(share);
     if (!storage.recognized) {
       return const Enrolled(outcome: KeyslotOutcome.unknownStorage, slot: null, detail: '');
@@ -482,10 +494,14 @@ class FakeBackend implements FleetBackend {
   }
 
   @override
-  Future<List<Keyslot>> keyslots() async => <Keyslot>[for (final held in keyslotsHeld) held.slot];
+  Future<List<Keyslot>> keyslots() async {
+    _b60('Keyslots');
+    return <Keyslot>[for (final held in keyslotsHeld) held.slot];
+  }
 
   @override
   Future<Revoked> revokeKeyslot(String id) async {
+    _b60('RevokeKeyslot');
     final before = keyslotsHeld.length;
     keyslotsHeld.removeWhere((held) => held.slot.id == id);
     return Revoked(
@@ -497,7 +513,9 @@ class FakeBackend implements FleetBackend {
 
   @override
   Future<UnlockedWithShare> unlockWithShare({required String share, String? slot, int? minutes}) async {
+    _b60('UnlockWithShare');
     sharesSent.add(share);
+    unlocksFor.add(minutes);
     final opens = keyslotsHeld.where((held) => held.share.isNotEmpty && held.share == share).firstOrNull;
     return opens == null
         ? const UnlockedWithShare(outcome: KeyslotOutcome.shareRejected, until: '', slot: null, detail: '')
@@ -1309,6 +1327,9 @@ class World {
   /// What the protected store holds.
   static late Vault vault;
 
+  /// Where this device keeps the keys that open a vault.
+  static late MemoryDeviceKeyStore keys;
+
   /// Whether a newer build has been installed underneath.
   static late NewerVersion newerVersion;
 
@@ -1526,7 +1547,7 @@ class World {
     templates = Templates(settings);
     await templates.load();
     stopping = EmergencyStop();
-    vault = Vault();
+    vault = Vault(keys: keys = MemoryDeviceKeyStore());
     newerVersion = NewerVersion(what: File('/tmp/sokar-not-a-build'));
     terminals.clear();
     deleting = ProjectDeletion();
@@ -1712,6 +1733,19 @@ class World {
       held: held,
     ));
     await settle(tester);
+  }
+
+  /// Scrolls the last pane from its top until [target] is on screen. A pane's list builds only
+  /// what is near the view, so a control scrolled away is not there to be found, let alone tapped.
+  static Future<void> reach(WidgetTester tester, Finder target) async {
+    final list = find.byType(Scrollable).last;
+    final position = tester.state<ScrollableState>(list).position;
+    position.jumpTo(position.minScrollExtent);
+    await tester.pump();
+    await tester.scrollUntilVisible(target, 100, scrollable: list);
+    // Into the middle: at the very edge it can sit under the status line and a tap lands there.
+    await Scrollable.ensureVisible(tester.element(target), alignment: 0.5);
+    await tester.pump();
   }
 
   /// Redraws until things have stopped moving.

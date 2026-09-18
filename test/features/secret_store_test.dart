@@ -109,6 +109,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iShowTheProtectedStore(tester);
+      await iReadToTheBottomOfTheStore(tester);
       await itSays(tester, 'Nothing routes keys to projects, and nothing will');
       await itSays(tester, 'there is no link here to make or unmake');
     });

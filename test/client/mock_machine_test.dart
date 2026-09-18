@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/client.dart';
+import 'package:sokar_frontend/src/app/device_key.dart';
 import 'package:sokar_frontend/src/mock/machine.dart';
 import 'package:sokar_frontend/src/mock/mock_daemon.dart';
 
@@ -1035,5 +1036,44 @@ void main() {
     expect(progress.where((step) => step.line != null), isNotEmpty);
     expect(progress.last.isResult, isTrue);
     expect(progress.last.exitCode, 1);
+  });
+
+  test('an enrolled device opens a shut store, and a revoked one no longer does', () async {
+    await machineIn('work');
+    final client = await connect();
+    final share = newShare();
+
+    final enrolled = await client.enrollDevice(
+        name: 'laptop', share: share, storage: KeyslotStorage.userScoped);
+    expect(enrolled.outcome, KeyslotOutcome.enrolled);
+    final id = enrolled.slot!.id;
+    expect((await client.keyslots()).map((slot) => slot.id), <String>['slot-0', id]);
+
+    await client.lock();
+    final opened = await client.unlockWithShare(share: share, slot: id);
+    expect(opened.outcome, KeyslotOutcome.unlocked);
+    expect(opened.until, isEmpty, reason: 'no bound was asked for');
+    expect((await client.credentials()).readable, isTrue);
+    expect((await client.keyslots()).singleWhere((slot) => slot.self).id, id);
+
+    expect((await client.revokeKeyslot(id)).outcome, KeyslotOutcome.revoked);
+    await client.lock();
+    expect((await client.unlockWithShare(share: share)).outcome, KeyslotOutcome.shareRejected);
+    expect((await client.credentials()).readable, isFalse);
+  });
+
+  test('a shut store enrolls nothing, and a share it never saw opens nothing', () async {
+    await machineIn('work');
+    final client = await connect();
+    final share = newShare();
+    await client.lock();
+
+    final refused = await client.enrollDevice(
+        name: 'laptop', share: share, storage: KeyslotStorage.userScoped);
+    expect(refused.outcome, KeyslotOutcome.vaultLocked);
+    expect(await client.keyslots(), hasLength(1));
+
+    await client.unlockWithShare(share: share);
+    expect((await client.credentials()).readable, isFalse, reason: 'an unenrolled share opened it');
   });
 }

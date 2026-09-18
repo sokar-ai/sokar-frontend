@@ -560,6 +560,15 @@ class _ShellState extends State<Shell> {
   /// Shows what the protected store holds, asked every time it is opened.
   Future<void> _showTheVault() async {
     widget.shell.openVault();
+    await Future.wait(<Future<void>>[
+      widget.vault.look(_fleet.backend),
+      widget.vault.devices.look(_fleet.backend),
+    ]);
+  }
+
+  /// Opens the store with this device's key, and reads it again so what is on screen is true.
+  Future<void> _unlockWithThisDevice(int? minutes) async {
+    await widget.vault.devices.unlock(_fleet.backend, minutes: minutes);
     await widget.vault.look(_fleet.backend);
   }
 
@@ -1316,6 +1325,9 @@ class _ShellState extends State<Shell> {
         return VaultView(
           vault: widget.vault,
           onLock: () => widget.vault.lock(_fleet.backend),
+          onEnroll: (name) => widget.vault.devices.enroll(_fleet.backend, name),
+          onUnlock: _unlockWithThisDevice,
+          onRevoke: (slot) => widget.vault.devices.revoke(_fleet.backend, slot),
           onClose: widget.shell.close,
         );
       case BackupsOpened():

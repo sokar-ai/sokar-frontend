@@ -66,5 +66,6 @@ Feature: Seeing and shutting the secret store, without showing a value
   # Restated correctly it is the agent roster, which a project does not have either.
   Scenario: where somebody looks for key routing, they are told there is none
     When I show the protected store
+    And I read to the bottom of the store
     Then it says {'Nothing routes keys to projects, and nothing will'}
     And it says {'there is no link here to make or unmake'}

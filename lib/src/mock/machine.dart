@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'mock_daemon.dart';
 
@@ -154,6 +155,10 @@ class MockMachine {
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
     daemon.method('Lock', _lock);
+    daemon.method('EnrollDevice', _enrollDevice);
+    daemon.method('Keyslots', (_) => <String, dynamic>{'slots': _slotListing});
+    daemon.method('RevokeKeyslot', _revokeKeyslot);
+    daemon.method('UnlockWithShare', _unlockWithShare);
 
     switch (situation) {
       case 'no-watch':
@@ -215,6 +220,7 @@ class MockMachine {
 
   /// Stops answering.
   Future<void> close() async {
+    _bound?.cancel();
     await _changes.close();
     await _asking.close();
   }
@@ -523,6 +529,117 @@ class MockMachine {
       // A running task's proxy read the secret at start and holds it where locking cannot reach.
       'holding': tasks.where((task) => task['running'] == true).length,
     };
+  }
+
+  /// The vault's keyslots, as Sokar B60 proposes them: the recovery passphrase, and every device
+  /// enrolled here, each with the share that opens it. **The share is never in a reply.**
+  final List<({Map<String, dynamic> slot, String share})> _slots =
+      <({Map<String, dynamic> slot, String share})>[
+    (
+      slot: <String, dynamic>{
+        'id': 'slot-0',
+        'name': 'recovery passphrase',
+        'storage': '',
+        'enrolled': '2026-09-01T10:00:00Z',
+        'lastUsed': '',
+        'recovery': true,
+      },
+      share: '',
+    ),
+  ];
+
+  /// Which slot opened the vault last, the only way the node learns which one is the caller's.
+  String _openedBy = '';
+
+  /// Shuts the store again when a bounded unlock runs out, the way the kernel discards the key.
+  Timer? _bound;
+
+  List<Map<String, dynamic>> get _slotListing => <Map<String, dynamic>>[
+        for (final each in _slots)
+          <String, dynamic>{...each.slot, 'self': each.slot['id'] == _openedBy},
+      ];
+
+  Map<String, dynamic> _slotOf(String id) =>
+      _slotListing.firstWhere((each) => each['id'] == id);
+
+  Map<String, dynamic> _enrollDevice(Map<String, dynamic> parameters) {
+    final name = parameters['name'] as String? ?? '';
+    final share = parameters['share'] as String? ?? '';
+    const storages = <String>{'USER_SCOPED', 'APPLICATION_SCOPED', 'FIDO2', 'TPM2'};
+    Map<String, dynamic> refused(String outcome) =>
+        <String, dynamic>{'outcome': outcome, 'detail': ''};
+    if (!storages.contains(parameters['storage'])) return refused('UNKNOWN_STORAGE');
+    List<int> bytes;
+    try {
+      bytes = base64.decode(share);
+    } on FormatException {
+      bytes = const <int>[];
+    }
+    if (bytes.length != 32) return refused('BAD_SHARE');
+    // Enrolling adds a keyslot to an open vault; a shut one has no key to add it with.
+    if (!_open || situation == 'vault-locked') return refused('VAULT_LOCKED');
+    final known = _slots.where((each) => each.share == share).firstOrNull;
+    if (known != null) {
+      return <String, dynamic>{
+        'outcome': 'ALREADY_ENROLLED',
+        'slot': _slotOf(known.slot['id'] as String),
+        'detail': '',
+      };
+    }
+    final id = 'slot-${_slots.length}';
+    _slots.add((
+      slot: <String, dynamic>{
+        'id': id,
+        'name': name,
+        'storage': parameters['storage'],
+        'enrolled': DateTime.now().toUtc().toIso8601String(),
+        'lastUsed': '',
+        'recovery': false,
+      },
+      share: share,
+    ));
+    return <String, dynamic>{'outcome': 'ENROLLED', 'slot': _slotOf(id), 'detail': ''};
+  }
+
+  Map<String, dynamic> _revokeKeyslot(Map<String, dynamic> parameters) {
+    final id = parameters['id'] as String? ?? '';
+    String outcome;
+    if (!_slots.any((each) => each.slot['id'] == id)) {
+      outcome = 'NO_SUCH_SLOT';
+    } else if (_slots.length == 1) {
+      outcome = 'LAST_WAY_IN';
+    } else {
+      _slots.removeWhere((each) => each.slot['id'] == id);
+      if (_openedBy == id) _openedBy = '';
+      outcome = 'REVOKED';
+    }
+    return <String, dynamic>{'outcome': outcome, 'remaining': _slotListing, 'detail': ''};
+  }
+
+  Map<String, dynamic> _unlockWithShare(Map<String, dynamic> parameters) {
+    final share = parameters['share'] as String? ?? '';
+    final minutes = parameters['minutes'] as int?;
+    final opens = _slots
+        .where((each) => each.share.isNotEmpty && each.share == share)
+        .firstOrNull;
+    if (opens == null) {
+      return <String, dynamic>{'outcome': 'SHARE_REJECTED', 'until': '', 'detail': ''};
+    }
+    final id = opens.slot['id'] as String;
+    _openedBy = id;
+    opens.slot['lastUsed'] = DateTime.now().toUtc().toIso8601String();
+    if (_open) {
+      return <String, dynamic>{'outcome': 'ALREADY_OPEN', 'until': '', 'slot': _slotOf(id), 'detail': ''};
+    }
+    _open = true;
+    _bound?.cancel();
+    var until = '';
+    if (minutes != null) {
+      final end = DateTime.now().toUtc().add(Duration(minutes: minutes));
+      until = end.toIso8601String();
+      _bound = Timer(Duration(minutes: minutes), () => _open = false);
+    }
+    return <String, dynamic>{'outcome': 'UNLOCKED', 'until': until, 'slot': _slotOf(id), 'detail': ''};
   }
 
   /// Whether work can start, answered before anything is created.

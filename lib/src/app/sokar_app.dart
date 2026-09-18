@@ -154,6 +154,7 @@ class SokarApp extends StatelessWidget {
               templates,
               stopping,
               vault,
+              vault.devices,
               newerVersion,
               sessions,
               deleting,
