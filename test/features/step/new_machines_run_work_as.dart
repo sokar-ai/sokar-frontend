@@ -12,7 +12,7 @@ Future<void> newMachinesRunWorkAs(WidgetTester tester, String user) async {
       ? find.widgetWithText(TextButton, 'Cancel').last
       : find.byType(CloseButton));
   await World.settle(tester);
-  await iChooseTheCommand(tester, 'New machines run work as: agents…');
+  await iChooseTheCommand(tester, 'New machines run work as: agent…');
   await tester.enterText(find.byKey(const Key('work-user')), user);
   await World.settle(tester);
   await tester.tap(find.byKey(const Key('work-user-save')));

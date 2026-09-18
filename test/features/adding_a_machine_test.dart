@@ -74,6 +74,14 @@ import './step/i_choose_the_package.dart';
 import './step/the_setup_script_was_shown_with.dart';
 import './step/the_setup_script_ran_with.dart';
 import './step/the_machines_package_source_offers_nothing_yet.dart';
+import './step/the_user_that_runs_work_is_offered_as.dart';
+import './step/i_say_the_user_that_runs_work_is.dart';
+import './step/a_key_the_machine_already_knows_is_kept_as.dart';
+import './step/i_cancel_the_dialog.dart';
+import './step/i_choose_the_command.dart';
+import './step/the_wizard_offers_no_kind_to_choose.dart';
+import './step/i_use_the_key_the_machine_already_knows.dart';
+import './step/nothing_asks_what_it_can_install.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -281,11 +289,11 @@ void main() {
       await iSeeWhatItCanInstall(tester);
       await iFetchTheSetupScript(tester);
       await itShowsWhatTheSetupScriptWouldRun(
-          tester, 'useradd --create-home agents');
+          tester, 'useradd --create-home agent');
       await theSetupScriptHasNotRunYet(tester);
       await iRunTheSetupScript(tester);
       await itSays(tester, 'The machine is prepared.');
-      await theSetupScriptRanFor(tester, 'agents');
+      await theSetupScriptRanFor(tester, 'agent');
     });
     testWidgets(
         '''an operating system the script does not know is said, and nothing can run''',
@@ -320,8 +328,8 @@ void main() {
       await iRunTheSetupScript(tester);
       await iGoToTheNextStep(tester);
       await iSetItUpAndConnect(tester);
-      await theKeyWasAllowedFor(tester, 'agents');
-      await sshConfigReachesAsWith(tester, 'sokar-the-build-machine', 'agents',
+      await theKeyWasAllowedFor(tester, 'agent');
+      await sshConfigReachesAsWith(tester, 'sokar-the-build-machine', 'agent',
           'sokar-the-build-machine');
       await sokarWasStartedAsTheWorkUser(tester);
       await itSays(tester, 'Reached Sokar');
@@ -366,7 +374,7 @@ void main() {
       await iGoToTheNextStep(tester);
       await iSetItUpAndConnect(tester);
       await itSays(tester,
-          'The key could not be allowed for agents: getent: no such user');
+          'The key could not be allowed for agent: getent: no such user');
       await sshConfigWasNotTouched(tester);
       await sokarWasNotStarted(tester);
     });
@@ -410,6 +418,58 @@ void main() {
       await theMachinesPackageSourceOffersNothingYet(tester);
       await iSeeWhatItCanInstall(tester);
       await itSays(tester, 'nothing yet');
+    });
+    testWidgets(
+        '''the wizard offers the user that runs work, and a name no machine would accept stops it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iSayItIsCalled(tester, 'the build machine');
+      await iChoose(tester, 'A new machine');
+      await theUserThatRunsWorkIsOfferedAs(tester, 'agent');
+      await iSayTheUserThatRunsWorkIs(tester, 'Not Valid');
+      await theWizardCannotGoOnYet(tester);
+      await iSayTheUserThatRunsWorkIs(tester, 'builder');
+      await iGoOn(tester);
+      await iGenerateAKeyPair(tester);
+      await iKeepTheKey(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await iGoToTheNextStep(tester);
+      await iSeeWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await theSetupScriptWasShownFor(tester, 'builder');
+    });
+    testWidgets(
+        '''another user is added to a machine prepared before, and watched as a machine of its own''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aKeyTheMachineAlreadyKnowsIsKeptAs(
+          tester, 'sokar-the-build-machine');
+      await iCancelTheDialog(tester);
+      await iChooseTheCommand(tester, 'Add another user that runs work…');
+      await theWizardOffersNoKindToChoose(tester);
+      await iSayItIsCalled(tester, 'the build machine as other');
+      await iSayTheUserThatRunsWorkIs(tester, 'other');
+      await iGoOn(tester);
+      await iUseTheKeyTheMachineAlreadyKnows(tester);
+      await iGoToTheNextStep(tester);
+      await iSayTheNewMachineIsAt(tester, '203.0.113.10');
+      await iTryLoggingInAsRoot(tester);
+      await iGoToTheNextStep(tester);
+      await nothingAsksWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await theSetupScriptRanFor(tester, 'other');
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await sshConfigReachesAsWith(tester, 'sokar-the-build-machine-as-other',
+          'other', 'sokar-the-build-machine');
+      await iWatchTheNewMachine(tester);
+      await theForwardWasRaisedThroughTo(
+          tester,
+          'sokar-the-build-machine-as-other',
+          '/run/user/1001/sokar/sokard.sock');
     });
   });
 }

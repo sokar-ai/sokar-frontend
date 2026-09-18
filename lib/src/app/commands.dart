@@ -431,6 +431,7 @@ List<Command> machineCommands({
   required VoidCallback forget,
   required Vault vault,
   required void Function(VaultAct act) actOnTheVault,
+  required VoidCallback addAUser,
 }) {
   final connected = fleet.reachability == Reachability.connected;
   final notConnected = connected ? null : 'the machine is not answering';
@@ -472,6 +473,14 @@ List<Command> machineCommands({
       home: Home.machineMenu,
       run: showTheVault,
       unavailable: notConnected,
+    ),
+    // Needs no daemon: root logs in and Sokar's setup script makes the user, as for a new machine.
+    Command(
+      id: 'machine.addUser',
+      label: 'Add another user that runs work…',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: addAUser,
     ),
     // The same three the button beside the stop offers one at a time, so each is reachable whichever
     // one the button shows: an open store on a device that is not enrolled still has to be shut.
@@ -569,6 +578,7 @@ List<Command> commandsFor({
   required Vault vault,
   required void Function(VaultAct act) actOnTheVault,
   required VoidCallback askTheWorkUser,
+  required VoidCallback addAUser,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
@@ -676,6 +686,7 @@ List<Command> commandsFor({
       forget: forget,
       vault: vault,
       actOnTheVault: actOnTheVault,
+      addAUser: addAUser,
     ),
     Command(
       id: 'project.create',

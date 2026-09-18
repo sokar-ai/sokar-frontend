@@ -6,6 +6,7 @@ import '../app/fleet_model.dart';
 import '../app/host_keys.dart';
 import '../app/machine_setup.dart';
 import '../app/machines.dart';
+import '../app/settings.dart';
 import '../app/tunnel.dart';
 import 'host_key_dialog.dart';
 import 'new_machine.dart';
@@ -71,6 +72,9 @@ enum MachineKind {
 
   /// A machine just rented, prepared by the wizard.
   newMachine,
+
+  /// Another user that runs work, on a machine the wizard prepared before.
+  newUser,
 }
 
 /// Asks for another machine to watch, as a wizard: its name and kind first, then what that kind
@@ -86,7 +90,8 @@ Future<Machine?> askForAMachine(BuildContext context,
         Future<Started> Function(Machine)? starting,
         HostKeys? hostKeys,
         MachineSetup? setup,
-        String workUser = 'agents'}) =>
+        String workUser = 'agent',
+        MachineKind? only}) =>
     showDialog<Machine>(
       context: context,
       builder: (context) => _AskForAMachine(
@@ -95,7 +100,8 @@ Future<Machine?> askForAMachine(BuildContext context,
           starting: starting,
           hostKeys: hostKeys,
           setup: setup,
-          workUser: workUser),
+          workUser: workUser,
+          only: only),
     );
 
 class _AskForAMachine extends StatefulWidget {
@@ -105,7 +111,8 @@ class _AskForAMachine extends StatefulWidget {
     this.starting,
     this.hostKeys,
     this.setup,
-    this.workUser = 'agents',
+    this.workUser = 'agent',
+    this.only,
   });
 
   /// The names already watched. A second with the same name would never be added.
@@ -123,8 +130,12 @@ class _AskForAMachine extends StatefulWidget {
   /// Makes a new machine's key and logs in to it as root, or null where nothing can.
   final MachineSetup? setup;
 
-  /// The user a new machine runs work as.
+  /// The user a new machine runs work as, offered for the wizard to change.
   final String workUser;
+
+  /// The one kind this wizard is for, or null to let the person choose: the second wizard, which
+  /// only adds a user, is this dialog with [MachineKind.newUser] and nothing else offered.
+  final MachineKind? only;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -167,6 +178,11 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   /// Which page of the wizard is showing: the name and kind, or what that kind needs.
   int _page = 0;
 
+  /// The user that runs work, for the two kinds that make one.
+  late final _user = TextEditingController(text: widget.workUser);
+
+  bool get _makesAUser => _kind == MachineKind.newMachine || _kind == MachineKind.newUser;
+
   @override
   void initState() {
     super.initState();
@@ -174,7 +190,8 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     // example that has to be edited twice — and *"Watch it"* is enabled by what has been filled
     // in, which without a listener is decided once and never again. It was: the button stayed
     // dead however much was typed.
-    for (final field in <TextEditingController>[_name, _socket, _host, _remote]) {
+    _kind = widget.only;
+    for (final field in <TextEditingController>[_name, _socket, _host, _remote, _user]) {
       field.addListener(() => setState(() {}));
     }
     // Marked once somebody moves on from the name, not while they are still typing it.
@@ -203,7 +220,9 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(_page == 0 ? 'Watch another machine' : 'Watch ${_name.text.trim()}'),
+        title: Text(_page == 0
+            ? (widget.only == MachineKind.newUser ? 'Add a user to a machine' : 'Watch another machine')
+            : 'Watch ${_name.text.trim()}'),
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
@@ -232,7 +251,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
               onPressed: _canGoOn ? () => setState(() => _page = 1) : null,
               child: const Text('Next'),
             )
-          else if (_kind != MachineKind.newMachine)
+          else if (!_makesAUser)
             FilledButton(
               key: const Key('watch-it'),
               onPressed: _ready ? _watchIt : null,
@@ -263,59 +282,88 @@ class _AskForAMachineState extends State<_AskForAMachine> {
             ),
           ),
         ),
-        const SizedBox(height: Space.wide),
-        Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
-        RadioGroup<MachineKind>(
-          groupValue: _kind,
-          onChanged: (chosen) => setState(() => _kind = chosen),
-          child: const Column(
-            children: <Widget>[
-              RadioListTile<MachineKind>(
-                key: Key('machine-already-forwarded'),
-                value: MachineKind.forwarded,
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text('Its socket is already forwarded'),
-                subtitle: Text(
-                  'Nothing is raised and nothing is managed. This is the way in with no '
-                  'credential handling anywhere near it.',
+        if (widget.only == null) ...<Widget>[
+          const SizedBox(height: Space.wide),
+          Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
+          RadioGroup<MachineKind>(
+            groupValue: _kind,
+            onChanged: (chosen) => setState(() => _kind = chosen),
+            child: const Column(
+              children: <Widget>[
+                RadioListTile<MachineKind>(
+                  key: Key('machine-already-forwarded'),
+                  value: MachineKind.forwarded,
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Its socket is already forwarded'),
+                  subtitle: Text(
+                    'Nothing is raised and nothing is managed. This is the way in with no '
+                    'credential handling anywhere near it.',
+                  ),
                 ),
-              ),
-              RadioListTile<MachineKind>(
-                key: Key('machine-raise-it'),
-                value: MachineKind.raiseIt,
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text('Raise the forward for me'),
-                subtitle: Text(
-                  'An ssh forward, started here and taken down when this window closes. '
-                  'It never asks for a passphrase: use an agent, and accept the host key '
-                  'once in a shell.',
+                RadioListTile<MachineKind>(
+                  key: Key('machine-raise-it'),
+                  value: MachineKind.raiseIt,
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Raise the forward for me'),
+                  subtitle: Text(
+                    'An ssh forward, started here and taken down when this window closes. '
+                    'It never asks for a passphrase: use an agent, and accept the host key '
+                    'once in a shell.',
+                  ),
                 ),
-              ),
-              RadioListTile<MachineKind>(
-                key: Key('machine-new'),
-                value: MachineKind.newMachine,
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text('A new machine'),
-                subtitle: Text(
-                  'Just rented. The wizard makes a key, then logs in as root once to '
-                  'prepare it, showing every command before it runs.',
+                RadioListTile<MachineKind>(
+                  key: Key('machine-new'),
+                  value: MachineKind.newMachine,
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('A new machine'),
+                  subtitle: Text(
+                    'Just rented. The wizard makes a key, then logs in as root once to '
+                    'prepare it, showing every command before it runs.',
+                  ),
                 ),
-              ),
-            ],
+                RadioListTile<MachineKind>(
+                  key: Key('machine-new-user'),
+                  value: MachineKind.newUser,
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Another user on a machine already prepared'),
+                  subtitle: Text(
+                    'Its own daemon, tasks and vault, beside the ones there. Root logs in with the '
+                    'key the machine already knows.',
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
+        if (_makesAUser) ...<Widget>[
+          const SizedBox(height: Space.normal),
+          TextField(
+            key: const Key('work-user-name'),
+            controller: _user,
+            decoration: InputDecoration(
+              labelText: 'The user that runs work there',
+              helperText: "Created by Sokar's setup script, with its own daemon and vault.",
+              errorText: Settings.isUserName(_user.text.trim())
+                  ? null
+                  : 'Lower-case letters, digits, _ and -, starting with a letter',
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ],
       ];
 
   /// What the chosen kind needs.
   List<Widget> _secondPage(BuildContext context) => <Widget>[
-        if (_kind == MachineKind.newMachine)
+        if (_makesAUser)
           NewMachineSteps(
             name: _name.text.trim(),
             setup: widget.setup ?? MachineSetup(),
-            workUser: widget.workUser,
+            workUser: _user.text.trim(),
+            addingAUser: _kind == MachineKind.newUser,
             hostKeys: widget.hostKeys,
             trying: widget.trying,
             onWatch: (machine) => Navigator.of(context).pop(machine),
@@ -563,7 +611,11 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   }
 
   /// Whether the first page is answered: a name nobody else has, and a kind.
-  bool get _canGoOn => _name.text.trim().isNotEmpty && _kind != null && _takenBy == null;
+  bool get _canGoOn =>
+      _name.text.trim().isNotEmpty &&
+      _kind != null &&
+      _takenBy == null &&
+      (!_makesAUser || Settings.isUserName(_user.text.trim()));
 
   bool get _ready {
     if (_name.text.trim().isEmpty || _raiseIt == null || _takenBy != null) return false;
@@ -614,6 +666,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
     _socket.dispose();
     _host.dispose();
     _remote.dispose();
+    _user.dispose();
     _nameFocus.dispose();
     super.dispose();
   }

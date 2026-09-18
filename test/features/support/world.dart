@@ -1984,7 +1984,7 @@ class FakeMachineSetup extends MachineSetup {
       '"description": "Local transport", "installed": true, "version": "1.0.0"}]}';
 
   /// What the setup script's `--show` prints.
-  String shows = "useradd --create-home agents\napt-get install -y sokar\nloginctl enable-linger agents";
+  String shows = "useradd --create-home agent\napt-get install -y sokar\nloginctl enable-linger agent";
 
   @override
   Future<ProcessResult> asRoot(String host, String keyFile, String script) async {

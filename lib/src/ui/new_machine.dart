@@ -22,6 +22,7 @@ class NewMachineSteps extends StatefulWidget {
     required this.setup,
     required this.workUser,
     required this.onWatch,
+    this.addingAUser = false,
     this.hostKeys,
     this.trying,
     super.key,
@@ -45,6 +46,10 @@ class NewMachineSteps extends StatefulWidget {
   /// Watches the prepared machine, which ends the wizard.
   final ValueChanged<Machine> onWatch;
 
+  /// Whether this only adds a user to a machine prepared before: **the same steps**, with the key
+  /// the machine already knows instead of a new one, and no packages to choose.
+  final bool addingAUser;
+
   @override
   State<NewMachineSteps> createState() => _NewMachineStepsState();
 }
@@ -55,6 +60,10 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   final _private = TextEditingController();
   final _public = TextEditingController();
   final _host = TextEditingController();
+
+  /// The key root logs in with, when adding a user to a machine prepared before.
+  late final _keyFile = TextEditingController(
+      text: widget.addingAUser ? (widget.setup.existingKeys().firstOrNull ?? '') : '');
 
   _Step _step = _Step.key;
   bool _busy = false;
@@ -103,7 +112,7 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   @override
   void initState() {
     super.initState();
-    for (final field in <TextEditingController>[_private, _public, _host]) {
+    for (final field in <TextEditingController>[_private, _public, _host, _keyFile]) {
       field.addListener(() => setState(() {}));
     }
   }
@@ -113,6 +122,7 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
     _private.dispose();
     _public.dispose();
     _host.dispose();
+    _keyFile.dispose();
     super.dispose();
   }
 
@@ -122,7 +132,7 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ...switch (_step) {
-            _Step.key => _keyStep(context),
+            _Step.key => widget.addingAUser ? _knownKeyStep(context) : _keyStep(context),
             _Step.where => _whereStep(context),
             _Step.prepare => _prepareStep(context),
             _Step.reach => _reachStep(context),
@@ -168,6 +178,40 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
   void _goTo(_Step step) => setState(() {
         _step = step;
         _said = null;
+      });
+
+  List<Widget> _knownKeyStep(BuildContext context) => <Widget>[
+        Text('1. The key root logs in with', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: Space.small),
+        Text(
+          'The key the machine already knows — for one this wizard prepared, ~/.ssh/sokar-<its '
+          'name>. It also becomes the key ${widget.workUser} logs in with.',
+        ),
+        const SizedBox(height: Space.normal),
+        TextField(
+          key: const Key('root-key-file'),
+          controller: _keyFile,
+          enabled: _kept == null,
+          decoration: const InputDecoration(
+            labelText: 'Private key file',
+            hintText: '~/.ssh/sokar-the-build-machine',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: Space.normal),
+        if (_kept == null)
+          FilledButton.tonal(
+            key: const Key('use-key'),
+            onPressed: _busy || _keyFile.text.trim().isEmpty ? null : _useKey,
+            child: const Text('Use this key'),
+          ),
+      ];
+
+  Future<void> _useKey() => _doing(() async {
+        final file = _keyFile.text.trim();
+        _public.text = await widget.setup.publicKeyOf(file);
+        _kept = file;
+        return 'Root logs in with $file, and ${widget.workUser} will too.';
       });
 
   List<Widget> _keyStep(BuildContext context) => <Widget>[
@@ -310,27 +354,33 @@ class _NewMachineStepsState extends State<NewMachineSteps> {
         final failed = await widget.setup.loginAsRoot(host, _kept!);
         if (failed != null) throw MachineSetupFailed(failed);
         _loggedInTo = host;
-        return 'Logged in as root on $host with ~/.ssh/$_keyName.';
+        return 'Logged in as root on $host with $_kept.';
       });
 
   List<Widget> _prepareStep(BuildContext context) => <Widget>[
         Text('3. Preparing it', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: Space.small),
         Text(
-          "Sokar's setup script runs as root. It creates the user ${widget.workUser}, which runs "
-          'work, and installs Sokar, its filter and the local transport, and whatever you choose '
-          'below. It shows every command before it runs; nothing changes until you run it.',
+          widget.addingAUser
+              ? "Sokar's setup script runs as root. Sokar is there already, so it creates the user "
+                  '${widget.workUser} beside the others, with its own daemon and vault. It shows '
+                  'every command before it runs; nothing changes until you run it.'
+              : "Sokar's setup script runs as root. It creates the user ${widget.workUser}, which "
+                  'runs work, and installs Sokar, its filter and the local transport, and whatever '
+                  'you choose below. It shows every command before it runs; nothing changes until '
+                  'you run it.',
         ),
         const SizedBox(height: Space.normal),
-        OutlinedButton.icon(
-          key: const Key('list-packages'),
-          onPressed: _busy || _prepared ? null : _list,
-          icon: const Icon(Icons.checklist, size: Sizes.rowIcon),
-          label: const Text('See what it can install'),
-        ),
-        if (_offered != null) ...<Widget>[
+        if (!widget.addingAUser)
+          OutlinedButton.icon(
+            key: const Key('list-packages'),
+            onPressed: _busy || _prepared ? null : _list,
+            icon: const Icon(Icons.checklist, size: Sizes.rowIcon),
+            label: const Text('See what it can install'),
+          ),
+        if (_offered != null || widget.addingAUser) ...<Widget>[
           const SizedBox(height: Space.small),
-          for (final package in _offered!)
+          for (final package in _offered ?? const <InstallablePackage>[])
             CheckboxListTile(
               key: Key('package-${package.name}'),
               dense: true,

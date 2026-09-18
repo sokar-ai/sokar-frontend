@@ -313,6 +313,7 @@ class _ShellState extends State<Shell> {
         vault: widget.vault,
         actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
         askTheWorkUser: () => unawaited(_askTheWorkUser()),
+        addAUser: () => unawaited(_addAUser()),
   );
 
   /// The menu in the machine's title, for the machine being acted on.
@@ -328,6 +329,7 @@ class _ShellState extends State<Shell> {
     forget: _forget,
     vault: widget.vault,
     actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
+    addAUser: () => unawaited(_addAUser()),
   );
 
   /// A project card's menu, judged for that project and run with it selected.
@@ -802,6 +804,10 @@ class _ShellState extends State<Shell> {
     if (!started.went) throw FailedSaying(started.words);
   }
 
+  /// The second wizard: another user that runs work on a machine prepared before, watched as a
+  /// machine of its own — its own daemon, tasks and vault.
+  Future<void> _addAUser() => _addAMachine(only: MachineKind.newUser);
+
   /// Asks which user a new machine runs work as: the one Sokar's setup script creates there.
   Future<void> _askTheWorkUser() async {
     final name = await showDialog<String>(
@@ -812,8 +818,9 @@ class _ShellState extends State<Shell> {
   }
 
   /// Asks for another machine to watch, starts watching it, and goes there.
-  Future<void> _addAMachine() async {
+  Future<void> _addAMachine({MachineKind? only}) async {
     final machine = await askForAMachine(
+      only: only,
       context,
       taken: widget.machines.all.map((each) => each.name),
       trying: widget.machines.tryMachine,

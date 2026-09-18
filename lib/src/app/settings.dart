@@ -113,7 +113,7 @@ class Settings extends ChangeNotifier {
 
   /// The user a new machine runs work as, which the wizard asks Sokar's setup script to create.
   String get workUser => _workUser;
-  String _workUser = 'agents';
+  String _workUser = 'agent';
 
   /// Whether [name] can be a user on a Linux machine: what `useradd` accepts by default.
   static bool isUserName(String name) => RegExp(r'^[a-z_][a-z0-9_-]{0,31}$').hasMatch(name);

@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
 
 void main() {
-  test('new machines run work as agents until somebody says otherwise, and it is kept', () async {
+  test('new machines run work as agent until somebody says otherwise, and it is kept', () async {
     final store = MemorySettingsStore();
     final settings = Settings(store);
-    expect(settings.workUser, 'agents');
+    expect(settings.workUser, 'agent');
 
     await settings.setWorkUser('builder');
 
@@ -19,7 +19,7 @@ void main() {
 
     for (final wrong in <String>['Root', 'with space', '9lives', '', "a'b", 'x' * 33]) {
       await settings.setWorkUser(wrong);
-      expect(settings.workUser, 'agents', reason: '"$wrong" was kept');
+      expect(settings.workUser, 'agent', reason: '"$wrong" was kept');
     }
   });
 
@@ -28,6 +28,6 @@ void main() {
 
     await settings.load();
 
-    expect(settings.workUser, 'agents');
+    expect(settings.workUser, 'agent');
   });
 }

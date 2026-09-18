@@ -165,11 +165,11 @@ Feature: Adding a machine through a wizard that starts from what you have
     Given a new machine whose root logs in
     When I see what it can install
     And I fetch the setup script
-    Then it shows what the setup script would run {'useradd --create-home agents'}
+    Then it shows what the setup script would run {'useradd --create-home agent'}
     And the setup script has not run yet
     When I run the setup script
     Then it says {'The machine is prepared.'}
-    And the setup script ran for {'agents'}
+    And the setup script ran for {'agent'}
 
   Scenario: an operating system the script does not know is said, and nothing can run
     Given a new machine whose root logs in
@@ -197,8 +197,8 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I run the setup script
     And I go to the next step
     And I set it up and connect
-    Then the key was allowed for {'agents'}
-    And ssh config reaches {'sokar-the-build-machine'} as {'agents'} with {'sokar-the-build-machine'}
+    Then the key was allowed for {'agent'}
+    And ssh config reaches {'sokar-the-build-machine'} as {'agent'} with {'sokar-the-build-machine'}
     And Sokar was started as the work user
     And it says {'Reached Sokar'}
     When I watch the new machine
@@ -232,7 +232,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I run the setup script
     And I go to the next step
     And I set it up and connect
-    Then it says {'The key could not be allowed for agents: getent: no such user'}
+    Then it says {'The key could not be allowed for agent: getent: no such user'}
     And ssh config was not touched
     And Sokar was not started
 
@@ -269,3 +269,45 @@ Feature: Adding a machine through a wizard that starts from what you have
     When I see what it can install
     Then it says {'nothing yet'}
 
+
+  Scenario: the wizard offers the user that runs work, and a name no machine would accept stops it
+    When I say it is called {'the build machine'}
+    And I choose {'A new machine'}
+    Then the user that runs work is offered as {'agent'}
+    When I say the user that runs work is {'Not Valid'}
+    Then the wizard cannot go on yet
+    When I say the user that runs work is {'builder'}
+    And I go on
+    And I generate a key pair
+    And I keep the key
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    And I go to the next step
+    And I see what it can install
+    And I fetch the setup script
+    Then the setup script was shown for {'builder'}
+
+  # The second wizard: only the parts that make a user, with the key the machine already knows.
+  Scenario: another user is added to a machine prepared before, and watched as a machine of its own
+    Given a key the machine already knows is kept as {'sokar-the-build-machine'}
+    When I cancel the dialog
+    And I choose the command {'Add another user that runs work…'}
+    Then the wizard offers no kind to choose
+    When I say it is called {'the build machine as other'}
+    And I say the user that runs work is {'other'}
+    And I go on
+    And I use the key the machine already knows
+    And I go to the next step
+    And I say the new machine is at {'203.0.113.10'}
+    And I try logging in as root
+    And I go to the next step
+    Then nothing asks what it can install
+    When I fetch the setup script
+    And I run the setup script
+    Then the setup script ran for {'other'}
+    When I go to the next step
+    And I set it up and connect
+    Then ssh config reaches {'sokar-the-build-machine-as-other'} as {'other'} with {'sokar-the-build-machine'}
+    When I watch the new machine
+    Then the forward was raised through {'sokar-the-build-machine-as-other'} to {'/run/user/1001/sokar/sokard.sock'}

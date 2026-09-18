@@ -238,6 +238,27 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     return private.path;
   }
 
+  /// The keys a wizard kept here before, newest name first: `~/.ssh/sokar-*` without `.pub`.
+  List<String> existingKeys() {
+    final directory = Directory(sshDirectory);
+    if (!directory.existsSync()) return const <String>[];
+    return <String>[
+      for (final file in directory.listSync().whereType<File>())
+        if (file.uri.pathSegments.last.startsWith('sokar-') && !file.path.endsWith('.pub'))
+          file.path,
+    ]..sort();
+  }
+
+  /// The public half of the private key at [keyFile], as `ssh-keygen` derives it.
+  Future<String> publicKeyOf(String keyFile) async {
+    final derived = await _run(<String>['ssh-keygen', '-y', '-f', keyFile]);
+    if (derived.exitCode != 0) {
+      throw MachineSetupFailed('$keyFile cannot be read as a private key with no passphrase: '
+          '${'${derived.stderr}'.trim()}');
+    }
+    return '${derived.stdout}'.trim();
+  }
+
   /// Why logging in as root on [host] with the key at [keyFile] failed, or null when it worked.
   Future<String?> loginAsRoot(String host, String keyFile) async {
     final login = await _run(<String>[

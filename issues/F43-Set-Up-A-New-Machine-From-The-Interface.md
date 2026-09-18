@@ -127,3 +127,24 @@ All three kinds are in the wizard. The new machine's steps, as built:
 **Not measured yet: a real rented machine.** Everything above is proven against fakes and the real
 `ssh-keygen`; B62 is unpushed, so the script is not at its published address yet.
 
+## The second wizard, 2026-09-18
+
+**Another user that runs work, on a machine prepared before** — the operator's request, sharing every
+step with the first: *Add another user that runs work…* in a machine's menu, or a fourth kind on the
+first page. The user is named on the first page in both wizards, `agent` offered by default (the
+option *New machines run work as*). Its steps: the key root already logs in with (the keys this
+wizard kept are offered), the host, root once, Sokar's script with `--user <name>` shown and run, then
+the same reaching as for a new machine. It becomes an entry of its own — its own daemon, tasks and
+vault.
+
+**Two things that follow, and the screens must not suggest otherwise:**
+
+- **Tasks of two users on one machine cannot message each other** through the local transport: it
+  refuses a mailbox of another Unix user, on purpose — two users are two Sokar installations
+  (Agent Sluice, 2026-09-18). Between them it takes a transport that carries between installations,
+  which is not built.
+- **QF20, open:** whether `Node()` is one per machine or per user's daemon. The device's vault key is
+  kept per node id, so two users' vaults on one machine would share one entry if it is per machine.
+  **QF21, open:** whether the setup script run with another `--user` on a prepared machine only adds
+  that user.
+

@@ -44,6 +44,10 @@ an agent would.**
   `held`, `delivered`, `duplicate`), filtered here per task and project. The stream carries no text,
   so nothing refused is ever copied onto the screen by it.
 
+- **Two users on one machine are two installations for messaging**: their tasks cannot reach each
+  other through the local transport, which refuses another Unix user's mailbox on purpose (Agent
+  Sluice, 2026-09-18). A peer list never offers one as reachable from the other.
+
 ## What the backend is short of
 
 - **Sokar B14** on `Tasks1`: `Peers`, `Talk`, `Say`, `Release`, `Moderate`.
