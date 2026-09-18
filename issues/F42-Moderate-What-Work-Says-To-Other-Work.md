@@ -21,6 +21,9 @@ an agent would.**
 
 - **What is held is where "Needs you" is**, counted and never buried: each held message names its
   task, its peer and why it is held (moderation, the day's budget with that peer, the filter).
+  **Both directions**: a message *from* an `external` peer is filtered on the way in and held there
+  when refused, before any agent sees it (Agent Sokar, 2026-09-18) — so the list says which way each
+  one was going.
 - A held message is **read before it is decided**: its text is shown, and releasing or refusing it
   is a separate, deliberate act. A held message is released or refused, **never edited**. `AMBIGUOUS`
   and `NO_SUCH_MESSAGE` are said in words.
