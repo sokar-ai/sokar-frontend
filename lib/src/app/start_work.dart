@@ -367,6 +367,15 @@ class StartWork extends ChangeNotifier {
   /// Counts the questions, so an answer to an earlier one never overwrites a later one.
   int _asked = 0;
 
+  /// The agent chosen, as the machine listed it, or null.
+  Agent? get chosenAgent => agents.where((each) => each.name == agent).firstOrNull;
+
+  /// Asks the machine again whether work can start — after something was done about why not.
+  Future<void> askAgain() async {
+    final machine = _machine;
+    if (machine != null) await _askWhetherItCanStart(machine);
+  }
+
   /// Asks the daemon whether work can start, without starting anything.
   ///
   /// **The name goes with it only when nothing here objects to it**: a name refused on this side is
@@ -390,8 +399,19 @@ class StartWork extends ChangeNotifier {
     } on FeatureNotSupported {
       // A backend older than `CanStart`. Nothing is claimed either way, which is what leaving it
       // null means — better than asserting readiness nobody measured.
+    } on VarlinkException catch (refusal) {
+      // The machine could not answer the question: said, never left to escape. This is asked from
+      // an open dialog nobody awaits, so an error let through here reaches nobody at all.
+      if (asking == _asked) problem = _refused(refusal, 'whether work can start');
     }
     notifyListeners();
+  }
+
+  static String _refused(VarlinkException refusal, String what) {
+    final said = refusal.parameters['message'] ?? refusal.parameters['detail'];
+    return said is String && said.isNotEmpty
+        ? 'The machine could not say $what: $said'
+        : 'The machine could not say $what (${refusal.simpleName}).';
   }
 
   Future<void> _reading(FleetBackend backend) async {
@@ -423,6 +443,8 @@ class StartWork extends ChangeNotifier {
       problem = 'Lost contact with the machine: ${ex.message}';
     } on FeatureNotSupported catch (ex) {
       problem = '$ex';
+    } on VarlinkException catch (refusal) {
+      problem = _refused(refusal, 'which agents it has');
     } finally {
       busy = false;
       notifyListeners();

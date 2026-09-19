@@ -4,6 +4,7 @@ import 'package:xterm/xterm.dart';
 import '../app/session.dart';
 import 'panes.dart';
 import 'tokens.dart';
+import 'terminal_links.dart';
 
 /// A shell inside running work, drawn in the window.
 ///
@@ -87,6 +88,10 @@ class SessionView extends StatelessWidget {
                     textStyle: const TerminalStyle(fontSize: 13),
                   ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Space.normal),
+                child: TerminalLinks(session: session),
               ),
               // Said under the terminal rather than in a tooltip, because it is the one fact
               // that decides whether somebody dares to close the window at all.

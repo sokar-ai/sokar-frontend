@@ -7,17 +7,19 @@ import 'package:flutter_test/flutter_test.dart';
 import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
 import './step/i_go_to_the_work.dart';
-import './step/enrolling_says.dart';
+import './step/enrolling_is_offered_in_the_machines_menu.dart';
+import './step/the_title_bar_carries_no_enrolling.dart';
 import './step/the_stores_lock_says.dart';
 import './step/i_enroll_this_device_as.dart';
 import './step/it_says.dart';
 import './step/i_close_the_answer.dart';
 import './step/i_show_the_protected_store.dart';
 import './step/this_device_keeps_the_key_the_machine_was_given.dart';
-import './step/enrolling_is_not_offered.dart';
+import './step/enrolling_is_unavailable_in_the_machines_menu_because.dart';
 import './step/i_begin_enrolling_this_device.dart';
 import './step/the_key_this_device_keeps_is_nowhere_on_screen.dart';
 import './step/the_store_is_shut.dart';
+import './step/this_device_keeps_a_key_the_machine_no_longer_has_a_slot_for.dart';
 import './step/the_machine_is_a_socket_somebody_else_forwards.dart';
 import './step/the_stores_lock_does_nothing.dart';
 import './step/i_shut_the_store.dart';
@@ -44,11 +46,11 @@ void main() {
     }
 
     testWidgets(
-        '''a device that is not enrolled is offered enrolling, beside the lock''',
+        '''a device that is not enrolled is offered enrolling in the machine's menu, not in the title''',
         (tester) async {
       await bddSetUp(tester);
-      await enrollingSays(tester,
-          'This device cannot open the store yet. Enroll it so it can.');
+      await enrollingIsOfferedInTheMachinesMenu(tester);
+      await theTitleBarCarriesNoEnrolling(tester);
       await theStoresLockSays(tester, 'The store is open. Shut it.');
     });
     testWidgets(
@@ -61,7 +63,8 @@ void main() {
       await iShowTheProtectedStore(tester);
       await itSays(tester, 'laptop — this device');
       await thisDeviceKeepsTheKeyTheMachineWasGiven(tester);
-      await enrollingIsNotOffered(tester);
+      await enrollingIsUnavailableInTheMachinesMenuBecause(
+          tester, 'enrolled already');
     });
     testWidgets(
         '''before a device is enrolled, it says what its key is kept in''',
@@ -78,6 +81,17 @@ void main() {
       await theKeyThisDeviceKeepsIsNowhereOnScreen(tester);
     });
     testWidgets(
+        '''a key kept for a slot the machine no longer has is not taken for an enrollment''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theStoreIsShut(tester);
+      await thisDeviceKeepsAKeyTheMachineNoLongerHasASlotFor(tester);
+      await theStoresLockSays(tester,
+          'Shut. Open it with its passphrase, in a terminal on the machine');
+      await enrollingIsUnavailableInTheMachinesMenuBecause(
+          tester, 'the store is shut');
+    });
+    testWidgets(
         '''a shut store and a device that is not enrolled say where it is opened instead''',
         (tester) async {
       await bddSetUp(tester);
@@ -86,8 +100,8 @@ void main() {
       await theStoresLockSays(tester,
           'The store is shut, and this device is not enrolled. Unlock it at the machine with `sokar vault unlock`, then enroll this device.');
       await theStoresLockDoesNothing(tester);
-      await enrollingSays(tester,
-          'Enrolling needs the store open. Unlock it at the machine with `sokar vault unlock` first.');
+      await enrollingIsUnavailableInTheMachinesMenuBecause(
+          tester, 'the store is shut');
     });
     testWidgets(
         '''opening it asks how long, and chooses nothing for the person''',
@@ -143,8 +157,7 @@ void main() {
       await iShowTheProtectedStore(tester);
       await iRevoke(tester, 'laptop');
       await thisDeviceKeepsNoKeyForTheMachine(tester);
-      await enrollingSays(tester,
-          'This device cannot open the store yet. Enroll it so it can.');
+      await enrollingIsOfferedInTheMachinesMenu(tester);
     });
     testWidgets(
         '''the recovery passphrase is listed and cannot be revoked from here''',
@@ -160,7 +173,8 @@ void main() {
       await bddSetUp(tester);
       await theMachineCannotEnrollDevicesYet(tester);
       await theStoresLockSays(tester, 'The store is open. Shut it.');
-      await enrollingIsNotOffered(tester);
+      await enrollingIsUnavailableInTheMachinesMenuBecause(
+          tester, 'cannot enroll devices yet');
       await iShowTheProtectedStore(tester);
       await itSays(tester, 'that arrives with Sokar B60');
     });

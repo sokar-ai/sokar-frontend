@@ -429,8 +429,25 @@ class Agent {
   /// it internally, and reading that name here would have found nothing and drawn a blank.
   final GitIdentity commitsAs;
 
+  /// Whether the agent declares a login of its own, run on the machine by `sokar vault login`.
+  final bool canLogIn;
+
+  /// What the agent is started with to log in, inside the login's container. Said, never run here.
+  final List<String> loginArguments;
+
+  /// Where the agent documents its login, or empty.
+  final String loginDocumentation;
+
+  /// What to run on the machine to log in with it, as arguments, named by the machine; empty when it
+  /// cannot log in, and from a Sokar older than the field.
+  final List<String> loginCommand;
+
   /// Constructor taking every field.
   const Agent({
+    this.canLogIn = false,
+    this.loginArguments = const <String>[],
+    this.loginDocumentation = '',
+    this.loginCommand = const <String>[],
     required this.name,
     required this.label,
     required this.binary,
@@ -455,6 +472,10 @@ class Agent {
         commitsAs: map['commitsAs'] is Map<String, dynamic>
             ? GitIdentity.from(map['commitsAs']! as Map<String, dynamic>)
             : const GitIdentity(name: '', email: ''),
+        canLogIn: map['canLogIn'] == true,
+        loginArguments: _strings(map, 'loginArguments'),
+        loginDocumentation: _string(map, 'loginDocumentation'),
+        loginCommand: _strings(map, 'loginCommand'),
       );
 }
 
@@ -2271,6 +2292,10 @@ class Readiness {
   /// Prose for a person. **Never parsed.**
   final String detail;
 
+  /// With `CREDENTIAL_MISSING`, what to run on the machine to store it, as arguments; empty otherwise
+  /// and from a Sokar older than the field.
+  final List<String> storeCommand;
+
   /// Constructor taking every field.
   const Readiness({
     required this.ready,
@@ -2279,6 +2304,7 @@ class Readiness {
     required this.provider,
     required this.credential,
     required this.detail,
+    this.storeCommand = const <String>[],
   });
 
   /// Reads one from a reply.
@@ -2289,6 +2315,7 @@ class Readiness {
         provider: _string(map, 'provider'),
         credential: _string(map, 'credential'),
         detail: _string(map, 'detail'),
+        storeCommand: _strings(map, 'storeCommand'),
       );
 
   /// What to do about it, in one line, or empty when there is nothing to do.
@@ -2941,8 +2968,17 @@ class Followed {
   /// unverified and unreachable at once.
   final bool unverified;
 
+  /// With `UNKNOWN_HOST_KEY` and `HOST_KEY_CHANGED`, the host those keys belong to, as the machine
+  /// names it — passed back to `TrustHostKey` unchanged, never worked out here from the URL.
+  final String host;
+
+  /// With those two outcomes, every key the host offers right now; empty otherwise.
+  final List<HostKey> hostKeys;
+
   /// Constructor taking every field.
   const Followed({
+    this.host = '',
+    this.hostKeys = const <HostKey>[],
     required this.name,
     this.url = '',
     this.commit = '',
@@ -2971,6 +3007,10 @@ class Followed {
         unverified: map['unverified'] == true,
         storeCommand: _string(map, 'storeCommand'),
         recorded: map['recorded'] == true,
+        host: _string(map, 'host'),
+        hostKeys: map['hostKeys'] is List
+            ? (map['hostKeys'] as List).whereType<Map<String, dynamic>>().map(HostKey.from).toList()
+            : const <HostKey>[],
       );
 
   /// A project's `following`, or null when it follows nothing: absent, or an empty object — the
@@ -2997,6 +3037,13 @@ class Followed {
       'UNREADABLE' => 'Not taken: the commit or the repository could not be read',
       'REWRITTEN' => 'Not taken: $turnedAway rewrites the history in force',
       'UNREACHABLE' => 'The repository cannot be reached',
+      'NO_CREDENTIAL' => 'Not taken: the machine says nothing it holds reaches the repository',
+      'UNUSABLE_VALUE' => 'Not taken: the credential for it is there, and cannot be used',
+      'UNKNOWN_HOST_KEY' => 'Not taken: this machine has never met that host, and trusts no key of it yet',
+      // Never "trust this instead": a key that changed may be somebody in between.
+      'HOST_KEY_CHANGED' =>
+        'Not taken: the host offered a different key from the one this machine remembers — this can '
+            'be somebody in between',
       'VAULT_LOCKED' =>
         "This account's store is shut, and the repository needs a credential from it",
       'UNUSABLE' => 'Not taken: the project file in $turnedAway does not read as a project',
@@ -3163,13 +3210,33 @@ class CredentialDeclared {
   /// Whether it replaced a record for the same address and purpose — *updated* rather than *added*.
   final bool replaced;
 
+  /// Whether anything was written: false for a dry run.
+  final bool recorded;
+
+  /// For a dry run, `READY` or why it would not work; empty for a real declaration. Not an enum.
+  final String outcome;
+
+  /// For a dry run of an ssh key, who the forge says the key logs in as, or empty. The machine's words.
+  final String identity;
+
+  /// For a dry run, one sentence for a person. The machine's; never parsed.
+  final String detail;
+
   /// Constructor taking every field.
   const CredentialDeclared({
     required this.connection,
     this.storeCommand = const <String>[],
     this.storeStdin = '',
     this.replaced = false,
+    this.recorded = false,
+    this.outcome = '',
+    this.identity = '',
+    this.detail = '',
   });
+
+  /// Whether a dry run leaves nothing in the way of adding it: ready, or a value still to be stored
+  /// by the command it names — which is what the step after adding does.
+  bool get canBeAdded => outcome == 'READY' || (outcome == 'MISSING_VALUE' && storeCommand.isNotEmpty);
 
   /// Reads one from a reply.
   factory CredentialDeclared.from(Map<String, dynamic> map) => CredentialDeclared(
@@ -3179,6 +3246,10 @@ class CredentialDeclared {
         storeCommand: _strings(map, 'storeCommand'),
         storeStdin: _string(map, 'storeStdin'),
         replaced: map['replaced'] == true,
+        recorded: map['recorded'] == true,
+        outcome: _string(map, 'outcome'),
+        identity: _string(map, 'identity'),
+        detail: _string(map, 'detail'),
       );
 }
 
@@ -3198,6 +3269,108 @@ class CredentialForgotten {
         forgotten: map['forgotten'] == true,
         leftBehind: _string(map, 'leftBehind'),
       );
+}
+
+/// One key a host offers: what a person compares with what they were told, out of band.
+class HostKey {
+  /// Its algorithm, as ssh names it.
+  final String type;
+
+  /// `SHA256:…`, the form ssh prints and the form a host publishes.
+  final String fingerprint;
+
+  /// Constructor taking every field.
+  const HostKey({this.type = '', this.fingerprint = ''});
+
+  /// Reads one from a reply.
+  factory HostKey.from(Map<String, dynamic> map) =>
+      HostKey(type: _string(map, 'type'), fingerprint: _string(map, 'fingerprint'));
+}
+
+/// What trusting a host key did: recorded only if the host still offered the key a person confirmed.
+class HostKeyTrusted {
+  /// Whether it was written down.
+  final bool recorded;
+
+  /// The key that was recorded, or empty.
+  final String type;
+  final String fingerprint;
+
+  /// The machine's own words. Never parsed.
+  final String detail;
+
+  /// Constructor taking every field.
+  const HostKeyTrusted({this.recorded = false, this.type = '', this.fingerprint = '', this.detail = ''});
+
+  /// Reads one from a reply.
+  factory HostKeyTrusted.from(Map<String, dynamic> map) => HostKeyTrusted(
+        recorded: map['recorded'] == true,
+        type: _string(map, 'type'),
+        fingerprint: _string(map, 'fingerprint'),
+        detail: _string(map, 'detail'),
+      );
+}
+
+/// An ssh key the machine's account already has, described without its value.
+///
+/// **The machine decides what is a key**: telling a private key from its public half takes reading
+/// the file, and the file stays there.
+class SshKey {
+  /// Where it is on the machine.
+  final String path;
+
+  /// Its algorithm, as ssh names it: `ssh-ed25519`, `ssh-rsa`, ….
+  final String type;
+
+  /// Its `SHA256:` fingerprint.
+  final String fingerprint;
+
+  /// The comment of its public half, often who it belongs to; empty when there is none.
+  final String comment;
+
+  /// Whether a passphrase protects it, which nothing on the machine can ask for.
+  final bool encrypted;
+
+  /// Whether the private file is there; without it the key cannot sign anything.
+  final bool privateHalf;
+
+  /// Whether the machine itself can sign with it. One it cannot may still serve ssh where it lies.
+  final bool usable;
+
+  /// `DIRECTORY` or `CONFIGURED` — an `IdentityFile` in `~/.ssh/config` named it. Not an enum.
+  final String found;
+
+  /// What stands in the way of using it, and what to do, in the machine's words; empty when nothing.
+  final String obstacle;
+
+  /// Constructor taking every field.
+  const SshKey({
+    required this.path,
+    this.type = '',
+    this.fingerprint = '',
+    this.comment = '',
+    this.encrypted = false,
+    this.privateHalf = false,
+    this.usable = false,
+    this.found = '',
+    this.obstacle = '',
+  });
+
+  /// Reads one from a reply.
+  factory SshKey.from(Map<String, dynamic> map) => SshKey(
+        path: _string(map, 'path'),
+        type: _string(map, 'type'),
+        fingerprint: _string(map, 'fingerprint'),
+        comment: _string(map, 'comment'),
+        encrypted: map['encrypted'] == true,
+        privateHalf: map['privateHalf'] == true,
+        usable: map['usable'] == true,
+        found: _string(map, 'found'),
+        obstacle: _string(map, 'obstacle'),
+      );
+
+  /// Whether it can be named as a key kept where it lies: ssh signs with the private file itself.
+  bool get servesWhereItLies => privateHalf;
 }
 
 /// Which credential a destination would use, and whether it would work — asked before anything is

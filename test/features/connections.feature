@@ -13,107 +13,305 @@ Feature: How a machine connects out, and giving it a credential
     Given the store is shut
     And the machine connects to {'ssh://github.com'} with a key in the vault
     And the machine connects to {'https://gitlab.example/acme/'} with a token in a file
-    When I choose the command {'Show how this machine connects out'}
+    When I choose the command {'Connections — how this machine connects out'}
     Then it says {'ssh://github.com'}
     And it says {'the vault is shut, so nothing can say whether its value is there'}
     And the connection {'https://gitlab.example/acme/'} is marked not protected
     And the connection {'ssh://github.com'} is not marked not protected
 
-  # https may be a token or a user and password, so the address cannot decide it.
-  Scenario: what a connection is, is chosen and never read off its address
-    When I choose the command {'Show how this machine connects out'}
-    And I add a connection to {'https://gitlab.example/acme/'}
-    Then adding it is not offered yet
-    When I choose it to be {'TOKEN'}
-    Then adding it is offered
+  # Where somebody looks for them without the finder: the machine's own menu, under the word itself.
+  Scenario: the machine's menu opens its connections
+    When I open the menu {'What this machine can be told to do'}
+    Then the menu offers {'Connections — how this machine connects out'}
+    When I choose the menu entry {'Connections — how this machine connects out'}
+    Then the connections of the machine are open
 
-  Scenario: a token in the vault is stored by typing it into a terminal on the machine
-    When I choose the command {'Show how this machine connects out'}
+  # https may be a token or a user and password, so the address cannot decide it. Only the purposes
+  # the machine reads are offered, and OAuth is not: nothing would ever renew its token.
+  Scenario: what a connection is, is chosen and never read off its address
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    Then going on is not offered yet
+    And the dialog offers {'any use'}
+    And the dialog does not offer {'An OAuth token'}
+    When I choose it to be {'TOKEN'}
+    Then going on is offered
+    And no two fields of the dialog overlap
+    And the dialog shows its scrollbar and its first label whole
+
+  Scenario: a token in the vault is typed into a terminal on the machine, after the check
+    When I choose the command {'Connections — how this machine connects out'}
     And I add a connection to {'https://gitlab.example/acme/'}
     And I choose it to be {'TOKEN'}
-    And I add it
+    And I go on
+    And I choose {'In the vault, typed at the machine'}
+    Then it says {'a terminal on the machine opens'}
+    When I go on
+    Then it says {'Nothing stands in the way'}
+    And nothing was declared
+    When I add it
     Then it was declared as {'TOKEN'} for {'https://gitlab.example/acme/'}, kept in {'VAULT'}
-    And it says {'sokar vault put git.token.example'}
-    When I type its value into a terminal on the machine
-    Then a terminal runs {'sokar vault put git.token.example'} on the machine
+    And a terminal runs {'sokar vault put git.token.example --type token'} on the machine
 
-  # A key is a file and the machine's prompt reads one line, so the file is sent on standard input.
-  Scenario: an ssh key is sent from a file of this computer, and nothing of it is kept
+  # The one secret this interface carries: a private key of this computer, sent once into the vault.
+  Scenario: an ssh key of this computer is filled from its file and sent into the vault
     Given this computer has the key {'id_work'}
-    When I choose the command {'Show how this machine connects out'}
+    And the file dialog will answer with the key {'id_work'}
+    When I choose the command {'Connections — how this machine connects out'}
     And I add a connection to {'ssh://gitlab.example'}
     And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key of this computer, sent into the vault'}
+    And I fill the key from a file
+    And I go on
     And I add it
-    And I send the key {'id_work'} to the machine
     Then the machine was given a key by {'sokar vault put git.ssh.example'}
     And the status line mentions {'is stored on'}
 
   # Only the private key is sent: the machine works out the public half, and a public one stored in
   # its place would be refused at the first fetch, far from where the wrong file was chosen.
-  Scenario: the public half chosen from this computer is refused, and nothing is sent
+  Scenario: the public half chosen from this computer is refused before anything is sent
     Given this computer has the key {'id_work'}
-    When I choose the command {'Show how this machine connects out'}
+    And the file dialog will answer with the key {'id_work.pub'}
+    When I choose the command {'Connections — how this machine connects out'}
     And I add a connection to {'ssh://gitlab.example'}
     And I choose it to be {'SSH_KEY'}
-    And I add it
-    And I send the key {'id_work.pub'} to the machine
-    Then the way to store it says {'That is the public half of a key'}
-    And nothing was given to the machine
-    And the way to store it is still offered
-
-  Scenario: a pasted public key is refused, and nothing is sent
-    When I choose the command {'Show how this machine connects out'}
-    And I add a connection to {'ssh://gitlab.example'}
-    And I choose it to be {'SSH_KEY'}
-    And I add it
-    And I paste {'ssh-ed25519 AAAAC3Nza me@work'} and send it
-    Then the way to store it says {'That is the public half of a key'}
-    And nothing was given to the machine
-    And nothing pasted is left on screen
-
-  Scenario: pasted text that is no key at all is refused, and nothing is sent
-    When I choose the command {'Show how this machine connects out'}
-    And I add a connection to {'ssh://gitlab.example'}
-    And I choose it to be {'SSH_KEY'}
-    And I add it
-    And I paste {'hunter2'} and send it
-    Then the way to store it says {'That is not a private key'}
+    And I go on
+    And I choose {'A key of this computer, sent into the vault'}
+    And I fill the key from a file
+    Then it says {'That is the public half of a key'}
+    And the private key field is empty
+    And going on is not offered yet
     And nothing was given to the machine
 
-  Scenario: a key kept as a file on the machine cannot be named by its public half
-    When I choose the command {'Show how this machine connects out'}
+  Scenario: pasted text that is no key at all is refused, and leaves the field
+    When I choose the command {'Connections — how this machine connects out'}
     And I add a connection to {'ssh://gitlab.example'}
     And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key of this computer, sent into the vault'}
+    And I paste the private key {'hunter2'}
+    And I go on
+    Then it says {'That is not a private key'}
+    And the wizard is at step {'2'}
+    And the private key field is empty
+    And nothing was declared
+
+  # Going back keeps every description and never a secret.
+  Scenario: going back from the check takes the pasted key out of its field
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key of this computer, sent into the vault'}
+    And I paste a private key
+    And I go on
+    Then the wizard is at step {'3'}
+    When I go back
+    Then the wizard is at step {'2'}
+    And the private key field is empty
+
+  # The machine says which files are keys — that takes reading them, and they stay there. Only one
+  # with its private half is offered: ssh signs with that file.
+  Scenario: a key already on the machine is picked from its list and used where it lies
+    Given the machine has the key {'/home/me/.ssh/id_ed25519'}
+    And the machine has only the public half of {'/home/me/.ssh/company_key'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key already on the machine'}
+    Then the dialog offers {'/home/me/.ssh/id_ed25519'}
+    And the dialog does not offer {'/home/me/.ssh/company_key'}
+    And going on is not offered yet
+    When I choose {'/home/me/.ssh/id_ed25519'}
+    Then it says {'me@laptop'}
+    When I go on
+    And I add it
+    Then it was declared with the key {'/home/me/.ssh/id_ed25519'}
+    And it says {'Its value is already where it says'}
+
+  # The machine reads the file from its own disk: nothing of the key passes through here.
+  Scenario: a key already on the machine is copied into the vault by the machine
+    Given the machine has the key {'/home/me/.ssh/id_ed25519'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key already on the machine'}
+    And I choose {'/home/me/.ssh/id_ed25519'}
+    And I choose {'Copied into the vault by the machine'}
+    And I go on
+    And I add it
+    Then it was declared into the vault from the file {'/home/me/.ssh/id_ed25519'}
+    And the machine ran {'sokar vault put git.ssh.example --from-file /home/me/.ssh/id_ed25519'} with nothing on its standard input
+
+  # A key for another account or another repository looks good until the first fetch; only the
+  # machine can ask the forge, and what the forge says is put beside the key.
+  Scenario: the check says who a key logs in as
+    Given the machine has the key {'/home/me/.ssh/id_ed25519'}
+    And the forge says {'/home/me/.ssh/id_ed25519'} logs in as {'Hi fuinorg/utils4j!'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://github.com/'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key already on the machine'}
+    And I choose {'/home/me/.ssh/id_ed25519'}
+    And I go on
+    Then it says {'logs in as: Hi fuinorg/utils4j!'}
+
+  # The machine refuses what could only fail, and the check shows that before anything is written.
+  Scenario: an ssh key for an https address is refused by the check, and cannot be added
+    Given the machine has the key {'/home/me/.ssh/id_ed25519'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://github.com/acme/'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key already on the machine'}
+    And I choose {'/home/me/.ssh/id_ed25519'}
+    And I go on
+    Then it says {'This would not work as it is'}
+    And it says {'never for an ssh key'}
+    And adding it is not offered yet
+    When I go back
+    Then the wizard is at step {'2'}
+
+  Scenario: a machine without a private key says so, rather than showing an empty list
+    Given the machine has only the public half of {'/home/me/.ssh/company_key'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key already on the machine'}
+    Then it says {'This machine has no private key'}
+    And going on is not offered yet
+
+  # A Sokar older than the listing is not a machine without keys: the path is typed, and why is said.
+  Scenario: a machine that cannot list its keys takes a typed path, never its public half
+    Given the machine cannot list its keys
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
     And it is kept in the file {'/home/me/.ssh/id_work.pub'} on the machine
-    Then adding it is not offered yet
+    Then it says {'cannot list its keys yet, so its path is typed'}
     And it says {'That is the public half'}
+    And going on is not offered yet
 
-  Scenario: a pasted key is sent, and the field it was pasted into is emptied at once
-    When I choose the command {'Show how this machine connects out'}
-    And I add a connection to {'ssh://gitlab.example'}
-    And I choose it to be {'SSH_KEY'}
+  Scenario: a variable the machine does not have is refused by the check
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    And I choose it to be {'TOKEN'}
+    And I go on
+    And I choose {'A variable on the machine'}
+    And I name the variable {'GITLAB_TOKEN'}
+    And I go on
+    Then it says {'This would not work as it is'}
+    And adding it is not offered yet
+
+  Scenario: a user and password from two variables are declared by their names
+    Given the machine has the variable {'GITLAB_PASSWORD'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    And I choose it to be {'BASIC'}
+    And I go on
+    And I choose {'Two variables on the machine'}
+    And I name the variable of the user {'GITLAB_USER'}
+    And I name the variable {'GITLAB_PASSWORD'}
+    And I go on
     And I add it
-    And I paste a key and send it
-    Then the machine was given a key by {'sokar vault put git.ssh.example'}
-    And nothing pasted is left on screen
+    Then it was declared with the user taken from the variable {'GITLAB_USER'}
+    And it was declared as {'BASIC'} for {'https://gitlab.example/acme/'}, kept in {'ENVIRONMENT'}
+
+  Scenario: a user and password in the vault have the password typed at the machine
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    And I choose it to be {'BASIC'}
+    And I go on
+    And I choose {'In the vault, the password typed at the machine'}
+    And I name the user {'me'}
+    And I go on
+    And I add it
+    Then a terminal runs {'sokar vault put git.token.example'} on the machine
+
+  # A vault that is not there is made at the machine, from the check, and then asked about again.
+  Scenario: an account without a vault is sent to make one, and checked again
+    Given the machine has no store yet
+    And the machine is reached over ssh as {'michi@vm'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    And I choose it to be {'TOKEN'}
+    And I go on
+    And I choose {'In the vault, typed at the machine'}
+    And I go on
+    Then it says {'no vault yet'}
+    And adding it is not offered yet
+    When I make the vault from the check
+    Then a terminal runs {'ssh -t michi@vm sokar vault init'} on the machine
+    When the unlock terminal ends and is put away
+    Then the machine was asked again whether it would work
+
+  Scenario: a shut vault is opened from the check, and checked again
+    Given the store is shut
+    And the machine is reached over ssh as {'michi@vm'}
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    And I choose it to be {'TOKEN'}
+    And I go on
+    And I choose {'In the vault, typed at the machine'}
+    And I go on
+    Then it says {'the vault is shut'}
+    When I open the vault from the check
+    Then a terminal runs {'ssh -t michi@vm sokar vault unlock'} on the machine
+    When the unlock terminal ends and is put away
+    Then the machine was asked again whether it would work
+
+  Scenario: leaving the wizard declares nothing
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'https://gitlab.example/acme/'}
+    And I choose it to be {'TOKEN'}
+    And I go on
+    And I choose {'In the vault, typed at the machine'}
+    And I go on
+    And I choose {'Leave it'}
+    Then nothing was declared
+
 
   Scenario: forgetting a connection says the value is still there
     Given the machine connects to {'ssh://github.com'} with a key in the vault
-    When I choose the command {'Show how this machine connects out'}
+    When I choose the command {'Connections — how this machine connects out'}
     And I forget the connection {'ssh://github.com'}
     Then it says {'Its value is still there'}
     And it says {'Remove that at the machine'}
 
-  # What was pasted leaves the field the moment it is sent — also when storing it did not work,
-  # which keeps the way to try again on screen.
-  Scenario: a key that could not be stored is not kept in the field it was pasted into
+
+  # What was sent leaves this interface whether or not storing worked, and the way to try again
+  # stays on screen.
+  Scenario: a key that could not be stored leaves the way to try again
     Given storing on the machine will fail
-    When I choose the command {'Show how this machine connects out'}
+    When I choose the command {'Connections — how this machine connects out'}
     And I add a connection to {'ssh://gitlab.example'}
     And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key of this computer, sent into the vault'}
+    And I paste a private key
+    And I go on
     And I add it
-    And I paste a key and send it
     Then the status line mentions {'Storing the key did not work'}
     And the way to store it is still offered
     And nothing pasted is left on screen
 
+  # Trying again from what stays on screen refuses a public half the same way the wizard does.
+  Scenario: trying again with a public half is refused beside the way to try again
+    Given storing on the machine will fail
+    When I choose the command {'Connections — how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I go on
+    And I choose {'A key of this computer, sent into the vault'}
+    And I paste a private key
+    And I go on
+    And I add it
+    And I paste {'ssh-ed25519 AAAAC3Nza me@work'} and send it
+    Then the way to store it says {'That is the public half of a key'}
+    And nothing pasted is left on screen

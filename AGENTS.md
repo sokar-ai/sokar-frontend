@@ -765,6 +765,10 @@ Two interface traps already met:
   land on the wrong one and still choose something — measured 2026-09-19: the test warned, chose,
   and passed. `World.choose` taps the entry's text in the open menu and then asserts which entry the
   field holds; a mutation tapping the wrong entry fails every scenario that chooses.
+- **A floating label rises above its field's own box**, so two fields that merely touch overlap on
+  screen while every rectangle a test reads says they do not. Found by the operator on 2026-09-19
+  in the dialog that adds a connection; *no two fields of the dialog overlap* asks for a gap, not
+  for boxes that do not intersect — the second reading passed with the overlap on screen.
 - **A widget built eagerly outside the branch that shows it still runs its null checks.** A
   detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
 - **Widget tests run at 1280x800**, set on `tester.view` with `devicePixelRatio = 1`, not with

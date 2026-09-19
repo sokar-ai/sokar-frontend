@@ -6,6 +6,8 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-19 | [An agent's login redirects to localhost, forwarded here, rather than asking for a code](#2026-09-19--an-agents-login-redirects-to-localhost-forwarded-here)
+| 2026-09-19 | [A key sent from this computer goes into the vault, and only the private key is asked for](#2026-09-19--a-key-sent-from-this-computer-goes-into-the-vault)
 | 2026-09-19 | [A project comes to a machine only by being followed; describing one here is gone](#2026-09-19--a-project-comes-to-a-machine-only-by-being-followed) |
 | 2026-09-19 | [A refused project signature is a state of the project, and it is put in front of a person](#2026-09-19--a-refused-project-signature-is-a-state-of-the-project) |
 | 2026-09-19 | [Work always starts in a repository somebody chose; the project stays the unit of navigation](#2026-09-19--work-always-starts-in-a-repository-somebody-chose) |
@@ -26,12 +28,40 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
 
+## 2026-09-19 — An agent's login redirects to localhost, forwarded here
+
+The operator's decision, over link-and-code: signing in is pressing the link in the terminal and
+signing in in the browser here, with no code typed back. The login's redirect to
+`localhost:<port>` is forwarded from this computer to the same port on the machine for as long as
+the login terminal is open, and taken down after. Only a login terminal may ask for it, for one
+port that is not a privileged one, and only once.
+
+**What it costs**, measured by Sokar on the VM: a listener on a rootless container's own loopback
+cannot be reached by publishing its port, so the login container runs with the machine's network.
+Its processes can then reach whatever listens on the machine's own loopback. It is a throwaway
+container with no vault, no broker and no egress ruleset either way. **What would change the
+answer:** an agent whose login must run with a credential or a workspace inside it.
+
+## 2026-09-19 — A key sent from this computer goes into the vault
+
+The operator's decision, when adding a connection became a wizard (F47). A private key sent from
+here goes into the machine's vault, and never into `~/.ssh` there. Only the private half is asked
+for, because the machine works out the public half. A key that is already in `~/.ssh` is chosen
+where it lies (F46), so the case of a key in `~/.ssh` is covered without this interface ever
+writing a private key to a disk.
+
+A token or a password is not sent from here at all. It is typed into a terminal on the machine,
+as the wizard's last step, so the only secret this interface ever handles is a key file.
+
+**What it costs:** somebody who wants their key as a plain file on the machine puts it there
+themselves, and then chooses it from the list.
+
 ## 2026-09-19 — A project comes to a machine only by being followed
 
 The operator's decision, when Sokar made a project a repository a machine follows. *Describe a
 project* — a dialog that asked the machine to write a `project.yml` — is gone, with `CreateProject`
 under it, and nothing renders a file in its place. A person writes `project.yml` in the project's
-own repository, where they already commit; the interface offers *Follow a repository*, and what is
+own repository, where they already commit; the interface offers *Follow a project*, and what is
 wrong with the file comes back from the follow as named reasons.
 
 **What it costs:** the checks a description ran while it was being typed — a name that becomes an

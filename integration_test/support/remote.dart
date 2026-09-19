@@ -19,3 +19,9 @@ Future<String> onTheTestMachine(String script) async {
 
 /// Where the scenario's repository was made on the test machine, once it was.
 String? theRepository;
+
+/// Where the key the test machine's account has is, once a step has made sure of one.
+String? theKey;
+
+/// The machine's own sentence from the connection wizard's check, read before it was left.
+String? theCheckSaid;

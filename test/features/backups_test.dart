@@ -28,6 +28,7 @@ import './step/restoring_from_the_missing_backup_is_not_offered.dart';
 import './step/the_project_has_the_repositories.dart';
 import './step/the_repository_is_behind_with_waiting.dart';
 import './step/the_repository_says.dart';
+import './step/the_repositories_are_listed_with_a_line_between_each.dart';
 import './step/i_sync_the_repository.dart';
 import './step/the_upstream_was_asked_about_the_repository.dart';
 import './step/i_show_the_backups_of_the_repository.dart';
@@ -170,6 +171,15 @@ void main() {
       await theRepositorySays(
           tester, 'payments-api', '2 waiting at the gate · 4 behind');
       await theRepositorySays(tester, 'checkout', 'checkout, its own');
+      await theRepositoriesAreListedWithALineBetweenEach(tester);
+    });
+    testWidgets(
+        '''a project with many repositories fits, and its work stays reachable''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(tester, 'checkout',
+          'checkout, core, frontend, sluice, claude, pi, omp, docs, site, api, web, cli, ops, db, ui, qa');
+      await theRepositoriesAreListedWithALineBetweenEach(tester);
     });
     testWidgets('''a repository's upstream is asked about on its own''',
         (tester) async {

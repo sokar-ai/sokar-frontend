@@ -8,6 +8,15 @@ Feature: Starting work with an agent, a mode and a credential
     And I go to the work
     And I select the project {'checkout'}
 
+  # Pressing start is answered at once; the machine is asked behind the open dialog. Waiting for it
+  # first left the press without any sign, and it was pressed twice.
+  Scenario: the start dialog opens at once, and says it is still asking the machine
+    Given reading the agents is slow
+    When I start work in this project
+    Then it says {'Asking the machine what it has'}
+    When the machine has answered
+    Then it does not say {'Asking the machine what it has'}
+
   Scenario: work is started with a name, an agent and a mode
     When I start work in this project
     And I call it {'schema-work'}
@@ -147,6 +156,98 @@ Feature: Starting work with an agent, a mode and a credential
     And I choose the agent {'An Agent'}
     Then it says {'The vault holds no credential called a-provider'}
     And nothing was started
+
+  # A missing credential is stored from where it was found missing, by the line the machine names
+  # for its provider, in a terminal there — and then the machine is asked again.
+  Scenario: a missing credential is stored from the start dialog, and starting is asked about again
+    Given the vault holds no credential for what a run would use
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I store the credential from the start
+    Then a terminal runs {'sh -c sokar vault put a-provider'} on the machine
+    When the unlock terminal ends and is put away
+    Then whether work can start is asked again
+
+  # A login prints its page as an OSC 8 link. It is offered to be opened here — never opened by
+  # itself, and never anything but a web address.
+  Scenario: a link the terminal marks is opened in the browser here with a press, and only then
+    Given the vault holds no credential for what a run would use
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I store the credential from the start
+    And the terminal prints a link to {'https://claude.com/cai/oauth/authorize?code=true'}
+    Then nothing was opened in the browser
+    When I open the link to {'https://claude.com/cai/oauth/authorize?code=true'}
+    Then the browser was given {'https://claude.com/cai/oauth/authorize?code=true'}
+
+  Scenario: a link that is not a web address is never offered
+    Given the vault holds no credential for what a run would use
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I store the credential from the start
+    And the terminal prints a link that would run {'file:///usr/bin/xcalc'}
+    Then the terminal offers no link
+
+  # The agent's own login, where it declares one: its page is a link to open here, and its reply
+  # to localhost is forwarded to the machine for as long as the login's terminal is open.
+  Scenario: an agent that declares a login is logged in from the start, its reply forwarded
+    Given the vault holds no credential for what a run would use
+    And the agent {'an-agent'} logs in by its own login
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I log in with the agent from the start
+    Then a terminal runs {'sokar vault login --agent an-agent'} on the machine
+    When the login prints its page {'https://claude.com/cai/oauth/authorize'} and its reply port {'42017'}
+    Then the reply port {'42017'} is forwarded
+    And nothing was opened in the browser
+    When I open the link to {'https://claude.com/cai/oauth/authorize'}
+    Then the browser was given {'https://claude.com/cai/oauth/authorize'}
+    When the unlock terminal ends and is put away
+    Then the reply forward is taken down
+    And whether work can start is asked again
+
+  Scenario: an agent that declares no login is not offered one
+    Given the vault holds no credential for what a run would use
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    Then logging in is not offered
+
+  Scenario: the credential is stored by the command the readiness answer names
+    Given starting says the credential is stored by {'sokar vault put a-provider'}
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I store the credential from the start
+    Then a terminal runs {'sokar vault put a-provider'} on the machine
+
+  # Asked behind an open dialog nobody awaits: a failure let through there reaches nobody but the
+  # console, and the dialog sits as if it had asked nothing.
+  Scenario: a machine that fails to say whether work can start is said in the dialog
+    Given the machine fails to say whether work can start, with {'the vault could not be read'}
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    Then it says {'The machine could not say whether work can start: the vault could not be read'}
+
+  # Choosing to work by hand is choosing to be in the work: once it is up, its session opens,
+  # rather than a log of the start somebody then has to leave to find the work.
+  Scenario: work started to be driven by hand opens its session once it is up
+    When I start work in this project
+    And I call it {'schema-work'}
+    And I choose the agent {'An Agent'}
+    And I choose {'A shell, driven by hand'}
+    And I start it
+    And the start brings up {'sokar-checkout-schema-work'} in {'checkout'}, running {'SHELL'}
+    Then the session on screen is {'sokar-checkout-schema-work'}
+
+  # An unattended run has nobody at it: its log is what there is to watch.
+  Scenario: an unattended run opens no session when it is up
+    When I start work in this project
+    And I call it {'nightly'}
+    And I choose the agent {'An Agent'}
+    And I choose {'Unattended, against a prompt'}
+    And I ask it to {'run the tests'}
+    And I start it
+    And the start brings up {'sokar-checkout-nightly'} in {'checkout'}, running {'UNATTENDED'}
+    Then no session was opened
 
   Scenario: a locked vault is a different sentence, and points at the machine
     Given the vault is locked

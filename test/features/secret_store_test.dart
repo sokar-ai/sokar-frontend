@@ -31,6 +31,8 @@ import './step/the_machine_is_a_socket_somebody_else_forwards.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_unavailable_because.dart';
 import './step/the_machine_has_no_store_yet.dart';
+import './step/it_does_not_say.dart';
+import './step/the_lock_does_not_show_an_open_store.dart';
 import './step/i_make_it_here_with_a_passphrase.dart';
 
 void main() {
@@ -159,6 +161,16 @@ void main() {
       await iOpenTheStoreWithItsPassphraseFromTheLock(tester);
       await aTerminalRunsOnTheMachine(
           tester, 'ssh -t michi@vm sokar vault init');
+    });
+    testWidgets(
+        '''a machine with no store does not say one is open and empty''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasNoStoreYet(tester);
+      await iShowTheProtectedStore(tester);
+      await itSays(tester, 'There is no store yet');
+      await itDoesNotSay(tester, 'It is open and holds nothing');
+      await theLockDoesNotShowAnOpenStore(tester);
     });
     testWidgets(
         '''the store's own view makes one where there is none, and asks the machine afterwards''',

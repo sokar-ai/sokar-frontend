@@ -41,8 +41,10 @@ class VaultDevices extends ChangeNotifier {
   /// Stamps each question, so an answer to an older one is never drawn over a newer one.
   int _asked = 0;
 
-  /// Whether this device holds a key for the machine last looked at.
-  bool get enrolledHere => mine != null;
+  /// Whether this device holds a key for the machine last looked at **that the machine still has a
+  /// slot for**. A vault made again keeps the node and loses every device, so a key kept here can
+  /// outlive the slot it opened — and sending it only earns a refusal nobody can act on.
+  bool get enrolledHere => mine != null && slots.any((each) => each.id == mine!.slot);
 
   /// Reads the machine's keyslots and this device's key for it.
   Future<void> look(FleetBackend backend) => _ask((mine) async {

@@ -16,6 +16,7 @@ import 'host_key_dialog.dart';
 import 'new_machine.dart';
 import 'choice_field.dart';
 import 'tokens.dart';
+import 'dialog_scroll.dart';
 
 /// What one machine says about itself: the kind of way in, and whether it is a second way in to
 /// a node already listed. **That is asked, not worked out**: a hostname has many spellings, and a
@@ -333,7 +334,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
             : 'Watch ${_name.text.trim()}'),
         content: SizedBox(
           width: 560,
-          child: SingleChildScrollView(
+          child: DialogScroll(
             controller: _scroll,
             child: Column(
               mainAxisSize: MainAxisSize.min,

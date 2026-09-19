@@ -9,8 +9,9 @@ Feature: Opening the store with an enrolled device, never with a passphrase
     And the app is running
     And I go to the work
 
-  Scenario: a device that is not enrolled is offered enrolling, beside the lock
-    Then enrolling says {'This device cannot open the store yet. Enroll it so it can.'}
+  Scenario: a device that is not enrolled is offered enrolling in the machine's menu, not in the title
+    Then enrolling is offered in the machine's menu
+    And the title bar carries no enrolling
     And the store's lock says {'The store is open. Shut it.'}
 
   Scenario: enrolling keeps a key here and the machine lists this device
@@ -20,7 +21,7 @@ Feature: Opening the store with an enrolled device, never with a passphrase
     And I show the protected store
     Then it says {'laptop — this device'}
     And this device keeps the key the machine was given
-    And enrolling is not offered
+    And enrolling is unavailable in the machine's menu because {'enrolled already'}
 
   Scenario: before a device is enrolled, it says what its key is kept in
     When I begin enrolling this device
@@ -34,12 +35,20 @@ Feature: Opening the store with an enrolled device, never with a passphrase
 
   # On a machine whose socket somebody else forwards: nothing here can reach its sokar, so there is
   # no terminal to open it in either, and the lock can only say where it is opened.
+  # A vault made again keeps the node and loses its devices: a key kept here for the old one is not
+  # an enrollment, and the lock must not send it.
+  Scenario: a key kept for a slot the machine no longer has is not taken for an enrollment
+    Given the store is shut
+    And this device keeps a key the machine no longer has a slot for
+    Then the store's lock says {'Shut. Open it with its passphrase, in a terminal on the machine'}
+    And enrolling is unavailable in the machine's menu because {'the store is shut'}
+
   Scenario: a shut store and a device that is not enrolled say where it is opened instead
     Given the store is shut
     And the machine is a socket somebody else forwards
     Then the store's lock says {'The store is shut, and this device is not enrolled. Unlock it at the machine with `sokar vault unlock`, then enroll this device.'}
     And the store's lock does nothing
-    And enrolling says {'Enrolling needs the store open. Unlock it at the machine with `sokar vault unlock` first.'}
+    And enrolling is unavailable in the machine's menu because {'the store is shut'}
 
   # No default length: a bound that crept in would decide how often somebody is asked, and so would
   # its absence. Opening is refused until a length is chosen.
@@ -85,7 +94,7 @@ Feature: Opening the store with an enrolled device, never with a passphrase
     And I show the protected store
     And I revoke {'laptop'}
     Then this device keeps no key for the machine
-    And enrolling says {'This device cannot open the store yet. Enroll it so it can.'}
+    And enrolling is offered in the machine's menu
 
   # The way in when every device is gone. Revoking it from a window that may have lost its devices
   # is not offered; it is changed at the machine.
@@ -97,7 +106,7 @@ Feature: Opening the store with an enrolled device, never with a passphrase
   Scenario: a machine whose Sokar predates devices has the lock, and says why not enrolling
     Given the machine cannot enroll devices yet
     Then the store's lock says {'The store is open. Shut it.'}
-    And enrolling is not offered
+    And enrolling is unavailable in the machine's menu because {'cannot enroll devices yet'}
     When I show the protected store
     Then it says {'that arrives with Sokar B60'}
 

@@ -674,7 +674,7 @@ void main() {
       await iGoToTheNextStep(tester);
       await iSetItUpAndConnect(tester);
       await iWatchTheNewMachineThenSetUpHowItConnectsOut(tester);
-      await itSays(tester, 'How the build machine connects out');
+      await itSays(tester, 'Connections — how the build machine connects out');
       await addingAConnectionIsOffered(tester);
     });
   });

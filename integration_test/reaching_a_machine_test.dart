@@ -22,12 +22,21 @@ import './step/the_interface_says_it_is_following_it.dart';
 import './step/the_machine_lists_as_followed_unverified_with_its_repositories_and_their_limits.dart';
 import './step/i_stop_following_from_the_interface.dart';
 import './step/the_machine_no_longer_lists.dart';
-import './step/i_declare_a_token_connection_for_from_the_interface.dart';
-import './step/the_machine_lists_the_connection_as_a_token_in_the_vault.dart';
-import './step/the_credential_check_for_names.dart';
+import './step/i_check_a_token_for_in_the_wizard_and_leave_it.dart';
+import './step/the_wizards_check_was_answered_by_the_machine.dart';
+import './step/the_machine_no_longer_lists_the_connection.dart';
+import './step/the_test_machine_has_an_ssh_key_of_its_own.dart';
+import './step/i_declare_the_machines_own_key_for_from_the_interface.dart';
+import './step/the_machine_lists_the_connection_as_the_key_it_has.dart';
 import './step/i_forget_the_connection_from_the_interface.dart';
 import './step/the_interface_says_what_still_holds_its_value.dart';
-import './step/the_machine_no_longer_lists_the_connection.dart';
+import './step/the_test_machine_has_never_met.dart';
+import './step/the_test_machine_connects_to_with_its_own_key.dart';
+import './step/i_follow_as_from_the_interface_unverified.dart';
+import './step/the_interface_shows_the_keys_of_with.dart';
+import './step/i_trust_from_the_interface.dart';
+import './step/the_machine_knows_by_the_key.dart';
+import './step/the_connection_is_forgotten_again.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -93,21 +102,48 @@ void main() {
       await theMachineNoLongerLists(tester, 'e2e-follow');
     });
     testWidgets(
-        '''a connection is declared, listed, checked and forgotten on the real machine''',
+        '''a token is checked by the real machine, and leaving writes nothing''',
         (tester) async {
       await bddSetUp(tester);
       await theTestMachineIsBeingWatched(tester);
-      await iDeclareATokenConnectionForFromTheInterface(
+      await iCheckATokenForInTheWizardAndLeaveIt(
           tester, 'https://e2e.invalid/');
-      await theMachineListsTheConnectionAsATokenInTheVault(
-          tester, 'https://e2e.invalid/');
-      await theCredentialCheckForNames(
-          tester, 'https://e2e.invalid/repo.git', 'https://e2e.invalid/');
-      await iForgetTheConnectionFromTheInterface(
-          tester, 'https://e2e.invalid/');
-      await theInterfaceSaysWhatStillHoldsItsValue(tester);
+      await theWizardsCheckWasAnsweredByTheMachine(tester);
       await theMachineNoLongerListsTheConnection(
           tester, 'https://e2e.invalid/');
+    });
+    testWidgets(
+        '''a key the machine has is picked from its list and declared where it lies''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theTestMachineIsBeingWatched(tester);
+      await theTestMachineHasAnSshKeyOfItsOwn(tester, 'id_e2e');
+      await iDeclareTheMachinesOwnKeyForFromTheInterface(
+          tester, 'ssh://e2e.invalid/');
+      await theMachineListsTheConnectionAsTheKeyItHas(
+          tester, 'ssh://e2e.invalid/');
+      await iForgetTheConnectionFromTheInterface(tester, 'ssh://e2e.invalid/');
+      await theInterfaceSaysWhatStillHoldsItsValue(tester);
+      await theMachineNoLongerListsTheConnection(tester, 'ssh://e2e.invalid/');
+    });
+    testWidgets(
+        '''a host never met is trusted from the follow, by the key its owner publishes''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theTestMachineIsBeingWatched(tester);
+      await theTestMachineHasNeverMet(tester, 'github.com');
+      await theTestMachineHasAnSshKeyOfItsOwn(tester, 'id_e2e');
+      await theTestMachineConnectsToWithItsOwnKey(tester, 'ssh://github.com/');
+      await iFollowAsFromTheInterfaceUnverified(
+          tester, 'git@github.com:sokar-ai/sokar-project.git', 'e2e-hostkey');
+      await theInterfaceShowsTheKeysOfWith(tester, 'github.com',
+          'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU');
+      await iTrustFromTheInterface(
+          tester, 'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU');
+      await theMachineKnowsByTheKey(tester, 'github.com',
+          'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU');
+      await theMachineNoLongerLists(tester, 'e2e-hostkey');
+      await theConnectionIsForgottenAgain(tester, 'ssh://github.com/');
     });
   });
 }

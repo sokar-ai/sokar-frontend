@@ -66,7 +66,19 @@ void main() {
     expect(vault.whyNot(VaultAct.enroll), contains('shut'));
     expect(vault.lockWorks, isFalse, reason: 'a device that is not enrolled opened a shut store');
 
-    vault.devices.mine = const DeviceKey(slot: 'slot-1', share: 's');
+    // Enrolled means the machine lists the slot this key opens, not only that a key is kept here.
+    vault.devices
+      ..mine = const DeviceKey(slot: 'slot-1', share: 's')
+      ..slots = const <Keyslot>[
+        Keyslot(
+            id: 'slot-1',
+            name: 'laptop',
+            storage: KeyslotStorage('USER_SCOPED'),
+            enrolled: '',
+            lastUsed: '',
+            self: false,
+            recovery: false),
+      ];
     expect(vault.offersEnrolling, isFalse);
     expect(vault.lockDoes, VaultAct.open);
     expect(vault.lockWorks, isTrue);

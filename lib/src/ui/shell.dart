@@ -46,6 +46,7 @@ import 'agents_view.dart';
 import 'authentication_view.dart';
 import 'backups_view.dart';
 import 'emergency_stop_view.dart';
+import 'connection_wizard.dart';
 import 'connections_view.dart';
 import 'pick_a_file.dart';
 import 'project_following_view.dart';
@@ -500,17 +501,63 @@ class _ShellState extends State<Shell> {
     await widget.connections.lookAt(_fleet.backend, widget.machines.current.name);
   }
 
-  /// Asks what to declare, and declares it; its value is stored next, in the view.
+  /// Asks step by step what to declare, declares it, and brings its value to the machine the way
+  /// the wizard settled on. What stays on the view afterwards is the way to try the value again.
   Future<void> _addAConnection({String match = ''}) async {
-    final asked = await askForAConnection(context, match: match);
+    final backend = _fleet.backend;
+    final asked = await askForAConnection(
+      context,
+      match: match,
+      keys: backend.sshKeys,
+      check: (asked) => backend.credentialDeclare(
+          kind: asked.kind,
+          match: asked.match,
+          id: asked.id,
+          user: asked.user,
+          purpose: asked.purpose,
+          source: asked.source,
+          fromFile: asked.fromFile,
+          dryRun: true),
+      pick: widget.pickAFile,
+      keysAt: widget.machines.setup.sshDirectory,
+      makeTheVault: _canUnlockHere ? _makeTheVault : null,
+      openTheVault: _canUnlockHere ? _unlockHere : null,
+    );
     if (asked == null || !mounted) return;
-    await widget.connections.declare(_fleet.backend,
+    await widget.connections.declare(backend,
         kind: asked.kind,
         match: asked.match,
         id: asked.id,
         user: asked.user,
         purpose: asked.purpose,
-        source: asked.source);
+        source: asked.source,
+        fromFile: asked.fromFile);
+    if (!mounted || widget.connections.declared == null) return;
+    switch (asked.storing) {
+      case Storing.nothing:
+        break;
+      case Storing.sendTheKey:
+        final refused = await _sendAKey(pasted: asked.key);
+        if (refused != null) _fleet.say(refused);
+      case Storing.onTheMachine:
+        await _storeOnTheMachine();
+      case Storing.inATerminal:
+        await _storeInATerminal();
+    }
+  }
+
+  /// Runs the declared store command on the machine, which reads the value from its own disk.
+  Future<void> _storeOnTheMachine() async {
+    final declared = widget.connections.declared;
+    final machine = widget.machines.current;
+    final command = declared == null ? null : onTheMachine(machine, declared.storeCommand, terminal: false);
+    if (command == null) return;
+    final failed = await widget.machines.setup.storeOnTheMachine(command, '');
+    if (!mounted) return;
+    _fleet.say(failed == null
+        ? 'The key for ${declared!.connection.match} is in the vault on ${machine.name}.'
+        : 'Copying the key into the vault did not work: $failed');
+    if (failed == null) await widget.connections.lookAt(_fleet.backend, machine.name);
   }
 
   /// Sets up a connection for the address being followed, in the machine's connections — where its
@@ -559,7 +606,7 @@ class _ShellState extends State<Shell> {
 
   /// Sends a key to the declared store command on its standard input: a file of this computer's,
   /// read at the moment it is sent, or what was pasted. Held for that moment and nowhere after.
-  /// Sends a key to the machine, answering why nothing was stored — or null once it was.
+  /// Answers why nothing was stored, or null once it was.
   Future<String?> _sendAKey({String? file, String? pasted}) async {
     final declared = widget.connections.declared;
     final machine = widget.machines.current;
@@ -812,8 +859,8 @@ class _ShellState extends State<Shell> {
   Future<void> _startFromTemplate(Template job) async {
     final project = _fleet.selectedProject?.project;
     if (project == null) return;
-    await widget.starting.openFrom(_fleet.backend, project, job);
-    if (!mounted) return;
+    // Open at once and read behind it: waiting for the machine first left the press unanswered.
+    unawaited(widget.starting.openFrom(_fleet.backend, project, job));
     await _offerToStart();
   }
 
@@ -821,8 +868,8 @@ class _ShellState extends State<Shell> {
   Future<void> _startWork() async {
     final project = _fleet.selectedProject?.project;
     if (project == null) return;
-    await widget.starting.open(_fleet.backend, project);
-    if (!mounted) return;
+    // Open at once and read behind it: waiting for the machine first left the press unanswered.
+    unawaited(widget.starting.open(_fleet.backend, project));
     await _offerToStart();
   }
 
@@ -831,8 +878,7 @@ class _ShellState extends State<Shell> {
     final task = work ?? _fleet.selectedTask;
     final project = (task == null ? null : _projectOf(task))?.project ?? _fleet.selectedProject?.project;
     if (task == null || project == null) return;
-    await widget.starting.continueFrom(_fleet.backend, project, task);
-    if (!mounted) return;
+    unawaited(widget.starting.continueFrom(_fleet.backend, project, task));
     await _offerToStart();
   }
 
@@ -842,8 +888,75 @@ class _ShellState extends State<Shell> {
       starting: widget.starting,
       onStart: _beginTheRun,
       onKeep: _keepAsTemplate,
+      onStoreTheCredential:
+          onTheMachineAsWritten(widget.machines.current, 'sokar') == null ? null : _storeTheCredentialToStart,
+      onLogIn: onTheMachineAsWritten(widget.machines.current, 'sokar') == null ? null : _logInWithTheAgent,
     );
     widget.starting.close();
+  }
+
+  /// Stores the credential starting said is missing, by the line the machine names for its
+  /// provider, in a terminal there — then asks the machine again whether work can start.
+  Future<void> _storeTheCredentialToStart() async {
+    final readiness = widget.starting.readiness;
+    final machine = widget.machines.current;
+    if (readiness == null) return;
+    // The machine's own command, as arguments, where it gives one.
+    final named = onTheMachine(machine, readiness.storeCommand, terminal: true);
+    if (named != null) {
+      await runInATerminal(context,
+          title: 'Store ${readiness.credential.isEmpty ? 'the credential' : readiness.credential}',
+          explanation: 'Type or paste it into the terminal. It goes straight to the machine and never '
+              'through this program, and nothing here keeps it.',
+          machine: machine,
+          command: named,
+          open: widget.sessions.openTerminal);
+      if (!mounted) return;
+      await widget.starting.askAgain();
+      return;
+    }
+    // A Sokar older than the field: the provider's line, run as the machine wrote it.
+    final providers = await _fleet.backend.providers();
+    final provider = providers.providers.where((each) => each.name == readiness.provider).firstOrNull;
+    final command = provider == null ? null : onTheMachineAsWritten(machine, provider.storeCommand);
+    if (!mounted) return;
+    if (command == null) {
+      _fleet.say('The machine names no way to store a credential for ${readiness.provider}.');
+      return;
+    }
+    await runInATerminal(context,
+        title: 'Store the credential for ${provider!.label.isEmpty ? provider.name : provider.label}',
+        explanation: 'Type or paste it into the terminal. It goes straight to the machine and never '
+            'through this program, and nothing here keeps it.',
+        machine: machine,
+        command: command,
+        open: widget.sessions.openTerminal);
+    if (!mounted) return;
+    await widget.starting.askAgain();
+  }
+
+  /// Runs [agent]'s own login on the machine, through Sokar, in a terminal there: its page is offered
+  /// as a link to open here, and its reply to `localhost` is forwarded while the terminal is open.
+  /// Then asks the machine again whether work can start.
+  Future<void> _logInWithTheAgent(Agent agent) async {
+    final machine = widget.machines.current;
+    // The machine's own command; spelled here only for a Sokar that declared a login before it named one.
+    final command = onTheMachine(
+        machine,
+        agent.loginCommand.isNotEmpty ? agent.loginCommand : <String>['sokar', 'vault', 'login', agent.name],
+        terminal: true);
+    if (command == null) return;
+    await runInATerminal(context,
+        title: 'Log in with ${agent.label.isEmpty ? agent.name : agent.label}',
+        explanation: 'This runs the agent’s own login on ${machine.name}. Open the page it offers '
+            'below in your browser and sign in there; the reply comes back here and is forwarded '
+            'to the machine. The credential goes into the vault there, and never through this program.',
+        machine: machine,
+        command: command,
+        open: widget.sessions.openTerminal,
+        forwardsALoginReply: true);
+    if (!mounted) return;
+    await widget.starting.askAgain();
   }
 
   /// Keeps what is on screen as a recurring job.
@@ -855,12 +968,43 @@ class _ShellState extends State<Shell> {
 
   /// Runs it, and hands the stream to the session record rather than to this view.
   void _beginTheRun() {
+    final starting = widget.starting;
+    final project = starting.project?.name ?? '';
+    final named = starting.name.trim();
+    // Somebody who chose to work by hand is taken into the work once it is up, not left at a log.
+    final byHand = starting.mode == Mode.shell || starting.mode == Mode.agent;
+    final runningBefore = <String>{
+      for (final task in _fleet.tasks)
+        if (task.project == project && task.running) task.name,
+    };
     final operation = widget.operations.run(
-      title: widget.starting.title,
+      title: starting.title,
       machine: widget.machines.current.name,
-      output: widget.starting.begin(_fleet.backend),
+      output: starting.begin(_fleet.backend),
     );
     widget.shell.openOperation(operation.id);
+    if (byHand) unawaited(_workInItOnceUp(operation, project, named, runningBefore));
+  }
+
+  /// Opens the session on the work a start brought up, once the start has finished well: the one
+  /// of the name it was given, or else the one of that project that was not running before.
+  Future<void> _workInItOnceUp(Operation operation, String project, String named, Set<String> runningBefore) async {
+    final ended = Completer<void>();
+    void check() {
+      if (!operation.running && !ended.isCompleted) ended.complete();
+    }
+
+    widget.operations.addListener(check);
+    check();
+    await ended.future;
+    widget.operations.removeListener(check);
+    if (!mounted || operation.failed) return;
+    await _fleet.refresh(quietly: true);
+    if (!mounted) return;
+    final up = _fleet.tasks.where((task) => task.project == project && task.running).toList();
+    final task = (named.isEmpty ? null : up.where((each) => each.task == named).firstOrNull) ??
+        up.where((each) => !runningBefore.contains(each.name)).firstOrNull;
+    if (task != null) _openSession(task);
   }
 
   /// Changes what running work does with a blocked connection. **It opens nothing.**
@@ -1412,9 +1556,6 @@ class _ShellState extends State<Shell> {
             onLock: fleet.reachability == Reachability.connected
                 ? () => unawaited(_actOnTheVault(widget.vault.lockDoes))
                 : null,
-            onEnroll: fleet.reachability == Reachability.connected
-                ? () => unawaited(_actOnTheVault(VaultAct.enroll))
-                : null,
             onOpenWithThePassphrase:
                 fleet.reachability == Reachability.connected && _canUnlockHere
                     ? () => unawaited(_unlockHere())
@@ -1457,18 +1598,6 @@ class _ShellState extends State<Shell> {
         : widget.templates.forProject(narrowed.name);
     return Column(
       children: <Widget>[
-        if (narrowed != null)
-          ProjectHeader(
-            project: narrowed,
-            muted: widget.notifications.muted.contains(narrowed.name),
-            menu: _projectMenu(narrowed),
-            highlight: highlight,
-            onShown: widget.shell.shown,
-            onSync: (repository) => unawaited(_syncTheUpstream(repository: repository)),
-            onBackups: (repository) => unawaited(_showTheBackups(repository: repository)),
-            onOpens: (repository) => _checkWorkCanStart(repository: repository),
-            onReach: (repository) => unawaited(_openEgress(repository: repository)),
-          ),
         Expanded(
           child: SingleChildScrollView(
             key: const Key('machine-area'),
@@ -1476,6 +1605,21 @@ class _ShellState extends State<Shell> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // Scrolls with the work: a project with many repositories is taller than any window,
+                // and a fixed header that grows pushes the work out of sight. The title bar still
+                // names the project.
+                if (narrowed != null)
+              ProjectHeader(
+                project: narrowed,
+                muted: widget.notifications.muted.contains(narrowed.name),
+                menu: _projectMenu(narrowed),
+                highlight: highlight,
+                onShown: widget.shell.shown,
+                onSync: (repository) => unawaited(_syncTheUpstream(repository: repository)),
+                onBackups: (repository) => unawaited(_showTheBackups(repository: repository)),
+                onOpens: (repository) => _checkWorkCanStart(repository: repository),
+                onReach: (repository) => unawaited(_openEgress(repository: repository)),
+              ),
                 if (projects.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: Space.small),
@@ -1673,6 +1817,7 @@ class _ShellState extends State<Shell> {
           onDone: (taken) => unawaited(_doneFollowing(taken)),
           onUnlockHere: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
           onSetUpItsConnection: () => unawaited(_setUpTheConnectionOfTheFollow()),
+          onShowItsConnection: () => unawaited(_showConnections()),
           onStoreInATerminal: _storesHere ? () => unawaited(_storeWhatTheCheckNamed()) : null,
         );
       case OperationsOpened():

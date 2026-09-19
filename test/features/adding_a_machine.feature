@@ -458,6 +458,6 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I go to the next step
     And I set it up and connect
     And I watch the new machine, then set up how it connects out
-    Then it says {'How the build machine connects out'}
+    Then it says {'Connections — how the build machine connects out'}
     And adding a connection is offered
 

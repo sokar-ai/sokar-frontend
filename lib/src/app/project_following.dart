@@ -45,13 +45,16 @@ class ProjectFollowing extends ChangeNotifier {
 
   FleetBackend? _backend;
 
-  /// Opens it empty, for [backend]'s machine.
+  /// Opens it for [backend]'s machine — keeping what was typed for that machine until it is followed
+  /// or left, since setting up its connection is a detour away from here and back.
   void startOn(FleetBackend backend) {
+    if (!identical(backend, _backend)) {
+      name = '';
+      url = '';
+      checking = null;
+      key = '';
+    }
     _backend = backend;
-    name = '';
-    url = '';
-    checking = null;
-    key = '';
     answer = null;
     check = null;
     problem = null;
@@ -64,6 +67,7 @@ class ProjectFollowing extends ChangeNotifier {
     answer = null;
     check = null;
     problem = null;
+    hostKeyRefused = null;
     notifyListeners();
   }
 
@@ -127,11 +131,48 @@ class ProjectFollowing extends ChangeNotifier {
     }
   }
 
+  /// Whether the answer is a host key a person has to decide about — which following again cannot.
+  bool get waitsOnAHostKey => const <String>{'UNKNOWN_HOST_KEY', 'HOST_KEY_CHANGED'}.contains(answer?.outcome);
+
+  /// What trusting a host key answered when it recorded nothing — the host no longer offered the
+  /// key that was confirmed — or null.
+  String? hostKeyRefused;
+
+  /// Trusts the one key of the host the follow named that a person confirmed, then follows again
+  /// with nothing retyped. The host is the machine's, from the refusal, never read off the URL.
+  Future<void> trustAndFollowAgain(String fingerprint) async {
+    final backend = _backend;
+    final host = answer?.host ?? '';
+    if (backend == null || host.isEmpty) return;
+    busy = true;
+    hostKeyRefused = null;
+    notifyListeners();
+    try {
+      final trusted = await backend.trustHostKey(host, fingerprint);
+      if (!trusted.recorded) {
+        hostKeyRefused = trusted.detail.isEmpty ? 'Nothing was recorded.' : trusted.detail;
+        return;
+      }
+    } on VarlinkException catch (refusal) {
+      final said = refusal.parameters['message'];
+      hostKeyRefused = said is String && said.isNotEmpty ? said : 'Refused: ${refusal.simpleName}.';
+      return;
+    } on FeatureNotSupported catch (ex) {
+      hostKeyRefused = '$ex';
+      return;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+    await follow();
+  }
+
   /// What the check found, in one line, before the machine's own sentence.
   String get checkWords => switch (check?.outcome) {
         'NO_CREDENTIAL' => 'Nothing on this machine is set up to reach this address.',
         'VAULT_LOCKED' => 'The credential for this address is in the vault, and the vault is shut.',
         'MISSING_VALUE' => 'A connection for this address is set up, and its value is not there.',
+        'UNUSABLE_VALUE' => 'A connection for this address is set up, and its value cannot be used.',
         'EXPIRED' => 'The token for this address has expired.',
         null => '',
         final other => other.toLowerCase().replaceAll('_', ' '),

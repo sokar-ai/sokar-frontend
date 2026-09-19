@@ -149,3 +149,21 @@ Future<void> choose(WidgetTester tester, String field, String choice) async {
   expect(chosen.choices.where((each) => each.value == chosen.value).map((each) => each.id), [choice],
       reason: 'choosing $choice in $field');
 }
+
+/// Opens the connection wizard for the test machine, from its menu, once the machine has answered.
+Future<void> openTheConnectionWizard(WidgetTester tester) async {
+  await switchTo(tester, E2e.name);
+  await tester.tap(find.byKey(const Key('machine-menu')).first);
+  await pumpFor(tester);
+  await tester.tap(find.text('Connections — how this machine connects out').last);
+  // Drawn while the machine is still being asked, and only pressable once it has answered.
+  await pumpUntil(
+      tester,
+      () =>
+          find.byKey(const Key('add-connection')).evaluate().isNotEmpty &&
+          tester.widget<ButtonStyleButton>(find.byKey(const Key('add-connection'))).onPressed != null,
+      what: 'the connections of the machine, read');
+  await tester.tap(find.byKey(const Key('add-connection')));
+  await pumpUntil(tester, () => find.byKey(const Key('connection-match')).evaluate().isNotEmpty,
+      what: 'the wizard asking what connection to add');
+}

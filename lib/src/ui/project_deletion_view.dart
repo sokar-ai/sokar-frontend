@@ -3,6 +3,7 @@ import 'package:sokar_frontend/client.dart';
 
 import '../app/project_deletion.dart';
 import 'tokens.dart';
+import 'dialog_scroll.dart';
 
 /// Asks before removing what Sokar built for a project, then says what is left.
 ///
@@ -50,7 +51,7 @@ class ProjectDeletionDialog extends StatelessWidget {
                 : 'Stop following ${deleting.project}?'),
             content: SizedBox(
               width: 560,
-              child: SingleChildScrollView(
+              child: DialogScroll(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

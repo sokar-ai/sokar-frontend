@@ -79,7 +79,14 @@ class VaultView extends StatelessWidget {
                   },
                 ),
                 const _Heading(words: 'What it holds'),
-                if (!state.readable)
+                // Readable, because there is nothing to open — which is not an open store.
+                if (!state.exists)
+                  const _Line(
+                    'There is no store yet, so there is nothing in it. It is made at the machine, '
+                    'with a passphrase chosen there.',
+                    id: 'no-store-yet',
+                  )
+                else if (!state.readable)
                   const _Line(
                     'Nothing can be listed while it is shut. That is not the same as it holding '
                     'nothing.',

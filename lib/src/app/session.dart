@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:sokar_frontend/client.dart';
 import 'package:xterm/xterm.dart';
 
+import 'links.dart';
+import 'login_forward.dart';
 import 'machines.dart';
 import 'pty.dart';
 import 'shell_model.dart';
@@ -69,10 +71,12 @@ class Session extends ChangeNotifier {
     int columns = 80,
     int rows = 24,
     this.run,
+    this.forwardsALoginReply = false,
   }) : _open = open ?? Pty.start {
     terminal = Terminal(maxLines: scrollback)
       ..onOutput = _typed
-      ..onResize = _resized;
+      ..onResize = _resized
+      ..onPrivateOSC = _hyperlink;
     _start(columns, rows);
   }
 
@@ -85,6 +89,19 @@ class Session extends ChangeNotifier {
 
   final OpenTerminal _open;
 
+  /// Whether this terminal runs an agent's login, and so may ask for its reply to be forwarded.
+  /// **Only such a terminal**: a work session asking for a port would be a container opening a way
+  /// from this computer into the machine.
+  final bool forwardsALoginReply;
+
+  /// The port a login's reply is forwarded on while this is open, or null.
+  int? forwarded;
+
+  /// Why the login's reply could not be forwarded, or null.
+  String? forwardProblem;
+
+  HeldForward? _forward;
+
   /// A command of its own instead of attaching to [task] — the wizard's `sokar vault init`, typed
   /// into by a person so the passphrase never passes through this program.
   final List<String>? run;
@@ -94,6 +111,42 @@ class Session extends ChangeNotifier {
 
   /// Where it has got to.
   SessionState state = SessionState.opening;
+
+  /// Web addresses the far end marked as links (OSC 8), newest last — offered to be opened here,
+  /// never opened by themselves. An agent's login prints its page this way.
+  final List<Uri> links = <Uri>[];
+
+  /// The machine's `OSC 5379;forward;<port>`: the port its login listens on for the browser's reply.
+  void _forwardTheReply(List<String> arguments) {
+    if (!forwardsALoginReply || arguments.length != 2 || arguments.first != 'forward') return;
+    final port = int.tryParse(arguments.last);
+    // One port, once, and never a privileged one: the login's reply, nothing else.
+    if (port == null || port < 1024 || port > 65535 || forwarded != null || _forward != null) return;
+    forwarded = port;
+    notifyListeners();
+    unawaited(() async {
+      try {
+        final held = await raiseLoginForward(machine, port);
+        if (_gone) {
+          await held.close();
+          return;
+        }
+        _forward = held;
+      } on ForwardRefused catch (refused) {
+        forwarded = null;
+        forwardProblem = refused.words;
+        if (!_gone) notifyListeners();
+      }
+    }());
+  }
+
+  void _hyperlink(String code, List<String> arguments) {
+    if (code == '5379') return _forwardTheReply(arguments);
+    final address = hyperlinkOf(code, arguments);
+    if (address == null || links.contains(address)) return;
+    links.add(address);
+    notifyListeners();
+  }
 
   /// What went wrong, in words. Null while nothing has.
   ///
@@ -145,6 +198,9 @@ class Session extends ChangeNotifier {
     _reading = null;
     final channel = _channel;
     _channel = null;
+    final forward = _forward;
+    _forward = null;
+    await forward?.close();
     await channel?.close();
   }
 
@@ -185,6 +241,10 @@ class Session extends ChangeNotifier {
     // Closing the channel ends the far end, so an exit code arrives *after* somebody has left —
     // by which time this is disposed and notifying would throw into whatever is drawing.
     if (_gone) return;
+    // The login is over, so its reply has nothing left to reach.
+    final forward = _forward;
+    _forward = null;
+    unawaited(forward?.close());
     state = SessionState.over;
     problem = switch (code) {
       0 => null,

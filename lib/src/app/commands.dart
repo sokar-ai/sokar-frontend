@@ -480,7 +480,7 @@ List<Command> machineCommands({
     // What it connects out with is listed with the vault shut too: the list holds no secret.
     Command(
       id: 'machine.connections',
-      label: 'Show how this machine connects out',
+      label: 'Connections — how this machine connects out',
       group: 'Machine',
       home: Home.machineMenu,
       run: showConnections ?? () {},
@@ -737,7 +737,7 @@ List<Command> commandsFor({
     ),
     Command(
       id: 'project.follow',
-      label: 'Follow a repository',
+      label: 'Follow a project',
       group: 'Project',
       home: Home.followRepository,
       run: followARepository,

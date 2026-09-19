@@ -48,11 +48,12 @@ class Connections extends ChangeNotifier {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
   }) async {
     forgotten = null;
     await _asking(() async {
       declared = await backend.credentialDeclare(
-          kind: kind, match: match, id: id, user: user, purpose: purpose, source: source);
+          kind: kind, match: match, id: id, user: user, purpose: purpose, source: source, fromFile: fromFile);
       await _read(backend);
     });
   }
@@ -145,4 +146,16 @@ String? notAPrivateKey(String value) {
   }
   return 'That is not a private key: a private key begins with -----BEGIN … PRIVATE KEY----- '
       'and ends with -----END … PRIVATE KEY-----.';
+}
+
+/// [line], exactly as the machine wrote it, run there by its own shell: over ssh, whose far end
+/// hands one line to the shell, or here with `sh -c`. **Never split here** — a line this end did not
+/// write is not one it may take apart. Null where nothing here reaches that machine.
+List<String>? onTheMachineAsWritten(Machine machine, String line) {
+  if (line.trim().isEmpty) return null;
+  if (machine.needsATunnel) return <String>['ssh', '-t', machine.host, line];
+  if (machine.host.isEmpty && machine.socketPath == Backend.local().socketPath) {
+    return <String>['sh', '-c', line];
+  }
+  return null;
 }

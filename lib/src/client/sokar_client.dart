@@ -164,6 +164,8 @@ class SokarClient {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
+    bool? dryRun,
   }) async =>
       CredentialDeclared.from(await _call('CredentialDeclare', {
         'id': ?id,
@@ -172,6 +174,8 @@ class SokarClient {
         'user': ?user,
         'purpose': ?purpose,
         'source': ?source,
+        'fromFile': ?fromFile,
+        'dryRun': ?dryRun,
       }));
 
   /// Forgets a credential record. The secret stays where it is; the answer says what still holds it.
@@ -182,6 +186,18 @@ class SokarClient {
   Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async =>
       CredentialChecked.from(
           await _call('CredentialCheck', {'url': url, 'purpose': ?purpose}));
+
+  /// Records the one key of [host] a person confirmed, and only if the host still offers it.
+  Future<HostKeyTrusted> trustHostKey(String host, String fingerprint) async => HostKeyTrusted.from(
+      await _call('TrustHostKey', <String, dynamic>{'host': host, 'fingerprint': fingerprint}));
+
+  /// The ssh keys the account already has on the machine, never with a value.
+  Future<List<SshKey>> sshKeys() async {
+    final keys = (await _call('SshKeys', const <String, dynamic>{}))['keys'];
+    return keys is List
+        ? keys.whereType<Map<String, dynamic>>().map(SshKey.from).toList()
+        : const <SshKey>[];
+  }
 
   // --------------------------------------------------------------------- running tasks
 

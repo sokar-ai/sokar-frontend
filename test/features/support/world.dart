@@ -28,6 +28,8 @@ import 'package:sokar_frontend/src/app/authentication.dart';
 import 'package:sokar_frontend/src/app/backups.dart';
 import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
+import 'package:sokar_frontend/src/app/links.dart';
+import 'package:sokar_frontend/src/app/login_forward.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/narrowing.dart';
 import 'package:sokar_frontend/src/app/connections.dart';
@@ -136,11 +138,17 @@ class FakeBackend implements FleetBackend {
   Map<String, String> theAgentsItCannotRead = const <String, String>{};
 
   @override
-  Future<AgentsOnTheMachine> agentsOn() async => (
-        agents: theAgentsItHas,
-        failures: theAgentsItCannotRead,
-        shadowed: theAgentsItNeverUses,
-      );
+  Future<AgentsOnTheMachine> agentsOn() async {
+    if (agentsTake > Duration.zero) await Future<void>.delayed(agentsTake);
+    return (
+      agents: theAgentsItHas,
+      failures: theAgentsItCannotRead,
+      shadowed: theAgentsItNeverUses,
+    );
+  }
+
+  /// How long the machine takes to say which agents it has.
+  Duration agentsTake = Duration.zero;
 
   @override
   String get label => 'mock';
@@ -323,6 +331,12 @@ class FakeBackend implements FleetBackend {
     return nextStart;
   }
 
+  /// Lists [task] as the machine would once a start has brought it up.
+  void bringsUp(Task task) {
+    _tasks = <Task>[for (final each in _tasks) if (each.name != task.name) each, task];
+    _changes.add(_tasks);
+  }
+
   /// [task] with its running state, and what Start would do to it, changed.
   static Task _with(Task task, {required bool running, required String startAction}) =>
       Task.from(<String, dynamic>{
@@ -443,6 +457,9 @@ class FakeBackend implements FleetBackend {
   /// What this machine is configured to connect out with.
   List<Connection> theConnections = <Connection>[];
 
+  /// Files that exist on the machine, which a connection kept in a file finds.
+  Set<String> filesOnTheMachine = <String>{};
+
   /// Every connection declared, as it was asked.
   final List<({String kind, String match, String? id, String? user, String? purpose, String? source})>
       declared = <({String kind, String match, String? id, String? user, String? purpose, String? source})>[];
@@ -466,10 +483,17 @@ class FakeBackend implements FleetBackend {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
+    bool? dryRun,
   }) async {
-    declared.add((kind: kind, match: match, id: id, user: user, purpose: purpose, source: source));
     final where = source ?? 'VAULT';
     final name = id ?? (kind == 'SSH_KEY' ? 'git.ssh.example' : 'git.token.example');
+    if (dryRun == true) {
+      dryRuns.add((kind: kind, match: match, id: id, user: user, purpose: purpose, source: source, fromFile: fromFile));
+      return _wouldDeclare(kind, match, where, name, user, purpose, fromFile);
+    }
+    declared.add((kind: kind, match: match, id: id, user: user, purpose: purpose, source: source));
+    fromFiles.add(fromFile);
     final connection = Connection(
       id: where == 'AGENT' ? '' : name,
       kind: kind,
@@ -478,6 +502,7 @@ class FakeBackend implements FleetBackend {
       purpose: purpose ?? 'git',
       source: where,
       protected: where == 'VAULT',
+      present: where == 'FILE' && _onTheMachine(name),
     );
     final replaced = theConnections.any((each) => each.match == match && each.purpose == connection.purpose);
     theConnections = <Connection>[
@@ -487,9 +512,93 @@ class FakeBackend implements FleetBackend {
     ];
     return CredentialDeclared(
       connection: connection,
-      storeCommand: where == 'VAULT' ? <String>['sokar', 'vault', 'put', name] : const <String>[],
-      storeStdin: where == 'VAULT' && kind == 'SSH_KEY' ? 'the private key file' : '',
+      storeCommand: _storeCommand(kind, where, name, fromFile),
+      storeStdin: where == 'VAULT' && kind == 'SSH_KEY' && fromFile == null ? 'the private key file' : '',
       replaced: replaced,
+      recorded: true,
+    );
+  }
+
+  /// What a dry run asked, in order; nothing of it is recorded.
+  final dryRuns =
+      <({String kind, String match, String? id, String? user, String? purpose, String? source, String? fromFile})>[];
+
+  /// The `fromFile` of each real declaration, in order.
+  final fromFiles = <String?>[];
+
+  /// Variables set on the machine, which a connection kept in one finds.
+  Set<String> variablesOnTheMachine = <String>{};
+
+  /// Who the forge says a key logs in as, by its path, as a dry run answers it.
+  Map<String, String> identities = <String, String>{};
+
+  /// Whether a file is there: one put there by a scenario, or a key the machine lists.
+  bool _onTheMachine(String path) =>
+      filesOnTheMachine.contains(path) || (keysOnTheMachine ?? const <SshKey>[]).any((each) => each.path == path);
+
+  List<String> _storeCommand(String kind, String where, String name, String? fromFile) => where != 'VAULT'
+      ? const <String>[]
+      : <String>[
+          'sokar', 'vault', 'put', name,
+          if (kind == 'TOKEN') ...<String>['--type', 'token'],
+          if (fromFile != null) ...<String>['--from-file', fromFile],
+        ];
+
+  /// Answers a dry run as the machine measured on 2026-09-19: the refusals a declaration owes, a value
+  /// that is not there, and for a key the forge's greeting — nothing written.
+  CredentialDeclared _wouldDeclare(
+      String kind, String match, String where, String name, String? user, String? purpose, String? fromFile) {
+    final overHttps = match.startsWith('https://') || match.startsWith('http://');
+    final present = switch (where) {
+      'FILE' => _onTheMachine(name),
+      'ENVIRONMENT' => variablesOnTheMachine.contains(name),
+      'AGENT' => true,
+      _ => false,
+    };
+    final connection = Connection(
+      id: where == 'AGENT' ? '' : name,
+      kind: kind,
+      match: match,
+      user: user ?? '',
+      purpose: purpose ?? 'any',
+      source: where,
+      protected: where == 'VAULT',
+      present: present,
+    );
+    if (kind == 'SSH_KEY' && overHttps) {
+      return CredentialDeclared(
+          connection: const Connection(),
+          outcome: 'NO_CREDENTIAL',
+          detail: "'$match' is reached over https, which asks for a token or a username and password "
+              'and never for an ssh key. Declare it as token, basic or oauth, or name an ssh address.');
+    }
+    if (where == 'VAULT' && !theStoreIs.exists) {
+      return CredentialDeclared(
+          connection: connection,
+          storeCommand: _storeCommand(kind, where, name, fromFile),
+          outcome: 'NO_VAULT',
+          detail: "this account has no vault yet, so there is nowhere to put '$name'");
+    }
+    if (where == 'VAULT' && !theStoreIs.readable) {
+      return CredentialDeclared(
+          connection: connection,
+          storeCommand: _storeCommand(kind, where, name, fromFile),
+          outcome: 'VAULT_LOCKED',
+          detail: 'the vault is shut, so nothing can be put in it');
+    }
+    if (kind != 'SSH_KEY' && !overHttps) {
+      return CredentialDeclared(
+          connection: const Connection(),
+          outcome: 'NO_CREDENTIAL',
+          detail: "'$match' is reached over ssh, which asks for a key and never for a token or a "
+              'password. Declare it as ssh-key, or name an https address.');
+    }
+    return CredentialDeclared(
+      connection: connection,
+      storeCommand: _storeCommand(kind, where, name, fromFile),
+      outcome: present ? 'READY' : 'MISSING_VALUE',
+      identity: where == 'FILE' ? identities[name] ?? '' : '',
+      detail: present ? 'it would be used for $match' : 'nothing holds its value yet',
     );
   }
 
@@ -506,6 +615,35 @@ class FakeBackend implements FleetBackend {
 
   /// Whether the machine is a Sokar older than the check.
   bool checkIsMissing = false;
+
+  /// A host whose remembered key no longer matches, so a follow is refused as a possible interception.
+  String? changedHost;
+
+  /// The keys of each host this machine trusts, by host, as a person confirmed them.
+  final trustedHostKeys = <String, List<String>>{};
+
+  /// What each host offers right now; a fingerprint not offered is refused, as the machine does.
+  Map<String, List<HostKey>> hostsOffer = <String, List<HostKey>>{};
+
+  @override
+  Future<HostKeyTrusted> trustHostKey(String host, String fingerprint) async {
+    final offered = (hostsOffer[host] ?? const <HostKey>[]).where((each) => each.fingerprint == fingerprint);
+    if (offered.isEmpty) {
+      return HostKeyTrusted(detail: '$host offers no key with that fingerprint right now. Nothing was recorded.');
+    }
+    trustedHostKeys.putIfAbsent(host, () => <String>[]).add(fingerprint);
+    return HostKeyTrusted(recorded: true, type: offered.first.type, fingerprint: fingerprint);
+  }
+
+  /// The keys the machine's account has; null answers as a Sokar older than the method.
+  List<SshKey>? keysOnTheMachine = const <SshKey>[];
+
+  @override
+  Future<List<SshKey>> sshKeys() async {
+    final keys = keysOnTheMachine;
+    if (keys == null) throw const FeatureNotSupported('SshKeys');
+    return keys;
+  }
 
   @override
   Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async {
@@ -536,6 +674,12 @@ class FakeBackend implements FleetBackend {
   /// What the next [canStart] answers. A scenario sets it to produce a locked vault or a missing
   /// credential, neither of which a contrived agent list can produce.
   Readiness? nextReadiness;
+
+  /// How often whether work can start was asked.
+  int canStartAsked = 0;
+
+  /// What the machine says when it fails to answer whether work can start; null while it answers.
+  String? canStartFails;
 
   /// The vault's keyslots, as Sokar B60 proposes them: the recovery passphrase, and every device
   /// enrolled here. Behaves like the node — a share it has seen opens its slot, nothing else does —
@@ -656,6 +800,9 @@ class FakeBackend implements FleetBackend {
 
   @override
   Future<Readiness> canStart({String? project, String? agent, String? task, String? repository}) async {
+    canStartAsked++;
+    final failing = canStartFails;
+    if (failing != null) throw VarlinkException('org.fuin.sokar.Tasks1.Failed', <String, dynamic>{'message': failing});
     if (project != null) mustBeAProject(project);
     askedAboutNames.add(task);
     askedAboutRepositories.add(repository);
@@ -992,9 +1139,19 @@ class FakeBackend implements FleetBackend {
       unverified: unverified == true,
       acceptRewrite: acceptRewrite == true,
     ));
-    final answer = acceptRewrite == true || nextFollow == null
-        ? Followed(name: name, url: url, commit: 'c0ffee1d2e3f', outcome: 'APPLIED')
-        : nextFollow!;
+    final unmet = hostsOffer.keys.where((host) => url.contains(host) && !trustedHostKeys.containsKey(host));
+    // A host never met is refused until a person trusts one of its keys, as the machine does.
+    final answer = unmet.isNotEmpty
+        ? Followed(
+            name: name,
+            url: url,
+            outcome: changedHost == unmet.first ? 'HOST_KEY_CHANGED' : 'UNKNOWN_HOST_KEY',
+            host: unmet.first,
+            hostKeys: hostsOffer[unmet.first]!,
+            needsAPerson: true)
+        : acceptRewrite == true || nextFollow == null
+            ? Followed(name: name, url: url, commit: 'c0ffee1d2e3f', outcome: 'APPLIED')
+            : nextFollow!;
     if (answer.inForce && !theProjectsItHas.any((each) => each.name == name)) {
       theProjectsItHas = <Project>[
         ...theProjectsItHas,
@@ -1519,6 +1676,13 @@ class World {
   /// Where this device keeps the keys that open a vault.
   static late MemoryDeviceKeyStore keys;
 
+  /// Addresses opened in the browser, in order.
+  static final opened = <Uri>[];
+
+  /// Ports a login's reply was forwarded on, and the ones taken down again.
+  static final forwards = <int>[];
+  static final forwardsClosed = <int>[];
+
   /// What `known_hosts` holds, as the machine dialog sees it.
   static late FakeHostKeys hostKeys;
 
@@ -1595,6 +1759,9 @@ class World {
         // Started with enforcement off: nothing will ever be asked about what it reaches.
         _task('sokar-billing-audit', 'billing', helpers: 0, clearance: 'off'),
       ];
+
+  /// A task as the machine lists it, for a step to put on the machine.
+  static Task aTask(String name, String project, {String mode = ''}) => _task(name, project, mode: mode);
 
   // Built from a wire-shaped map on purpose, so a fixture cannot describe a task the contract
   // could not actually deliver.
@@ -1762,6 +1929,15 @@ class World {
     addTearDown(following.dispose);
     connections = Connections();
     pickedFile = null;
+    opened.clear();
+    forwards.clear();
+    forwardsClosed.clear();
+    raiseLoginForward = (machine, port) async {
+      forwards.add(port);
+      return _RecordedForward(() => forwardsClosed.add(port));
+    };
+    // What a press would have opened in the browser, recorded rather than opened.
+    openLink = (address) async => opened.add(address);
     addTearDown(connections.dispose);
     backups = Backups();
     addTearDown(backups.dispose);
@@ -2405,3 +2581,13 @@ Map<String, dynamic> wire(Task task) => <String, dynamic>{
       'phase': task.phase,
       'repository': task.repository,
     };
+
+/// A forward that only records being taken down.
+class _RecordedForward implements HeldForward {
+  _RecordedForward(this._onClose);
+
+  final void Function() _onClose;
+
+  @override
+  Future<void> close() async => _onClose();
+}

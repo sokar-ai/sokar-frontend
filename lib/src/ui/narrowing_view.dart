@@ -4,6 +4,7 @@ import 'package:sokar_frontend/client.dart';
 import '../app/narrowing.dart';
 import 'choice_field.dart';
 import 'tokens.dart';
+import 'dialog_scroll.dart';
 
 /// Takes a name back from work that is already running.
 ///
@@ -71,7 +72,7 @@ class _NarrowingDialogState extends State<NarrowingDialog> {
             title: Text('Take something back from ${task?.name ?? 'this work'}'),
             content: SizedBox(
               width: 540,
-              child: SingleChildScrollView(
+              child: DialogScroll(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

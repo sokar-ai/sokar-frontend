@@ -205,6 +205,8 @@ class _Wedged implements FleetBackend {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
+    bool? dryRun,
   }) async =>
       CredentialDeclared(connection: Connection(kind: kind, match: match));
 
@@ -215,6 +217,12 @@ class _Wedged implements FleetBackend {
   @override
   Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async =>
       const CredentialChecked(outcome: 'READY');
+
+  @override
+  Future<List<SshKey>> sshKeys() async => const <SshKey>[];
+
+  @override
+  Future<HostKeyTrusted> trustHostKey(String host, String fingerprint) async => const HostKeyTrusted();
 
   @override
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async =>
@@ -461,6 +469,8 @@ class _Machine implements FleetBackend {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
+    bool? dryRun,
   }) async =>
       CredentialDeclared(connection: Connection(kind: kind, match: match));
 
@@ -471,6 +481,12 @@ class _Machine implements FleetBackend {
   @override
   Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async =>
       const CredentialChecked(outcome: 'READY');
+
+  @override
+  Future<List<SshKey>> sshKeys() async => const <SshKey>[];
+
+  @override
+  Future<HostKeyTrusted> trustHostKey(String host, String fingerprint) async => const HostKeyTrusted();
 
   @override
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async =>

@@ -157,6 +157,7 @@ class MockMachine {
     daemon.method('CredentialDeclare', _credentialDeclare);
     daemon.method('CredentialForget', _credentialForget);
     daemon.method('CredentialCheck', _credentialCheck);
+    daemon.method('SshKeys', (_) => <String, dynamic>{'keys': _sshKeys});
     daemon.method('Lock', _lock);
     daemon.method('EnrollDevice', _enrollDevice);
     daemon.method('Keyslots', (_) => <String, dynamic>{'slots': _slotListing});
@@ -589,6 +590,57 @@ class MockMachine {
           : "the ${(gone['source'] as String).toLowerCase()} entry ${gone['id']}",
     };
   }
+
+  /// The account's ssh keys, in the four shapes Sokar's own listing showed on 2026-09-19: one it signs
+  /// with, one only ssh itself can use, one behind a passphrase, and a public half with no private.
+  static const List<Map<String, dynamic>> _sshKeys = <Map<String, dynamic>>[
+    <String, dynamic>{
+      'path': '/home/somebody/.ssh/id_ed25519',
+      'type': 'ssh-ed25519',
+      'fingerprint': 'SHA256:q3Xh0mZ7cK2bY9pWfL1eR4tU8vN6sA5dG0jH3iK7oP2',
+      'comment': 'somebody@laptop',
+      'encrypted': false,
+      'privateHalf': true,
+      'usable': true,
+      'found': 'DIRECTORY',
+      'obstacle': '',
+    },
+    <String, dynamic>{
+      'path': '/home/somebody/.ssh/id_rsa',
+      'type': 'ssh-rsa',
+      'fingerprint': 'SHA256:6y8MQv2Lk9Tn4Rb7Wc1Xd5Ze3Af0Bg8Ch6Di2Ej9Fk4',
+      'comment': 'old@thing',
+      'encrypted': false,
+      'privateHalf': true,
+      'usable': false,
+      'found': 'DIRECTORY',
+      'obstacle': 'this machine signs with Ed25519 and this is ssh-rsa; it can still be used where '
+          'it lies, by ssh itself',
+    },
+    <String, dynamic>{
+      'path': '/srv/keys/id_work',
+      'type': 'ssh-ed25519',
+      'fingerprint': 'SHA256:5dtfO1pQ8rS3tU6vW9xY2zA5bC8dE1fG4hI7jK0lM3n',
+      'comment': 'locked@company',
+      'encrypted': true,
+      'privateHalf': true,
+      'usable': false,
+      'found': 'CONFIGURED',
+      'obstacle': "a passphrase protects it, and nothing here can ask for one. Use it where it lies, "
+          "or store a copy without a passphrase: 'ssh-keygen -p -f /srv/keys/id_work'",
+    },
+    <String, dynamic>{
+      'path': '/home/somebody/.ssh/company_key',
+      'type': 'ssh-ed25519',
+      'fingerprint': 'SHA256:MNa4pQ7rS0tU3vW6xY9zA2bC5dE8fG1hI4jK7lM0nO3',
+      'comment': 'company@forge',
+      'encrypted': false,
+      'privateHalf': false,
+      'usable': false,
+      'found': 'DIRECTORY',
+      'obstacle': 'only the public half is here; the private key is what a machine signs with',
+    },
+  ];
 
   /// Which record an address would use, the longest match winning, and whether it would work.
   Map<String, dynamic> _credentialCheck(Map<String, dynamic> parameters) {

@@ -5,17 +5,15 @@ import '../app/vault.dart';
 import '../app/vault_devices.dart';
 import 'choice_field.dart';
 import 'tokens.dart';
-import 'window_size.dart';
 
 /// The vault's controls in the machine's title, beside the emergency stop: a lock that shows
-/// whether the store is open and opens or shuts it, and — **only while this device is not
-/// enrolled** — the button that enrolls it, filled so it is not missed.
+/// whether the store is open and opens or shuts it. **Enrolling this device is in the machine's
+/// menu**, not here: beside the lock it read as a task left undone on every machine.
 class VaultButtons extends StatelessWidget {
   /// Constructor taking the vault and what pressing each does.
   const VaultButtons({
     required this.vault,
     required this.onLock,
-    required this.onEnroll,
     this.onOpenWithThePassphrase,
     this.onMakeIt,
     super.key,
@@ -26,9 +24,6 @@ class VaultButtons extends StatelessWidget {
 
   /// Opens or shuts the store; null while the machine is not answering.
   final VoidCallback? onLock;
-
-  /// Enrolls this device; null while the machine is not answering.
-  final VoidCallback? onEnroll;
 
   /// Opens the store by its passphrase in a terminal on the machine; null where nothing here can
   /// reach that machine's `sokar`, or while it is not answering.
@@ -49,7 +44,6 @@ class VaultButtons extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (vault.offersEnrolling) _enroll(context),
         Tooltip(
           message: make != null
               ? 'There is no protected store here yet. Make one, with a passphrase, in a terminal '
@@ -60,7 +54,13 @@ class VaultButtons extends StatelessWidget {
           child: IconButton(
             key: const Key('vault-act'),
             onPressed: make ?? (vault.lockWorks ? onLock : byPassphrase),
-            icon: Icon(open ? Icons.lock_open_outlined : Icons.lock_outline,
+            // No store answers readable, and an open lock over nothing would claim one is open.
+            icon: Icon(
+                vault.missing
+                    ? Icons.enhanced_encryption_outlined
+                    : open
+                        ? Icons.lock_open_outlined
+                        : Icons.lock_outline,
                 size: Sizes.rowIcon),
             visualDensity: VisualDensity.compact,
           ),
@@ -69,27 +69,6 @@ class VaultButtons extends StatelessWidget {
     );
   }
 
-  Widget _enroll(BuildContext context) {
-    const key = Key('vault-enroll');
-    const icon = Icon(Icons.add_moderator_outlined, size: Sizes.rowIcon);
-    final pressed = vault.whyNot(VaultAct.enroll) == null ? onEnroll : null;
-    return Tooltip(
-      message: vault.enrollSays,
-      child: WindowSize.fromContext(context).statusLineShowsLabels
-          ? FilledButton.tonalIcon(
-              key: key,
-              onPressed: pressed,
-              icon: icon,
-              label: const Text('Enroll this device'),
-            )
-          : IconButton.filledTonal(
-              key: key,
-              onPressed: pressed,
-              icon: icon,
-              visualDensity: VisualDensity.compact,
-            ),
-    );
-  }
 }
 
 /// Asks, does it, then says what happened **in the same dialog**, like the emergency stop: an

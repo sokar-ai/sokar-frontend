@@ -90,6 +90,15 @@ Feature: Seeing and shutting the secret store, without showing a value
     When I open the store with its passphrase from the lock
     Then a terminal runs {'ssh -t michi@vm sokar vault init'} on the machine
 
+  # A store that is not there answers readable, because there is nothing to open. That is not an
+  # open store, and saying so would send somebody looking for a store that does not exist.
+  Scenario: a machine with no store does not say one is open and empty
+    Given the machine has no store yet
+    When I show the protected store
+    Then it says {'There is no store yet'}
+    And it does not say {'It is open and holds nothing'}
+    And the lock does not show an open store
+
   Scenario: the store's own view makes one where there is none, and asks the machine afterwards
     Given the machine has no store yet
     When I show the protected store

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
@@ -5,6 +7,8 @@ import '../app/start_work.dart';
 import '../app/templates.dart';
 import 'choice_field.dart';
 import 'tokens.dart';
+import 'dialog_scroll.dart';
+import '../app/links.dart';
 
 /// Starts work: a project, an agent, a way of being involved, and what to ask for.
 ///
@@ -17,11 +21,17 @@ Future<bool> openStartWork(
   required StartWork starting,
   required VoidCallback onStart,
   required VoidCallback onKeep,
+  Future<void> Function()? onStoreTheCredential,
+  Future<void> Function(Agent agent)? onLogIn,
 }) async =>
     await showDialog<bool>(
       context: context,
-      builder: (context) =>
-          StartWorkDialog(starting: starting, onStart: onStart, onKeep: onKeep),
+      builder: (context) => StartWorkDialog(
+          starting: starting,
+          onStart: onStart,
+          onKeep: onKeep,
+          onStoreTheCredential: onStoreTheCredential,
+          onLogIn: onLogIn),
     ) ??
     false;
 
@@ -32,6 +42,8 @@ class StartWorkDialog extends StatefulWidget {
     required this.starting,
     required this.onStart,
     required this.onKeep,
+    this.onStoreTheCredential,
+    this.onLogIn,
     super.key,
   });
 
@@ -43,6 +55,13 @@ class StartWorkDialog extends StatefulWidget {
 
   /// Keeps what is on screen as a recurring job under the name that was typed.
   final VoidCallback onKeep;
+
+  /// Stores the missing credential in a terminal on the machine, then asks again; null where
+  /// nothing here reaches that machine.
+  final Future<void> Function()? onStoreTheCredential;
+
+  /// Runs the agent's own login in a terminal on the machine, then asks again; null likewise.
+  final Future<void> Function(Agent agent)? onLogIn;
 
   @override
   State<StartWorkDialog> createState() => _StartWorkDialogState();
@@ -74,7 +93,7 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
             }),
             content: SizedBox(
               width: 560,
-              child: SingleChildScrollView(
+              child: DialogScroll(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,9 +126,10 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                     TextField(
                       key: const Key('start-name'),
                       decoration: InputDecoration(
-                        labelText: 'What to call it',
+                        labelText: 'A name for this run',
                         border: const OutlineInputBorder(),
-                        helperText: 'Optional. Left empty, the machine names it.',
+                        helperText: 'Optional. It names this piece of work and its container on the '
+                            'machine; left empty, the machine picks one.',
                         errorText: starting.nameProblem,
                       ),
                       onChanged: starting.callIt,
@@ -191,7 +211,10 @@ class _StartWorkDialogState extends State<StartWorkDialog> {
                         !starting.readinessIsAboutTheName &&
                         !starting.readinessIsAboutTheRepository) ...<Widget>[
                       const SizedBox(height: Space.wide),
-                      _NotReady(starting: starting),
+                      _NotReady(
+                          starting: starting,
+                          onStoreTheCredential: widget.onStoreTheCredential,
+                          onLogIn: widget.onLogIn),
                     ],
                     const SizedBox(height: Space.wide),
                     _KeepAsTemplate(starting: starting, onKeep: widget.onKeep),
@@ -312,11 +335,12 @@ class _KeepAsTemplateState extends State<_KeepAsTemplate> {
                 // it misled the backend into answering a question about schedules that nobody
                 // asked — there is no scheduler, and a job kept here starts when somebody starts
                 // it. Both facts a person would otherwise assume wrongly are said in the helper.
-                labelText: 'Keep this as a named job',
+                labelText: 'Save these choices as a job, under a name',
                 hintText: 'nightly-tests',
                 border: OutlineInputBorder(),
-                helperText: 'It carries the agent, the mode and the prompt — nothing else. It '
-                    'stays with you rather than with the project, and nothing starts it but you.',
+                helperText: 'For starting the same again with one click: it keeps the repository, '
+                    'the agent, the mode and the prompt — nothing else. It stays with you rather '
+                    'than with the project, and nothing starts it but you. Not the name of this run.',
               ),
               onChanged: (typed) {
                 widget.starting.callTheTemplate(typed);
@@ -348,9 +372,11 @@ class _KeepAsTemplateState extends State<_KeepAsTemplate> {
 /// a daemon has no terminal to take a passphrase at — and that is a different sentence from *this
 /// cannot be done*, so it is not drawn as a fault.
 class _NotReady extends StatelessWidget {
-  const _NotReady({required this.starting});
+  const _NotReady({required this.starting, this.onStoreTheCredential, this.onLogIn});
 
   final StartWork starting;
+  final Future<void> Function()? onStoreTheCredential;
+  final Future<void> Function(Agent agent)? onLogIn;
 
   @override
   Widget build(BuildContext context) {
@@ -376,6 +402,36 @@ class _NotReady extends StatelessWidget {
                 key: const Key('not-ready-detail'),
                 style: Theme.of(context).textTheme.bodySmall),
           ],
+          // Not a sentence to act on elsewhere: the way to store it, here, in a terminal there.
+          if (onStoreTheCredential != null &&
+              const <String>{'CREDENTIAL_MISSING', 'CREDENTIAL_UNUSABLE'}.contains(answer.outcome.name)) ...<Widget>[
+            const SizedBox(height: Space.small),
+            OutlinedButton.icon(
+              key: const Key('store-the-credential'),
+              onPressed: () => onStoreTheCredential!(),
+              icon: const Icon(Icons.terminal, size: Sizes.rowIcon),
+              label: Text('Store ${answer.credential.isEmpty ? 'it' : answer.credential} now, in a '
+                  'terminal on the machine'),
+            ),
+            // The agent's own way in, where it declares one: a browser page here, no key to paste.
+            if (onLogIn != null && (starting.chosenAgent?.canLogIn ?? false)) ...<Widget>[
+              const SizedBox(height: Space.tight),
+              OutlinedButton.icon(
+                key: const Key('log-in-with-the-agent'),
+                onPressed: () => onLogIn!(starting.chosenAgent!),
+                icon: const Icon(Icons.login, size: Sizes.rowIcon),
+                label: Text('Log in with ${_labelOf(starting.chosenAgent!)}: this runs the agent’s '
+                    'own login, in a terminal on the machine'),
+              ),
+              if (starting.chosenAgent!.loginDocumentation.isNotEmpty)
+                TextButton.icon(
+                  key: const Key('login-documentation'),
+                  onPressed: () => unawaited(openLink(Uri.parse(starting.chosenAgent!.loginDocumentation))),
+                  icon: const Icon(Icons.open_in_new, size: Sizes.rowIcon),
+                  label: const Text('How this login works'),
+                ),
+            ],
+          ],
           if (starting.refusedOutright) ...<Widget>[
             const SizedBox(height: Space.small),
             Text(
@@ -396,3 +452,5 @@ class _NotReady extends StatelessWidget {
     );
   }
 }
+
+String _labelOf(Agent agent) => agent.label.isEmpty ? agent.name : agent.label;

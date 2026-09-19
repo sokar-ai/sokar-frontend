@@ -44,7 +44,7 @@ until the machine says the credential it would use is there.**
 
 ## Built, 2026-09-19, against the contract Sokar pasted (QF41)
 
-- **The machine's menu, *Show how this machine connects out*:** every connection with what it is
+- **The machine's menu, *Connections — how this machine connects out*:** every connection with what it is
   for, its kind, where its value lives and whether it is there — *the vault is shut* said as that,
   never as *missing* — one outside the vault marked not protected, an OAuth expiry shown.
 - **Adding one:** the kind chosen, never read off the address; where its value lives chosen, the
@@ -60,8 +60,8 @@ until the machine says the credential it would use is there.**
 
 ## What the backend is short of
 
-The three methods and the `connections` list are decided and half built on Sokar's side (its 08:12Z
-note); the IDL is asked for as QF41. Not yet on any socket.
+Nothing. The three methods and the `connections` list are published in `0.1.0~snapshot.166`
+(Agent Sokar, 2026-09-19 10:56Z). Using a key already on the machine is its own requirement, F46.
 
 ## To be checked
 

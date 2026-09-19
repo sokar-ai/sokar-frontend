@@ -4,6 +4,7 @@ import 'package:xterm/xterm.dart';
 import '../app/machines.dart';
 import '../app/session.dart';
 import 'tokens.dart';
+import 'terminal_links.dart';
 
 /// Opens [machine]'s vault by its passphrase, typed into a terminal running [command] there.
 ///
@@ -34,12 +35,18 @@ Future<void> runInATerminal(
   required Machine machine,
   required List<String> command,
   OpenTerminal? open,
+  bool forwardsALoginReply = false,
 }) =>
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => _UnlockTerminal(
-          title: title, explanation: explanation, machine: machine, command: command, open: open),
+          title: title,
+          explanation: explanation,
+          machine: machine,
+          command: command,
+          open: open,
+          forwardsALoginReply: forwardsALoginReply),
     );
 
 class _UnlockTerminal extends StatefulWidget {
@@ -48,13 +55,15 @@ class _UnlockTerminal extends StatefulWidget {
       required this.explanation,
       required this.machine,
       required this.command,
-      this.open});
+      this.open,
+      this.forwardsALoginReply = false});
 
   final String title;
   final String explanation;
   final Machine machine;
   final List<String> command;
   final OpenTerminal? open;
+  final bool forwardsALoginReply;
 
   @override
   State<_UnlockTerminal> createState() => _UnlockTerminalState();
@@ -66,6 +75,7 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
     machine: widget.machine,
     open: widget.open,
     run: widget.command,
+    forwardsALoginReply: widget.forwardsALoginReply,
   )..addListener(_changed);
 
   // Asked for once the dialog is on screen: an autofocus inside a dialog loses to its buttons.
@@ -122,6 +132,7 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
                   ),
                 ),
               ),
+              TerminalLinks(session: _session),
               if (_session.state == SessionState.over) ...<Widget>[
                 const SizedBox(height: Space.small),
                 Text(

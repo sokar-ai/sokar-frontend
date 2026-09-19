@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'tokens.dart';
+import 'dialog_scroll.dart';
 
 /// What a task does with a blocked connection.
 ///
@@ -54,7 +55,7 @@ Future<Enforcement?> askHowToEnforce(
         title: Text('What $task does with a blocked connection'),
         content: SizedBox(
           width: 560,
-          child: SingleChildScrollView(
+          child: DialogScroll(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

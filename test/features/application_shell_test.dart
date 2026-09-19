@@ -187,7 +187,7 @@ void main() {
       await theTunnelDrops(tester);
       await iOpenTheCommandFinder(tester);
       await theCommandIsUnavailableBecause(
-          tester, 'Follow a repository', 'not answering');
+          tester, 'Follow a project', 'not answering');
       await theCommandIsUnavailableBecause(
           tester, 'Build the environment for this project', 'not answering');
       await theCommandIsUnavailableBecause(tester,

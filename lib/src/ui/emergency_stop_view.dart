@@ -4,6 +4,7 @@ import '../app/emergency_stop.dart';
 import '../app/fleet_backend.dart';
 import 'tokens.dart';
 import 'window_size.dart';
+import 'dialog_scroll.dart';
 
 /// The button that cuts everything off, always on screen.
 ///
@@ -92,7 +93,7 @@ class EmergencyStopDialog extends StatelessWidget {
             title: Text(done == null ? 'Stop everything?' : 'Everything is stopped'),
             content: SizedBox(
               width: 520,
-              child: SingleChildScrollView(
+              child: DialogScroll(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

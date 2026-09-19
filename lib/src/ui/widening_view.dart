@@ -4,6 +4,7 @@ import 'package:sokar_frontend/client.dart';
 import '../app/widening.dart';
 import 'choice_field.dart';
 import 'tokens.dart';
+import 'dialog_scroll.dart';
 
 /// Lets work that is already running reach something it could not reach before.
 ///
@@ -73,7 +74,7 @@ class _WideningDialogState extends State<WideningDialog> {
             title: Text('Let ${task?.name ?? 'this work'} reach something new'),
             content: SizedBox(
               width: 540,
-              child: SingleChildScrollView(
+              child: DialogScroll(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

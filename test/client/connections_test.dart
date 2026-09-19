@@ -69,6 +69,22 @@ void main() {
     expect(github.connection.id, 'git.ssh.github.com', reason: 'the longest match it has');
   });
 
+  test('the keys a machine has are described, never read out, each saying what stands in its way',
+      () async {
+    final client = await connect();
+
+    final keys = await client.sshKeys();
+
+    expect(keys.map((each) => each.path), contains('/home/somebody/.ssh/id_ed25519'));
+    final signs = keys.firstWhere((each) => each.path.endsWith('id_ed25519'));
+    expect(signs.usable && signs.privateHalf && signs.obstacle.isEmpty, isTrue);
+    final configured = keys.firstWhere((each) => each.found == 'CONFIGURED');
+    expect(configured.encrypted, isTrue);
+    expect(configured.obstacle, contains('ssh-keygen -p'));
+    final publicOnly = keys.firstWhere((each) => each.path.endsWith('company_key'));
+    expect(publicOnly.servesWhereItLies, isFalse, reason: 'ssh signs with the private file');
+  });
+
   test('a command for another machine goes over ssh, each word quoted for its shell', () {
     const remote = Machine(name: 'vm', socketPath: '/tmp/x.sock', host: 'michi@vm', remoteSocket: '/run/s.sock');
     const elsewhere = Machine(name: 'forwarded', socketPath: '/tmp/y.sock');

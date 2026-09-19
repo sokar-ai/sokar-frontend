@@ -179,6 +179,8 @@ abstract class FleetBackend {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
+    bool? dryRun,
   });
 
   /// Forgets a credential record, leaving the secret where it is.
@@ -186,6 +188,12 @@ abstract class FleetBackend {
 
   /// Which credential [url] would use and whether it would work, without touching the network.
   Future<CredentialChecked> credentialCheck(String url, {String? purpose});
+
+  /// The ssh keys the machine's account already has, described without their values.
+  Future<List<SshKey>> sshKeys();
+
+  /// Records the one key of [host] a person confirmed, if the host still offers it.
+  Future<HostKeyTrusted> trustHostKey(String host, String fingerprint);
 
   /// Follows a project's repository and reconciles once; what came of it is the answer.
   Future<Followed> follow(String name, String url,
@@ -468,9 +476,18 @@ class SokarBackend implements FleetBackend {
     String? user,
     String? purpose,
     String? source,
+    String? fromFile,
+    bool? dryRun,
   }) =>
       _opened().credentialDeclare(
-          kind: kind, match: match, id: id, user: user, purpose: purpose, source: source);
+          kind: kind,
+          match: match,
+          id: id,
+          user: user,
+          purpose: purpose,
+          source: source,
+          fromFile: fromFile,
+          dryRun: dryRun);
 
   @override
   Future<CredentialForgotten> credentialForget(String match) => _opened().credentialForget(match);
@@ -478,6 +495,13 @@ class SokarBackend implements FleetBackend {
   @override
   Future<CredentialChecked> credentialCheck(String url, {String? purpose}) =>
       _opened().credentialCheck(url, purpose: purpose);
+
+  @override
+  Future<List<SshKey>> sshKeys() => _opened().sshKeys();
+
+  @override
+  Future<HostKeyTrusted> trustHostKey(String host, String fingerprint) =>
+      _opened().trustHostKey(host, fingerprint);
 
   @override
   Future<Followed> follow(String name, String url,

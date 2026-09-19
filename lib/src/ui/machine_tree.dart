@@ -203,7 +203,7 @@ class MachineTree extends StatelessWidget {
                 ? const Key('follow-a-repository')
                 : ValueKey<String>('follow-a-repository ${machine.name}'),
             icon: Icons.add_link,
-            title: 'Follow a repository',
+            title: 'Follow a project',
             selected: here && following,
             autofocus: highlight == 'project.follow',
             onTap: () => onFollow(machine),
@@ -491,14 +491,13 @@ class ProjectHeader extends StatelessWidget {
                 // its own upstream, gate and backups, and one number for all of them was the
                 // project's own shown against every other.
                 if (p.repositoryStates.length > 1)
-                  for (final repository in p.repositoryStates)
-                    _RepositoryLine(
-                      repository: repository,
-                      onSync: project.canBeActedOn ? onSync : null,
-                      onBackups: project.canBeActedOn ? onBackups : null,
-                      onOpens: project.canBeActedOn ? onOpens : null,
-                      onReach: project.canBeActedOn ? onReach : null,
-                    )
+                  _Repositories(
+                    repositories: p.repositoryStates,
+                    onSync: project.canBeActedOn ? onSync : null,
+                    onBackups: project.canBeActedOn ? onBackups : null,
+                    onOpens: project.canBeActedOn ? onOpens : null,
+                    onReach: project.canBeActedOn ? onReach : null,
+                  )
                 // How far behind, with the age of the measurement in the same sentence.
                 else if (p.behindReason.isNotEmpty)
                   Text(
@@ -521,12 +520,6 @@ class ProjectHeader extends StatelessWidget {
                         ? theme.textTheme.bodySmall?.copyWith(color: scheme.error)
                         : theme.textTheme.bodySmall,
                   ),
-                if (p.file.isNotEmpty)
-                  Text(
-                    p.file,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
               ],
             ),
           ),
@@ -537,6 +530,45 @@ class ProjectHeader extends StatelessWidget {
             highlight: highlight,
             onShown: onShown,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A project's repositories as a list somebody can read: framed, one row each, a line between rows,
+/// and each row's actions beside it rather than in a column of their own.
+class _Repositories extends StatelessWidget {
+  const _Repositories({required this.repositories, this.onSync, this.onBackups, this.onOpens, this.onReach});
+
+  final List<Repository> repositories;
+  final void Function(String repository)? onSync;
+  final void Function(String repository)? onBackups;
+  final void Function(String repository)? onOpens;
+  final void Function(String repository)? onReach;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      key: const Key('project-repositories'),
+      margin: const EdgeInsets.only(top: Space.small),
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(Radii.small),
+      ),
+      child: Column(
+        children: <Widget>[
+          for (final (index, repository) in repositories.indexed) ...<Widget>[
+            if (index > 0) Divider(height: 1, color: scheme.outlineVariant),
+            _RepositoryLine(
+              repository: repository,
+              onSync: onSync,
+              onBackups: onBackups,
+              onOpens: onOpens,
+              onReach: onReach,
+            ),
+          ],
         ],
       ),
     );
@@ -566,24 +598,32 @@ class _RepositoryLine extends StatelessWidget {
     final reach = onReach;
     final sync = onSync;
     final backups = onBackups;
-    return Row(
+    final state = <String>[
+      if (repository.pending > 0) '${repository.pending} waiting at the gate',
+      if (repository.behindReason.isNotEmpty) repository.behindWords,
+    ].join(' · ');
+    return Padding(
       key: Key('repository-$name'),
+      padding: const EdgeInsets.fromLTRB(Space.normal, Space.small, Space.tight, Space.small),
+      child: Row(
       children: <Widget>[
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                <String>[
-                  repository.own ? '$name, its own' : name,
-                  if (repository.pending > 0) '${repository.pending} waiting at the gate',
-                  if (repository.behindReason.isNotEmpty) repository.behindWords,
-                ].join(' · '),
+                repository.own ? '$name, its own' : name,
                 overflow: TextOverflow.ellipsis,
-                style: repository.hasFallenBehind
-                    ? theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.tertiary)
-                    : theme.textTheme.bodySmall,
+                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
+              if (state.isNotEmpty)
+                Text(
+                  state,
+                  overflow: TextOverflow.ellipsis,
+                  style: repository.hasFallenBehind
+                      ? theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.tertiary)
+                      : theme.textTheme.bodySmall,
+                ),
               // A repository's limits replace the project's key by key; the ones it replaced are
               // marked. The rest are never said to be the project's choice: they may be Sokar's.
               if (repository.limits case final limits?)
@@ -627,6 +667,7 @@ class _RepositoryLine extends StatelessWidget {
           onPressed: reach == null ? null : () => reach(name),
         ),
       ],
+      ),
     );
   }
 }

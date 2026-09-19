@@ -49,15 +49,36 @@ Feature: Reaching a real machine, reading it, and following a project
     When I stop following {'e2e-follow'} from the interface
     Then the machine no longer lists {'e2e-follow'}
 
-  # The description travels and the value never does: declared, listed, checked and forgotten
-  # through the interface against the real daemon. Storing a value needs the vault's passphrase,
-  # which nothing here has — so that half is a person's, at the terminal the view opens.
-  Scenario: a connection is declared, listed, checked and forgotten on the real machine
+  # The wizard's check is the real daemon's dry run: it answers, and writes nothing. Storing a token
+  # is typed at a terminal on the machine, which is a person's — so the run leaves before adding.
+  Scenario: a token is checked by the real machine, and leaving writes nothing
     Given the test machine is being watched
-    When I declare a token connection for {'https://e2e.invalid/'} from the interface
-    Then the machine lists the connection {'https://e2e.invalid/'} as a token in the vault
-    And the credential check for {'https://e2e.invalid/repo.git'} names {'https://e2e.invalid/'}
-    When I forget the connection {'https://e2e.invalid/'} from the interface
-    Then the interface says what still holds its value
+    When I check a token for {'https://e2e.invalid/'} in the wizard, and leave it
+    Then the wizard's check was answered by the machine
     And the machine no longer lists the connection {'https://e2e.invalid/'}
+
+  # A key the machine already has is picked from what the machine lists, and declared where it lies.
+  Scenario: a key the machine has is picked from its list and declared where it lies
+    Given the test machine is being watched
+    And the test machine has an ssh key of its own {'id_e2e'}
+    When I declare the machine's own key for {'ssh://e2e.invalid/'} from the interface
+    Then the machine lists the connection {'ssh://e2e.invalid/'} as the key it has
+    When I forget the connection {'ssh://e2e.invalid/'} from the interface
+    Then the interface says what still holds its value
+    And the machine no longer lists the connection {'ssh://e2e.invalid/'}
+
+  # An unknown host is a question for a person: its keys are shown, one is chosen and trusted, and
+  # the follow is made again. The project itself needs a credential this account does not have, so
+  # what is measured is that the host key stops being the answer.
+  Scenario: a host never met is trusted from the follow, by the key its owner publishes
+    Given the test machine is being watched
+    And the test machine has never met {'github.com'}
+    And the test machine has an ssh key of its own {'id_e2e'}
+    And the test machine connects to {'ssh://github.com/'} with its own key
+    When I follow {'git@github.com:sokar-ai/sokar-project.git'} as {'e2e-hostkey'} from the interface, unverified
+    Then the interface shows the keys of {'github.com'}, with {'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'}
+    When I trust {'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'} from the interface
+    Then the machine knows {'github.com'} by the key {'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'}
+    And the machine no longer lists {'e2e-hostkey'}
+    And the connection {'ssh://github.com/'} is forgotten again
 

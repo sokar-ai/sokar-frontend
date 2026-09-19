@@ -1,0 +1,86 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'machines.dart';
+
+/// A forward held open for one agent login, taken down when the login's terminal goes.
+abstract interface class HeldForward {
+  /// Takes it down. Only what was raised here is ever taken down.
+  Future<void> close();
+}
+
+/// Why a login's redirect could not be forwarded, in a sentence somebody can act on.
+class ForwardRefused implements Exception {
+  /// Constructor taking the sentence.
+  const ForwardRefused(this.words);
+
+  final String words;
+
+  @override
+  String toString() => words;
+}
+
+/// Raises the forward a login's redirect needs: [port] here to the same port on [machine].
+/// Injectable, so the frame is judged without a process.
+typedef RaiseLoginForward = Future<HeldForward> Function(Machine machine, int port);
+
+/// What raises one: ssh, as every other forward here.
+RaiseLoginForward raiseLoginForward = _withSsh;
+
+/// **The same number on both ends**, because the redirect names it: a browser sent to
+/// `localhost:<port>` has to find the login's listener there. A machine whose socket is this
+/// computer's own needs nothing — the redirect already lands on the listener.
+Future<HeldForward> _withSsh(Machine machine, int port) async {
+  if (!machine.needsATunnel) return const _Nothing();
+  // Asked before, because ssh with ExitOnForwardFailure says only that it failed.
+  try {
+    final taken = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
+    await taken.close();
+  } on SocketException {
+    throw ForwardRefused('Port $port is already in use on this computer, so the login’s reply '
+        'could not reach ${machine.name}. Close what uses it and log in again.');
+  }
+  final ssh = await Process.start('ssh', <String>[
+    '-N',
+    '-o', 'BatchMode=yes',
+    '-o', 'ExitOnForwardFailure=yes',
+    '-L', '$port:localhost:$port',
+    machine.host,
+  ]);
+  final said = ssh.stderr.transform(const SystemEncoding().decoder).join();
+  // Proven by connecting through it, never by ssh staying up: the login's listener answers.
+  for (var tries = 0; tries < 50; tries++) {
+    final exited = await ssh.exitCode.timeout(const Duration(milliseconds: 100), onTimeout: () => -1);
+    if (exited != -1) {
+      final words = (await said).trim();
+      throw ForwardRefused('The login’s reply could not be forwarded from ${machine.name}: '
+          '${words.isEmpty ? 'ssh ended with $exited' : words}');
+    }
+    try {
+      final through = await Socket.connect(InternetAddress.loopbackIPv4, port,
+          timeout: const Duration(milliseconds: 200));
+      through.destroy();
+      return _Ssh(ssh);
+    } on SocketException {
+      // Not yet: ssh binds, then the login on the far end is asked.
+    }
+  }
+  ssh.kill();
+  throw ForwardRefused('Nothing on ${machine.name} answered on port $port for the login’s reply.');
+}
+
+class _Ssh implements HeldForward {
+  _Ssh(this._process);
+
+  final Process _process;
+
+  @override
+  Future<void> close() async => _process.kill();
+}
+
+class _Nothing implements HeldForward {
+  const _Nothing();
+
+  @override
+  Future<void> close() async {}
+}

@@ -14,27 +14,61 @@ import './step/i_choose_the_command.dart';
 import './step/it_says.dart';
 import './step/the_connection_is_marked_not_protected.dart';
 import './step/the_connection_is_not_marked_not_protected.dart';
+import './step/i_open_the_menu.dart';
+import './step/the_menu_offers.dart';
+import './step/i_choose_the_menu_entry.dart';
+import './step/the_connections_of_the_machine_are_open.dart';
 import './step/i_add_a_connection_to.dart';
-import './step/adding_it_is_not_offered_yet.dart';
+import './step/going_on_is_not_offered_yet.dart';
+import './step/the_dialog_offers.dart';
+import './step/the_dialog_does_not_offer.dart';
 import './step/i_choose_it_to_be.dart';
-import './step/adding_it_is_offered.dart';
+import './step/going_on_is_offered.dart';
+import './step/no_two_fields_of_the_dialog_overlap.dart';
+import './step/the_dialog_shows_its_scrollbar_and_its_first_label_whole.dart';
+import './step/i_go_on.dart';
+import './step/i_choose.dart';
+import './step/nothing_was_declared.dart';
 import './step/i_add_it.dart';
 import './step/it_was_declared_as_for_kept_in.dart';
-import './step/i_type_its_value_into_a_terminal_on_the_machine.dart';
 import './step/a_terminal_runs_on_the_machine.dart';
 import './step/this_computer_has_the_key.dart';
-import './step/i_send_the_key_to_the_machine.dart';
+import './step/the_file_dialog_will_answer_with_the_key.dart';
+import './step/i_fill_the_key_from_a_file.dart';
 import './step/the_machine_was_given_a_key_by.dart';
 import './step/the_status_line_mentions.dart';
-import './step/the_way_to_store_it_says.dart';
+import './step/the_private_key_field_is_empty.dart';
 import './step/nothing_was_given_to_the_machine.dart';
-import './step/the_way_to_store_it_is_still_offered.dart';
-import './step/i_paste_and_send_it.dart';
-import './step/nothing_pasted_is_left_on_screen.dart';
+import './step/i_paste_the_private_key.dart';
+import './step/the_wizard_is_at_step.dart';
+import './step/i_paste_a_private_key.dart';
+import './step/i_go_back.dart';
+import './step/the_machine_has_the_key.dart';
+import './step/the_machine_has_only_the_public_half_of.dart';
+import './step/it_was_declared_with_the_key.dart';
+import './step/it_was_declared_into_the_vault_from_the_file.dart';
+import './step/the_machine_ran_with_nothing_on_its_standard_input.dart';
+import './step/the_forge_says_logs_in_as.dart';
+import './step/adding_it_is_not_offered_yet.dart';
+import './step/the_machine_cannot_list_its_keys.dart';
 import './step/it_is_kept_in_the_file_on_the_machine.dart';
-import './step/i_paste_a_key_and_send_it.dart';
+import './step/i_name_the_variable.dart';
+import './step/the_machine_has_the_variable.dart';
+import './step/i_name_the_variable_of_the_user.dart';
+import './step/it_was_declared_with_the_user_taken_from_the_variable.dart';
+import './step/i_name_the_user.dart';
+import './step/the_machine_has_no_store_yet.dart';
+import './step/the_machine_is_reached_over_ssh_as.dart';
+import './step/i_make_the_vault_from_the_check.dart';
+import './step/the_unlock_terminal_ends_and_is_put_away.dart';
+import './step/the_machine_was_asked_again_whether_it_would_work.dart';
+import './step/i_open_the_vault_from_the_check.dart';
 import './step/i_forget_the_connection.dart';
 import './step/storing_on_the_machine_will_fail.dart';
+import './step/the_way_to_store_it_is_still_offered.dart';
+import './step/nothing_pasted_is_left_on_screen.dart';
+import './step/i_paste_and_send_it.dart';
+import './step/the_way_to_store_it_says.dart';
 
 void main() {
   group('''How a machine connects out, and giving it a credential''', () {
@@ -52,7 +86,8 @@ void main() {
       await theMachineConnectsToWithAKeyInTheVault(tester, 'ssh://github.com');
       await theMachineConnectsToWithATokenInAFile(
           tester, 'https://gitlab.example/acme/');
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await itSays(tester, 'ssh://github.com');
       await itSays(tester,
           'the vault is shut, so nothing can say whether its value is there');
@@ -60,126 +95,373 @@ void main() {
           tester, 'https://gitlab.example/acme/');
       await theConnectionIsNotMarkedNotProtected(tester, 'ssh://github.com');
     });
+    testWidgets('''the machine's menu opens its connections''', (tester) async {
+      await bddSetUp(tester);
+      await iOpenTheMenu(tester, 'What this machine can be told to do');
+      await theMenuOffers(
+          tester, 'Connections — how this machine connects out');
+      await iChooseTheMenuEntry(
+          tester, 'Connections — how this machine connects out');
+      await theConnectionsOfTheMachineAreOpen(tester);
+    });
     testWidgets(
         '''what a connection is, is chosen and never read off its address''',
         (tester) async {
       await bddSetUp(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
-      await addingItIsNotOfferedYet(tester);
+      await goingOnIsNotOfferedYet(tester);
+      await theDialogOffers(tester, 'any use');
+      await theDialogDoesNotOffer(tester, 'An OAuth token');
       await iChooseItToBe(tester, 'TOKEN');
-      await addingItIsOffered(tester);
+      await goingOnIsOffered(tester);
+      await noTwoFieldsOfTheDialogOverlap(tester);
+      await theDialogShowsItsScrollbarAndItsFirstLabelWhole(tester);
     });
     testWidgets(
-        '''a token in the vault is stored by typing it into a terminal on the machine''',
+        '''a token in the vault is typed into a terminal on the machine, after the check''',
         (tester) async {
       await bddSetUp(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
       await iChooseItToBe(tester, 'TOKEN');
+      await iGoOn(tester);
+      await iChoose(tester, 'In the vault, typed at the machine');
+      await itSays(tester, 'a terminal on the machine opens');
+      await iGoOn(tester);
+      await itSays(tester, 'Nothing stands in the way');
+      await nothingWasDeclared(tester);
       await iAddIt(tester);
       await itWasDeclaredAsForKeptIn(
           tester, 'TOKEN', 'https://gitlab.example/acme/', 'VAULT');
-      await itSays(tester, 'sokar vault put git.token.example');
-      await iTypeItsValueIntoATerminalOnTheMachine(tester);
       await aTerminalRunsOnTheMachine(
-          tester, 'sokar vault put git.token.example');
+          tester, 'sokar vault put git.token.example --type token');
     });
     testWidgets(
-        '''an ssh key is sent from a file of this computer, and nothing of it is kept''',
+        '''an ssh key of this computer is filled from its file and sent into the vault''',
         (tester) async {
       await bddSetUp(tester);
       await thisComputerHasTheKey(tester, 'id_work');
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await theFileDialogWillAnswerWithTheKey(tester, 'id_work');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'ssh://gitlab.example');
       await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key of this computer, sent into the vault');
+      await iFillTheKeyFromAFile(tester);
+      await iGoOn(tester);
       await iAddIt(tester);
-      await iSendTheKeyToTheMachine(tester, 'id_work');
       await theMachineWasGivenAKeyBy(tester, 'sokar vault put git.ssh.example');
       await theStatusLineMentions(tester, 'is stored on');
     });
     testWidgets(
-        '''the public half chosen from this computer is refused, and nothing is sent''',
+        '''the public half chosen from this computer is refused before anything is sent''',
         (tester) async {
       await bddSetUp(tester);
       await thisComputerHasTheKey(tester, 'id_work');
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await theFileDialogWillAnswerWithTheKey(tester, 'id_work.pub');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'ssh://gitlab.example');
       await iChooseItToBe(tester, 'SSH_KEY');
-      await iAddIt(tester);
-      await iSendTheKeyToTheMachine(tester, 'id_work.pub');
-      await theWayToStoreItSays(tester, 'That is the public half of a key');
-      await nothingWasGivenToTheMachine(tester);
-      await theWayToStoreItIsStillOffered(tester);
-    });
-    testWidgets('''a pasted public key is refused, and nothing is sent''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
-      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
-      await iChooseItToBe(tester, 'SSH_KEY');
-      await iAddIt(tester);
-      await iPasteAndSendIt(tester, 'ssh-ed25519 AAAAC3Nza me@work');
-      await theWayToStoreItSays(tester, 'That is the public half of a key');
-      await nothingWasGivenToTheMachine(tester);
-      await nothingPastedIsLeftOnScreen(tester);
-    });
-    testWidgets(
-        '''pasted text that is no key at all is refused, and nothing is sent''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
-      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
-      await iChooseItToBe(tester, 'SSH_KEY');
-      await iAddIt(tester);
-      await iPasteAndSendIt(tester, 'hunter2');
-      await theWayToStoreItSays(tester, 'That is not a private key');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key of this computer, sent into the vault');
+      await iFillTheKeyFromAFile(tester);
+      await itSays(tester, 'That is the public half of a key');
+      await thePrivateKeyFieldIsEmpty(tester);
+      await goingOnIsNotOfferedYet(tester);
       await nothingWasGivenToTheMachine(tester);
     });
     testWidgets(
-        '''a key kept as a file on the machine cannot be named by its public half''',
+        '''pasted text that is no key at all is refused, and leaves the field''',
         (tester) async {
       await bddSetUp(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'ssh://gitlab.example');
       await iChooseItToBe(tester, 'SSH_KEY');
-      await itIsKeptInTheFileOnTheMachine(tester, '/home/me/.ssh/id_work.pub');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key of this computer, sent into the vault');
+      await iPasteThePrivateKey(tester, 'hunter2');
+      await iGoOn(tester);
+      await itSays(tester, 'That is not a private key');
+      await theWizardIsAtStep(tester, '2');
+      await thePrivateKeyFieldIsEmpty(tester);
+      await nothingWasDeclared(tester);
+    });
+    testWidgets(
+        '''going back from the check takes the pasted key out of its field''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key of this computer, sent into the vault');
+      await iPasteAPrivateKey(tester);
+      await iGoOn(tester);
+      await theWizardIsAtStep(tester, '3');
+      await iGoBack(tester);
+      await theWizardIsAtStep(tester, '2');
+      await thePrivateKeyFieldIsEmpty(tester);
+    });
+    testWidgets(
+        '''a key already on the machine is picked from its list and used where it lies''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasTheKey(tester, '/home/me/.ssh/id_ed25519');
+      await theMachineHasOnlyThePublicHalfOf(
+          tester, '/home/me/.ssh/company_key');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key already on the machine');
+      await theDialogOffers(tester, '/home/me/.ssh/id_ed25519');
+      await theDialogDoesNotOffer(tester, '/home/me/.ssh/company_key');
+      await goingOnIsNotOfferedYet(tester);
+      await iChoose(tester, '/home/me/.ssh/id_ed25519');
+      await itSays(tester, 'me@laptop');
+      await iGoOn(tester);
+      await iAddIt(tester);
+      await itWasDeclaredWithTheKey(tester, '/home/me/.ssh/id_ed25519');
+      await itSays(tester, 'Its value is already where it says');
+    });
+    testWidgets(
+        '''a key already on the machine is copied into the vault by the machine''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasTheKey(tester, '/home/me/.ssh/id_ed25519');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key already on the machine');
+      await iChoose(tester, '/home/me/.ssh/id_ed25519');
+      await iChoose(tester, 'Copied into the vault by the machine');
+      await iGoOn(tester);
+      await iAddIt(tester);
+      await itWasDeclaredIntoTheVaultFromTheFile(
+          tester, '/home/me/.ssh/id_ed25519');
+      await theMachineRanWithNothingOnItsStandardInput(tester,
+          'sokar vault put git.ssh.example --from-file /home/me/.ssh/id_ed25519');
+    });
+    testWidgets('''the check says who a key logs in as''', (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasTheKey(tester, '/home/me/.ssh/id_ed25519');
+      await theForgeSaysLogsInAs(
+          tester, '/home/me/.ssh/id_ed25519', 'Hi fuinorg/utils4j!');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://github.com/');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key already on the machine');
+      await iChoose(tester, '/home/me/.ssh/id_ed25519');
+      await iGoOn(tester);
+      await itSays(tester, 'logs in as: Hi fuinorg/utils4j!');
+    });
+    testWidgets(
+        '''an ssh key for an https address is refused by the check, and cannot be added''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasTheKey(tester, '/home/me/.ssh/id_ed25519');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://github.com/acme/');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key already on the machine');
+      await iChoose(tester, '/home/me/.ssh/id_ed25519');
+      await iGoOn(tester);
+      await itSays(tester, 'This would not work as it is');
+      await itSays(tester, 'never for an ssh key');
       await addingItIsNotOfferedYet(tester);
-      await itSays(tester, 'That is the public half');
+      await iGoBack(tester);
+      await theWizardIsAtStep(tester, '2');
     });
     testWidgets(
-        '''a pasted key is sent, and the field it was pasted into is emptied at once''',
+        '''a machine without a private key says so, rather than showing an empty list''',
         (tester) async {
       await bddSetUp(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await theMachineHasOnlyThePublicHalfOf(
+          tester, '/home/me/.ssh/company_key');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'ssh://gitlab.example');
       await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key already on the machine');
+      await itSays(tester, 'This machine has no private key');
+      await goingOnIsNotOfferedYet(tester);
+    });
+    testWidgets(
+        '''a machine that cannot list its keys takes a typed path, never its public half''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineCannotListItsKeys(tester);
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await itIsKeptInTheFileOnTheMachine(tester, '/home/me/.ssh/id_work.pub');
+      await itSays(tester, 'cannot list its keys yet, so its path is typed');
+      await itSays(tester, 'That is the public half');
+      await goingOnIsNotOfferedYet(tester);
+    });
+    testWidgets(
+        '''a variable the machine does not have is refused by the check''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
+      await iChooseItToBe(tester, 'TOKEN');
+      await iGoOn(tester);
+      await iChoose(tester, 'A variable on the machine');
+      await iNameTheVariable(tester, 'GITLAB_TOKEN');
+      await iGoOn(tester);
+      await itSays(tester, 'This would not work as it is');
+      await addingItIsNotOfferedYet(tester);
+    });
+    testWidgets(
+        '''a user and password from two variables are declared by their names''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasTheVariable(tester, 'GITLAB_PASSWORD');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
+      await iChooseItToBe(tester, 'BASIC');
+      await iGoOn(tester);
+      await iChoose(tester, 'Two variables on the machine');
+      await iNameTheVariableOfTheUser(tester, 'GITLAB_USER');
+      await iNameTheVariable(tester, 'GITLAB_PASSWORD');
+      await iGoOn(tester);
       await iAddIt(tester);
-      await iPasteAKeyAndSendIt(tester);
-      await theMachineWasGivenAKeyBy(tester, 'sokar vault put git.ssh.example');
-      await nothingPastedIsLeftOnScreen(tester);
+      await itWasDeclaredWithTheUserTakenFromTheVariable(tester, 'GITLAB_USER');
+      await itWasDeclaredAsForKeptIn(
+          tester, 'BASIC', 'https://gitlab.example/acme/', 'ENVIRONMENT');
+    });
+    testWidgets(
+        '''a user and password in the vault have the password typed at the machine''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
+      await iChooseItToBe(tester, 'BASIC');
+      await iGoOn(tester);
+      await iChoose(tester, 'In the vault, the password typed at the machine');
+      await iNameTheUser(tester, 'me');
+      await iGoOn(tester);
+      await iAddIt(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'sokar vault put git.token.example');
+    });
+    testWidgets(
+        '''an account without a vault is sent to make one, and checked again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasNoStoreYet(tester);
+      await theMachineIsReachedOverSshAs(tester, 'michi@vm');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
+      await iChooseItToBe(tester, 'TOKEN');
+      await iGoOn(tester);
+      await iChoose(tester, 'In the vault, typed at the machine');
+      await iGoOn(tester);
+      await itSays(tester, 'no vault yet');
+      await addingItIsNotOfferedYet(tester);
+      await iMakeTheVaultFromTheCheck(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'ssh -t michi@vm sokar vault init');
+      await theUnlockTerminalEndsAndIsPutAway(tester);
+      await theMachineWasAskedAgainWhetherItWouldWork(tester);
+    });
+    testWidgets('''a shut vault is opened from the check, and checked again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theStoreIsShut(tester);
+      await theMachineIsReachedOverSshAs(tester, 'michi@vm');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
+      await iChooseItToBe(tester, 'TOKEN');
+      await iGoOn(tester);
+      await iChoose(tester, 'In the vault, typed at the machine');
+      await iGoOn(tester);
+      await itSays(tester, 'the vault is shut');
+      await iOpenTheVaultFromTheCheck(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'ssh -t michi@vm sokar vault unlock');
+      await theUnlockTerminalEndsAndIsPutAway(tester);
+      await theMachineWasAskedAgainWhetherItWouldWork(tester);
+    });
+    testWidgets('''leaving the wizard declares nothing''', (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'https://gitlab.example/acme/');
+      await iChooseItToBe(tester, 'TOKEN');
+      await iGoOn(tester);
+      await iChoose(tester, 'In the vault, typed at the machine');
+      await iGoOn(tester);
+      await iChoose(tester, 'Leave it');
+      await nothingWasDeclared(tester);
     });
     testWidgets('''forgetting a connection says the value is still there''',
         (tester) async {
       await bddSetUp(tester);
       await theMachineConnectsToWithAKeyInTheVault(tester, 'ssh://github.com');
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iForgetTheConnection(tester, 'ssh://github.com');
       await itSays(tester, 'Its value is still there');
       await itSays(tester, 'Remove that at the machine');
     });
     testWidgets(
-        '''a key that could not be stored is not kept in the field it was pasted into''',
+        '''a key that could not be stored leaves the way to try again''',
         (tester) async {
       await bddSetUp(tester);
       await storingOnTheMachineWillFail(tester);
-      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
       await iAddAConnectionTo(tester, 'ssh://gitlab.example');
       await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key of this computer, sent into the vault');
+      await iPasteAPrivateKey(tester);
+      await iGoOn(tester);
       await iAddIt(tester);
-      await iPasteAKeyAndSendIt(tester);
       await theStatusLineMentions(tester, 'Storing the key did not work');
       await theWayToStoreItIsStillOffered(tester);
+      await nothingPastedIsLeftOnScreen(tester);
+    });
+    testWidgets(
+        '''trying again with a public half is refused beside the way to try again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await storingOnTheMachineWillFail(tester);
+      await iChooseTheCommand(
+          tester, 'Connections — how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iGoOn(tester);
+      await iChoose(tester, 'A key of this computer, sent into the vault');
+      await iPasteAPrivateKey(tester);
+      await iGoOn(tester);
+      await iAddIt(tester);
+      await iPasteAndSendIt(tester, 'ssh-ed25519 AAAAC3Nza me@work');
+      await theWayToStoreItSays(tester, 'That is the public half of a key');
       await nothingPastedIsLeftOnScreen(tester);
     });
   });
