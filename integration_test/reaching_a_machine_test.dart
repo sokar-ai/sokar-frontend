@@ -16,11 +16,17 @@ import './step/no_forward_raised_for_the_trial_is_left.dart';
 import './step/i_put_the_dialog_away.dart';
 import './step/i_try_the_test_machine_from_the_dialog_with_a_socket_beside_its_own_that_nobody_serves.dart';
 import './step/i_try_the_test_machine_from_the_dialog_with_the_socket.dart';
+import './step/the_test_machine_has_a_project_repository.dart';
+import './step/i_follow_it_from_the_interface_unverified.dart';
+import './step/the_interface_says_it_is_following_it.dart';
+import './step/the_machine_lists_as_followed_unverified_with_its_repositories_and_their_limits.dart';
+import './step/i_stop_following_from_the_interface.dart';
+import './step/the_machine_no_longer_lists.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  group('''Reaching a real machine and reading what its daemon says''', () {
+  group('''Reaching a real machine, reading it, and following a project''', () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await theInterfaceIsRunning(tester);
     }
@@ -66,6 +72,19 @@ void main() {
       await theTrialSays(tester, 'runtime directory (uid 0)');
       await noForwardRaisedForTheTrialIsLeft(tester);
       await iPutTheDialogAway(tester);
+    });
+    testWidgets(
+        '''a repository followed through the dialog becomes a project, and stops being one''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theTestMachineIsBeingWatched(tester);
+      await theTestMachineHasAProjectRepository(tester, 'e2e-follow');
+      await iFollowItFromTheInterfaceUnverified(tester);
+      await theInterfaceSaysItIsFollowingIt(tester);
+      await theMachineListsAsFollowedUnverifiedWithItsRepositoriesAndTheirLimits(
+          tester, 'e2e-follow');
+      await iStopFollowingFromTheInterface(tester, 'e2e-follow');
+      await theMachineNoLongerLists(tester, 'e2e-follow');
     });
   });
 }

@@ -29,6 +29,7 @@ import '../app/narrowing.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
 import '../app/project_following.dart';
+import '../app/vault_unlock.dart';
 import '../app/project_deletion.dart';
 import '../app/session.dart';
 import '../app/settings.dart';
@@ -45,6 +46,7 @@ import 'authentication_view.dart';
 import 'backups_view.dart';
 import 'emergency_stop_view.dart';
 import 'project_following_view.dart';
+import 'unlock_terminal.dart';
 import 'project_deletion_view.dart';
 import 'session_view.dart';
 import 'vault_actions.dart';
@@ -314,6 +316,7 @@ class _ShellState extends State<Shell> {
         actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
         askTheWorkUser: () => unawaited(_askTheWorkUser()),
         addAUser: () => unawaited(_addAUser()),
+        unlockWithThePassphrase: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
   );
 
   /// The menu in the machine's title, for the machine being acted on.
@@ -330,6 +333,7 @@ class _ShellState extends State<Shell> {
     vault: widget.vault,
     actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
     addAUser: () => unawaited(_addAUser()),
+    unlockWithThePassphrase: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
   );
 
   /// A project card's menu, judged for that project and run with it selected.
@@ -473,6 +477,22 @@ class _ShellState extends State<Shell> {
     await widget.backups.remove(_fleet.backend);
     final said = widget.backups.words;
     if (said.isNotEmpty) _fleet.say(said);
+  }
+
+  /// Whether the current machine's own `sokar` can be reached for a terminal.
+  bool get _canUnlockHere => unlockCommandFor(widget.machines.current) != null;
+
+  /// Opens the current machine's vault by its passphrase, in a terminal on that machine, then asks
+  /// the machine whether it is open — the terminal's exit code is not the verdict.
+  Future<void> _unlockHere() async {
+    final machine = widget.machines.current;
+    final command = unlockCommandFor(machine);
+    if (command == null) return;
+    await unlockInATerminal(context,
+        machine: machine, command: command, open: widget.sessions.openTerminal);
+    if (!mounted) return;
+    await widget.vault.lookAt(_fleet.backend, machine.name);
+    await _fleet.refresh(quietly: true);
   }
 
   /// Follows a repository in the machine's place — the only way a project comes to a machine.
@@ -1261,6 +1281,10 @@ class _ShellState extends State<Shell> {
             onEnroll: fleet.reachability == Reachability.connected
                 ? () => unawaited(_actOnTheVault(VaultAct.enroll))
                 : null,
+            onOpenWithThePassphrase:
+                fleet.reachability == Reachability.connected && _canUnlockHere
+                    ? () => unawaited(_unlockHere())
+                    : null,
           ),
           menu: _machineMenu(),
           highlight: highlight,
@@ -1422,6 +1446,7 @@ class _ShellState extends State<Shell> {
           vault: widget.vault,
           onRevoke: (slot) => widget.vault.devices.revoke(_fleet.backend, slot),
           onClose: widget.shell.close,
+          onUnlockHere: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
         );
       case BackupsOpened():
         return BackupsView(

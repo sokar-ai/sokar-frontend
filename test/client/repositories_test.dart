@@ -174,4 +174,66 @@ void main() {
       expect((await asked()).values, everyElement('none sent'));
     });
   });
+
+  test("a repository's limits are read with where each key came from", () async {
+    daemon.method('Projects', (_) => <String, dynamic>{
+          'projects': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'name': 'checkout',
+              'repositories': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'name': 'payments-api',
+                  'limits': <String, dynamic>{
+                    'memory': '4g',
+                    'cpus': '',
+                    'pids': 512,
+                    'memoryFrom': 'repository',
+                    'cpusFrom': 'project',
+                    'pidsFrom': 'project',
+                  },
+                },
+                <String, dynamic>{'name': 'older'},
+              ],
+            },
+          ],
+        });
+
+    final repositories = (await (await connect()).projects()).single.repositoryStates;
+
+    final limits = repositories.first.limits!;
+    expect(limits.words, 'memory 4g (its own) · cpus no limit · processes 512');
+    expect(repositories.last.limits, isNull, reason: 'a Sokar that does not say says nothing');
+  });
+
+  test('what this account follows is read, one entry per project', () async {
+    daemon.method('Following', (_) => <String, dynamic>{
+          'projects': <Map<String, dynamic>>[
+            <String, dynamic>{'name': 'e2e-follow', 'outcome': 'APPLIED', 'unverified': true},
+          ],
+        });
+
+    final followed = await (await connect()).following();
+
+    expect(followed.single.name, 'e2e-follow');
+    expect(followed.single.inForce, isTrue);
+    expect(followed.single.unverified, isTrue);
+  });
+
+  test('a project left from before following carries a file and is still not acted on', () async {
+    daemon.method('Projects', (_) => <String, dynamic>{
+          'projects': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'name': 'objects4j',
+              'file': '/home/michi/git/objects4j/project.yml',
+              'following': <String, dynamic>{},
+            },
+            <String, dynamic>{'name': 'older', 'file': '/srv/older/project.yml'},
+          ],
+        });
+
+    final projects = await (await connect()).projects();
+
+    expect(projects.first.canBeActedOn, isFalse, reason: 'the machine follows nothing called that');
+    expect(projects.last.canBeActedOn, isTrue, reason: 'a Sokar that says nothing about following');
+  });
 }

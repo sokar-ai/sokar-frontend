@@ -2217,6 +2217,32 @@ refusal needs that in the record, not only in the warning they clicked past.
 backup was taken — but there is nothing to restore *from*, and offering it would say the record is
 the thing when it is not.
 
+## A project is repositories a machine follows
+
+Since 2026-09-19 a project is one or more git repositories, **its own first** — the one holding
+`project.yml`, named after the project — and a machine has a project only because it follows that
+repository. What the interface relies on, each learned from the wire rather than from a description
+of it:
+
+- **Two shapes of `repositories` were answered in one day**: names, then objects. The reader takes
+  both. The day it took only names, objects would have been dropped as not strings, every start
+  would have gone out naming no repository, and the refusal would have been the first sign.
+- **Empty is not one repository.** A Sokar that names none is sent none; `Task.repository` empty is
+  the project's own, never *unknown*.
+- **Each repository has a gate of its own.** The gate is asked once per repository, and the same
+  ref name waiting in two of them is two pushes — `PendingPush.id` carries the repository for that.
+- **A repository's egress is added to the project's; its limits replace the project's key by key.**
+  So a repository's view is the project's and its own together, its own marked from
+  `EgressHost.origin` — nothing subtracted here — and a limit whose source is `project` is never
+  worded as the project having set it: that source covers Sokar's own default too.
+- **What is in force and what was turned away are two fields**, `commit` and `refused`, and a
+  project goes on running the first. `unverified` is a state beside `outcome`, never one of its
+  values: a project can be unverified and unreachable at once.
+- **A follow is checked by reading the listing right after it**, in the integration leg, on a
+  rented machine: a check made later passes for the wrong reason, because by then a task has made
+  a mirror. That is how a followed project missing from `Projects()` was found — and then that the
+  follow had kept `unverified` and reported it lost — neither by a unit suite on either side.
+
 ## Name or file: four methods say only `project: string`
 
 **Settled on 2026-09-19: every method takes the name**, and a path is refused. The rest of this

@@ -27,7 +27,8 @@ class ProjectFollowing extends ChangeNotifier {
   /// How its commits are checked, or null until somebody chooses.
   Checking? checking;
 
-  /// The public key commits must be signed with, when [checking] is [Checking.pinned].
+  /// The public key commits must be signed with, or its `SHA256:` fingerprint — the one a refusal
+  /// names — when [checking] is [Checking.pinned].
   String key = '';
 
   /// What the machine answered, or null before it was asked.

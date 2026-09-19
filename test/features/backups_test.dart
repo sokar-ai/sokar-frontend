@@ -33,6 +33,8 @@ import './step/the_upstream_was_asked_about_the_repository.dart';
 import './step/i_show_the_backups_of_the_repository.dart';
 import './step/the_backups_and_the_restore_were_about_the_repository.dart';
 import './step/no_repository_was_named_for_the_backups_or_the_upstream.dart';
+import './step/the_repository_limits_its_memory_to.dart';
+import './step/the_repository_does_not_say.dart';
 
 void main() {
   group('''Backups of a mirror: listing, removing, restoring, and upstream''',
@@ -197,6 +199,18 @@ void main() {
       await iConsiderRestoringTheFirstBackup(tester);
       await iAskTheUpstreamHowFarBehindThisProjectIs(tester);
       await noRepositoryWasNamedForTheBackupsOrTheUpstream(tester);
+    });
+    testWidgets(
+        '''a repository's limits are shown, the keys it replaced marked as its own''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theRepositoryLimitsItsMemoryTo(tester, 'payments-api', '4g');
+      await theRepositorySays(tester, 'payments-api', 'memory 4g (its own)');
+      await theRepositorySays(tester, 'payments-api', 'processes 512');
+      await theRepositoryDoesNotSay(
+          tester, 'payments-api', 'processes 512 (its own)');
     });
   });
 }

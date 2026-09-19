@@ -72,6 +72,9 @@ abstract final class Sizes {
 
   /// A dialog that asks several things at once, wide enough for a URL or a key on one line.
   static const dialog = 620.0;
+
+  /// A terminal inside a dialog: enough rows for a prompt, an answer and what came of it.
+  static const terminal = 240.0;
 }
 
 /// Corner radii.

@@ -142,3 +142,21 @@ Feature: Changing what a project may reach, and no longer following one
     When I select the project {'unrecorded'}
     And I open the command finder
     Then the command {'Stop following this project'} is offered
+
+  # A project from before projects were followed keeps the path the old registry recorded, and the
+  # machine refuses every call about it. It is listed for what is left of it, and nothing else.
+  Scenario: a project left from before following offers nothing but clearing it away
+    Given the project {'checkout'} is left over, followed by nothing
+    When I select the project {'checkout'}
+    And I open the command finder
+    Then the command {'Review what is waiting at the gate'} is unavailable because {'not a project this machine follows'}
+    And the command {'Build the environment for this project'} is unavailable because {'not a project this machine follows'}
+    And the command {'Stop following this project'} is offered
+
+  Scenario: a project the machine follows nothing by is said to be so, and nothing goes
+    Given the project {'checkout'} is left over, followed by nothing
+    And the machine follows nothing called it
+    When I ask to stop following this project
+    Then it says {'Nothing follows checkout here'}
+    And it says {'Nothing was removed'}
+

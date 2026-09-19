@@ -432,6 +432,7 @@ List<Command> machineCommands({
   required Vault vault,
   required void Function(VaultAct act) actOnTheVault,
   required VoidCallback addAUser,
+  VoidCallback? unlockWithThePassphrase,
 }) {
   final connected = fleet.reachability == Reachability.connected;
   final notConnected = connected ? null : 'the machine is not answering';
@@ -497,6 +498,21 @@ List<Command> machineCommands({
         run: () => actOnTheVault(act),
         unavailable: notConnected ?? vault.whyNot(act),
       ),
+    // The first opening is always by the passphrase: a device can only be enrolled into an open
+    // vault. Typed into the machine's own `sokar`, never into this program.
+    Command(
+      id: 'vault.passphrase',
+      label: 'Open the protected store with its passphrase, in a terminal',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: unlockWithThePassphrase ?? () {},
+      unavailable: notConnected ??
+          (vault.readable
+              ? 'it is already open'
+              : unlockWithThePassphrase == null
+                  ? 'its socket is forwarded by somebody else, so nothing here reaches its sokar'
+                  : null),
+    ),
     Command(
       id: 'agents.show',
       label: 'Show the agents installed here',
@@ -579,6 +595,7 @@ List<Command> commandsFor({
   required void Function(VaultAct act) actOnTheVault,
   required VoidCallback askTheWorkUser,
   required VoidCallback addAUser,
+  VoidCallback? unlockWithThePassphrase,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
@@ -687,6 +704,7 @@ List<Command> commandsFor({
       vault: vault,
       actOnTheVault: actOnTheVault,
       addAUser: addAUser,
+      unlockWithThePassphrase: unlockWithThePassphrase,
     ),
     Command(
       id: 'project.follow',

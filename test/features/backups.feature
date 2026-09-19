@@ -134,3 +134,12 @@ Feature: Backups of a mirror: listing, removing, restoring, and upstream
     And I ask the upstream how far behind this project is
     Then no repository was named for the backups or the upstream
 
+  # A repository's limits replace the project's key by key. Which keys it replaced is the part worth
+  # saying; the rest may be the project's or Sokar's own default, and nothing can tell which.
+  Scenario: a repository's limits are shown, the keys it replaced marked as its own
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    And the repository {'payments-api'} limits its memory to {'4g'}
+    Then the repository {'payments-api'} says {'memory 4g (its own)'}
+    And the repository {'payments-api'} says {'processes 512'}
+    And the repository {'payments-api'} does not say {'processes 512 (its own)'}
+

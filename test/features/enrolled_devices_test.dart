@@ -18,6 +18,7 @@ import './step/enrolling_is_not_offered.dart';
 import './step/i_begin_enrolling_this_device.dart';
 import './step/the_key_this_device_keeps_is_nowhere_on_screen.dart';
 import './step/the_store_is_shut.dart';
+import './step/the_machine_is_a_socket_somebody_else_forwards.dart';
 import './step/the_stores_lock_does_nothing.dart';
 import './step/i_shut_the_store.dart';
 import './step/i_begin_opening_the_store_with_this_device.dart';
@@ -81,6 +82,7 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await theStoreIsShut(tester);
+      await theMachineIsASocketSomebodyElseForwards(tester);
       await theStoresLockSays(tester,
           'The store is shut, and this device is not enrolled. Unlock it at the machine with `sokar vault unlock`, then enroll this device.');
       await theStoresLockDoesNothing(tester);
@@ -164,6 +166,7 @@ void main() {
     });
     testWidgets('''the machine's menu shuts the store too''', (tester) async {
       await bddSetUp(tester);
+      await theMachineIsASocketSomebodyElseForwards(tester);
       await iShutTheStoreFromTheMachinesMenu(tester);
       await itSays(tester, 'The store is shut.');
       await iCloseTheAnswer(tester);

@@ -29,11 +29,15 @@ gap here is a backend method that has to be added, not a workaround waiting to b
   `CreateProject` nor `Moderate` writes. Asked as QS8 and QF17; see
   [F42](../issues/README.md).
 
+- **Clearing away a project left from before following** (Sokar B74, decided, not built).
+  `Unfollow` with `dryRun` answers `NoSuchProject` for a project the machine still lists but does not
+  follow, so *Stop following* has nothing to show and nothing is removed from here; a blind `force`
+  is not offered, because what it destroys includes pushes nobody reviewed. B74 makes the preview
+  answer `PREVIEWED` with `removes`, `keeps` and `unreviewed`, and the refusals a followed project
+  gets.
+
 ## On the wire, not used here yet
 
-- **Projects as repositories** (Sokar B66, B68): `CreateProject` rendering and returning the file,
-  `Follow`/`Unfollow` with `acceptRewrite`, the reconciliation state per account, and a repository's
-  own egress and limits through `SetEgress(repository)`. See [F44](../issues/README.md).
 - **`WatchProjects`**, a push for what `Projects` answers. The project row still asks again after
   anything that would change it; moving it onto the push makes its counts arrive rather than age.
 

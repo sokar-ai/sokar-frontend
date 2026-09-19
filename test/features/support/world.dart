@@ -929,8 +929,13 @@ class FakeBackend implements FleetBackend {
     return answer;
   }
 
+  /// Set to refuse the next [unfollow] the way the daemon refuses one.
+  VarlinkException? refuseToUnfollow;
+
   @override
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async {
+    final refusal = refuseToUnfollow;
+    if (refusal != null) throw refusal;
     deletions.add((project: project, preview: dryRun == true, force: force == true));
     final refused = deletionAnswers.canBeForced && force != true;
     return Deletion(

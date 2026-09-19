@@ -955,6 +955,11 @@ class Project {
   /// nothing here — the ordinary case, and never the same as followed with nothing known yet.
   final Followed? following;
 
+  /// Whether the machine said anything about following at all. A Sokar that knows following answers
+  /// `following` on every project, and an empty one for a project nothing follows; an older Sokar
+  /// answers nothing, and its projects are acted on as they always were.
+  final bool followingAnswered;
+
   /// The project's own repository, or null where the machine names none.
   String? get ownRepository =>
       repositoryStates.where((each) => each.own).firstOrNull?.name ?? repositories.firstOrNull;
@@ -981,6 +986,7 @@ class Project {
     this.repositories = const <String>[],
     this.repositoryStates = const <Repository>[],
     this.following,
+    this.followingAnswered = false,
   });
 
   /// Reads one from a reply.
@@ -1001,6 +1007,7 @@ class Project {
         repositories: <String>[for (final each in Repository.allIn(map)) each.name],
         repositoryStates: Repository.allIn(map),
         following: Followed.of(map['following']),
+        followingAnswered: map.containsKey('following'),
       );
 
   /// Whether this project is behind its upstream by an amount somebody can act on.
@@ -1018,9 +1025,11 @@ class Project {
   /// Whether anything can be done to it beyond looking at it.
   ///
   /// Every method that acts on a project takes its **name**, and accepts only a project this
-  /// machine follows — which `Projects()` lists with the [file] it verified. One known only from
-  /// tasks left behind has none, and is listed and not acted on: a state to render, never an error.
-  bool get canBeActedOn => file.isNotEmpty;
+  /// machine follows. **A file is not enough**: a project left from before projects were followed
+  /// still carries the path the old registry recorded, and the machine refuses every call about it.
+  /// So where the machine says what it follows, only a followed one is acted on; one known only
+  /// from what was left behind is listed and not acted on — a state to render, never an error.
+  bool get canBeActedOn => file.isNotEmpty && (!followingAnswered || following != null);
 }
 
 /// One host a project's work may reach, and what granted it.
@@ -2792,6 +2801,9 @@ class Repository {
   /// Prose for a person, only when [behindReason] is `FAILED`. Never parsed.
   final String behindDetail;
 
+  /// What a task on it may consume, or null from a Sokar that does not say.
+  final ResolvedLimits? limits;
+
   /// Whether it is behind its upstream by an amount somebody can act on.
   bool get hasFallenBehind => behindReason == 'MEASURED' && behind > 0;
 
@@ -2809,6 +2821,7 @@ class Repository {
     this.behindMeasured = '',
     this.behindReason = '',
     this.behindDetail = '',
+    this.limits,
   });
 
   /// Reads one from a reply.
@@ -2822,6 +2835,9 @@ class Repository {
         behindMeasured: _string(map, 'behindMeasured'),
         behindReason: _string(map, 'behindReason'),
         behindDetail: _string(map, 'behindDetail'),
+        limits: map['limits'] is Map<String, dynamic>
+            ? ResolvedLimits.from(map['limits']! as Map<String, dynamic>)
+            : null,
       );
 
   /// A project's repositories, **the project's own first**, from either shape Sokar has answered:
@@ -2973,4 +2989,64 @@ class Followed {
   }
 
   static String _short(String commit) => commit.length > 7 ? commit.substring(0, 7) : commit;
+}
+
+/// What a task on one repository may consume, and which block each key came from.
+///
+/// **A repository's limits replace the project's key by key**, so the part worth saying is which
+/// key a repository replaced. `"project"` covers both a value the project file wrote and Sokar's own
+/// default, which nothing can tell apart — so it is never worded as somebody having set it.
+class ResolvedLimits {
+  /// Memory limit, or empty for none.
+  final String memory;
+
+  /// CPU limit, or empty for none.
+  final String cpus;
+
+  /// Process limit. Always set.
+  final int pids;
+
+  /// `repository` or `project`, for each key.
+  final String memoryFrom;
+
+  /// See [memoryFrom].
+  final String cpusFrom;
+
+  /// See [memoryFrom].
+  final String pidsFrom;
+
+  /// Constructor taking every field.
+  const ResolvedLimits({
+    this.memory = '',
+    this.cpus = '',
+    this.pids = 0,
+    this.memoryFrom = '',
+    this.cpusFrom = '',
+    this.pidsFrom = '',
+  });
+
+  /// Reads one from a reply.
+  factory ResolvedLimits.from(Map<String, dynamic> map) => ResolvedLimits(
+        memory: _string(map, 'memory'),
+        cpus: _string(map, 'cpus'),
+        pids: _int(map, 'pids'),
+        memoryFrom: _string(map, 'memoryFrom'),
+        cpusFrom: _string(map, 'cpusFrom'),
+        pidsFrom: _string(map, 'pidsFrom'),
+      );
+
+  /// All three in one line, the ones the repository replaced marked as its own.
+  String get words {
+    String one(String what, String value, String from) =>
+        '$what ${value.isEmpty ? 'no limit' : value}${from == 'repository' ? ' (its own)' : ''}';
+    return <String>[
+      one('memory', memory, memoryFrom),
+      one('cpus', cpus, cpusFrom),
+      one('processes', '$pids', pidsFrom),
+    ].join(' · ');
+  }
+
+  /// Whether the repository replaced any of the project's keys.
+  bool get anyOfItsOwn =>
+      memoryFrom == 'repository' || cpusFrom == 'repository' || pidsFrom == 'repository';
 }

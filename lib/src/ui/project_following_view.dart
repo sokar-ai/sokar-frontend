@@ -110,7 +110,8 @@ class ProjectFollowingPanel extends StatelessWidget {
                         if (following.checking == Checking.pinned)
                           _Field(
                             id: 'follow-key',
-                            label: 'The public key, as ssh-ed25519 AAAA…',
+                            // Its fingerprint works too — the string a refused signature shows.
+                            label: 'The public key, or its fingerprint (SHA256:…)',
                             value: following.key,
                             onChanged: (typed) => following.answerWith(() => following.key = typed),
                           ),

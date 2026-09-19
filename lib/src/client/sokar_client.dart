@@ -579,6 +579,15 @@ class SokarClient {
     return id is String ? id : '';
   }
 
+  /// Which project repositories this account follows, and how far each has got.
+  Future<List<Followed>> following() async {
+    final reply = await _call('Following', const <String, dynamic>{});
+    final projects = reply['projects'];
+    return projects is List
+        ? projects.whereType<Map<String, dynamic>>().map(Followed.from).toList()
+        : const <Followed>[];
+  }
+
   /// Starts following a project's repository, and reconciles once, now — so a project that comes
   /// back as taken can have work started in it at once.
   ///

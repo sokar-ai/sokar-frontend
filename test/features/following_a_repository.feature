@@ -57,3 +57,13 @@ Feature: A project comes to a machine by following its repository
     And the follow accepted no rewrite
     When I take the rewritten history
     Then the follow accepted the rewrite
+
+  # The fingerprint is what a refused signature shows, so it is what somebody has in hand to pin.
+  Scenario: a key can be pinned by the fingerprint a refusal showed
+    When I follow a repository
+    And I name it {'payments'} at {'git@example.org:payments.git'}
+    And I choose to check its commits against a key
+    Then it says {'or its fingerprint'}
+    When I give the key {'SHA256:9xQeTbL1'}
+    And I follow it
+    Then the follow was sent with the key {'SHA256:9xQeTbL1'}

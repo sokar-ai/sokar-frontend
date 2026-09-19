@@ -112,7 +112,12 @@ class ProjectDeletion extends ChangeNotifier {
     try {
       answer = await ask();
     } on VarlinkException catch (refusal) {
-      problem = 'Refused: ${refusal.simpleName}.';
+      problem = refusal.simpleName == 'NoSuchProject'
+          // A project left from before following: the machine lists it and follows nothing by that
+          // name, so it cannot say what clearing it would take — and nothing goes without that.
+          ? 'Nothing follows $project here, so the machine cannot say what clearing it away would '
+              'take. Nothing was removed.'
+          : 'Refused: ${refusal.simpleName}.';
     } on VarlinkDisconnected catch (ex) {
       // Deliberately does not say whether it happened. A removal that may or may not have run is
       // the one case where claiming either way sends somebody to the wrong place.

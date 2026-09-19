@@ -1,6 +1,6 @@
 # The Feature line is the report row: one short sentence, 70 characters at most,
 # saying what this file tests. Run by tool/e2e.sh against a real machine.
-Feature: Reaching a real machine and reading what its daemon says
+Feature: Reaching a real machine, reading it, and following a project
 
   Background:
     Given the interface is running
@@ -35,3 +35,17 @@ Feature: Reaching a real machine and reading what its daemon says
     Then the trial says {'runtime directory (uid 0)'}
     And no forward raised for the trial is left
     And I put the dialog away
+
+  # The whole way a project now comes to a machine, against the daemon rather than a fake: a
+  # repository on that machine, followed through the dialog, read back with everything the
+  # interface draws from it, and then no longer followed. In this file rather than one of its own:
+  # each file launches the interface again, and a second launch joins the first and exits.
+  Scenario: a repository followed through the dialog becomes a project, and stops being one
+    Given the test machine is being watched
+    And the test machine has a project repository {'e2e-follow'}
+    When I follow it from the interface, unverified
+    Then the interface says it is following it
+    And the machine lists {'e2e-follow'} as followed unverified, with its repositories and their limits
+    When I stop following {'e2e-follow'} from the interface
+    Then the machine no longer lists {'e2e-follow'}
+

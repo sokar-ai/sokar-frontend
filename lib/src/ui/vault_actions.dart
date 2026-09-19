@@ -15,6 +15,7 @@ class VaultButtons extends StatelessWidget {
     required this.vault,
     required this.onLock,
     required this.onEnroll,
+    this.onOpenWithThePassphrase,
     super.key,
   });
 
@@ -27,18 +28,27 @@ class VaultButtons extends StatelessWidget {
   /// Enrolls this device; null while the machine is not answering.
   final VoidCallback? onEnroll;
 
+  /// Opens the store by its passphrase in a terminal on the machine; null where nothing here can
+  /// reach that machine's `sokar`, or while it is not answering.
+  final VoidCallback? onOpenWithThePassphrase;
+
   @override
   Widget build(BuildContext context) {
     final open = vault.state?.readable ?? false;
+    // A shut store this device cannot open is still openable — by its passphrase — so the lock is
+    // never a dead button while that way exists: it is the only way to a device being enrolled.
+    final byPassphrase = !vault.lockWorks && !open ? onOpenWithThePassphrase : null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         if (vault.offersEnrolling) _enroll(context),
         Tooltip(
-          message: vault.lockSays,
+          message: byPassphrase != null
+              ? 'Shut. Open it with its passphrase, in a terminal on the machine'
+              : vault.lockSays,
           child: IconButton(
             key: const Key('vault-act'),
-            onPressed: vault.lockWorks ? onLock : null,
+            onPressed: vault.lockWorks ? onLock : byPassphrase,
             icon: Icon(open ? Icons.lock_open_outlined : Icons.lock_outline,
                 size: Sizes.rowIcon),
             visualDensity: VisualDensity.compact,

@@ -21,6 +21,15 @@ import './step/i_read_to_the_bottom_of_the_store.dart';
 import './step/reading_the_store_is_slow.dart';
 import './step/i_ask_about_the_store_twice.dart';
 import './step/the_newer_answer_is_the_one_on_screen.dart';
+import './step/the_machine_is_reached_over_ssh_as.dart';
+import './step/i_open_it_here_with_its_passphrase.dart';
+import './step/a_terminal_runs_on_the_machine.dart';
+import './step/the_unlock_terminal_ends_and_is_put_away.dart';
+import './step/the_machine_is_asked_again_whether_the_store_is_open.dart';
+import './step/i_open_the_store_with_its_passphrase_from_the_lock.dart';
+import './step/the_machine_is_a_socket_somebody_else_forwards.dart';
+import './step/i_open_the_command_finder.dart';
+import './step/the_command_is_unavailable_because.dart';
 
 void main() {
   group('''Seeing and shutting the secret store, without showing a value''',
@@ -94,6 +103,50 @@ void main() {
       await readingTheStoreIsSlow(tester);
       await iAskAboutTheStoreTwice(tester);
       await theNewerAnswerIsTheOneOnScreen(tester);
+    });
+    testWidgets(
+        '''a shut store is opened by its passphrase in a terminal on the machine, then asked again''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theStoreIsShut(tester);
+      await theMachineIsReachedOverSshAs(tester, 'michi@vm');
+      await iShowTheProtectedStore(tester);
+      await iOpenItHereWithItsPassphrase(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'ssh -t michi@vm sokar vault unlock');
+      await theUnlockTerminalEndsAndIsPutAway(tester);
+      await theMachineIsAskedAgainWhetherTheStoreIsOpen(tester);
+    });
+    testWidgets(
+        '''a shut store on a device that is not enrolled is opened from the lock by its passphrase''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theStoreIsShut(tester);
+      await theMachineIsReachedOverSshAs(tester, 'michi@vm');
+      await iOpenTheStoreWithItsPassphraseFromTheLock(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'ssh -t michi@vm sokar vault unlock');
+    });
+    testWidgets(
+        '''a machine whose socket somebody else forwards is not offered a terminal to open it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theStoreIsShut(tester);
+      await theMachineIsASocketSomebodyElseForwards(tester);
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsUnavailableBecause(
+          tester,
+          'Open the protected store with its passphrase, in a terminal',
+          'forwarded by somebody else');
+    });
+    testWidgets(
+        '''this machine's own daemon is opened by its own sokar, here''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theStoreIsShut(tester);
+      await iShowTheProtectedStore(tester);
+      await iOpenItHereWithItsPassphrase(tester);
+      await aTerminalRunsOnTheMachine(tester, 'sokar vault unlock');
     });
   });
 }

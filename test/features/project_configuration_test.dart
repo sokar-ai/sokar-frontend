@@ -42,6 +42,9 @@ import './step/nothing_was_forced.dart';
 import './step/stopping_following_will_refuse_because.dart';
 import './step/it_was_forced.dart';
 import './step/the_command_is_offered.dart';
+import './step/the_project_is_left_over_followed_by_nothing.dart';
+import './step/the_command_is_unavailable_because.dart';
+import './step/the_machine_follows_nothing_called_it.dart';
 
 void main() {
   group('''Changing what a project may reach, and no longer following one''',
@@ -233,6 +236,33 @@ void main() {
       await iSelectTheProject(tester, 'unrecorded');
       await iOpenTheCommandFinder(tester);
       await theCommandIsOffered(tester, 'Stop following this project');
+    });
+    testWidgets(
+        '''a project left from before following offers nothing but clearing it away''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectIsLeftOverFollowedByNothing(tester, 'checkout');
+      await iSelectTheProject(tester, 'checkout');
+      await iOpenTheCommandFinder(tester);
+      await theCommandIsUnavailableBecause(
+          tester,
+          'Review what is waiting at the gate',
+          'not a project this machine follows');
+      await theCommandIsUnavailableBecause(
+          tester,
+          'Build the environment for this project',
+          'not a project this machine follows');
+      await theCommandIsOffered(tester, 'Stop following this project');
+    });
+    testWidgets(
+        '''a project the machine follows nothing by is said to be so, and nothing goes''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectIsLeftOverFollowedByNothing(tester, 'checkout');
+      await theMachineFollowsNothingCalledIt(tester);
+      await iAskToStopFollowingThisProject(tester);
+      await itSays(tester, 'Nothing follows checkout here');
+      await itSays(tester, 'Nothing was removed');
     });
   });
 }

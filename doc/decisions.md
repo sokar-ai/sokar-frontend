@@ -6,6 +6,9 @@ question, which is an issue. What it records is a choice somebody would otherwis
 
 | Date | What was decided |
 |---|---|
+| 2026-09-19 | [A project comes to a machine only by being followed; describing one here is gone](#2026-09-19--a-project-comes-to-a-machine-only-by-being-followed) |
+| 2026-09-19 | [A refused project signature is a state of the project, and it is put in front of a person](#2026-09-19--a-refused-project-signature-is-a-state-of-the-project) |
+| 2026-09-19 | [Work always starts in a repository somebody chose; the project stays the unit of navigation](#2026-09-19--work-always-starts-in-a-repository-somebody-chose) |
 | 2026-09-14 | [One session at a time, shown only where it was opened](#2026-09-14--one-session-at-a-time-shown-only-where-it-was-opened) |
 | 2026-09-14 | [A push that changes only documentation starts no build](#2026-09-14--a-push-that-changes-only-documentation-starts-no-build) |
 | 2026-09-13 | [What was run is kept for thirty days in one owner-only file, and an unseen failure still waits](#2026-09-13--what-was-run-is-kept-for-thirty-days-in-one-owner-only-file) |
@@ -22,6 +25,38 @@ question, which is an issue. What it records is a choice somebody would otherwis
 | 2026-09-11 | [Handing off work from another device needs no feature of its own](#2026-09-11--handing-off-from-another-device-needs-no-feature-of-its-own) |
 | 2026-09-07 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#2026-09-07--the-interface-raises-and-supervises-its-own-ssh-forward) |
 | 2026-09-07 | [No browser: the interface is a desktop application over a unix socket](#2026-09-07--no-browser) |
+
+## 2026-09-19 — A project comes to a machine only by being followed
+
+The operator's decision, when Sokar made a project a repository a machine follows. *Describe a
+project* — a dialog that asked the machine to write a `project.yml` — is gone, with `CreateProject`
+under it, and nothing renders a file in its place. A person writes `project.yml` in the project's
+own repository, where they already commit; the interface offers *Follow a repository*, and what is
+wrong with the file comes back from the follow as named reasons.
+
+**What it costs:** the checks a description ran while it was being typed — a name that becomes an
+image tag, a set the machine has — now arrive after a commit and a follow rather than before.
+Accepted, because two ways to a project file is one too many, and the one that stays is the one the
+machine verifies. How a followed repository's commits are checked — a pinned key or unverified — is
+chosen in the dialog and never defaulted. Removing a project is *Stop following*.
+
+## 2026-09-19 — A refused project signature is a state of the project
+
+The operator's decision. When a machine turns a project commit away, the project's header says so as
+a state of its own — what is in force, what was turned away, and why — and the project is also
+**under *Needs you***, because a commit signed by a key the machine was never given is either
+somebody putting a project file past it or a legitimate commit signed with the wrong key, and both
+need a person. **Which states need a person is Sokar's to say** (`needsAPerson`), never worked out
+here: an unreachable repository may answer by itself on the next pass, a refused signature never
+will.
+
+## 2026-09-19 — Work always starts in a repository somebody chose
+
+The operator's decision, when a project became one or more repositories. The project stays what the
+tree navigates by, with no level of its own for repositories; the project's header gains a line per
+repository, and the gate lists what waits in every repository. **Starting work names a repository,
+chosen and never preselected — not even when a project has one.** *Start again*, *Recreate*,
+*Continue* and a saved job keep the repository the work was in.
 
 ## 2026-09-14 — One session at a time, shown only where it was opened
 

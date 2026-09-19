@@ -98,5 +98,16 @@ void main() {
       await iTakeTheRewrittenHistory(tester);
       await theFollowAcceptedTheRewrite(tester);
     });
+    testWidgets('''a key can be pinned by the fingerprint a refusal showed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iFollowARepository(tester);
+      await iNameItAt(tester, 'payments', 'git@example.org:payments.git');
+      await iChooseToCheckItsCommitsAgainstAKey(tester);
+      await itSays(tester, 'or its fingerprint');
+      await iGiveTheKey(tester, 'SHA256:9xQeTbL1');
+      await iFollowIt(tester);
+      await theFollowWasSentWithTheKey(tester, 'SHA256:9xQeTbL1');
+    });
   });
 }

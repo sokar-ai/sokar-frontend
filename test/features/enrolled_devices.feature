@@ -32,8 +32,11 @@ Feature: Opening the store with an enrolled device, never with a passphrase
     And I show the protected store
     Then the key this device keeps is nowhere on screen
 
+  # On a machine whose socket somebody else forwards: nothing here can reach its sokar, so there is
+  # no terminal to open it in either, and the lock can only say where it is opened.
   Scenario: a shut store and a device that is not enrolled say where it is opened instead
     Given the store is shut
+    And the machine is a socket somebody else forwards
     Then the store's lock says {'The store is shut, and this device is not enrolled. Unlock it at the machine with `sokar vault unlock`, then enroll this device.'}
     And the store's lock does nothing
     And enrolling says {'Enrolling needs the store open. Unlock it at the machine with `sokar vault unlock` first.'}
@@ -100,6 +103,7 @@ Feature: Opening the store with an enrolled device, never with a passphrase
 
   # Whatever the title shows, the machine's menu has all three.
   Scenario: the machine's menu shuts the store too
+    Given the machine is a socket somebody else forwards
     When I shut the store from the machine's menu
     Then it says {'The store is shut.'}
     When I close the answer

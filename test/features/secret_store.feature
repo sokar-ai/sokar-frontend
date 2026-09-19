@@ -52,3 +52,34 @@ Feature: Seeing and shutting the secret store, without showing a value
     Given reading the store is slow
     When I ask about the store twice
     Then the newer answer is the one on screen
+
+  # A device can only be enrolled into an open store, so the first opening is always by the
+  # passphrase — typed into a terminal on the machine, never into this program.
+  Scenario: a shut store is opened by its passphrase in a terminal on the machine, then asked again
+    Given the store is shut
+    And the machine is reached over ssh as {'michi@vm'}
+    When I show the protected store
+    And I open it here with its passphrase
+    Then a terminal runs {'ssh -t michi@vm sokar vault unlock'} on the machine
+    When the unlock terminal ends and is put away
+    Then the machine is asked again whether the store is open
+
+  Scenario: a shut store on a device that is not enrolled is opened from the lock by its passphrase
+    Given the store is shut
+    And the machine is reached over ssh as {'michi@vm'}
+    When I open the store with its passphrase from the lock
+    Then a terminal runs {'ssh -t michi@vm sokar vault unlock'} on the machine
+
+  # A socket somebody else forwarded has no host behind it; a sokar run here would open another vault.
+  Scenario: a machine whose socket somebody else forwards is not offered a terminal to open it
+    Given the store is shut
+    And the machine is a socket somebody else forwards
+    When I open the command finder
+    Then the command {'Open the protected store with its passphrase, in a terminal'} is unavailable because {'forwarded by somebody else'}
+
+  Scenario: this machine's own daemon is opened by its own sokar, here
+    Given the store is shut
+    When I show the protected store
+    And I open it here with its passphrase
+    Then a terminal runs {'sokar vault unlock'} on the machine
+

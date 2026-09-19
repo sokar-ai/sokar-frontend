@@ -570,16 +570,30 @@ class _RepositoryLine extends StatelessWidget {
       key: Key('repository-$name'),
       children: <Widget>[
         Expanded(
-          child: Text(
-            <String>[
-              repository.own ? '$name, its own' : name,
-              if (repository.pending > 0) '${repository.pending} waiting at the gate',
-              if (repository.behindReason.isNotEmpty) repository.behindWords,
-            ].join(' · '),
-            overflow: TextOverflow.ellipsis,
-            style: repository.hasFallenBehind
-                ? theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.tertiary)
-                : theme.textTheme.bodySmall,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                <String>[
+                  repository.own ? '$name, its own' : name,
+                  if (repository.pending > 0) '${repository.pending} waiting at the gate',
+                  if (repository.behindReason.isNotEmpty) repository.behindWords,
+                ].join(' · '),
+                overflow: TextOverflow.ellipsis,
+                style: repository.hasFallenBehind
+                    ? theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.tertiary)
+                    : theme.textTheme.bodySmall,
+              ),
+              // A repository's limits replace the project's key by key; the ones it replaced are
+              // marked. The rest are never said to be the project's choice: they may be Sokar's.
+              if (repository.limits case final limits?)
+                Text(
+                  limits.words,
+                  key: Key('limits-$name'),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+            ],
           ),
         ),
         IconButton(
