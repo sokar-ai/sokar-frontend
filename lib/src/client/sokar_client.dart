@@ -155,6 +155,34 @@ class SokarClient {
   /// What the vault holds, without any of it.
   Future<VaultState> credentials() async => VaultState.from(await _call('Credentials'));
 
+  /// Records a credential this machine may use. **No secret crosses this socket**: the answer says
+  /// what to run on the machine to store the value.
+  Future<CredentialDeclared> credentialDeclare({
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  }) async =>
+      CredentialDeclared.from(await _call('CredentialDeclare', {
+        'id': ?id,
+        'kind': kind,
+        'match': match,
+        'user': ?user,
+        'purpose': ?purpose,
+        'source': ?source,
+      }));
+
+  /// Forgets a credential record. The secret stays where it is; the answer says what still holds it.
+  Future<CredentialForgotten> credentialForget(String match) async =>
+      CredentialForgotten.from(await _call('CredentialForget', {'match': match}));
+
+  /// Which credential [url] would use, and whether it would work, without touching the network.
+  Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async =>
+      CredentialChecked.from(
+          await _call('CredentialCheck', {'url': url, 'purpose': ?purpose}));
+
   // --------------------------------------------------------------------- running tasks
 
   /// Starts a task, streaming the build as it happens.
@@ -595,7 +623,7 @@ class SokarClient {
   /// one. Sokar refuses both together: they are two instructions, not a stricter setting.
   /// [acceptRewrite] is **only ever** a person's answer to `REWRITTEN`, never a retry.
   Future<Followed> follow(String name, String url,
-          {String? signedBy, bool? unverified, bool? acceptRewrite}) async =>
+          {String? signedBy, bool? unverified, bool? acceptRewrite, bool? dryRun}) async =>
       Followed.from(<String, dynamic>{
         'name': name,
         'url': url,
@@ -605,6 +633,7 @@ class SokarClient {
           'signedBy': ?signedBy,
           'unverified': ?unverified,
           'acceptRewrite': ?acceptRewrite,
+          'dryRun': ?dryRun,
         }),
       });
 

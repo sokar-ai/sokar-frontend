@@ -28,6 +28,7 @@ import '../app/machines.dart';
 import '../app/narrowing.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
+import '../app/connections.dart';
 import '../app/project_following.dart';
 import '../app/vault_unlock.dart';
 import '../app/project_deletion.dart';
@@ -45,6 +46,7 @@ import 'agents_view.dart';
 import 'authentication_view.dart';
 import 'backups_view.dart';
 import 'emergency_stop_view.dart';
+import 'connections_view.dart';
 import 'project_following_view.dart';
 import 'unlock_terminal.dart';
 import 'project_deletion_view.dart';
@@ -98,6 +100,7 @@ class Shell extends StatefulWidget {
     required this.readiness,
     required this.authentication,
     required this.following,
+    required this.connections,
     required this.backups,
     required this.narrowing,
     required this.held,
@@ -163,6 +166,9 @@ class Shell extends StatefulWidget {
 
   /// Following a repository, which is how a project comes to a machine.
   final ProjectFollowing following;
+
+  /// How a machine connects out.
+  final Connections connections;
 
   /// What has been backed up of the project being looked at.
   final Backups backups;
@@ -302,6 +308,7 @@ class _ShellState extends State<Shell> {
     startWork: _startWork,
     showAgents: _showAgents,
     showTheVault: _showTheVault,
+    showConnections: () => unawaited(_showConnections()),
     startFromTemplate: _startFromTemplate,
     stopEverything: _stopEverything,
     stopEverywhere: _stopEverywhere,
@@ -327,6 +334,7 @@ class _ShellState extends State<Shell> {
     checkTheMachine: _checkTheMachine,
     showTheProviders: _showTheProviders,
     showTheVault: _showTheVault,
+    showConnections: () => unawaited(_showConnections()),
     showAgents: _showAgents,
     startTheDaemon: () => unawaited(_startTheDaemon()),
     forget: _forget,
@@ -477,6 +485,94 @@ class _ShellState extends State<Shell> {
     await widget.backups.remove(_fleet.backend);
     final said = widget.backups.words;
     if (said.isNotEmpty) _fleet.say(said);
+  }
+
+  /// Shows how the current machine connects out.
+  Future<void> _showConnections() async {
+    widget.shell.openConnections();
+    await widget.connections.lookAt(_fleet.backend, widget.machines.current.name);
+  }
+
+  /// Asks what to declare, and declares it; its value is stored next, in the view.
+  Future<void> _addAConnection({String match = ''}) async {
+    final asked = await askForAConnection(context, match: match);
+    if (asked == null || !mounted) return;
+    await widget.connections.declare(_fleet.backend,
+        kind: asked.kind,
+        match: asked.match,
+        id: asked.id,
+        user: asked.user,
+        purpose: asked.purpose,
+        source: asked.source);
+  }
+
+  /// Sets up a connection for the address being followed, in the machine's connections — where its
+  /// value is then stored — rather than inventing one here.
+  Future<void> _setUpTheConnectionOfTheFollow() async {
+    final url = widget.following.url.trim();
+    await _showConnections();
+    if (!mounted) return;
+    await _addAConnection(match: url);
+  }
+
+  /// Stores the value the check found missing, by the command it named, in a terminal there.
+  Future<void> _storeWhatTheCheckNamed() async {
+    final check = widget.following.check;
+    final machine = widget.machines.current;
+    final command = check == null ? null : onTheMachine(machine, check.storeCommand, terminal: true);
+    if (command == null) return;
+    await runInATerminal(context,
+        title: 'Store the value for ${widget.following.url.trim()}',
+        explanation: 'Type or paste the value into the terminal. It goes straight to the machine '
+            'and never through this program, and nothing here keeps it. Then follow it again.',
+        machine: machine,
+        command: command,
+        open: widget.sessions.openTerminal);
+  }
+
+  /// Whether a value can be stored on the current machine from here: its own `sokar` is reachable.
+  bool get _storesHere => onTheMachine(widget.machines.current, const <String>['sokar'], terminal: false) != null;
+
+  /// Stores the declared value by typing it into a terminal on the machine, then reads again.
+  Future<void> _storeInATerminal() async {
+    final declared = widget.connections.declared;
+    final machine = widget.machines.current;
+    final command = declared == null ? null : onTheMachine(machine, declared.storeCommand, terminal: true);
+    if (command == null) return;
+    await runInATerminal(context,
+        title: 'Store ${declared!.connection.match} on ${machine.name}',
+        explanation: 'Type or paste the value into the terminal. It goes straight to the machine '
+            'and never through this program, and nothing here keeps it.',
+        machine: machine,
+        command: command,
+        open: widget.sessions.openTerminal);
+    if (!mounted) return;
+    await widget.connections.lookAt(_fleet.backend, machine.name);
+  }
+
+  /// Sends a key to the declared store command on its standard input: a file of this computer's,
+  /// read at the moment it is sent, or what was pasted. Held for that moment and nowhere after.
+  Future<void> _sendAKey({String? file, String? pasted}) async {
+    final declared = widget.connections.declared;
+    final machine = widget.machines.current;
+    final command = declared == null ? null : onTheMachine(machine, declared.storeCommand, terminal: false);
+    if (command == null) return;
+    String value;
+    try {
+      // Read at once and whole: a key is a few hundred bytes, and nothing else waits on it.
+      value = file != null ? File(file).readAsStringSync() : pasted ?? '';
+    } on FileSystemException catch (ex) {
+      _fleet.say('That key could not be read: ${ex.osError?.message ?? ex.message}');
+      return;
+    }
+    if (value.trim().isEmpty) return;
+    final failed = await widget.machines.setup.storeOnTheMachine(command, value.endsWith('\n') ? value : '$value\n');
+    if (!mounted) return;
+    _fleet.say(failed == null
+        ? 'The key for ${declared!.connection.match} is stored on ${machine.name}.'
+        : 'Storing the key did not work: $failed');
+    // A failure keeps the way to store it on screen, so it can be tried again.
+    if (failed == null) await widget.connections.lookAt(_fleet.backend, machine.name);
   }
 
   /// Whether the current machine's own `sokar` can be reached for a terminal.
@@ -838,6 +934,7 @@ class _ShellState extends State<Shell> {
 
   /// Asks for another machine to watch, starts watching it, and goes there.
   Future<void> _addAMachine({MachineKind? only}) async {
+    var thenConnections = false;
     final machine = await askForAMachine(
       only: only,
       context,
@@ -851,9 +948,14 @@ class _ShellState extends State<Shell> {
       remember: widget.settings.setSetupDraft,
       openTerminal: widget.sessions.openTerminal,
       countKeyslots: widget.machines.keyslotsOn,
+      thenConnections: () => thenConnections = true,
     );
     if (machine == null) return;
     await widget.machines.add(machine);
+    if (!thenConnections || !mounted) return;
+    // The wizard's last step: how it connects out, now that its daemon can be asked.
+    widget.machines.select(machine);
+    await _showConnections();
   }
 
   /// Offers to start a daemon on a machine that is not answering, and starts it on a yes.
@@ -1441,6 +1543,16 @@ class _ShellState extends State<Shell> {
           held: widget.held,
           onClose: widget.shell.close,
         );
+      case ConnectionsOpened():
+        return ConnectionsView(
+          connections: widget.connections,
+          onAdd: () => unawaited(_addAConnection()),
+          onForget: (match) => unawaited(widget.connections.forget(_fleet.backend, match)),
+          onClose: widget.shell.close,
+          onStoreInATerminal: _storesHere ? () => unawaited(_storeInATerminal()) : null,
+          onSendAKey: _storesHere ? ({String? file, String? pasted}) => unawaited(_sendAKey(file: file, pasted: pasted)) : null,
+          localKeys: widget.machines.setup.sshKeys(),
+        );
       case VaultOpened():
         return VaultView(
           vault: widget.vault,
@@ -1522,6 +1634,9 @@ class _ShellState extends State<Shell> {
             if (said != null) _fleet.say('${widget.following.name.trim()}: $said');
           },
           onDone: (taken) => unawaited(_doneFollowing(taken)),
+          onUnlockHere: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
+          onSetUpItsConnection: () => unawaited(_setUpTheConnectionOfTheFollow()),
+          onStoreInATerminal: _storesHere ? () => unawaited(_storeWhatTheCheckNamed()) : null,
         );
       case OperationsOpened():
         return OperationsList(

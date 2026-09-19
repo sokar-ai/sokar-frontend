@@ -67,3 +67,43 @@ Feature: A project comes to a machine by following its repository
     When I give the key {'SHA256:9xQeTbL1'}
     And I follow it
     Then the follow was sent with the key {'SHA256:9xQeTbL1'}
+
+  # A follow that could only fail is not sent: the machine is asked first, without touching the
+  # network, and says what is missing and the way out of it.
+  Scenario: a repository nothing is set up to reach is not followed, and its connection is offered
+    Given the credential check answers {'NO_CREDENTIAL'}
+    When I follow a repository
+    And I name it {'payments'} at {'git@example.org:payments.git'}
+    And I choose to follow it unverified
+    And I follow it
+    Then it says {'Nothing on this machine is set up to reach this address'}
+    And no follow was sent
+    And setting up its connection is offered
+
+  Scenario: a credential in a shut vault offers to open it, and follows nothing
+    Given the credential check answers {'VAULT_LOCKED'}
+    And the machine is reached over ssh as {'michi@vm'}
+    When I follow a repository
+    And I name it {'payments'} at {'git@example.org:payments.git'}
+    And I choose to follow it unverified
+    And I follow it
+    Then no follow was sent
+    When I open the vault from the follow
+    Then a terminal runs {'ssh -t michi@vm sokar vault unlock'} on the machine
+
+  Scenario: a machine older than the check is still followed, and says itself what is wrong
+    Given the machine has no credential check
+    When I follow a repository
+    And I name it {'payments'} at {'git@example.org:payments.git'}
+    And I choose to follow it unverified
+    And I follow it
+    Then the follow was sent unverified
+
+  Scenario: a local repository needs nothing, and is followed
+    Given the credential check answers {'NOT_NEEDED'}
+    When I follow a repository
+    And I name it {'payments'} at {'/srv/git/payments'}
+    And I choose to follow it unverified
+    And I follow it
+    Then the follow was sent unverified
+

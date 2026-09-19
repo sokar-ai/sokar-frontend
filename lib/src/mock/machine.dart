@@ -154,6 +154,9 @@ class MockMachine {
     daemon.method('Label', _label);
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
+    daemon.method('CredentialDeclare', _credentialDeclare);
+    daemon.method('CredentialForget', _credentialForget);
+    daemon.method('CredentialCheck', _credentialCheck);
     daemon.method('Lock', _lock);
     daemon.method('EnrollDevice', _enrollDevice);
     daemon.method('Keyslots', (_) => <String, dynamic>{'slots': _slotListing});
@@ -518,7 +521,101 @@ class MockMachine {
             : <Map<String, dynamic>>[],
         // An unlocked store holding nothing answers true; only a shut one answers false.
         'readable': _open && situation != 'vault-locked',
+        // Read with the store shut too: the list holds no secret.
+        'connections': _connections.values.toList(),
       };
+
+  /// What this machine is configured to connect out with, by address and purpose.
+  final Map<String, Map<String, dynamic>> _connections = <String, Map<String, dynamic>>{
+    'ssh://github.com|git': <String, dynamic>{
+      'id': 'git.ssh.github.com',
+      'kind': 'SSH_KEY',
+      'match': 'ssh://github.com',
+      'user': '',
+      'purpose': 'git',
+      'source': 'VAULT',
+      'protected': true,
+      'present': true,
+      'expires': '',
+    },
+  };
+
+  /// `git@host:path` as `ssh://host/path`, the way the daemon matches it.
+  static String _normalised(String address) {
+    final scp = RegExp(r'^([^@/]+)@([^:/]+):(.*)$').firstMatch(address);
+    return scp == null ? address : 'ssh://${scp.group(2)}/${scp.group(3)}';
+  }
+
+  /// Records a connection, replacing one for the same address and purpose. No value arrives here.
+  Map<String, dynamic> _credentialDeclare(Map<String, dynamic> parameters) {
+    final kind = parameters['kind'] as String? ?? '';
+    final match = _normalised(parameters['match'] as String? ?? '');
+    final purpose = parameters['purpose'] as String? ?? 'git';
+    final source = parameters['source'] as String? ?? 'VAULT';
+    final host = Uri.tryParse(match)?.host ?? 'somewhere';
+    final id = parameters['id'] as String? ??
+        (source == 'AGENT' ? '' : '${kind == 'SSH_KEY' ? 'git.ssh' : 'git.token'}.$host');
+    final key = '$match|$purpose';
+    final replaced = _connections.containsKey(key);
+    final connection = <String, dynamic>{
+      'id': id,
+      'kind': kind,
+      'match': match,
+      'user': parameters['user'] as String? ?? '',
+      'purpose': purpose,
+      'source': source,
+      'protected': source == 'VAULT',
+      'present': source != 'VAULT',
+      'expires': '',
+    };
+    _connections[key] = connection;
+    return <String, dynamic>{
+      'connection': connection,
+      'storeCommand': source == 'VAULT' ? <String>['sokar', 'vault', 'put', id] : <String>[],
+      'storeStdin': source == 'VAULT' && kind == 'SSH_KEY' ? 'the private key file' : '',
+      'replaced': replaced,
+    };
+  }
+
+  /// Forgets a record; its value stays where it is, and the answer says where.
+  Map<String, dynamic> _credentialForget(Map<String, dynamic> parameters) {
+    final match = parameters['match'] as String? ?? '';
+    final key = _connections.keys.where((each) => each.startsWith('$match|')).firstOrNull;
+    final gone = key == null ? null : _connections.remove(key);
+    return <String, dynamic>{
+      'forgotten': gone != null,
+      'leftBehind': gone == null || gone['source'] == 'AGENT'
+          ? ''
+          : "the ${(gone['source'] as String).toLowerCase()} entry ${gone['id']}",
+    };
+  }
+
+  /// Which record an address would use, the longest match winning, and whether it would work.
+  Map<String, dynamic> _credentialCheck(Map<String, dynamic> parameters) {
+    final url = _normalised(parameters['url'] as String? ?? '');
+    if (url.startsWith('/') || url.startsWith('file://')) {
+      return <String, dynamic>{'outcome': 'NOT_NEEDED', 'detail': 'a local path needs nothing'};
+    }
+    final candidates = _connections.values
+        .where((each) => url.startsWith(each['match'] as String))
+        .toList()
+      ..sort((a, b) => (b['match'] as String).length - (a['match'] as String).length);
+    if (candidates.isEmpty) {
+      return <String, dynamic>{
+        'outcome': 'NO_CREDENTIAL',
+        'detail': 'nothing here is set up to reach $url',
+      };
+    }
+    final connection = candidates.first;
+    final vaultShut = connection['source'] == 'VAULT' && !(_open && situation != 'vault-locked');
+    return <String, dynamic>{
+      'outcome': vaultShut ? 'VAULT_LOCKED' : 'READY',
+      'connection': connection,
+      'storeCommand': <String>[],
+      'storeStdin': '',
+      'detail': vaultShut ? 'the vault is shut' : 'it would use ${connection['id']}',
+    };
+  }
 
   Map<String, dynamic> _lock(Map<String, dynamic> parameters) {
     final wasOpen = _open;

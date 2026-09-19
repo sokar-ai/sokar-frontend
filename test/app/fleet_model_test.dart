@@ -198,6 +198,25 @@ class _Wedged implements FleetBackend {
       Followed(name: name, url: url, outcome: 'APPLIED');
 
   @override
+  Future<CredentialDeclared> credentialDeclare({
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  }) async =>
+      CredentialDeclared(connection: Connection(kind: kind, match: match));
+
+  @override
+  Future<CredentialForgotten> credentialForget(String match) async =>
+      const CredentialForgotten(forgotten: true);
+
+  @override
+  Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async =>
+      const CredentialChecked(outcome: 'READY');
+
+  @override
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async =>
       const Deletion(
           outcome: DeleteOutcome.deleted,
@@ -433,6 +452,25 @@ class _Machine implements FleetBackend {
   Future<Followed> follow(String name, String url,
           {String? signedBy, bool? unverified, bool? acceptRewrite}) async =>
       Followed(name: name, url: url, outcome: 'APPLIED');
+
+  @override
+  Future<CredentialDeclared> credentialDeclare({
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  }) async =>
+      CredentialDeclared(connection: Connection(kind: kind, match: match));
+
+  @override
+  Future<CredentialForgotten> credentialForget(String match) async =>
+      const CredentialForgotten(forgotten: true);
+
+  @override
+  Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async =>
+      const CredentialChecked(outcome: 'READY');
 
   @override
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async =>

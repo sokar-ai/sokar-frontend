@@ -65,6 +65,12 @@ class VaultOpened extends Opened {
   const VaultOpened();
 }
 
+/// How a machine connects out.
+class ConnectionsOpened extends Opened {
+  /// Constructor.
+  const ConnectionsOpened();
+}
+
 /// What has been backed up of a project's mirror.
 class BackupsOpened extends Opened {
   /// Constructor.
@@ -217,6 +223,9 @@ class ShellModel extends ChangeNotifier {
 
   /// Opens what the protected store holds.
   void openVault() => _open(const VaultOpened());
+
+  /// Opens how the machine connects out.
+  void openConnections() => _open(const ConnectionsOpened());
 
   /// Closes whatever is open. The selection is untouched, so nobody loses their place.
   void close() {

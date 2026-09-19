@@ -1,5 +1,4 @@
-import 'package:sokar_frontend/client.dart';
-
+import 'connections.dart';
 import 'machines.dart';
 
 /// The line that opens [machine]'s vault in a terminal, or null where nothing here can reach it.
@@ -9,12 +8,5 @@ import 'machines.dart';
 /// for a machine this interface reaches over ssh; the local daemon's own `sokar` for this one. A
 /// socket somebody else forwarded has no host behind it, and running `sokar` here would open a
 /// different vault from the one that machine uses — so it is not offered at all.
-List<String>? unlockCommandFor(Machine machine) {
-  if (machine.needsATunnel) {
-    return <String>['ssh', '-t', machine.host, 'sokar', 'vault', 'unlock'];
-  }
-  if (machine.host.isEmpty && machine.socketPath == Backend.local().socketPath) {
-    return <String>['sokar', 'vault', 'unlock'];
-  }
-  return null;
-}
+List<String>? unlockCommandFor(Machine machine) =>
+    onTheMachine(machine, const <String>['sokar', 'vault', 'unlock'], terminal: true);

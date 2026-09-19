@@ -447,3 +447,17 @@ Feature: Adding a machine through a wizard that starts from what you have
     And the terminal ends with {70}
     Then it says {'There is no vault yet'}
     And the terminal can be opened again
+
+  # Its connections need the daemon the wizard has only just made reachable, so they are its last
+  # step, taken once the machine is watched.
+  Scenario: the wizard ends by setting up how the new machine connects out
+    Given a new machine whose root logs in
+    When I see what it can install
+    And I fetch the setup script
+    And I run the setup script
+    And I go to the next step
+    And I set it up and connect
+    And I watch the new machine, then set up how it connects out
+    Then it says {'How the build machine connects out'}
+    And adding a connection is offered
+

@@ -104,6 +104,8 @@ import './step/the_terminal_runs.dart';
 import './step/the_terminal_ends_with.dart';
 import './step/the_machine_has_no_vault.dart';
 import './step/the_terminal_can_be_opened_again.dart';
+import './step/i_watch_the_new_machine_then_set_up_how_it_connects_out.dart';
+import './step/adding_a_connection_is_offered.dart';
 
 void main() {
   group('''Adding a machine through a wizard that starts from what you have''',
@@ -659,6 +661,20 @@ void main() {
       await theTerminalEndsWith(tester, 70);
       await itSays(tester, 'There is no vault yet');
       await theTerminalCanBeOpenedAgain(tester);
+    });
+    testWidgets(
+        '''the wizard ends by setting up how the new machine connects out''',
+        (tester) async {
+      await bddSetUp(tester);
+      await aNewMachineWhoseRootLogsIn(tester);
+      await iSeeWhatItCanInstall(tester);
+      await iFetchTheSetupScript(tester);
+      await iRunTheSetupScript(tester);
+      await iGoToTheNextStep(tester);
+      await iSetItUpAndConnect(tester);
+      await iWatchTheNewMachineThenSetUpHowItConnectsOut(tester);
+      await itSays(tester, 'How the build machine connects out');
+      await addingAConnectionIsOffered(tester);
     });
   });
 }

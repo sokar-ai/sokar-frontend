@@ -22,6 +22,12 @@ import './step/the_interface_says_it_is_following_it.dart';
 import './step/the_machine_lists_as_followed_unverified_with_its_repositories_and_their_limits.dart';
 import './step/i_stop_following_from_the_interface.dart';
 import './step/the_machine_no_longer_lists.dart';
+import './step/i_declare_a_token_connection_for_from_the_interface.dart';
+import './step/the_machine_lists_the_connection_as_a_token_in_the_vault.dart';
+import './step/the_credential_check_for_names.dart';
+import './step/i_forget_the_connection_from_the_interface.dart';
+import './step/the_interface_says_what_still_holds_its_value.dart';
+import './step/the_machine_no_longer_lists_the_connection.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -85,6 +91,23 @@ void main() {
           tester, 'e2e-follow');
       await iStopFollowingFromTheInterface(tester, 'e2e-follow');
       await theMachineNoLongerLists(tester, 'e2e-follow');
+    });
+    testWidgets(
+        '''a connection is declared, listed, checked and forgotten on the real machine''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theTestMachineIsBeingWatched(tester);
+      await iDeclareATokenConnectionForFromTheInterface(
+          tester, 'https://e2e.invalid/');
+      await theMachineListsTheConnectionAsATokenInTheVault(
+          tester, 'https://e2e.invalid/');
+      await theCredentialCheckForNames(
+          tester, 'https://e2e.invalid/repo.git', 'https://e2e.invalid/');
+      await iForgetTheConnectionFromTheInterface(
+          tester, 'https://e2e.invalid/');
+      await theInterfaceSaysWhatStillHoldsItsValue(tester);
+      await theMachineNoLongerListsTheConnection(
+          tester, 'https://e2e.invalid/');
     });
   });
 }

@@ -21,6 +21,7 @@ import 'narrowing.dart';
 import 'newer_version.dart';
 import 'notifications.dart';
 import 'operations.dart';
+import 'connections.dart';
 import 'project_following.dart';
 import 'project_deletion.dart';
 import 'session.dart';
@@ -51,6 +52,7 @@ class SokarApp extends StatelessWidget {
     required this.readiness,
     required this.authentication,
     required this.following,
+    required this.connections,
     required this.backups,
     required this.narrowing,
     required this.held,
@@ -117,6 +119,9 @@ class SokarApp extends StatelessWidget {
   /// Following a repository, which is how a project comes to a machine.
   final ProjectFollowing following;
 
+  /// How a machine connects out.
+  final Connections connections;
+
   /// What has been backed up of the project being looked at.
   final Backups backups;
 
@@ -161,6 +166,7 @@ class SokarApp extends StatelessWidget {
               readiness,
               authentication,
               following,
+              connections,
               backups,
               narrowing,
               held,
@@ -186,6 +192,7 @@ class SokarApp extends StatelessWidget {
               readiness: readiness,
               authentication: authentication,
               following: following,
+              connections: connections,
               backups: backups,
               narrowing: narrowing,
               held: held,

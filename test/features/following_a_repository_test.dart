@@ -26,6 +26,13 @@ import './step/the_next_follow_finds_a_rewritten_history.dart';
 import './step/the_follow_accepted_no_rewrite.dart';
 import './step/i_take_the_rewritten_history.dart';
 import './step/the_follow_accepted_the_rewrite.dart';
+import './step/the_credential_check_answers.dart';
+import './step/no_follow_was_sent.dart';
+import './step/setting_up_its_connection_is_offered.dart';
+import './step/the_machine_is_reached_over_ssh_as.dart';
+import './step/i_open_the_vault_from_the_follow.dart';
+import './step/a_terminal_runs_on_the_machine.dart';
+import './step/the_machine_has_no_credential_check.dart';
 
 void main() {
   group('''A project comes to a machine by following its repository''', () {
@@ -108,6 +115,56 @@ void main() {
       await iGiveTheKey(tester, 'SHA256:9xQeTbL1');
       await iFollowIt(tester);
       await theFollowWasSentWithTheKey(tester, 'SHA256:9xQeTbL1');
+    });
+    testWidgets(
+        '''a repository nothing is set up to reach is not followed, and its connection is offered''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theCredentialCheckAnswers(tester, 'NO_CREDENTIAL');
+      await iFollowARepository(tester);
+      await iNameItAt(tester, 'payments', 'git@example.org:payments.git');
+      await iChooseToFollowItUnverified(tester);
+      await iFollowIt(tester);
+      await itSays(
+          tester, 'Nothing on this machine is set up to reach this address');
+      await noFollowWasSent(tester);
+      await settingUpItsConnectionIsOffered(tester);
+    });
+    testWidgets(
+        '''a credential in a shut vault offers to open it, and follows nothing''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theCredentialCheckAnswers(tester, 'VAULT_LOCKED');
+      await theMachineIsReachedOverSshAs(tester, 'michi@vm');
+      await iFollowARepository(tester);
+      await iNameItAt(tester, 'payments', 'git@example.org:payments.git');
+      await iChooseToFollowItUnverified(tester);
+      await iFollowIt(tester);
+      await noFollowWasSent(tester);
+      await iOpenTheVaultFromTheFollow(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'ssh -t michi@vm sokar vault unlock');
+    });
+    testWidgets(
+        '''a machine older than the check is still followed, and says itself what is wrong''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasNoCredentialCheck(tester);
+      await iFollowARepository(tester);
+      await iNameItAt(tester, 'payments', 'git@example.org:payments.git');
+      await iChooseToFollowItUnverified(tester);
+      await iFollowIt(tester);
+      await theFollowWasSentUnverified(tester);
+    });
+    testWidgets('''a local repository needs nothing, and is followed''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theCredentialCheckAnswers(tester, 'NOT_NEEDED');
+      await iFollowARepository(tester);
+      await iNameItAt(tester, 'payments', '/srv/git/payments');
+      await iChooseToFollowItUnverified(tester);
+      await iFollowIt(tester);
+      await theFollowWasSentUnverified(tester);
     });
   });
 }

@@ -1,0 +1,130 @@
+import 'package:flutter/foundation.dart';
+import 'package:sokar_frontend/client.dart';
+
+import 'fleet_backend.dart';
+import 'machines.dart';
+
+/// How one machine connects out: the credentials it is configured with, described without a
+/// secret, and the declaring and forgetting of them.
+///
+/// **The description travels, the value never does.** Declaring writes what a credential is for and
+/// where its value lives; the value is stored on the machine by the command the machine names.
+class Connections extends ChangeNotifier {
+  /// Which machine, by name, once looked at.
+  String machine = '';
+
+  /// What it is configured with. Read with the vault shut too.
+  List<Connection> all = const <Connection>[];
+
+  /// Whether the vault could be read, which is what `present` means anything beside.
+  bool vaultOpen = false;
+
+  /// What the last declaring wrote, and how its value is stored.
+  CredentialDeclared? declared;
+
+  /// What the last forgetting did.
+  CredentialForgotten? forgotten;
+
+  /// Whether the machine is being asked right now.
+  bool busy = false;
+
+  /// Why it could not be asked, in words.
+  String? problem;
+
+  /// Reads what [backend]'s machine connects out with.
+  Future<void> lookAt(FleetBackend backend, String machine) async {
+    this.machine = machine;
+    declared = null;
+    forgotten = null;
+    await _asking(() => _read(backend));
+  }
+
+  /// Declares a connection; its value, if it has one to store, is stored next.
+  Future<void> declare(
+    FleetBackend backend, {
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  }) async {
+    forgotten = null;
+    await _asking(() async {
+      declared = await backend.credentialDeclare(
+          kind: kind, match: match, id: id, user: user, purpose: purpose, source: source);
+      await _read(backend);
+    });
+  }
+
+  /// Forgets the record for [match]. The secret stays where it is, and the answer says where.
+  Future<void> forget(FleetBackend backend, String match) async {
+    declared = null;
+    await _asking(() async {
+      forgotten = await backend.credentialForget(match);
+      await _read(backend);
+    });
+  }
+
+  /// Puts what the last act answered away.
+  void letItBe() {
+    declared = null;
+    forgotten = null;
+    notifyListeners();
+  }
+
+  /// What forgetting did, in one line — never implying the secret is gone when something holds it.
+  String get forgottenWords {
+    final said = forgotten;
+    if (said == null) return '';
+    if (!said.forgotten) return 'Nothing was recorded for that address.';
+    return said.leftBehind.isEmpty
+        ? 'Forgotten. Nothing else held its value.'
+        : 'Forgotten. Its value is still there: ${said.leftBehind}. Remove that at the machine if '
+            'it should go too.';
+  }
+
+  Future<void> _read(FleetBackend backend) async {
+    final store = await backend.credentials();
+    all = store.connections;
+    vaultOpen = store.readable;
+  }
+
+  Future<void> _asking(Future<void> Function() ask) async {
+    busy = true;
+    problem = null;
+    notifyListeners();
+    try {
+      await ask();
+    } on VarlinkException catch (refusal) {
+      final said = refusal.parameters['message'];
+      problem = said is String && said.isNotEmpty ? said : 'Refused: ${refusal.simpleName}.';
+    } on VarlinkDisconnected catch (ex) {
+      problem = 'Lost contact with the machine: ${ex.message}';
+    } on FeatureNotSupported catch (ex) {
+      problem = '$ex';
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+}
+
+/// [command], as the machine named it, run on [machine]: over ssh for a machine this interface
+/// reaches that way, here for this computer's own daemon, and nowhere for a socket somebody else
+/// forwards — a command run here would reach a different machine's vault. [terminal] asks ssh for
+/// one, which a command that prompts needs and one fed on standard input must not have.
+List<String>? onTheMachine(Machine machine, List<String> command, {required bool terminal}) {
+  if (command.isEmpty) return null;
+  if (machine.needsATunnel) {
+    // ssh joins what follows the host into one line for the far shell, so each word is quoted.
+    return <String>['ssh', if (terminal) '-t', machine.host, ...command.map(quoteForAShell)];
+  }
+  if (machine.host.isEmpty && machine.socketPath == Backend.local().socketPath) return command;
+  return null;
+}
+
+/// [word] as one word for a POSIX shell: as it is when nothing in it is special, else in single
+/// quotes with every single quote closed, escaped and reopened.
+String quoteForAShell(String word) =>
+    RegExp(r'^[A-Za-z0-9_./:@=+,-]+$').hasMatch(word) ? word : "'${word.replaceAll("'", r"'\''")}'";

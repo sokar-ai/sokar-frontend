@@ -34,6 +34,9 @@ class ProjectFollowing extends ChangeNotifier {
   /// What the machine answered, or null before it was asked.
   Followed? answer;
 
+  /// What the machine said about the credential the repository would use, asked before following.
+  CredentialChecked? check;
+
   /// Whether the machine is being asked right now.
   bool busy = false;
 
@@ -50,6 +53,7 @@ class ProjectFollowing extends ChangeNotifier {
     checking = null;
     key = '';
     answer = null;
+    check = null;
     problem = null;
     notifyListeners();
   }
@@ -58,6 +62,7 @@ class ProjectFollowing extends ChangeNotifier {
   void answerWith(void Function() change) {
     change();
     answer = null;
+    check = null;
     problem = null;
     notifyListeners();
   }
@@ -74,7 +79,13 @@ class ProjectFollowing extends ChangeNotifier {
   /// Whether the answer is a rewritten history, which only a person may accept.
   bool get rewritten => answer?.outcome == 'REWRITTEN';
 
+  /// Whether the credential check stopped the follow, and says why.
+  bool get held => check != null && !check!.clear;
+
   /// Follows it. With [acceptRewrite], a person's answer to a rewritten history — never a retry.
+  ///
+  /// **The credential is asked about first**, without touching the network, so a follow that could
+  /// only fail is never sent: the check says what is missing and the way out of it.
   Future<void> follow({bool acceptRewrite = false}) async {
     final backend = _backend;
     if (backend == null || !ready) return;
@@ -82,6 +93,11 @@ class ProjectFollowing extends ChangeNotifier {
     problem = null;
     notifyListeners();
     try {
+      if (!acceptRewrite) {
+        answer = null;
+        check = await _checked(backend);
+        if (held) return;
+      }
       answer = await backend.follow(
         name.trim(),
         url.trim(),
@@ -101,6 +117,25 @@ class ProjectFollowing extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// A Sokar without the check is not a reason to stop: the follow itself still says what is wrong.
+  Future<CredentialChecked?> _checked(FleetBackend backend) async {
+    try {
+      return await backend.credentialCheck(url.trim());
+    } on FeatureNotSupported {
+      return null;
+    }
+  }
+
+  /// What the check found, in one line, before the machine's own sentence.
+  String get checkWords => switch (check?.outcome) {
+        'NO_CREDENTIAL' => 'Nothing on this machine is set up to reach this address.',
+        'VAULT_LOCKED' => 'The credential for this address is in the vault, and the vault is shut.',
+        'MISSING_VALUE' => 'A connection for this address is set up, and its value is not there.',
+        'EXPIRED' => 'The token for this address has expired.',
+        null => '',
+        final other => other.toLowerCase().replaceAll('_', ' '),
+      };
 
   /// Puts it away.
   void letItBe() {

@@ -99,7 +99,8 @@ Future<Machine?> askForAMachine(BuildContext context,
         Map<String, Object?>? draft,
         Future<void> Function(Map<String, Object?>? draft)? remember,
         OpenTerminal? openTerminal,
-        Future<int?> Function(Machine machine)? countKeyslots}) =>
+        Future<int?> Function(Machine machine)? countKeyslots,
+        VoidCallback? thenConnections}) =>
     showDialog<Machine>(
       context: context,
       builder: (context) => _AskForAMachine(
@@ -113,7 +114,8 @@ Future<Machine?> askForAMachine(BuildContext context,
           draft: draft,
           remember: remember,
           openTerminal: openTerminal,
-          countKeyslots: countKeyslots),
+          countKeyslots: countKeyslots,
+          thenConnections: thenConnections),
     );
 
 class _AskForAMachine extends StatefulWidget {
@@ -129,6 +131,7 @@ class _AskForAMachine extends StatefulWidget {
     this.remember,
     this.openTerminal,
     this.countKeyslots,
+    this.thenConnections,
   });
 
   /// The names already watched. A second with the same name would never be added.
@@ -164,6 +167,10 @@ class _AskForAMachine extends StatefulWidget {
 
   /// How many ways into a machine's vault there are, asked over its socket.
   final Future<int?> Function(Machine machine)? countKeyslots;
+
+  /// Asks for how the machine connects out to be set up once it is watched — the wizard's last step,
+  /// which needs the daemon the wizard has only just made reachable.
+  final VoidCallback? thenConnections;
 
   @override
   State<_AskForAMachine> createState() => _AskForAMachineState();
@@ -368,7 +375,20 @@ class _AskForAMachineState extends State<_AskForAMachine> {
               onPressed: _run!.canGoOn && !_run!.busy ? _run!.next : null,
               child: const Text('Next step'),
             )
-          else if (_makesAUser && _run != null)
+          else if (_makesAUser && _run != null) ...<Widget>[
+            if (widget.thenConnections case final then?)
+              OutlinedButton(
+                key: const Key('watch-new-then-connections'),
+                onPressed: _run!.ready == null || _run!.busy
+                    ? null
+                    : () {
+                        final machine = _run!.ready!;
+                        unawaited(_run!.forget());
+                        then();
+                        Navigator.of(context).pop(machine);
+                      },
+                child: const Text('Watch it, then set up how it connects out'),
+              ),
             FilledButton(
               key: const Key('watch-new'),
               onPressed: _run!.ready == null || _run!.busy
@@ -379,7 +399,8 @@ class _AskForAMachineState extends State<_AskForAMachine> {
                       Navigator.of(context).pop(machine);
                     },
               child: const Text('Watch it'),
-            )
+            ),
+          ]
           else if (!_makesAUser)
             FilledButton(
               key: const Key('watch-it'),

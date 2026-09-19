@@ -19,6 +19,9 @@ class ProjectFollowingPanel extends StatelessWidget {
     required this.following,
     required this.onFollow,
     required this.onDone,
+    this.onUnlockHere,
+    this.onSetUpItsConnection,
+    this.onStoreInATerminal,
     super.key,
   });
 
@@ -29,6 +32,15 @@ class ProjectFollowingPanel extends StatelessWidget {
 
   /// Puts it away, saying whether the project is now on the machine.
   final void Function(bool taken) onDone;
+
+  /// Opens the machine's vault by its passphrase, for a credential that is in it.
+  final VoidCallback? onUnlockHere;
+
+  /// Sets up a connection for the repository's address, in the machine's connections.
+  final VoidCallback? onSetUpItsConnection;
+
+  /// Stores the missing value by the command the check named, typed into a terminal there.
+  final VoidCallback? onStoreInATerminal;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -47,6 +59,46 @@ class ProjectFollowingPanel extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
+                      if (following.held)
+                        _Block(
+                          color: scheme.errorContainer,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(following.checkWords, key: const Key('follow-check-says')),
+                              if (following.check!.detail.isNotEmpty)
+                                Text(following.check!.detail,
+                                    style: Theme.of(context).textTheme.bodySmall),
+                              const SizedBox(height: Space.small),
+                              Wrap(
+                                spacing: Space.small,
+                                children: <Widget>[
+                                  if (following.check!.outcome == 'VAULT_LOCKED' && onUnlockHere != null)
+                                    OutlinedButton(
+                                      key: const Key('follow-unlock'),
+                                      onPressed: onUnlockHere,
+                                      child: const Text('Open the vault'),
+                                    ),
+                                  if (following.check!.outcome == 'NO_CREDENTIAL' &&
+                                      onSetUpItsConnection != null)
+                                    OutlinedButton(
+                                      key: const Key('follow-set-up-connection'),
+                                      onPressed: onSetUpItsConnection,
+                                      child: const Text('Set up its connection'),
+                                    ),
+                                  if (following.check!.storeCommand.isNotEmpty &&
+                                      following.check!.storeStdin.isEmpty &&
+                                      onStoreInATerminal != null)
+                                    OutlinedButton(
+                                      key: const Key('follow-store-value'),
+                                      onPressed: onStoreInATerminal,
+                                      child: const Text('Store its value in a terminal'),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       if (following.problem != null)
                         _Block(
                           color: scheme.errorContainer,

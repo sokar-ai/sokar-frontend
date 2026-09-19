@@ -30,6 +30,7 @@ import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/narrowing.dart';
+import 'package:sokar_frontend/src/app/connections.dart';
 import 'package:sokar_frontend/src/app/project_following.dart';
 import 'package:sokar_frontend/src/app/newer_version.dart';
 import 'package:sokar_frontend/src/app/where_you_were.dart';
@@ -427,7 +428,89 @@ class FakeBackend implements FleetBackend {
   Future<VaultState> credentials() async {
     storeAsked.add('credentials');
     if (credentialsTake > Duration.zero) await Future<void>.delayed(credentialsTake);
-    return theStoreIs;
+    final store = theStoreIs;
+    // The connections come beside what the store holds, and are read even with it shut.
+    return VaultState(
+      vault: store.vault,
+      exists: store.exists,
+      credentials: store.credentials,
+      readable: store.readable,
+      connections: theConnections,
+    );
+  }
+
+  /// What this machine is configured to connect out with.
+  List<Connection> theConnections = <Connection>[];
+
+  /// Every connection declared, as it was asked.
+  final List<({String kind, String match, String? id, String? user, String? purpose, String? source})>
+      declared = <({String kind, String match, String? id, String? user, String? purpose, String? source})>[];
+
+  /// Every address forgotten.
+  final List<String> forgottenMatches = <String>[];
+
+  /// Every address a credential check was asked about.
+  final List<String> checkedUrls = <String>[];
+
+  /// What the next credential check answers. Ready by default.
+  CredentialChecked nextCheck = const CredentialChecked(outcome: 'READY');
+
+  /// Acts like Sokar: the record is kept, a vault entry needs storing, and the same address and
+  /// purpose declared again replaces the first.
+  @override
+  Future<CredentialDeclared> credentialDeclare({
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  }) async {
+    declared.add((kind: kind, match: match, id: id, user: user, purpose: purpose, source: source));
+    final where = source ?? 'VAULT';
+    final name = id ?? (kind == 'SSH_KEY' ? 'git.ssh.example' : 'git.token.example');
+    final connection = Connection(
+      id: where == 'AGENT' ? '' : name,
+      kind: kind,
+      match: match,
+      user: user ?? '',
+      purpose: purpose ?? 'git',
+      source: where,
+      protected: where == 'VAULT',
+    );
+    final replaced = theConnections.any((each) => each.match == match && each.purpose == connection.purpose);
+    theConnections = <Connection>[
+      for (final each in theConnections)
+        if (!(each.match == match && each.purpose == connection.purpose)) each,
+      connection,
+    ];
+    return CredentialDeclared(
+      connection: connection,
+      storeCommand: where == 'VAULT' ? <String>['sokar', 'vault', 'put', name] : const <String>[],
+      storeStdin: where == 'VAULT' && kind == 'SSH_KEY' ? 'the private key file' : '',
+      replaced: replaced,
+    );
+  }
+
+  @override
+  Future<CredentialForgotten> credentialForget(String match) async {
+    forgottenMatches.add(match);
+    final gone = theConnections.where((each) => each.match == match).firstOrNull;
+    theConnections = <Connection>[for (final each in theConnections) if (each.match != match) each];
+    return CredentialForgotten(
+      forgotten: gone != null,
+      leftBehind: gone == null || gone.source == 'AGENT' ? '' : 'the ${gone.source.toLowerCase()} entry ${gone.id}',
+    );
+  }
+
+  /// Whether the machine is a Sokar older than the check.
+  bool checkIsMissing = false;
+
+  @override
+  Future<CredentialChecked> credentialCheck(String url, {String? purpose}) async {
+    if (checkIsMissing) throw const FeatureNotSupported('CredentialCheck');
+    checkedUrls.add(url);
+    return nextCheck;
   }
 
   @override
@@ -1459,6 +1542,9 @@ class World {
   /// Following a repository.
   static late ProjectFollowing following;
 
+  /// How a machine connects out.
+  static late Connections connections;
+
   /// What has been backed up of the project being looked at.
   static late Backups backups;
 
@@ -1670,6 +1756,8 @@ class World {
     addTearDown(authentication.dispose);
     following = ProjectFollowing();
     addTearDown(following.dispose);
+    connections = Connections();
+    addTearDown(connections.dispose);
     backups = Backups();
     addTearDown(backups.dispose);
     narrowing = Narrowing();
@@ -1744,6 +1832,7 @@ class World {
       readiness: readiness,
       authentication: authentication,
       following: following,
+      connections: connections,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -1817,6 +1906,7 @@ class World {
       readiness: readiness,
       authentication: authentication,
       following: following,
+      connections: connections,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -1847,6 +1937,7 @@ class World {
       readiness: readiness,
       authentication: authentication,
       following: following,
+      connections: connections,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -2056,6 +2147,18 @@ class FakeMachineSetup extends MachineSetup {
   Future<String?> loginAsRoot(String host, String keyFile) async {
     rootLogins.add((host: host, key: keyFile));
     return rootLoginFails;
+  }
+
+  /// Every value stored on a machine: the command, and how long the value was — never the value.
+  final List<({List<String> command, int length})> stored = <({List<String> command, int length})>[];
+
+  /// What storing answers, or null for a store that worked.
+  String? storingFails;
+
+  @override
+  Future<String?> storeOnTheMachine(List<String> command, String value) async {
+    stored.add((command: command, length: value.length));
+    return storingFails;
   }
 
   /// Every script run as root, in order.

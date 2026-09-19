@@ -1,0 +1,85 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sokar_frontend/client.dart';
+import 'package:sokar_frontend/src/app/connections.dart';
+import 'package:sokar_frontend/src/app/machines.dart';
+import 'package:sokar_frontend/src/mock/machine.dart';
+import 'package:sokar_frontend/src/mock/mock_daemon.dart';
+
+/// How a machine connects out, over a real socket against the stand-in: the description travels,
+/// the value never does, and the command that stores it is the machine's, as arguments.
+void main() {
+  late MockDaemon daemon;
+  late MockMachine machine;
+
+  Future<SokarClient> connect() =>
+      SokarClient.connect(Backend(socketPath: daemon.socketPath, label: 'mock'));
+
+  setUp(() async {
+    daemon = MockDaemon();
+    await daemon.start();
+    machine = MockMachine(daemon, situation: 'work', pace: Duration.zero);
+  });
+
+  tearDown(() async {
+    await machine.close();
+    await daemon.stop();
+  });
+
+  test('declaring a key in the vault answers the command that stores it, and what it reads', () async {
+    final client = await connect();
+
+    final declared = await client.credentialDeclare(kind: 'SSH_KEY', match: 'git@gitlab.example:acme/x.git');
+
+    expect(declared.connection.match, 'ssh://gitlab.example/acme/x.git', reason: 'normalised by the machine');
+    expect(declared.storeCommand, <String>['sokar', 'vault', 'put', 'git.ssh.gitlab.example']);
+    expect(declared.storeStdin, 'the private key file', reason: 'a key is a file, not a prompt');
+    expect(declared.replaced, isFalse);
+  });
+
+  test('declaring the same address and purpose again replaces it, and says so', () async {
+    final client = await connect();
+    await client.credentialDeclare(kind: 'TOKEN', match: 'https://gitlab.example/acme/');
+
+    final again = await client.credentialDeclare(kind: 'TOKEN', match: 'https://gitlab.example/acme/');
+
+    expect(again.replaced, isTrue);
+    expect(again.storeStdin, isEmpty, reason: 'a token is asked for at the prompt');
+  });
+
+  test('connections are listed with the store shut, and forgetting says what still holds the value',
+      () async {
+    final client = await connect();
+    await client.credentialDeclare(kind: 'TOKEN', match: 'https://gitlab.example/acme/');
+
+    final store = await client.credentials();
+    expect(store.connections.map((each) => each.match), contains('https://gitlab.example/acme/'));
+
+    final forgotten = await client.credentialForget('https://gitlab.example/acme/');
+    expect(forgotten.forgotten, isTrue);
+    expect(forgotten.leftBehind, contains('git.token.gitlab.example'));
+  });
+
+  test('a check answers without following: a local path needs nothing, an unknown host has nothing',
+      () async {
+    final client = await connect();
+
+    expect((await client.credentialCheck('/home/somebody/repo')).outcome, 'NOT_NEEDED');
+    expect((await client.credentialCheck('git@nowhere.example:a/b.git')).outcome, 'NO_CREDENTIAL');
+    final github = await client.credentialCheck('git@github.com:sokar-ai/sokar-project.git');
+    expect(github.connection.id, 'git.ssh.github.com', reason: 'the longest match it has');
+  });
+
+  test('a command for another machine goes over ssh, each word quoted for its shell', () {
+    const remote = Machine(name: 'vm', socketPath: '/tmp/x.sock', host: 'michi@vm', remoteSocket: '/run/s.sock');
+    const elsewhere = Machine(name: 'forwarded', socketPath: '/tmp/y.sock');
+
+    expect(onTheMachine(remote, <String>['sokar', 'vault', 'put', 'a b'], terminal: true),
+        <String>['ssh', '-t', 'michi@vm', 'sokar', 'vault', 'put', "'a b'"]);
+    expect(onTheMachine(remote, <String>['sokar', 'vault', 'put', 'k'], terminal: false),
+        <String>['ssh', 'michi@vm', 'sokar', 'vault', 'put', 'k'],
+        reason: 'a command fed on standard input must not have a terminal');
+    expect(onTheMachine(elsewhere, <String>['sokar'], terminal: true), isNull,
+        reason: 'a socket somebody else forwards has no machine here to run it on');
+    expect(quoteForAShell("it's"), r"'it'\''s'");
+  });
+}

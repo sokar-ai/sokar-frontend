@@ -2657,12 +2657,19 @@ class VaultState {
   /// things, and an interface must not show them the same way.
   final bool readable;
 
+  /// What this machine is configured to connect out with. **Readable with the vault shut**, because
+  /// it holds no secret — which is what tells *"configured, open the vault"* from *"nothing here"*.
+  /// Empty from a Sokar that has no connections, and never read as *no credential*: an undeclared
+  /// git host still falls back to vault entries named after it.
+  final List<Connection> connections;
+
   /// Constructor taking every field.
   const VaultState({
     required this.vault,
     required this.exists,
     required this.credentials,
     required this.readable,
+    this.connections = const <Connection>[],
   });
 
   /// Reads one from a reply.
@@ -2671,6 +2678,7 @@ class VaultState {
         exists: map['exists'] == true,
         credentials: _list(map, 'credentials').map(Credential.from).toList(),
         readable: map['readable'] == true,
+        connections: _list(map, 'connections').map(Connection.from).toList(),
       );
 }
 
@@ -2920,6 +2928,14 @@ class Followed {
   /// will, and which is which is the daemon's knowledge.
   final bool needsAPerson;
 
+  /// What to type on that machine to store the credential a follow needs, with `NO_CREDENTIAL`; empty
+  /// otherwise. On a follow's answer only.
+  final String storeCommand;
+
+  /// Whether the follow wrote anything: false for a check, and for a first follow that was refused —
+  /// nothing of that project is on the machine then. On a follow's answer only.
+  final bool recorded;
+
   /// Whether it is followed with no key pinned, so whoever can push to its repository decides
   /// what this machine runs. A state beside [outcome], never one of its values: a project can be
   /// unverified and unreachable at once.
@@ -2937,6 +2953,8 @@ class Followed {
     this.detail = '',
     this.needsAPerson = false,
     this.unverified = false,
+    this.storeCommand = '',
+    this.recorded = false,
   });
 
   /// Reads one from a reply.
@@ -2951,6 +2969,8 @@ class Followed {
         detail: _string(map, 'detail'),
         needsAPerson: map['needsAPerson'] == true,
         unverified: map['unverified'] == true,
+        storeCommand: _string(map, 'storeCommand'),
+        recorded: map['recorded'] == true,
       );
 
   /// A project's `following`, or null when it follows nothing: absent, or an empty object — the
@@ -3049,4 +3069,176 @@ class ResolvedLimits {
   /// Whether the repository replaced any of the project's keys.
   bool get anyOfItsOwn =>
       memoryFrom == 'repository' || cpusFrom == 'repository' || pidsFrom == 'repository';
+}
+
+/// One credential a machine may use to reach somewhere, described without its secret.
+///
+/// **The description is not secret**, so it may be written over the socket; the value never is.
+class Connection {
+  /// What the secret is called: a vault entry, a file path or a variable, by [source].
+  final String id;
+
+  /// `SSH_KEY`, `TOKEN`, `BASIC` or `OAUTH`. Said, never inferred from an address.
+  final String kind;
+
+  /// The destinations it covers, as a prefix of the normalised address. The longest match wins.
+  final String match;
+
+  /// A username, for `BASIC` and a token that needs one; empty when the default is fine.
+  final String user;
+
+  /// What it may be used for: `git`, `registry`, … or `any`.
+  final String purpose;
+
+  /// `VAULT`, `FILE`, `ENVIRONMENT` or `AGENT`.
+  final String source;
+
+  /// Whether the secret is somewhere the machine encrypts and can shut. **Shown, never refused.**
+  final bool protected;
+
+  /// Whether the secret is there right now. With a shut vault this only says the vault is shut.
+  final bool present;
+
+  /// When an OAuth token stops working, RFC 3339, or empty.
+  final String expires;
+
+  /// Constructor taking every field.
+  const Connection({
+    this.id = '',
+    this.kind = '',
+    this.match = '',
+    this.user = '',
+    this.purpose = '',
+    this.source = '',
+    this.protected = false,
+    this.present = false,
+    this.expires = '',
+  });
+
+  /// Reads one from a reply.
+  factory Connection.from(Map<String, dynamic> map) => Connection(
+        id: _string(map, 'id'),
+        kind: _string(map, 'kind'),
+        match: _string(map, 'match'),
+        user: _string(map, 'user'),
+        purpose: _string(map, 'purpose'),
+        source: _string(map, 'source'),
+        protected: map['protected'] == true,
+        present: map['present'] == true,
+        expires: _string(map, 'expires'),
+      );
+
+  /// The kind, for a person.
+  String get kindWords => switch (kind) {
+        'SSH_KEY' => 'an ssh key',
+        'TOKEN' => 'a token',
+        'BASIC' => 'a user and password',
+        'OAUTH' => 'an OAuth token',
+        _ => kind.toLowerCase().replaceAll('_', ' '),
+      };
+
+  /// Where the value is, for a person.
+  String get sourceWords => switch (source) {
+        'VAULT' => 'in the vault as $id',
+        'FILE' => 'in the file $id',
+        'ENVIRONMENT' => 'in the variable $id',
+        'AGENT' => "from the account's own ssh agent",
+        _ => source.toLowerCase(),
+      };
+}
+
+/// What declaring a connection wrote, and how its value is stored.
+class CredentialDeclared {
+  /// The record as it was written, its address normalised.
+  final Connection connection;
+
+  /// What to run on that machine to store the value, as arguments; empty when there is nothing to
+  /// store because the value is already somewhere.
+  final List<String> storeCommand;
+
+  /// What that command needs on its standard input, in words, or empty when it asks for the value
+  /// itself. An ssh key is a file and cannot be typed at a prompt.
+  final String storeStdin;
+
+  /// Whether it replaced a record for the same address and purpose — *updated* rather than *added*.
+  final bool replaced;
+
+  /// Constructor taking every field.
+  const CredentialDeclared({
+    required this.connection,
+    this.storeCommand = const <String>[],
+    this.storeStdin = '',
+    this.replaced = false,
+  });
+
+  /// Reads one from a reply.
+  factory CredentialDeclared.from(Map<String, dynamic> map) => CredentialDeclared(
+        connection: map['connection'] is Map<String, dynamic>
+            ? Connection.from(map['connection']! as Map<String, dynamic>)
+            : const Connection(),
+        storeCommand: _strings(map, 'storeCommand'),
+        storeStdin: _string(map, 'storeStdin'),
+        replaced: map['replaced'] == true,
+      );
+}
+
+/// What forgetting a connection did. **The secret is not removed.**
+class CredentialForgotten {
+  /// Whether there was a record to forget.
+  final bool forgotten;
+
+  /// What still holds a value, or empty — so the second step is offered, not implied done.
+  final String leftBehind;
+
+  /// Constructor taking every field.
+  const CredentialForgotten({required this.forgotten, this.leftBehind = ''});
+
+  /// Reads one from a reply.
+  factory CredentialForgotten.from(Map<String, dynamic> map) => CredentialForgotten(
+        forgotten: map['forgotten'] == true,
+        leftBehind: _string(map, 'leftBehind'),
+      );
+}
+
+/// Which credential a destination would use, and whether it would work — asked before anything is
+/// tried, without touching the network.
+class CredentialChecked {
+  /// `READY`, `NO_CREDENTIAL`, `VAULT_LOCKED`, `MISSING_VALUE`, `EXPIRED` or `NOT_NEEDED`. Not an enum:
+  /// a value added later is rendered, never thrown on.
+  final String outcome;
+
+  /// The record that would be used, or an empty one.
+  final Connection connection;
+
+  /// What to run on that machine to fix it, as arguments; empty when nothing here would help.
+  final List<String> storeCommand;
+
+  /// What that command needs on its standard input, or empty.
+  final String storeStdin;
+
+  /// One sentence for a person. The daemon's; never parsed.
+  final String detail;
+
+  /// Constructor taking every field.
+  const CredentialChecked({
+    required this.outcome,
+    this.connection = const Connection(),
+    this.storeCommand = const <String>[],
+    this.storeStdin = '',
+    this.detail = '',
+  });
+
+  /// Reads one from a reply.
+  factory CredentialChecked.from(Map<String, dynamic> map) => CredentialChecked(
+        outcome: _string(map, 'outcome'),
+        connection: map['connection'] is Map<String, dynamic>
+            ? Connection.from(map['connection']! as Map<String, dynamic>)
+            : const Connection(),
+        storeCommand: _strings(map, 'storeCommand'),
+        storeStdin: _string(map, 'storeStdin'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// Whether nothing stands in the way — including a local path, which needs nothing.
+  bool get clear => outcome == 'READY' || outcome == 'NOT_NEEDED';
 }

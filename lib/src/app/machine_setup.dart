@@ -286,6 +286,18 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     ]..sort();
   }
 
+  /// Runs [command] — the machine's own, as Sokar named it — with [value] on its standard input, and
+  /// answers null when it worked or what it said when it did not.
+  ///
+  /// **The value is on standard input and nowhere else**: never an argument, never a file here. It
+  /// is what an ssh key needs, because a key is a file and the machine's prompt reads one line.
+  Future<String?> storeOnTheMachine(List<String> command, String value) async {
+    final result = await _run(command, input: value);
+    if (result.exitCode == 0) return null;
+    final said = '${result.stderr}'.trim();
+    return said.isEmpty ? 'It ended with exit code ${result.exitCode}.' : said;
+  }
+
   /// Every private key in `~/.ssh`, by path: a file beside its `.pub`, or one that begins as a
   /// private key does. **Only the first line of a file is read**, and nothing of it is shown.
   List<String> sshKeys() {

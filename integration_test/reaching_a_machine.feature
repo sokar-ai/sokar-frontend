@@ -49,3 +49,15 @@ Feature: Reaching a real machine, reading it, and following a project
     When I stop following {'e2e-follow'} from the interface
     Then the machine no longer lists {'e2e-follow'}
 
+  # The description travels and the value never does: declared, listed, checked and forgotten
+  # through the interface against the real daemon. Storing a value needs the vault's passphrase,
+  # which nothing here has — so that half is a person's, at the terminal the view opens.
+  Scenario: a connection is declared, listed, checked and forgotten on the real machine
+    Given the test machine is being watched
+    When I declare a token connection for {'https://e2e.invalid/'} from the interface
+    Then the machine lists the connection {'https://e2e.invalid/'} as a token in the vault
+    And the credential check for {'https://e2e.invalid/repo.git'} names {'https://e2e.invalid/'}
+    When I forget the connection {'https://e2e.invalid/'} from the interface
+    Then the interface says what still holds its value
+    And the machine no longer lists the connection {'https://e2e.invalid/'}
+

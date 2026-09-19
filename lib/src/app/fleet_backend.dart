@@ -171,6 +171,22 @@ abstract class FleetBackend {
   /// `Deletion.keeps` names them so a confirmation can say so.
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force});
 
+  /// Records a credential this machine may use; the value is stored on the machine, never here.
+  Future<CredentialDeclared> credentialDeclare({
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  });
+
+  /// Forgets a credential record, leaving the secret where it is.
+  Future<CredentialForgotten> credentialForget(String match);
+
+  /// Which credential [url] would use and whether it would work, without touching the network.
+  Future<CredentialChecked> credentialCheck(String url, {String? purpose});
+
   /// Follows a project's repository and reconciles once; what came of it is the answer.
   Future<Followed> follow(String name, String url,
       {String? signedBy, bool? unverified, bool? acceptRewrite});
@@ -443,6 +459,25 @@ class SokarBackend implements FleetBackend {
   @override
   Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) =>
       _opened().unfollow(project, dryRun: dryRun, force: force);
+
+  @override
+  Future<CredentialDeclared> credentialDeclare({
+    required String kind,
+    required String match,
+    String? id,
+    String? user,
+    String? purpose,
+    String? source,
+  }) =>
+      _opened().credentialDeclare(
+          kind: kind, match: match, id: id, user: user, purpose: purpose, source: source);
+
+  @override
+  Future<CredentialForgotten> credentialForget(String match) => _opened().credentialForget(match);
+
+  @override
+  Future<CredentialChecked> credentialCheck(String url, {String? purpose}) =>
+      _opened().credentialCheck(url, purpose: purpose);
 
   @override
   Future<Followed> follow(String name, String url,

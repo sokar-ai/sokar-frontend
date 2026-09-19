@@ -15,15 +15,43 @@ Future<void> unlockInATerminal(
   required List<String> command,
   OpenTerminal? open,
 }) =>
+    runInATerminal(
+      context,
+      title: 'Open the vault on ${machine.name}',
+      explanation: "Type the vault's passphrase into the terminal. It goes straight to the machine "
+          'and never through this program, and nothing here keeps it.',
+      machine: machine,
+      command: command,
+      open: open,
+    );
+
+/// Runs [command] on [machine] in a terminal a person types into, for a value this program must
+/// never hold. Returns once the dialog is put away; what came of it is asked of the machine then.
+Future<void> runInATerminal(
+  BuildContext context, {
+  required String title,
+  required String explanation,
+  required Machine machine,
+  required List<String> command,
+  OpenTerminal? open,
+}) =>
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _UnlockTerminal(machine: machine, command: command, open: open),
+      builder: (context) => _UnlockTerminal(
+          title: title, explanation: explanation, machine: machine, command: command, open: open),
     );
 
 class _UnlockTerminal extends StatefulWidget {
-  const _UnlockTerminal({required this.machine, required this.command, this.open});
+  const _UnlockTerminal(
+      {required this.title,
+      required this.explanation,
+      required this.machine,
+      required this.command,
+      this.open});
 
+  final String title;
+  final String explanation;
   final Machine machine;
   final List<String> command;
   final OpenTerminal? open;
@@ -54,18 +82,14 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text('Open the vault on ${widget.machine.name}'),
+        title: Text(widget.title),
         content: SizedBox(
           width: Sizes.dialog,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text(
-                'Type the vault\'s passphrase into the terminal. It goes straight to the machine '
-                'and never through this program, and nothing here keeps it.',
-                key: Key('unlock-explained'),
-              ),
+              Text(widget.explanation, key: const Key('unlock-explained')),
               const SizedBox(height: Space.small),
               SelectableText(widget.command.join(' '),
                   key: const Key('unlock-command'),
@@ -88,8 +112,8 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
               if (_session.state == SessionState.over) ...<Widget>[
                 const SizedBox(height: Space.small),
                 Text(
-                  _session.problem ?? 'The terminal has ended. Whether the vault is open is asked of '
-                      'the machine when this is put away.',
+                  _session.problem ?? 'The terminal has ended. What came of it is asked of the '
+                      'machine when this is put away.',
                   key: const Key('unlock-ended'),
                 ),
               ],
