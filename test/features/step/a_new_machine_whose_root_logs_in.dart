@@ -11,8 +11,7 @@ Future<void> aNewMachineWhoseRootLogsIn(WidgetTester tester) async {
 
   await tester.enterText(find.byKey(const Key('machine-name')), 'the build machine');
   await World.settle(tester);
-  await tester.tap(find.text('A new machine'));
-  await World.settle(tester);
+  await World.chooseWords(tester, 'A new machine');
   await tap('wizard-next');
   await tap('generate-key');
   await tap('keep-key');

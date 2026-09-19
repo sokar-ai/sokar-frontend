@@ -1,9 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import '../app/connections.dart';
+import 'choice_field.dart';
 import 'panes.dart';
+import 'pick_a_file.dart';
 import 'tokens.dart';
+
+/// What a value kept outside the vault means, said wherever such a value is chosen or shown.
+const _notInTheVault = 'Not in the vault: it is kept in plain form on the machine, where anyone who '
+    "can read this account's files can read it, and shutting the vault does not protect it.";
 
 /// What one declaration asks for, as a person chose it.
 typedef Declaration = ({
@@ -29,7 +37,8 @@ class ConnectionsView extends StatelessWidget {
     required this.onClose,
     this.onStoreInATerminal,
     this.onSendAKey,
-    this.localKeys = const <String>[],
+    this.keysAt = '',
+    this.pick = pickWithTheDesktop,
     super.key,
   });
 
@@ -50,10 +59,13 @@ class ConnectionsView extends StatelessWidget {
 
   /// Sends a key to the machine's store command on its standard input — a file of this computer's,
   /// by path, or what was pasted. Null where nothing here reaches that machine's `sokar`.
-  final void Function({String? file, String? pasted})? onSendAKey;
+  final SendAKey? onSendAKey;
 
-  /// The private keys in this computer's `~/.ssh`, by path.
-  final List<String> localKeys;
+  /// Where this computer keeps its ssh keys, for the file dialog to start in.
+  final String keysAt;
+
+  /// Asks for a file of this computer.
+  final PickAFile pick;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -87,7 +99,8 @@ class ConnectionsView extends StatelessWidget {
                         declared: declared,
                         onStoreInATerminal: onStoreInATerminal,
                         onSendAKey: onSendAKey,
-                        localKeys: localKeys,
+                        keysAt: keysAt,
+                        pick: pick,
                       ),
                     Text(
                       'Only the description is kept here; a value is stored on the machine and '
@@ -159,7 +172,7 @@ class _ConnectionRow extends StatelessWidget {
               '${c.sourceWords}${c.user.isEmpty ? '' : ', as ${c.user}'} · $there'),
           if (!c.protected)
             Text(
-              'Not protected: this machine did not put it there and cannot shut it.',
+              _notInTheVault,
               key: ValueKey<String>('not-protected ${c.match}'),
               style: text.bodySmall?.copyWith(color: scheme.error),
             ),
@@ -179,22 +192,32 @@ class _ConnectionRow extends StatelessWidget {
 }
 
 /// What declaring wrote, and the storing of its value on the machine.
+/// Sends a key to the machine, answering why nothing was stored, or null once it was.
+typedef SendAKey = Future<String?> Function({String? file, String? pasted});
+
 class _Storing extends StatefulWidget {
   const _Storing(
-      {required this.declared, this.onStoreInATerminal, this.onSendAKey, this.localKeys = const <String>[]});
+      {required this.declared,
+      required this.pick,
+      this.onStoreInATerminal,
+      this.onSendAKey,
+      this.keysAt = ''});
 
   final CredentialDeclared declared;
+  final PickAFile pick;
   final VoidCallback? onStoreInATerminal;
-  final void Function({String? file, String? pasted})? onSendAKey;
-  final List<String> localKeys;
+  final SendAKey? onSendAKey;
+  final String keysAt;
 
   @override
   State<_Storing> createState() => _StoringState();
 }
 
 class _StoringState extends State<_Storing> {
-  String? _file;
   final _pasted = TextEditingController();
+
+  /// Why the last key sent was not stored; it stays here, beside the way to try again.
+  String? _refused;
 
   @override
   void dispose() {
@@ -202,11 +225,17 @@ class _StoringState extends State<_Storing> {
     super.dispose();
   }
 
+  Future<void> _send({String? file, String? pasted}) async {
+    setState(() => _refused = null);
+    final refused = await widget.onSendAKey?.call(file: file, pasted: pasted);
+    if (mounted) setState(() => _refused = refused);
+  }
+
   void _sendPasted() {
     final value = _pasted.text;
     // Out of the field at once: nothing here keeps a value once it has been sent.
     _pasted.clear();
-    widget.onSendAKey?.call(pasted: value);
+    unawaited(_send(pasted: value));
   }
 
   @override
@@ -243,30 +272,19 @@ class _StoringState extends State<_Storing> {
           else ...<Widget>[
             Text('It reads ${declared.storeStdin} on its standard input.'),
             const SizedBox(height: Space.small),
-            if (widget.localKeys.isNotEmpty)
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: DropdownButton<String>(
-                      key: const Key('store-key-file'),
-                      isExpanded: true,
-                      value: _file,
-                      hint: const Text('A key of this computer'),
-                      items: <DropdownMenuItem<String>>[
-                        for (final path in widget.localKeys)
-                          DropdownMenuItem<String>(value: path, child: Text(path)),
-                      ],
-                      onChanged: (chosen) => setState(() => _file = chosen),
-                    ),
-                  ),
-                  const SizedBox(width: Space.small),
-                  OutlinedButton(
-                    key: const Key('store-send-file'),
-                    onPressed: send == null || _file == null ? null : () => send(file: _file),
-                    child: const Text('Send it to the machine'),
-                  ),
-                ],
-              ),
+            OutlinedButton.icon(
+              key: const Key('store-choose-file'),
+              onPressed: send == null
+                  ? null
+                  : () async {
+                      final chosen = await widget.pick(
+                          initialDirectory: widget.keysAt.isEmpty ? null : widget.keysAt,
+                          title: 'Send this key');
+                      if (chosen != null) await _send(file: chosen);
+                    },
+              icon: const Icon(Icons.folder_open, size: Sizes.rowIcon),
+              label: const Text('Choose a key file of this computer, and send it'),
+            ),
             const SizedBox(height: Space.small),
             TextField(
               key: const Key('store-paste'),
@@ -283,6 +301,10 @@ class _StoringState extends State<_Storing> {
               onPressed: send == null ? null : _sendPasted,
               child: const Text('Send what was pasted'),
             ),
+            if (_refused != null) ...<Widget>[
+              const SizedBox(height: Space.small),
+              Text(_refused!, key: const Key('store-refused'), style: TextStyle(color: scheme.error)),
+            ],
           ],
         ],
       ),
@@ -339,7 +361,14 @@ class _AddConnectionState extends State<_AddConnection> {
   bool get _ready =>
       _kind != null &&
       _match.text.trim().isNotEmpty &&
-      (_source == 'VAULT' || _source == 'AGENT' || _id.text.trim().isNotEmpty);
+      (_source == 'VAULT' || _source == 'AGENT' || _id.text.trim().isNotEmpty) &&
+      _wrongFile == null;
+
+  /// A key kept as a file is read by the machine as the private key; the public half there would
+  /// be declared cleanly and refused at the first fetch.
+  String? get _wrongFile => _source == 'FILE' && _kind == 'SSH_KEY' && _id.text.trim().endsWith('.pub')
+      ? 'That is the public half. Name the private key file — usually the same name without .pub.'
+      : null;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -358,26 +387,20 @@ class _AddConnectionState extends State<_AddConnection> {
                   decoration: const InputDecoration(
                       labelText: 'Where it connects to — ssh://github.com, https://gitlab.example/acme/'),
                 ),
-                const SizedBox(height: Space.small),
-                const Text('What it is'),
-                RadioGroup<String>(
-                  groupValue: _kind,
+                ChoiceField<String>(
+                  id: 'connection-kind',
+                  label: 'What it is',
+                  value: _kind,
                   onChanged: (chosen) => setState(() => _kind = chosen),
-                  child: const Column(
-                    children: <Widget>[
-                      RadioListTile<String>(
-                          key: Key('kind-SSH_KEY'), dense: true, value: 'SSH_KEY', title: Text('An ssh key')),
-                      RadioListTile<String>(
-                          key: Key('kind-TOKEN'), dense: true, value: 'TOKEN', title: Text('A token')),
-                      RadioListTile<String>(
-                          key: Key('kind-BASIC'),
-                          dense: true,
-                          value: 'BASIC',
-                          title: Text('A user and password')),
-                      RadioListTile<String>(
-                          key: Key('kind-OAUTH'), dense: true, value: 'OAUTH', title: Text('An OAuth token')),
-                    ],
-                  ),
+                  choices: const <Choice<String>>[
+                    Choice('SSH_KEY', 'An ssh key', id: 'kind-SSH_KEY'),
+                    Choice('TOKEN', 'A token', id: 'kind-TOKEN',
+                        means: 'A restricted, read-only token is enough to follow a repository.'),
+                    Choice('BASIC', 'A user and password', id: 'kind-BASIC'),
+                    Choice('OAUTH', 'An OAuth token', id: 'kind-OAUTH',
+                        means: 'It stops working when it expires, and nothing renews it without a '
+                            'person yet.'),
+                  ],
                 ),
                 if (_kind == 'BASIC' || _kind == 'TOKEN')
                   TextField(
@@ -390,35 +413,19 @@ class _AddConnectionState extends State<_AddConnection> {
                   controller: _purpose,
                   decoration: const InputDecoration(labelText: 'What it is for — git, registry, or any'),
                 ),
-                const SizedBox(height: Space.small),
-                const Text('Where its value lives'),
-                RadioGroup<String>(
-                  groupValue: _source,
+                ChoiceField<String>(
+                  id: 'connection-source',
+                  label: 'Where its value lives',
+                  value: _source,
                   onChanged: (chosen) => setState(() => _source = chosen ?? 'VAULT'),
-                  child: const Column(
-                    children: <Widget>[
-                      RadioListTile<String>(
-                          key: Key('source-VAULT'),
-                          dense: true,
-                          value: 'VAULT',
-                          title: Text('In the vault — encrypted, and shut when the vault is')),
-                      RadioListTile<String>(
-                          key: Key('source-FILE'),
-                          dense: true,
-                          value: 'FILE',
-                          title: Text('A file on the machine — not protected')),
-                      RadioListTile<String>(
-                          key: Key('source-ENVIRONMENT'),
-                          dense: true,
-                          value: 'ENVIRONMENT',
-                          title: Text('A variable on the machine — not protected')),
-                      RadioListTile<String>(
-                          key: Key('source-AGENT'),
-                          dense: true,
-                          value: 'AGENT',
-                          title: Text("The account's own ssh agent — not protected")),
-                    ],
-                  ),
+                  choices: const <Choice<String>>[
+                    Choice('VAULT', 'In the vault', id: 'source-VAULT',
+                        means: 'Encrypted on the machine, and out of reach whenever the vault is shut.'),
+                    Choice('FILE', 'A file on the machine', id: 'source-FILE', means: _notInTheVault),
+                    Choice('ENVIRONMENT', 'A variable on the machine',
+                        id: 'source-ENVIRONMENT', means: _notInTheVault),
+                    Choice('AGENT', "The account's own ssh agent", id: 'source-AGENT', means: _notInTheVault),
+                  ],
                 ),
                 if (_source == 'FILE' || _source == 'ENVIRONMENT')
                   TextField(
@@ -426,7 +433,11 @@ class _AddConnectionState extends State<_AddConnection> {
                     controller: _id,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                        labelText: _source == 'FILE' ? 'Its path on the machine' : 'The variable'),
+                        errorText: _wrongFile,
+                        errorMaxLines: 3,
+                        labelText: _source == 'FILE'
+                            ? 'Its path on the machine — a file there, not on this computer'
+                            : 'The variable, as it is set on the machine'),
                   ),
               ],
             ),

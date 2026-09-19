@@ -69,14 +69,14 @@ void main() {
       await theProjectIsTheOneChosen(tester, 'payments');
     });
     testWidgets(
-        '''following unverified says what that gives away before it is chosen''',
+        '''following unverified says what that gives away the moment it is chosen, before following''',
         (tester) async {
       await bddSetUp(tester);
       await iFollowARepository(tester);
       await iNameItAt(tester, 'payments', 'git@example.org:payments.git');
+      await iChooseToFollowItUnverified(tester);
       await itSays(tester,
           'Anybody who can push to the repository decides what this machine runs');
-      await iChooseToFollowItUnverified(tester);
       await iFollowIt(tester);
       await theFollowWasSentUnverified(tester);
     });

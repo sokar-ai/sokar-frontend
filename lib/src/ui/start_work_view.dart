@@ -3,6 +3,7 @@ import 'package:sokar_frontend/client.dart';
 
 import '../app/start_work.dart';
 import '../app/templates.dart';
+import 'choice_field.dart';
 import 'tokens.dart';
 
 /// Starts work: a project, an agent, a way of being involved, and what to ask for.
@@ -229,24 +230,19 @@ class _WhichRepository extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final project = starting.project!;
-    return RadioGroup<String>(
-      groupValue: starting.repository,
+    return ChoiceField<String>(
+      id: 'start-repository',
+      label: 'Which repository',
+      value: starting.repository,
       onChanged: (chosen) => chosen == null ? null : starting.chooseRepository(chosen),
-      child: Column(
-        children: <Widget>[
-          for (final name in project.repositories)
-            RadioListTile<String>(
-              key: Key('start-repository-$name'),
-              value: name,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(name),
-              subtitle: name == project.name
-                  ? const Text("The project's own: its file, its planning, its issues.")
-                  : null,
-            ),
-        ],
-      ),
+      choices: <Choice<String>>[
+        for (final name in project.repositories)
+          Choice(name, name,
+              id: 'start-repository-$name',
+              means: name == project.name
+                  ? "The project's own: its file, its planning, its issues."
+                  : ''),
+      ],
     );
   }
 }
@@ -258,40 +254,22 @@ class _WhichMode extends StatelessWidget {
   final StartWork starting;
 
   @override
-  Widget build(BuildContext context) => RadioGroup<Mode>(
+  Widget build(BuildContext context) => ChoiceField<Mode>(
         // `Start` would default this — `UNATTENDED` with a prompt, `SHELL` without. Not relied
         // on: work is started *with* a mode, and a screen that picked one quietly
         // would be deciding whether anybody is going to be there.
-        groupValue: starting.mode,
+        id: 'start-mode',
+        label: 'How you take part',
+        value: starting.mode,
         onChanged: (chosen) => chosen == null ? null : starting.chooseMode(chosen),
-        child: const Column(
-          children: <Widget>[
-            RadioListTile<Mode>(
-              key: Key('start-mode-shell'),
-              value: Mode.shell,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('A shell, driven by hand'),
-              subtitle: Text('A terminal in the container. Nothing runs until you run it.'),
-            ),
-            RadioListTile<Mode>(
-              key: Key('start-mode-agent'),
-              value: Mode.agent,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('An agent session, worked through'),
-              subtitle: Text("The agent's own session, with you in it."),
-            ),
-            RadioListTile<Mode>(
-              key: Key('start-mode-unattended'),
-              value: Mode.unattended,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Unattended, against a prompt'),
-              subtitle: Text('It runs on its own. Nobody is expected to be watching.'),
-            ),
-          ],
-        ),
+        choices: const <Choice<Mode>>[
+          Choice(Mode.shell, 'A shell, driven by hand', id: 'start-mode-shell',
+              means: 'A terminal in the container. Nothing runs until you run it.'),
+          Choice(Mode.agent, 'An agent session, worked through', id: 'start-mode-agent',
+              means: "The agent's own session, with you in it."),
+          Choice(Mode.unattended, 'Unattended, against a prompt', id: 'start-mode-unattended',
+              means: 'It runs on its own. Nobody is expected to be watching.'),
+        ],
       );
 }
 

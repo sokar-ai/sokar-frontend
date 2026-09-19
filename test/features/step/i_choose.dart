@@ -4,6 +4,6 @@ import '../support/world.dart';
 
 /// Usage: I choose {'Leave it alone'}
 Future<void> iChoose(WidgetTester tester, String words) async {
-  await tester.tap(find.text(words));
-  await World.settle(tester);
+  // An option of a drop-down is chosen from the list it opens; anything else is pressed.
+  await World.chooseWords(tester, words);
 }

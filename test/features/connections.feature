@@ -48,6 +48,46 @@ Feature: How a machine connects out, and giving it a credential
     Then the machine was given a key by {'sokar vault put git.ssh.example'}
     And the status line mentions {'is stored on'}
 
+  # Only the private key is sent: the machine works out the public half, and a public one stored in
+  # its place would be refused at the first fetch, far from where the wrong file was chosen.
+  Scenario: the public half chosen from this computer is refused, and nothing is sent
+    Given this computer has the key {'id_work'}
+    When I choose the command {'Show how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I add it
+    And I send the key {'id_work.pub'} to the machine
+    Then the way to store it says {'That is the public half of a key'}
+    And nothing was given to the machine
+    And the way to store it is still offered
+
+  Scenario: a pasted public key is refused, and nothing is sent
+    When I choose the command {'Show how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I add it
+    And I paste {'ssh-ed25519 AAAAC3Nza me@work'} and send it
+    Then the way to store it says {'That is the public half of a key'}
+    And nothing was given to the machine
+    And nothing pasted is left on screen
+
+  Scenario: pasted text that is no key at all is refused, and nothing is sent
+    When I choose the command {'Show how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And I add it
+    And I paste {'hunter2'} and send it
+    Then the way to store it says {'That is not a private key'}
+    And nothing was given to the machine
+
+  Scenario: a key kept as a file on the machine cannot be named by its public half
+    When I choose the command {'Show how this machine connects out'}
+    And I add a connection to {'ssh://gitlab.example'}
+    And I choose it to be {'SSH_KEY'}
+    And it is kept in the file {'/home/me/.ssh/id_work.pub'} on the machine
+    Then adding it is not offered yet
+    And it says {'That is the public half'}
+
   Scenario: a pasted key is sent, and the field it was pasted into is emptied at once
     When I choose the command {'Show how this machine connects out'}
     And I add a connection to {'ssh://gitlab.example'}

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/main.dart' as app;
 import 'package:sokar_frontend/src/app/sokar_app.dart';
+import 'package:sokar_frontend/src/ui/choice_field.dart';
 
 /// The machine these tests run against, as `tool/e2e.sh` names it.
 abstract final class E2e {
@@ -46,7 +47,11 @@ Future<void> pumpUntil(
 }) async {
   final by = DateTime.now().add(timeout);
   while (!done()) {
-    if (DateTime.now().isAfter(by)) fail('waited ${timeout.inSeconds}s for $what');
+    if (DateTime.now().isAfter(by)) {
+      // What was there instead, so a red run says what it saw rather than only what it missed.
+      final shown = tester.widgetList<Text>(find.byType(Text)).map((each) => each.data).nonNulls.toList();
+      fail('waited ${timeout.inSeconds}s for $what; on screen: $shown');
+    }
     await pumpFor(tester, const Duration(milliseconds: 200));
   }
 }
@@ -61,8 +66,7 @@ Future<void> switchTo(WidgetTester tester, String name) async {
 Future<void> tryFromTheDialog(WidgetTester tester, String socket) async {
   await watchAnotherMachine(tester);
   await tester.enterText(find.byKey(const Key('machine-name')), 'e2e trial');
-  await tester.tap(find.byKey(const Key('machine-raise-it')));
-  await pumpFor(tester);
+  await choose(tester, 'machine-kind-choice', 'machine-raise-it');
   await goOnInTheWizard(tester);
   await tester.enterText(find.byKey(const Key('machine-host')), E2e.host);
   await tester.enterText(
@@ -129,4 +133,19 @@ Future<void> untilTheDialogCloses(WidgetTester tester) async {
 Future<void> watchAnotherMachine(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Watch another machine…'));
   await pumpFor(tester);
+}
+
+/// Chooses [choice] in the drop-down [field]: opened first, then the entry's text in the open menu —
+/// the field keeps a copy of every entry for its width, and a tap on that copy chooses nothing.
+Future<void> choose(WidgetTester tester, String field, String choice) async {
+  await tester.ensureVisible(find.byKey(Key(field)));
+  await tester.pump();
+  await tester.tap(find.byKey(Key(field)));
+  await pumpFor(tester);
+  await tester.tap(find.descendant(of: find.byKey(Key(choice)).last, matching: find.byType(Text)));
+  await pumpFor(tester);
+  final chosen = tester.widget<ChoiceField<Object?>>(find.ancestor(
+      of: find.byKey(Key(field)), matching: find.byWidgetPredicate((each) => each is ChoiceField)));
+  expect(chosen.choices.where((each) => each.value == chosen.value).map((each) => each.id), [choice],
+      reason: 'choosing $choice in $field');
 }

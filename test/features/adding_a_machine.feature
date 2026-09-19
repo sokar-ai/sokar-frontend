@@ -9,9 +9,9 @@ Feature: Adding a machine through a wizard that starts from what you have
     When I open the machine dialog
 
   Scenario: the first page asks for a name and one of three kinds
-    Then it says {'Its socket is already forwarded'}
-    And it says {'Raise the forward for me'}
-    And it says {'A new machine'}
+    Then the dialog offers {'Its socket is already forwarded'}
+    And the dialog offers {'Raise the forward for me'}
+    And the dialog offers {'A new machine'}
 
   # Nothing is preselected: the kinds are different commitments, and a default would choose one.
   Scenario: the wizard goes on only with a name and a kind

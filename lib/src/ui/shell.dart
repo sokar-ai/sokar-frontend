@@ -47,6 +47,7 @@ import 'authentication_view.dart';
 import 'backups_view.dart';
 import 'emergency_stop_view.dart';
 import 'connections_view.dart';
+import 'pick_a_file.dart';
 import 'project_following_view.dart';
 import 'unlock_terminal.dart';
 import 'project_deletion_view.dart';
@@ -101,6 +102,7 @@ class Shell extends StatefulWidget {
     required this.authentication,
     required this.following,
     required this.connections,
+    this.pickAFile = pickWithTheDesktop,
     required this.backups,
     required this.narrowing,
     required this.held,
@@ -169,6 +171,9 @@ class Shell extends StatefulWidget {
 
   /// How a machine connects out.
   final Connections connections;
+
+  /// Asks the desktop for a file of this computer. Replaced in tests, which have no desktop.
+  final PickAFile pickAFile;
 
   /// What has been backed up of the project being looked at.
   final Backups backups;
@@ -554,27 +559,34 @@ class _ShellState extends State<Shell> {
 
   /// Sends a key to the declared store command on its standard input: a file of this computer's,
   /// read at the moment it is sent, or what was pasted. Held for that moment and nowhere after.
-  Future<void> _sendAKey({String? file, String? pasted}) async {
+  /// Sends a key to the machine, answering why nothing was stored — or null once it was.
+  Future<String?> _sendAKey({String? file, String? pasted}) async {
     final declared = widget.connections.declared;
     final machine = widget.machines.current;
     final command = declared == null ? null : onTheMachine(machine, declared.storeCommand, terminal: false);
-    if (command == null) return;
+    if (command == null) return 'This machine is not one keys are sent to from here.';
     String value;
     try {
       // Read at once and whole: a key is a few hundred bytes, and nothing else waits on it.
       value = file != null ? File(file).readAsStringSync() : pasted ?? '';
     } on FileSystemException catch (ex) {
-      _fleet.say('That key could not be read: ${ex.osError?.message ?? ex.message}');
-      return;
+      return 'That key could not be read: ${ex.osError?.message ?? ex.message}';
     }
-    if (value.trim().isEmpty) return;
+    if (declared!.connection.kind == 'SSH_KEY') {
+      final wrong = notAPrivateKey(value);
+      if (wrong != null) return wrong;
+    } else if (value.trim().isEmpty) {
+      return 'There is nothing in it to send.';
+    }
     final failed = await widget.machines.setup.storeOnTheMachine(command, value.endsWith('\n') ? value : '$value\n');
-    if (!mounted) return;
-    _fleet.say(failed == null
-        ? 'The key for ${declared!.connection.match} is stored on ${machine.name}.'
-        : 'Storing the key did not work: $failed');
-    // A failure keeps the way to store it on screen, so it can be tried again.
-    if (failed == null) await widget.connections.lookAt(_fleet.backend, machine.name);
+    if (!mounted) return null;
+    if (failed != null) {
+      _fleet.say('Storing the key did not work: $failed');
+      return 'Storing the key did not work: $failed';
+    }
+    _fleet.say('The key for ${declared.connection.match} is stored on ${machine.name}.');
+    await widget.connections.lookAt(_fleet.backend, machine.name);
+    return null;
   }
 
   /// Makes the current machine's vault by a passphrase chosen in a terminal there, then asks the
@@ -1573,8 +1585,9 @@ class _ShellState extends State<Shell> {
           onForget: (match) => unawaited(widget.connections.forget(_fleet.backend, match)),
           onClose: widget.shell.close,
           onStoreInATerminal: _storesHere ? () => unawaited(_storeInATerminal()) : null,
-          onSendAKey: _storesHere ? ({String? file, String? pasted}) => unawaited(_sendAKey(file: file, pasted: pasted)) : null,
-          localKeys: widget.machines.setup.sshKeys(),
+          onSendAKey: _storesHere ? _sendAKey : null,
+          keysAt: widget.machines.setup.sshDirectory,
+          pick: widget.pickAFile,
         );
       case VaultOpened():
         return VaultView(

@@ -3,6 +3,7 @@ import 'package:sokar_frontend/client.dart';
 
 import '../app/vault.dart';
 import '../app/vault_devices.dart';
+import 'choice_field.dart';
 import 'tokens.dart';
 import 'window_size.dart';
 
@@ -263,20 +264,14 @@ class _OpenDialogState extends _ActState<OpenDialog> {
   String answer() => widget.answer();
 
   @override
-  Widget ask(BuildContext context) => RadioGroup<_For>(
-        groupValue: _chosen,
+  Widget ask(BuildContext context) => ChoiceField<_For>(
+        id: 'open-for',
+        label: 'For how long',
+        value: _chosen,
         onChanged: (chosen) => setState(() => _chosen = chosen),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            for (final each in _For.values)
-              RadioListTile<_For>(
-                key: Key('open-${each.name}'),
-                value: each,
-                title: Text(each.words),
-              ),
-          ],
-        ),
+        choices: <Choice<_For>>[
+          for (final each in _For.values) Choice(each, each.words, id: 'open-${each.name}'),
+        ],
       );
 }
 

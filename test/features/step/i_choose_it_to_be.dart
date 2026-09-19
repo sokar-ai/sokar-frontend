@@ -4,5 +4,5 @@ import '../support/world.dart';
 
 /// Usage: I choose it to be {'TOKEN'}
 Future<void> iChooseItToBe(WidgetTester tester, String kind) async {
-  await World.tapInView(tester, 'kind-$kind');
+  await World.choose(tester, 'connection-kind', 'kind-$kind');
 }

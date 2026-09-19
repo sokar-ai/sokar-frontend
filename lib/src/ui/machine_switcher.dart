@@ -14,6 +14,7 @@ import '../app/setup_run.dart';
 import '../app/tunnel.dart';
 import 'host_key_dialog.dart';
 import 'new_machine.dart';
+import 'choice_field.dart';
 import 'tokens.dart';
 
 /// What one machine says about itself: the kind of way in, and whether it is a second way in to
@@ -475,58 +476,28 @@ class _AskForAMachineState extends State<_AskForAMachine> {
         if (widget.only == null) ...<Widget>[
           const SizedBox(height: Space.wide),
           Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
-          RadioGroup<MachineKind>(
-            groupValue: _kind,
+          ChoiceField<MachineKind>(
+            id: 'machine-kind-choice',
+            label: 'How to reach it',
+            value: _kind,
             onChanged: (chosen) => setState(() => _kind = chosen),
-            child: const Column(
-              children: <Widget>[
-                RadioListTile<MachineKind>(
-                  key: Key('machine-already-forwarded'),
-                  value: MachineKind.forwarded,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Its socket is already forwarded'),
-                  subtitle: Text(
-                    'Nothing is raised and nothing is managed. This is the way in with no '
-                    'credential handling anywhere near it.',
-                  ),
-                ),
-                RadioListTile<MachineKind>(
-                  key: Key('machine-raise-it'),
-                  value: MachineKind.raiseIt,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Raise the forward for me'),
-                  subtitle: Text(
-                    'An ssh forward, started here and taken down when this window closes. '
-                    'It never asks for a passphrase: use an agent, and accept the host key '
-                    'once in a shell.',
-                  ),
-                ),
-                RadioListTile<MachineKind>(
-                  key: Key('machine-new'),
-                  value: MachineKind.newMachine,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('A new machine'),
-                  subtitle: Text(
-                    'Just rented. The wizard makes a key, then logs in as root once to '
-                    'prepare it, showing every command before it runs.',
-                  ),
-                ),
-                RadioListTile<MachineKind>(
-                  key: Key('machine-new-user'),
-                  value: MachineKind.newUser,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Another user on a machine already prepared'),
-                  subtitle: Text(
-                    'Its own daemon, tasks and vault, beside the ones there. Root logs in with the '
-                    'key the machine already knows.',
-                  ),
-                ),
-              ],
-            ),
+            choices: const <Choice<MachineKind>>[
+              Choice(MachineKind.forwarded, 'Its socket is already forwarded',
+                  id: 'machine-already-forwarded',
+                  means: 'Nothing is raised and nothing is managed. This is the way in with no '
+                      'credential handling anywhere near it.'),
+              Choice(MachineKind.raiseIt, 'Raise the forward for me', id: 'machine-raise-it',
+                  means: 'An ssh forward, started here and taken down when this window closes. '
+                      'It never asks for a passphrase: use an agent, and accept the host key '
+                      'once in a shell.'),
+              Choice(MachineKind.newMachine, 'A new machine', id: 'machine-new',
+                  means: 'Just rented. The wizard makes a key, then logs in as root once to '
+                      'prepare it, showing every command before it runs.'),
+              Choice(MachineKind.newUser, 'Another user on a machine already prepared',
+                  id: 'machine-new-user',
+                  means: 'Its own daemon, tasks and vault, beside the ones there. Root logs in with '
+                      'the key the machine already knows.'),
+            ],
           ),
         ],
         if (_makesAUser) ...<Widget>[

@@ -11,6 +11,5 @@ Future<void> iStartWatchingAnotherMachine(WidgetTester tester) async {
   await tester.enterText(find.byKey(const Key('machine-name')), 'the build machine');
   await World.settle(tester);
   // The socket-somebody-else-forwarded kind. Nothing is preselected in the dialog, deliberately.
-  await tester.tap(find.byKey(const Key('machine-already-forwarded')));
-  await World.settle(tester);
+  await World.pick(tester, 'machine-already-forwarded');
 }

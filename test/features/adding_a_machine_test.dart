@@ -8,7 +8,7 @@ import './step/a_backend_with_work_on_it.dart';
 import './step/the_app_is_running.dart';
 import './step/i_go_to_the_work.dart';
 import './step/i_open_the_machine_dialog.dart';
-import './step/it_says.dart';
+import './step/the_dialog_offers.dart';
 import './step/i_say_it_is_called.dart';
 import './step/the_wizard_cannot_go_on_yet.dart';
 import './step/i_choose.dart';
@@ -34,6 +34,7 @@ import './step/the_wizard_cannot_go_to_the_next_step_yet.dart';
 import './step/i_generate_a_key_pair.dart';
 import './step/i_keep_the_key.dart';
 import './step/the_key_was_kept_owneronly_as.dart';
+import './step/it_says.dart';
 import './step/the_public_key_is_shown_to_copy.dart';
 import './step/i_paste_the_halves_of_two_different_key_pairs.dart';
 import './step/no_key_was_kept.dart';
@@ -120,9 +121,9 @@ void main() {
     testWidgets('''the first page asks for a name and one of three kinds''',
         (tester) async {
       await bddSetUp(tester);
-      await itSays(tester, 'Its socket is already forwarded');
-      await itSays(tester, 'Raise the forward for me');
-      await itSays(tester, 'A new machine');
+      await theDialogOffers(tester, 'Its socket is already forwarded');
+      await theDialogOffers(tester, 'Raise the forward for me');
+      await theDialogOffers(tester, 'A new machine');
     });
     testWidgets('''the wizard goes on only with a name and a kind''',
         (tester) async {

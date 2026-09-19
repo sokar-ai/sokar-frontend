@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import '../app/narrowing.dart';
+import 'choice_field.dart';
 import 'tokens.dart';
 
 /// Takes a name back from work that is already running.
@@ -164,34 +165,18 @@ class _WhichScope extends StatelessWidget {
   final Narrowing narrowing;
 
   @override
-  Widget build(BuildContext context) => RadioGroup<Scope>(
-        groupValue: narrowing.scope,
+  Widget build(BuildContext context) => ChoiceField<Scope>(
+        id: 'narrow-scope',
+        label: 'Taken back from',
+        value: narrowing.scope,
         onChanged: (chosen) => chosen == null ? null : narrowing.choose(chosen),
-        child: const Column(
-          children: <Widget>[
-            RadioListTile<Scope>(
-              key: Key('narrow-scope-run'),
-              value: Scope.run,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Just this run'),
-              subtitle: Text(
-                'The project file keeps the name, so the next task here starts with it open '
-                'again.',
-              ),
-            ),
-            RadioListTile<Scope>(
-              key: Key('narrow-scope-project'),
-              value: Scope.runAndProject,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('This run and the project'),
-              subtitle: Text(
-                'Taken out of the project file too, so no task here starts with it again.',
-              ),
-            ),
-          ],
-        ),
+        choices: const <Choice<Scope>>[
+          Choice(Scope.run, 'Just this run', id: 'narrow-scope-run',
+              means: 'The project file keeps the name, so the next task here starts with it open '
+                  'again.'),
+          Choice(Scope.runAndProject, 'This run and the project', id: 'narrow-scope-project',
+              means: 'Taken out of the project file too, so no task here starts with it again.'),
+        ],
       );
 }
 

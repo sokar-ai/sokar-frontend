@@ -761,6 +761,10 @@ Two interface traps already met:
 - **An `InkWell` with both `onTap` and `onDoubleTap` holds every single tap back** until the
   double-tap timeout passes. Rows select on a single tap and open with Return or a named
   affordance; do not put double-tap on a row to open something.
+- **A drop-down keeps a copy of every entry for its own width**, so a tap on an entry's key can
+  land on the wrong one and still choose something — measured 2026-09-19: the test warned, chose,
+  and passed. `World.choose` taps the entry's text in the open menu and then asserts which entry the
+  field holds; a mutation tapping the wrong entry fails every scenario that chooses.
 - **A widget built eagerly outside the branch that shows it still runs its null checks.** A
   detail pane built before the `if` that needs it crashed the whole frame with nothing selected.
 - **Widget tests run at 1280x800**, set on `tester.view` with `devicePixelRatio = 1`, not with

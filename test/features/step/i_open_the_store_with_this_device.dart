@@ -7,8 +7,7 @@ import '../support/world.dart';
 Future<void> iOpenTheStoreWithThisDevice(WidgetTester tester, String howLong) async {
   await tester.tap(find.byKey(const Key('vault-act')));
   await World.settle(tester);
-  await tester.tap(find.text(howLong));
-  await tester.pump();
+  await World.chooseWords(tester, howLong);
   await tester.tap(find.byKey(const Key('vault-confirm')));
   await World.settle(tester);
 }

@@ -28,12 +28,12 @@ Feature: A project comes to a machine by following its repository
     When I go to the project it made
     Then the project {'payments'} is the one chosen
 
-  Scenario: following unverified says what that gives away before it is chosen
+  Scenario: following unverified says what that gives away the moment it is chosen, before following
     When I follow a repository
     And I name it {'payments'} at {'git@example.org:payments.git'}
+    And I choose to follow it unverified
     Then it says {'Anybody who can push to the repository decides what this machine runs'}
-    When I choose to follow it unverified
-    And I follow it
+    When I follow it
     Then the follow was sent unverified
 
   Scenario: a commit the machine will not take is said, and no project is made of it

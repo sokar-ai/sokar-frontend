@@ -31,6 +31,7 @@ import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/narrowing.dart';
 import 'package:sokar_frontend/src/app/connections.dart';
+import 'package:sokar_frontend/src/ui/choice_field.dart';
 import 'package:sokar_frontend/src/app/project_following.dart';
 import 'package:sokar_frontend/src/app/newer_version.dart';
 import 'package:sokar_frontend/src/app/where_you_were.dart';
@@ -1545,6 +1546,9 @@ class World {
   /// How a machine connects out.
   static late Connections connections;
 
+  /// What the desktop's file dialog answers, or null for one put away.
+  static String? pickedFile;
+
   /// What has been backed up of the project being looked at.
   static late Backups backups;
 
@@ -1757,6 +1761,7 @@ class World {
     following = ProjectFollowing();
     addTearDown(following.dispose);
     connections = Connections();
+    pickedFile = null;
     addTearDown(connections.dispose);
     backups = Backups();
     addTearDown(backups.dispose);
@@ -1833,6 +1838,7 @@ class World {
       authentication: authentication,
       following: following,
       connections: connections,
+      pickAFile: ({String? initialDirectory, String? title}) async => pickedFile,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -1907,6 +1913,7 @@ class World {
       authentication: authentication,
       following: following,
       connections: connections,
+      pickAFile: ({String? initialDirectory, String? title}) async => pickedFile,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -1938,11 +1945,59 @@ class World {
       authentication: authentication,
       following: following,
       connections: connections,
+      pickAFile: ({String? initialDirectory, String? title}) async => pickedFile,
       backups: backups,
       narrowing: narrowing,
       held: held,
     ));
     await settle(tester);
+  }
+
+  /// The drop-down that offers [choice] — by the key its entry carries, or by its words — or null
+  /// when no field on screen offers it.
+  static ChoiceField<dynamic>? fieldOffering(WidgetTester tester, {String? id, String? words}) {
+    for (final element in find.byWidgetPredicate((widget) => widget is ChoiceField).evaluate()) {
+      final field = element.widget as ChoiceField<dynamic>;
+      if (field.choices.any((each) => (id != null && each.id == id) || (words != null && each.label == words))) {
+        return field;
+      }
+    }
+    return null;
+  }
+
+  /// Chooses [words] — an option of whichever drop-down offers it, or else whatever says it.
+  static Future<void> chooseWords(WidgetTester tester, String words) async {
+    final field = fieldOffering(tester, words: words);
+    if (field == null) {
+      await tester.tap(find.text(words));
+      await settle(tester);
+      return;
+    }
+    final choice = field.choices.firstWhere((each) => each.label == words);
+    await choose(tester, field.id, choice.id!);
+  }
+
+  /// Chooses the entry whose key is [choice] in whichever drop-down on screen offers it.
+  static Future<void> pick(WidgetTester tester, String choice) async {
+    final field = fieldOffering(tester, id: choice);
+    expect(field, isNotNull, reason: 'nothing on screen offers $choice');
+    await World.choose(tester, field!.id, choice);
+  }
+
+  /// Chooses the entry [choice] in the drop-down [field]: opened, then the entry pressed. The open
+  /// list draws each entry twice — the one shown and the one in the menu — so the last is pressed.
+  static Future<void> choose(WidgetTester tester, String field, String choice) async {
+    await tester.ensureVisible(find.byKey(Key(field)));
+    await tester.pump();
+    await tester.tap(find.byKey(Key(field)));
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byKey(Key(choice)).last, matching: find.byType(Text)));
+    await settle(tester);
+    // A tap in an open menu that lands on its neighbour chooses that one, quietly.
+    final chosen = tester.widget<ChoiceField<Object?>>(find.ancestor(
+        of: find.byKey(Key(field)), matching: find.byWidgetPredicate((each) => each is ChoiceField)));
+    expect(chosen.choices.where((each) => each.value == chosen.value).map((each) => each.id), [choice],
+        reason: 'choosing $choice in $field');
   }
 
   /// Taps what [key] names in a dialog, scrolled into view first: a long answer pushes the

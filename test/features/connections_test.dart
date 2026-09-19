@@ -26,11 +26,15 @@ import './step/this_computer_has_the_key.dart';
 import './step/i_send_the_key_to_the_machine.dart';
 import './step/the_machine_was_given_a_key_by.dart';
 import './step/the_status_line_mentions.dart';
-import './step/i_paste_a_key_and_send_it.dart';
+import './step/the_way_to_store_it_says.dart';
+import './step/nothing_was_given_to_the_machine.dart';
+import './step/the_way_to_store_it_is_still_offered.dart';
+import './step/i_paste_and_send_it.dart';
 import './step/nothing_pasted_is_left_on_screen.dart';
+import './step/it_is_kept_in_the_file_on_the_machine.dart';
+import './step/i_paste_a_key_and_send_it.dart';
 import './step/i_forget_the_connection.dart';
 import './step/storing_on_the_machine_will_fail.dart';
-import './step/the_way_to_store_it_is_still_offered.dart';
 
 void main() {
   group('''How a machine connects out, and giving it a credential''', () {
@@ -93,6 +97,55 @@ void main() {
       await iSendTheKeyToTheMachine(tester, 'id_work');
       await theMachineWasGivenAKeyBy(tester, 'sokar vault put git.ssh.example');
       await theStatusLineMentions(tester, 'is stored on');
+    });
+    testWidgets(
+        '''the public half chosen from this computer is refused, and nothing is sent''',
+        (tester) async {
+      await bddSetUp(tester);
+      await thisComputerHasTheKey(tester, 'id_work');
+      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iAddIt(tester);
+      await iSendTheKeyToTheMachine(tester, 'id_work.pub');
+      await theWayToStoreItSays(tester, 'That is the public half of a key');
+      await nothingWasGivenToTheMachine(tester);
+      await theWayToStoreItIsStillOffered(tester);
+    });
+    testWidgets('''a pasted public key is refused, and nothing is sent''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iAddIt(tester);
+      await iPasteAndSendIt(tester, 'ssh-ed25519 AAAAC3Nza me@work');
+      await theWayToStoreItSays(tester, 'That is the public half of a key');
+      await nothingWasGivenToTheMachine(tester);
+      await nothingPastedIsLeftOnScreen(tester);
+    });
+    testWidgets(
+        '''pasted text that is no key at all is refused, and nothing is sent''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await iAddIt(tester);
+      await iPasteAndSendIt(tester, 'hunter2');
+      await theWayToStoreItSays(tester, 'That is not a private key');
+      await nothingWasGivenToTheMachine(tester);
+    });
+    testWidgets(
+        '''a key kept as a file on the machine cannot be named by its public half''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(tester, 'Show how this machine connects out');
+      await iAddAConnectionTo(tester, 'ssh://gitlab.example');
+      await iChooseItToBe(tester, 'SSH_KEY');
+      await itIsKeptInTheFileOnTheMachine(tester, '/home/me/.ssh/id_work.pub');
+      await addingItIsNotOfferedYet(tester);
+      await itSays(tester, 'That is the public half');
     });
     testWidgets(
         '''a pasted key is sent, and the field it was pasted into is emptied at once''',

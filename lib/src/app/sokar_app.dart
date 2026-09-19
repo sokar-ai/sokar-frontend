@@ -22,6 +22,7 @@ import 'newer_version.dart';
 import 'notifications.dart';
 import 'operations.dart';
 import 'connections.dart';
+import '../ui/pick_a_file.dart';
 import 'project_following.dart';
 import 'project_deletion.dart';
 import 'session.dart';
@@ -53,6 +54,7 @@ class SokarApp extends StatelessWidget {
     required this.authentication,
     required this.following,
     required this.connections,
+    this.pickAFile = pickWithTheDesktop,
     required this.backups,
     required this.narrowing,
     required this.held,
@@ -121,6 +123,9 @@ class SokarApp extends StatelessWidget {
 
   /// How a machine connects out.
   final Connections connections;
+
+  /// Asks the desktop for a file of this computer. Replaced in tests, which have no desktop.
+  final PickAFile pickAFile;
 
   /// What has been backed up of the project being looked at.
   final Backups backups;
@@ -193,6 +198,7 @@ class SokarApp extends StatelessWidget {
               authentication: authentication,
               following: following,
               connections: connections,
+              pickAFile: pickAFile,
               backups: backups,
               narrowing: narrowing,
               held: held,

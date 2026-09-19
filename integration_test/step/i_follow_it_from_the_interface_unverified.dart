@@ -14,9 +14,7 @@ Future<void> iFollowItFromTheInterfaceUnverified(WidgetTester tester) async {
   await tester.enterText(find.byKey(const Key('follow-name')), name);
   await tester.enterText(find.byKey(const Key('follow-url')), where);
   await pumpFor(tester);
-  await tester.ensureVisible(find.byKey(const Key('follow-unverified')));
-  await tester.tap(find.byKey(const Key('follow-unverified')));
-  await pumpFor(tester);
+  await choose(tester, 'follow-checking', 'follow-unverified');
   await tester.ensureVisible(find.byKey(const Key('follow-it')));
   await tester.tap(find.byKey(const Key('follow-it')));
   await pumpUntil(

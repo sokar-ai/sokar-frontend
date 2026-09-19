@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import '../app/widening.dart';
+import 'choice_field.dart';
 import 'tokens.dart';
 
 /// Lets work that is already running reach something it could not reach before.
@@ -160,34 +161,20 @@ class _WhichScope extends StatelessWidget {
   final Widening widening;
 
   @override
-  Widget build(BuildContext context) => RadioGroup<Scope>(
-        // Null until somebody chooses, and `RadioGroup` is content with that — which is the
-        // behavior wanted, not a gap to be filled in with a default.
-        groupValue: widening.scope,
+  Widget build(BuildContext context) => ChoiceField<Scope>(
+        // Null until somebody chooses — which is the behavior wanted, not a gap to be filled in
+        // with a default.
+        id: 'widen-scope',
+        label: 'Let through for',
+        value: widening.scope,
         onChanged: (chosen) => chosen == null ? null : widening.choose(chosen),
-        child: const Column(
-          children: <Widget>[
-            RadioListTile<Scope>(
-              key: Key('widen-scope-run'),
-              value: Scope.run,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Just this run'),
-              subtitle: Text(
-                'Gone when the task is resumed: a resumed container rebuilds its rules from '
-                'what is on disk, and this is not written to disk.',
-              ),
-            ),
-            RadioListTile<Scope>(
-              key: Key('widen-scope-project'),
-              value: Scope.runAndProject,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('This run and the project file'),
-              subtitle: Text('Every task started in this project afterwards has it too.'),
-            ),
-          ],
-        ),
+        choices: const <Choice<Scope>>[
+          Choice(Scope.run, 'Just this run', id: 'widen-scope-run',
+              means: 'Gone when the task is resumed: a resumed container rebuilds its rules from '
+                  'what is on disk, and this is not written to disk.'),
+          Choice(Scope.runAndProject, 'This run and the project file', id: 'widen-scope-project',
+              means: 'Every task started in this project afterwards has it too.'),
+        ],
       );
 }
 

@@ -128,3 +128,21 @@ List<String>? onTheMachine(Machine machine, List<String> command, {required bool
 /// quotes with every single quote closed, escaped and reopened.
 String quoteForAShell(String word) =>
     RegExp(r'^[A-Za-z0-9_./:@=+,-]+$').hasMatch(word) ? word : "'${word.replaceAll("'", r"'\''")}'";
+
+/// Why [value] is not a private ssh key, or null when it is one. Only the private key is sent: the
+/// machine works out the public half from it, and a public one stored in its place fails at the
+/// first fetch as a refused login, far from where the wrong file was chosen.
+String? notAPrivateKey(String value) {
+  final text = value.trim();
+  if (text.isEmpty) return 'There is nothing in it to send.';
+  if (RegExp(r'^-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----').hasMatch(text) &&
+      RegExp(r'-----END [A-Z0-9 ]*PRIVATE KEY-----$').hasMatch(text)) {
+    return null;
+  }
+  if (RegExp(r'^(ssh-|ecdsa-|sk-)\S+ ').hasMatch(text) || text.contains('PUBLIC KEY-----')) {
+    return 'That is the public half of a key. Send the private one — usually the same name '
+        'without .pub; the machine works out the public half from it.';
+  }
+  return 'That is not a private key: a private key begins with -----BEGIN … PRIVATE KEY----- '
+      'and ends with -----END … PRIVATE KEY-----.';
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
 import '../app/project_following.dart';
+import 'choice_field.dart';
 import 'tokens.dart';
 
 /// Follows a project's repository — the only way a project comes to a machine.
@@ -129,35 +130,19 @@ class ProjectFollowingPanel extends StatelessWidget {
                           value: following.url,
                           onChanged: (typed) => following.answerWith(() => following.url = typed),
                         ),
-                        const SizedBox(height: Space.small),
-                        Text('How its commits are checked',
-                            style: Theme.of(context).textTheme.labelLarge),
-                        RadioGroup<Checking>(
-                          groupValue: following.checking,
+                        ChoiceField<Checking>(
+                          id: 'follow-checking',
+                          label: 'How its commits are checked',
+                          value: following.checking,
                           onChanged: (chosen) =>
                               following.answerWith(() => following.checking = chosen),
-                          child: const Column(
-                            children: <Widget>[
-                              RadioListTile<Checking>(
-                                key: Key('follow-pinned'),
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                                value: Checking.pinned,
-                                title: Text('Only commits signed with this key'),
-                              ),
-                              RadioListTile<Checking>(
-                                key: Key('follow-unverified'),
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                                value: Checking.unverified,
-                                title: Text('Unverified'),
-                                subtitle: Text(
-                                  'Anybody who can push to the repository decides what this machine '
-                                  'runs. Shown as unverified wherever the project is.',
-                                ),
-                              ),
-                            ],
-                          ),
+                          choices: const <Choice<Checking>>[
+                            Choice(Checking.pinned, 'Only commits signed with this key',
+                                id: 'follow-pinned'),
+                            Choice(Checking.unverified, 'Unverified', id: 'follow-unverified',
+                                means: 'Anybody who can push to the repository decides what this '
+                                    'machine runs. Shown as unverified wherever the project is.'),
+                          ],
                         ),
                         if (following.checking == Checking.pinned)
                           _Field(
