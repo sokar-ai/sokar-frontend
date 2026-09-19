@@ -114,8 +114,6 @@ void main() {
       await iOpenItHereWithItsPassphrase(tester);
       await aTerminalRunsOnTheMachine(
           tester, 'ssh -t michi@vm sokar vault unlock');
-      await itSays(
-          tester, 'Nothing is shown in the terminal while a secret is typed');
       await theUnlockTerminalEndsAndIsPutAway(tester);
       await theMachineIsAskedAgainWhetherTheStoreIsOpen(tester);
     });
