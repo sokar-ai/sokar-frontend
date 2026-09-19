@@ -36,16 +36,31 @@ class TerminalLinks extends StatelessWidget {
                       Text(problem,
                           key: const Key('login-reply-refused'),
                           style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                    for (final address in session.links)
+                    // The login's own page first, as the one to press; any other link below it, still
+                    // offered, because an agent without a redirect needs its own.
+                    for (final link in <TerminalLink>[
+                      ...session.links.where((each) => each.isTheLogin),
+                      ...session.links.where((each) => !each.isTheLogin),
+                    ])
                       Tooltip(
-                        message: '$address',
-                        child: OutlinedButton.icon(
-                          key: ValueKey<String>('terminal-link $address'),
-                          onPressed: () => unawaited(openLink(address)),
-                          icon: const Icon(Icons.open_in_new, size: Sizes.rowIcon),
-                          label: Text('Open ${address.host}${address.path} in your browser',
-                              overflow: TextOverflow.ellipsis),
-                        ),
+                        message: '${link.address}',
+                        child: link.isTheLogin
+                            ? FilledButton.icon(
+                                key: ValueKey<String>('terminal-link ${link.address}'),
+                                onPressed: () => unawaited(openLink(link.address)),
+                                icon: const Icon(Icons.login, size: Sizes.rowIcon),
+                                label: const Text('Sign in: the reply comes back here'),
+                              )
+                            : OutlinedButton.icon(
+                                key: ValueKey<String>('terminal-link ${link.address}'),
+                                onPressed: () => unawaited(openLink(link.address)),
+                                icon: const Icon(Icons.open_in_new, size: Sizes.rowIcon),
+                                label: Text(
+                                    session.links.any((each) => each.isTheLogin)
+                                        ? 'Another link the program printed: ${link.address.host}${link.address.path}'
+                                        : 'Open ${link.address.host}${link.address.path} in your browser',
+                                    overflow: TextOverflow.ellipsis),
+                              ),
                       ),
                   ],
                 ),

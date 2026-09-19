@@ -54,6 +54,8 @@ import './step/i_log_in_with_the_agent_from_the_start.dart';
 import './step/the_login_prints_its_page_and_its_reply_port.dart';
 import './step/the_reply_port_is_forwarded.dart';
 import './step/the_reply_forward_is_taken_down.dart';
+import './step/the_agent_prints_a_link_of_its_own_to.dart';
+import './step/the_first_link_offered_says_and_opens.dart';
 import './step/logging_in_is_not_offered.dart';
 import './step/starting_says_the_credential_is_stored_by.dart';
 import './step/the_machine_fails_to_say_whether_work_can_start_with.dart';
@@ -333,6 +335,25 @@ void main() {
       await theUnlockTerminalEndsAndIsPutAway(tester);
       await theReplyForwardIsTakenDown(tester);
       await whetherWorkCanStartIsAskedAgain(tester);
+    });
+    testWidgets(
+        '''the machine's login page is offered first, and a link of the agent's own below it''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theVaultHoldsNoCredentialForWhatARunWouldUse(tester);
+      await theAgentLogsInByItsOwnLogin(tester, 'an-agent');
+      await iStartWorkInThisProject(tester);
+      await iChooseTheAgent(tester, 'An Agent');
+      await iLogInWithTheAgentFromTheStart(tester);
+      await theAgentPrintsALinkOfItsOwnTo(
+          tester, 'https://claude.com/cai/oauth/authorize?code=true');
+      await theLoginPrintsItsPageAndItsReplyPort(
+          tester, 'https://claude.com/cai/oauth/authorize', '42017');
+      await theFirstLinkOfferedSaysAndOpens(
+          tester,
+          'Sign in: the reply comes back here',
+          'https://claude.com/cai/oauth/authorize');
+      await itSays(tester, 'Another link the program printed');
     });
     testWidgets('''an agent that declares no login is not offered one''',
         (tester) async {

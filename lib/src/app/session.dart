@@ -114,7 +114,7 @@ class Session extends ChangeNotifier {
 
   /// Web addresses the far end marked as links (OSC 8), newest last — offered to be opened here,
   /// never opened by themselves. An agent's login prints its page this way.
-  final List<Uri> links = <Uri>[];
+  final List<TerminalLink> links = <TerminalLink>[];
 
   /// The machine's `OSC 5379;forward;<port>`: the port its login listens on for the browser's reply.
   void _forwardTheReply(List<String> arguments) {
@@ -142,9 +142,9 @@ class Session extends ChangeNotifier {
 
   void _hyperlink(String code, List<String> arguments) {
     if (code == '5379') return _forwardTheReply(arguments);
-    final address = hyperlinkOf(code, arguments);
-    if (address == null || links.contains(address)) return;
-    links.add(address);
+    final link = hyperlinkOf(code, arguments);
+    if (link == null || links.contains(link)) return;
+    links.add(link);
     notifyListeners();
   }
 

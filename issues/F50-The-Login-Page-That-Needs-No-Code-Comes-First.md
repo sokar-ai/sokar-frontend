@@ -20,10 +20,16 @@ is the obvious one to press, and any other stays offered below it.**
   still needs its own.
 - **An unmarked link is never guessed to be the right one.**
 
+## Built, 2026-09-19
+
+The machine's mark (`id=sokar-login`, Sokar `37dcf74`) is read from OSC 8's parameters. The marked
+link is offered first as *Sign in: the reply comes back here*, and any other below it as *Another
+link the program printed*. A scenario feeds the helper's bytes and an unmarked link of the agent's
+own. Not yet run against a machine: `37dcf74` is not on the VM.
+
 ## What the backend is short of
 
-The mark on the helper's link (QF53). Whether two links were offered is the operator's answer,
-asked on 2026-09-19.
+Nothing: the mark is built (`37dcf74`), not yet published.
 
 ## To be checked
 

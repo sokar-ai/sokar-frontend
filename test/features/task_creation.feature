@@ -206,6 +206,19 @@ Feature: Starting work with an agent, a mode and a credential
     Then the reply forward is taken down
     And whether work can start is asked again
 
+  # An agent may print a link of its own beside the machine's. The machine marks its own, and that is
+  # the one offered first: its reply comes back without a code. The other stays, for an agent without one.
+  Scenario: the machine's login page is offered first, and a link of the agent's own below it
+    Given the vault holds no credential for what a run would use
+    And the agent {'an-agent'} logs in by its own login
+    When I start work in this project
+    And I choose the agent {'An Agent'}
+    And I log in with the agent from the start
+    And the agent prints a link of its own to {'https://claude.com/cai/oauth/authorize?code=true'}
+    And the login prints its page {'https://claude.com/cai/oauth/authorize'} and its reply port {'42017'}
+    Then the first link offered says {'Sign in: the reply comes back here'}, and opens {'https://claude.com/cai/oauth/authorize'}
+    And it says {'Another link the program printed'}
+
   Scenario: an agent that declares no login is not offered one
     Given the vault holds no credential for what a run would use
     When I start work in this project

@@ -36,9 +36,6 @@ gap here is a backend method that has to be added, not a workaround waiting to b
   answer `PREVIEWED` with `removes`, `keeps` and `unreviewed`, and the refusals a followed project
   gets.
 
-- **Which link a login prints is its own** (F50, asked 2026-09-19 as QF53). An agent's login may
-  print more than one link; nothing marks the one whose reply comes back to the machine.
-
 ## On the wire, not used here yet
 
 - **`WatchProjects`**, a push for what `Projects` answers. The project row still asks again after
