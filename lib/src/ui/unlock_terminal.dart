@@ -68,6 +68,17 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
     run: widget.command,
   )..addListener(_changed);
 
+  // Asked for once the dialog is on screen: an autofocus inside a dialog loses to its buttons.
+  final _keyboard = FocusNode(debugLabel: 'terminal in a dialog');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _keyboard.requestFocus();
+    });
+  }
+
   void _changed() {
     if (mounted) setState(() {});
   }
@@ -77,6 +88,7 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
     _session
       ..removeListener(_changed)
       ..dispose();
+    _keyboard.dispose();
     super.dispose();
   }
 
@@ -102,12 +114,23 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
                   child: TerminalView(
                     _session.terminal,
                     key: const Key('unlock-terminal'),
+                    focusNode: _keyboard,
                     autofocus: true,
                     readOnly: !_session.live,
                     padding: const EdgeInsets.all(Space.small),
                     textStyle: const TerminalStyle(fontSize: 12),
                   ),
                 ),
+              ),
+              // A secret is read without echo, so the typing is shown here as a count of dots:
+              // somebody can tell a prompt that is reading from one that hung.
+              const SizedBox(height: Space.tight),
+              Text(
+                _session.typedSinceEnter == 0
+                    ? 'Nothing is shown in the terminal while a secret is typed. Press Enter when done.'
+                    : 'Typed: ${'•' * _session.typedSinceEnter}',
+                key: const Key('typed-marks'),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               if (_session.state == SessionState.over) ...<Widget>[
                 const SizedBox(height: Space.small),

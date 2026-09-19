@@ -61,6 +61,7 @@ Feature: Seeing and shutting the secret store, without showing a value
     When I show the protected store
     And I open it here with its passphrase
     Then a terminal runs {'ssh -t michi@vm sokar vault unlock'} on the machine
+    And it says {'Nothing is shown in the terminal while a secret is typed'}
     When the unlock terminal ends and is put away
     Then the machine is asked again whether the store is open
 

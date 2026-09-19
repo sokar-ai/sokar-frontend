@@ -176,7 +176,30 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _typed(String data) => type(data);
+  void _typed(String data) {
+    _count(data);
+    type(data);
+  }
+
+  /// How many characters have been typed since the last Enter — **a count and nothing else**, so a
+  /// prompt that reads a secret without echo can still show that the typing arrives.
+  int typedSinceEnter = 0;
+
+  void _count(String data) {
+    var count = typedSinceEnter;
+    for (final rune in data.runes) {
+      if (rune == 0x0d || rune == 0x0a || rune == 0x03 || rune == 0x15) {
+        count = 0;
+      } else if (rune == 0x7f || rune == 0x08) {
+        if (count > 0) count--;
+      } else if (rune >= 0x20) {
+        count++;
+      }
+    }
+    if (count == typedSinceEnter) return;
+    typedSinceEnter = count;
+    notifyListeners();
+  }
 
   void _resized(int width, int height, int pixelWidth, int pixelHeight) =>
       _channel?.resize(columns: width, rows: height);
