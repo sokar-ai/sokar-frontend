@@ -135,7 +135,8 @@ class MockMachine {
     daemon.method('Decide', _decide);
     daemon.method('Remove', _remove);
     daemon.method('Panic', _panic);
-    daemon.method('DeleteProject', _deleteProject);
+    daemon.method('Unfollow', _deleteProject);
+    daemon.method('Follow', _follow);
     daemon.method('Doctor', _doctor);
     daemon.method('Providers', _providers);
     daemon.method('ImportCredential', _importCredential);
@@ -147,7 +148,6 @@ class MockMachine {
     daemon.method('DeleteBackup', _deleteBackup);
     daemon.method('RestoreBackup', _restoreBackup);
     daemon.method('SyncUpstream', _syncUpstream);
-    daemon.method('CreateProject', _createProject);
     daemon.method('NarrowTask', _narrowTask);
     daemon.method('SetClearance', _setClearance);
     daemon.stream('Prepare', _prepare);
@@ -717,7 +717,7 @@ class MockMachine {
   /// reviewed, and a task that is up. `keeps` names the operator's own file so a confirmation can
   /// say it survives without this end having to know which things are Sokar's.
   Map<String, dynamic> _deleteProject(Map<String, dynamic> parameters) {
-    final name = parameters['project'] as String? ?? '';
+    final name = parameters['name'] as String? ?? '';
     final preview = parameters['dryRun'] == true;
     final force = parameters['force'] == true;
     final its = tasks.where((task) => task['project'] == name).toList();
@@ -839,114 +839,44 @@ class MockMachine {
   /// must answer `NO_CHANGE`, and a widened task must go on being widened.
   final Map<String, Set<String>> _granted = <String, Set<String>>{};
 
-  /// Lets a running task reach names it could not reach before.
-  ///
-  /// Everything here is a state a real daemon produces and none of it is canned: whether the
-  /// container is up, what class its project runs under, whether that project has a file to write
-  /// to, and what it could already reach.
-  /// Creates a project file, having checked the answers against this machine first.
-  ///
-  /// **The checking is what a client cannot do**: whether a class is spelled right, whether a set
-  /// exists here, whether the name survives becoming an image tag and an nftables set name.
-  Map<String, dynamic> _createProject(Map<String, dynamic> parameters) {
+  /// Repositories this mock has been asked to follow, by project name, with what came of it.
+  final Map<String, Map<String, dynamic>> _followed = <String, Map<String, dynamic>>{};
+
+  /// Follows a repository and takes it at once, as Sokar does — so the project can be worked in
+  /// straight after. A URL saying `unsigned` is refused as `NOT_SIGNED`, which needs a person; the
+  /// same name at another address is refused, because that is a different project wearing a name.
+  Map<String, dynamic> _follow(Map<String, dynamic> parameters) {
     final name = parameters['name'] as String? ?? '';
-    // As QF22 proposes: no file given, and the machine chooses where its projects live.
-    final given = parameters['file'] as String? ?? '';
-    final file = given.isEmpty ? '/home/somebody/.config/sokar/projects/$name/project.yml' : given;
-    final klass = parameters['securityClass'] as String? ?? '';
-    final baseImage = parameters['baseImage'] as String? ?? '';
-    final upstream = parameters['upstream'] as String? ?? '';
-    final sets = (parameters['sets'] as List?)?.cast<String>() ?? <String>[];
-    final preview = parameters['dryRun'] == true;
-
-    final problems = <Map<String, dynamic>>[
-      if (!RegExp(r'^[a-z0-9][a-z0-9-]*$').hasMatch(name))
-        _problem(
-          'name',
-          'a project name becomes an image tag and an nftables set name, so it '
-              'may hold only lower-case letters, digits and dashes',
-          fatal: true,
-        ),
-      if (!const <String>['offline', 'guarded', 'online'].contains(klass))
-        _problem(
-          'securityClass',
-          '"$klass" is not a class this machine knows',
-          fatal: true,
-        ),
-      if (klass == 'online' && upstream.isEmpty)
-        _problem(
-          'upstream',
-          'an online project pushes to its upstream directly, so it needs one',
-          fatal: true,
-        ),
-      for (final set in sets)
-        if (!_knownSets.contains(set))
-          _problem(
-            'sets',
-            'no egress set called "$set" is installed on this machine',
-            fatal: true,
-          ),
-      // Worth showing and not worth blocking on: it will simply be pulled.
-      if (baseImage.isNotEmpty && !baseImage.startsWith('ubuntu:'))
-        _problem(
-          'baseImage',
-          'not on this machine yet, so the first build will pull it',
-          fatal: false,
-        ),
-    ];
-    final blocked = problems.any((each) => each['fatal'] == true);
-
-    // A refusal and never an overwrite: the file may be somebody's whole configuration.
-    final exists =
-        _createdProjects.contains(file) ||
-        _everyProject.any((each) => each['file'] == file);
-
-    // Filled even on a refusal — seeing what was rejected is most of understanding why.
-    final content = StringBuffer()
-      ..writeln('project:')
-      ..writeln('  name: "$name"')
-      ..writeln('  security_class: "$klass"')
-      ..writeln('image:')
-      ..writeln('  base_image: "$baseImage"');
-    if (upstream.isNotEmpty) {
-      content
-        ..writeln('upstream:')
-        ..writeln('  url: "$upstream"');
+    final url = parameters['url'] as String? ?? '';
+    final unverified = parameters['unverified'] == true;
+    if (unverified && (parameters['signedBy'] as String? ?? '').isNotEmpty) {
+      throw const MockRefusal('org.fuin.sokar.Tasks1.Failed', <String, dynamic>{
+        'message': 'signedBy and unverified are two different instructions; give one',
+      });
     }
-    if (sets.isNotEmpty) {
-      content
-        ..writeln('egress:')
-        ..writeln('  sets: [${sets.join(', ')}]');
+    final before = _followed[name];
+    if (before != null && before['url'] != url) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.Failed', <String, dynamic>{
+        'message': '$name is already followed at ${before['url']}',
+      });
     }
-
-    if (!preview && !blocked && !exists) _createdProjects.add(file);
-
-    return <String, dynamic>{
-      'outcome': blocked
-          ? 'INVALID'
-          : exists
-          ? 'ALREADY_EXISTS'
-          : preview
-          ? 'PREVIEWED'
-          : 'CREATED',
-      'file': file,
-      'content': content.toString(),
-      'problems': problems,
-      'detail': exists ? 'a project file is already there' : '',
+    final refused = url.contains('unsigned');
+    final state = <String, dynamic>{
+      'name': name,
+      'url': url,
+      'commit': refused ? '' : 'c0ffee1d2e3f',
+      'at': DateTime.now().toUtc().toIso8601String(),
+      'outcome': refused ? 'NOT_SIGNED' : 'APPLIED',
+      'refused': refused ? 'badc0de4f5a6' : '',
+      'signer': '',
+      'detail': refused ? 'the fetched commit carries no signature' : '',
+      'needsAPerson': refused,
+      'unverified': unverified,
     };
+    _followed[name] = state;
+    _removedProjects.remove(name);
+    return state;
   }
-
-  static Map<String, dynamic> _problem(
-    String field,
-    String what, {
-    required bool fatal,
-  }) => <String, dynamic>{'field': field, 'what': what, 'fatal': fatal};
-
-  /// The egress sets this machine has, by name, for checking answers against.
-  static const _knownSets = <String>['dart-packages', 'containers', 'forges'];
-
-  /// Project files this mock has been asked to create, so a second attempt is refused.
-  final Set<String> _createdProjects = <String>{};
 
   /// Takes names back from a running task.
   ///
@@ -1455,6 +1385,23 @@ class MockMachine {
         'projects': <Map<String, dynamic>>[
           for (final project in _everyProject)
             if (!_removedProjects.contains(project['name'])) project,
+          // What was followed here and taken is a project, with its follow state on it.
+          for (final MapEntry(key: name, value: state) in _followed.entries)
+            if (!_removedProjects.contains(name) &&
+                !_everyProject.any((each) => each['name'] == name))
+              <String, dynamic>{
+                'name': name,
+                'securityClass': 'guarded',
+                'file': (state['commit'] as String).isEmpty ? '' : '/srv/$name/project.yml',
+                'mirror': '/srv/$name/.sokar/mirror',
+                'pending': 0,
+                'tasks': 0,
+                'running': 0,
+                'repositories': <Map<String, dynamic>>[
+                  <String, dynamic>{'name': name, 'own': true, 'upstream': state['url']},
+                ],
+                'following': state,
+              },
         ],
       };
 
@@ -1796,7 +1743,7 @@ class MockMachine {
         .where(
           (task) =>
               task['task'] == parameters['task'] &&
-              parameters['project'] == '/srv/${task['project']}/project.yml',
+              parameters['project'] == task['project'],
         )
         .map((task) => task['name'] as String)
         .firstOrNull;

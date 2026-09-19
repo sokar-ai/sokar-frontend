@@ -34,8 +34,8 @@ enum Home {
   /// The menu on the selected project's card.
   projectMenu,
 
-  /// The card that describes a new project.
-  newProject,
+  /// The entry that follows a repository, which is how a project comes to a machine.
+  followRepository,
 
   /// The tile that starts work.
   startTile,
@@ -171,7 +171,7 @@ List<Command> workCommands({
           : whyNotStart(task) ??
                 (task.task.isEmpty
                     ? 'the machine does not say its name within the project'
-                    : fleet.projectFileOf(task) == null
+                    : fleet.projectNameOf(task) == null
                     ? 'nothing here knows where its project file is'
                     : null),
     ),
@@ -332,7 +332,7 @@ List<Command> projectCommands({
       ? nothing
       : project.canBeActedOn
       ? null
-      : 'no project file is recorded for ${project.name}';
+      : '${project.name} is not a project this machine follows';
   return <Command>[
     Command(
       id: 'gate.open',
@@ -408,7 +408,7 @@ List<Command> projectCommands({
     ),
     Command(
       id: 'project.delete',
-      label: 'Remove what Sokar built for this project',
+      label: 'Stop following this project',
       group: 'Project',
       home: Home.projectMenu,
       run: removeWhatWasBuilt,
@@ -560,7 +560,7 @@ List<Command> commandsFor({
   required VoidCallback checkTheMachine,
   required VoidCallback showTheProviders,
   required VoidCallback prepareTheProject,
-  required VoidCallback describeAProject,
+  required VoidCallback followARepository,
   required VoidCallback showTheBackups,
   required VoidCallback syncTheUpstream,
   required VoidCallback startWork,
@@ -689,11 +689,11 @@ List<Command> commandsFor({
       addAUser: addAUser,
     ),
     Command(
-      id: 'project.create',
-      label: 'Describe a new project',
+      id: 'project.follow',
+      label: 'Follow a repository',
       group: 'Project',
-      home: Home.newProject,
-      run: describeAProject,
+      home: Home.followRepository,
+      run: followARepository,
       unavailable: notAnswering(fleet),
     ),
     ...projectCommands(

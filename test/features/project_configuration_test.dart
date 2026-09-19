@@ -26,17 +26,26 @@ import './step/the_next_change_will_report_a_cost.dart';
 import './step/the_cost_warning_says.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_offered_as_unavailable.dart';
-import './step/i_ask_to_remove_what_sokar_built_here.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/the_repository_adds.dart';
+import './step/i_open_what_the_repository_may_reach.dart';
+import './step/is_marked_as_added_by_the_repository.dart';
+import './step/is_not_marked_as_added_by_the_repository.dart';
+import './step/egress_was_asked_about_the_repository.dart';
+import './step/every_egress_change_was_written_into.dart';
+import './step/no_egress_call_named_a_repository.dart';
+import './step/i_ask_to_stop_following_this_project.dart';
 import './step/nothing_was_removed.dart';
-import './step/i_agree_to_remove_it.dart';
-import './step/it_was_removed_for.dart';
+import './step/i_agree_to_stop_following_it.dart';
+import './step/following_stopped_for.dart';
 import './step/nothing_was_forced.dart';
-import './step/removing_will_refuse_because.dart';
+import './step/stopping_following_will_refuse_because.dart';
 import './step/it_was_forced.dart';
 import './step/the_command_is_offered.dart';
 
 void main() {
-  group('''Changing what a project may reach, and removing a project''', () {
+  group('''Changing what a project may reach, and no longer following one''',
+      () {
     Future<void> bddSetUp(WidgetTester tester) async {
       await aBackendWithWorkOnIt(tester);
       await theAppIsRunning(tester);
@@ -119,6 +128,42 @@ void main() {
           tester, 'Change what this project may reach');
     });
     testWidgets(
+        '''what a repository adds is shown on top of what every repository gets, and marked''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await theRepositoryAdds(tester, 'payments-api', 'api.stripe.com');
+      await iSelectTheProject(tester, 'checkout');
+      await iOpenWhatTheRepositoryMayReach(tester, 'payments-api');
+      await itSays(tester, 'checkout · payments-api');
+      await itSays(tester, 'github.com');
+      await isMarkedAsAddedByTheRepository(tester, 'api.stripe.com');
+      await isNotMarkedAsAddedByTheRepository(tester, 'github.com');
+      await egressWasAskedAboutTheRepository(tester, 'payments-api');
+    });
+    testWidgets(
+        '''a change made for a repository is written into that repository's own block''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iSelectTheProject(tester, 'checkout');
+      await iOpenWhatTheRepositoryMayReach(tester, 'payments-api');
+      await iAddTheSet(tester, 'Container registries');
+      await iAgreeToTheChange(tester);
+      await everyEgressChangeWasWrittenInto(tester, 'payments-api');
+    });
+    testWidgets(
+        '''the project's own view names no repository, and asks about none''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iOpenWhatThisProjectMayReach(tester);
+      await iAddTheSet(tester, 'Container registries');
+      await iAgreeToTheChange(tester);
+      await noEgressCallNamedARepository(tester);
+    });
+    testWidgets(
         '''choosing sets one at a time is explained, not merely how it works''',
         (tester) async {
       await bddSetUp(tester);
@@ -129,34 +174,34 @@ void main() {
     testWidgets('''what would go is shown, and asking removes nothing''',
         (tester) async {
       await bddSetUp(tester);
-      await iAskToRemoveWhatSokarBuiltHere(tester);
-      await itSays(tester, 'This removes what Sokar built for checkout');
+      await iAskToStopFollowingThisProject(tester);
+      await itSays(tester, 'This stops following checkout');
       await nothingWasRemoved(tester);
     });
-    testWidgets('''the project file is named as kept, never as a casualty''',
+    testWidgets(
+        '''the repository is said to be untouched, and following it again brings it back''',
         (tester) async {
       await bddSetUp(tester);
-      await iAskToRemoveWhatSokarBuiltHere(tester);
-      await itSays(tester, '/srv/checkout/project.yml');
-      await itSays(
-          tester, 'A task run in that directory builds all of it again');
+      await iAskToStopFollowingThisProject(tester);
+      await itSays(tester, 'Its repository is not touched');
+      await itSays(tester, 'Following its repository again brings it back');
     });
     testWidgets(
         '''agreeing is a second act, and it says what is still there afterwards''',
         (tester) async {
       await bddSetUp(tester);
-      await iAskToRemoveWhatSokarBuiltHere(tester);
-      await iAgreeToRemoveIt(tester);
-      await itWasRemovedFor(tester, 'checkout');
-      await itSays(tester, 'The project file is still there');
+      await iAskToStopFollowingThisProject(tester);
+      await iAgreeToStopFollowingIt(tester);
+      await followingStoppedFor(tester, 'checkout');
+      await itSays(tester, 'no longer followed here');
       await nothingWasForced(tester);
     });
     testWidgets('''commits nobody reviewed stop it, and say where they exist''',
         (tester) async {
       await bddSetUp(tester);
-      await removingWillRefuseBecause(tester, 'HOLDS_WORK');
-      await iAskToRemoveWhatSokarBuiltHere(tester);
-      await iAgreeToRemoveIt(tester);
+      await stoppingFollowingWillRefuseBecause(tester, 'HOLDS_WORK');
+      await iAskToStopFollowingThisProject(tester);
+      await iAgreeToStopFollowingIt(tester);
       await itSays(tester, 'nobody has reviewed it');
       await itSays(tester, 'in the mirror and nowhere else');
       await nothingWasForced(tester);
@@ -164,9 +209,9 @@ void main() {
     testWidgets('''running work stops it, and is not told the same way''',
         (tester) async {
       await bddSetUp(tester);
-      await removingWillRefuseBecause(tester, 'TASKS_RUNNING');
-      await iAskToRemoveWhatSokarBuiltHere(tester);
-      await iAgreeToRemoveIt(tester);
+      await stoppingFollowingWillRefuseBecause(tester, 'TASKS_RUNNING');
+      await iAskToStopFollowingThisProject(tester);
+      await iAgreeToStopFollowingIt(tester);
       await itSays(tester, 'Work is still running');
       await itSays(tester, 'cut off where it stands');
     });
@@ -174,21 +219,20 @@ void main() {
         '''going past a refusal is a second decision, and is what carries force''',
         (tester) async {
       await bddSetUp(tester);
-      await removingWillRefuseBecause(tester, 'HOLDS_WORK');
-      await iAskToRemoveWhatSokarBuiltHere(tester);
-      await iAgreeToRemoveIt(tester);
-      await iAgreeToRemoveIt(tester);
+      await stoppingFollowingWillRefuseBecause(tester, 'HOLDS_WORK');
+      await iAskToStopFollowingThisProject(tester);
+      await iAgreeToStopFollowingIt(tester);
+      await iAgreeToStopFollowingIt(tester);
       await itWasForced(tester);
       await itSays(tester, 'is gone');
     });
     testWidgets(
-        '''a project whose file nothing can find can still be removed''',
+        '''a project this machine does not follow can still be cleared away''',
         (tester) async {
       await bddSetUp(tester);
       await iSelectTheProject(tester, 'unrecorded');
       await iOpenTheCommandFinder(tester);
-      await theCommandIsOffered(
-          tester, 'Remove what Sokar built for this project');
+      await theCommandIsOffered(tester, 'Stop following this project');
     });
   });
 }

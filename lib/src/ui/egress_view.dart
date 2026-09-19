@@ -46,7 +46,9 @@ class EgressView extends StatelessWidget {
     return Column(
       children: <Widget>[
         PaneHeader(
-          title: 'What ${egress.project?.name ?? ''} may reach',
+          title: egress.repository == null
+              ? 'What ${egress.project?.name ?? ''} may reach'
+              : 'What ${egress.project?.name ?? ''} · ${egress.repository} may reach',
           trailing: IconButton(
             icon: const Icon(Icons.close),
             tooltip: 'Close (Esc)',
@@ -72,9 +74,22 @@ class EgressView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: Space.small),
             children: <Widget>[
               _Heading(words: 'Reachable now'),
+              if (egress.repository case final repository?)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(Space.normal, 0, Space.normal, Space.small),
+                  child: Text(
+                    'What every repository of ${egress.project?.name ?? ''} may reach, and what '
+                    '$repository adds to it. A repository only ever adds: nothing here can take '
+                    'away what the project grants. A change is written into $repository\'s own '
+                    'block.',
+                    key: const Key('what-a-repository-adds'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
               // In the order the sources granted them: the first grant wins, so the order is what
               // says where a host came from. Sorting would destroy the answer.
-              for (final host in egress.reachable) _Reachable(host: host),
+              for (final host in egress.reachable)
+                _Reachable(host: host, added: egress.addedByTheRepository(host)),
               if (egress.refused.isNotEmpty) ...<Widget>[
                 _Heading(words: 'Asked for and refused'),
                 Padding(
@@ -261,16 +276,24 @@ class _Heading extends StatelessWidget {
 }
 
 class _Reachable extends StatelessWidget {
-  const _Reachable({required this.host});
+  const _Reachable({required this.host, this.added = false});
 
   final EgressHost host;
 
+  /// Whether the repository being looked at adds it, rather than every repository getting it.
+  final bool added;
+
   @override
   Widget build(BuildContext context) => ListTile(
+        key: added ? ValueKey<String>('added ${host.host}') : null,
         dense: true,
+        leading: added
+            ? Icon(Icons.add_circle_outline,
+                size: Sizes.rowIcon, color: Theme.of(context).colorScheme.tertiary)
+            : null,
         title: Text(host.host,
             style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-        trailing: Text(host.origin,
+        trailing: Text(added ? 'added by this repository' : host.origin,
             style: Theme.of(context).textTheme.bodySmall),
       );
 }

@@ -69,6 +69,9 @@ abstract final class Sizes {
 
   /// An icon inside a row.
   static const rowIcon = 18.0;
+
+  /// A dialog that asks several things at once, wide enough for a URL or a key on one line.
+  static const dialog = 620.0;
 }
 
 /// Corner radii.

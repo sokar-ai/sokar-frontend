@@ -16,7 +16,7 @@ Feature: Starting work with an agent, a mode and a credential
     And I start it
     Then the launch was called {'schema-work'}
     And the launch asked for the mode {'SHELL'}
-    And the launch was given the project file
+    And the launch named the project {'checkout'}
 
   Scenario: a name is optional, so nothing has to be invented before starting
     When I start work in this project

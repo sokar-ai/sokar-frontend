@@ -89,10 +89,10 @@ class AgentsOpened extends Opened {
   const AgentsOpened();
 }
 
-/// A new project being described, on the machine it will live on.
-class ProjectCreationOpened extends Opened {
+/// A repository being followed, on the machine the project will live on.
+class ProjectFollowingOpened extends Opened {
   /// Constructor.
-  const ProjectCreationOpened();
+  const ProjectFollowingOpened();
 }
 
 /// What this session ran on the machine.
@@ -185,8 +185,8 @@ class ShellModel extends ChangeNotifier {
   /// Opens what one operation printed.
   void openOperation(String id) => _open(OperationOpened(id));
 
-  /// Opens the description of a new project.
-  void openProjectCreation() => _open(const ProjectCreationOpened());
+  /// Opens following a repository.
+  void openProjectFollowing() => _open(const ProjectFollowingOpened());
 
   /// Opens what this session ran on the machine.
   void openOperations() => _open(const OperationsOpened());

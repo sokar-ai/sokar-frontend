@@ -19,7 +19,7 @@ void main() {
     );
 
     expect(gate.reachable, isFalse);
-    expect(gate.problem, contains('No project file is recorded'));
+    expect(gate.problem, contains('not a project this machine follows'));
     expect(gate.waiting, isEmpty);
   });
 

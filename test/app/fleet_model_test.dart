@@ -85,7 +85,7 @@ class _Wedged implements FleetBackend {
   Future<void> reject(String projectFile, String name, {String? repository}) async {}
 
   @override
-  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile, {String? repository}) async =>
       (const <EgressHost>[], const <String>[]);
 
   @override
@@ -100,6 +100,7 @@ class _Wedged implements FleetBackend {
     List<String>? addDomains,
     List<String>? removeDomains,
     bool? dryRun,
+    String? repository,
   }) async =>
       EgressChange.from(const <String, dynamic>{});
 
@@ -179,23 +180,6 @@ class _Wedged implements FleetBackend {
       const BackupDeleted(outcome: 'DELETED', fileRemoved: true, refs: 0, detail: '');
 
   @override
-  Future<Created> createProject({
-    String? file,
-    required String name,
-    required String securityClass,
-    required String baseImage,
-    String? upstream,
-    List<String> sets = const <String>[],
-    bool? dryRun,
-  }) async =>
-      const Created(
-          outcome: 'CREATED',
-          file: '',
-          content: '',
-          problems: <Problem>[],
-          detail: '');
-
-  @override
   Future<Health> doctor() async =>
       const Health(probes: <Probe>[], ready: true);
 
@@ -209,7 +193,12 @@ class _Wedged implements FleetBackend {
           outcome: 'IMPORTED', name: '', type: '', length: 0, source: '', detail: '');
 
   @override
-  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
+  Future<Followed> follow(String name, String url,
+          {String? signedBy, bool? unverified, bool? acceptRewrite}) async =>
+      Followed(name: name, url: url, outcome: 'APPLIED');
+
+  @override
+  Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async =>
       const Deletion(
           outcome: DeleteOutcome.deleted,
           removes: <Removal>[],
@@ -339,7 +328,7 @@ class _Machine implements FleetBackend {
   @override
   Future<void> decide(Prompt prompt, {required bool allow}) async {}
   @override
-  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile, {String? repository}) async =>
       (const <EgressHost>[], const <String>[]);
 
   @override
@@ -354,6 +343,7 @@ class _Machine implements FleetBackend {
     List<String>? addDomains,
     List<String>? removeDomains,
     bool? dryRun,
+    String? repository,
   }) async =>
       EgressChange.from(const <String, dynamic>{});
 
@@ -427,23 +417,6 @@ class _Machine implements FleetBackend {
       const BackupDeleted(outcome: 'DELETED', fileRemoved: true, refs: 0, detail: '');
 
   @override
-  Future<Created> createProject({
-    String? file,
-    required String name,
-    required String securityClass,
-    required String baseImage,
-    String? upstream,
-    List<String> sets = const <String>[],
-    bool? dryRun,
-  }) async =>
-      const Created(
-          outcome: 'CREATED',
-          file: '',
-          content: '',
-          problems: <Problem>[],
-          detail: '');
-
-  @override
   Future<Health> doctor() async =>
       const Health(probes: <Probe>[], ready: true);
 
@@ -457,7 +430,12 @@ class _Machine implements FleetBackend {
           outcome: 'IMPORTED', name: '', type: '', length: 0, source: '', detail: '');
 
   @override
-  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
+  Future<Followed> follow(String name, String url,
+          {String? signedBy, bool? unverified, bool? acceptRewrite}) async =>
+      Followed(name: name, url: url, outcome: 'APPLIED');
+
+  @override
+  Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async =>
       const Deletion(
           outcome: DeleteOutcome.deleted,
           removes: <Removal>[],

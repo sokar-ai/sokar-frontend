@@ -18,10 +18,10 @@ machine's following has got and why it stopped.**
 
 ## Acceptance
 
-- **Describing a project renders its file and gives it back**, to be committed to the project's
-  repository where the person already commits. Nothing is written on the machine; the answer to QF22
-  (the machine choosing a path for the file) is superseded, and the dialog's *"its file goes to …"*
-  goes with it.
+- **A project comes to a machine only by being followed**, decided by the operator on 2026-09-19.
+  *Describe a project* goes, with nothing in its place: a person writes `project.yml` in their own
+  repository, and what is wrong with it comes back from `follow` as the named reasons. It goes when
+  Sokar removes `CreateProject` (B72), not before.
 - **Starting work always names a repository**: a required choice, never preselected, even when a
   project has one. A start without one is refused with the list of what there is, and that list is
   what is offered.
@@ -35,6 +35,11 @@ machine's following has got and why it stopped.**
   *"cannot reach the repository"*. After a restart a machine resumes per person, as each opens their
   vault; its projects are as they were meanwhile, not broken. Shown, never turned into a notification
   by anything here.
+- **A refused signature is a state of its own on the project**, decided by the operator on
+  2026-09-18: *"not following: commit `def456` is not signed by a key this machine was given"* — not
+  only a line in `doctor`, where it would be missed while the project runs on, on its old state. It
+  is also **under *Needs you***, because it is either somebody trying to slip a project file past
+  the machine or a legitimate commit signed with the wrong key, and both need a person.
 - **Whom a task may talk to follows from its project** (F42): agents of a project communicate by
   default, and nothing here maintains the members of a group.
 
@@ -45,8 +50,7 @@ interface's (see *Still to build*), and QF23.
 
 ## To be checked
 
-- **How a repository is named in a start call**, and whether a refused signature needs anything on a
-  screen beyond a line in `doctor` — both open on the Sokar side.
+- **Nothing open here.** What a refused signature needs on the wire is Sokar B69.
 
 ## Built, 2026-09-19: the repository a start names (B67)
 
@@ -126,9 +130,61 @@ remembers the grant in the task's repository.
 
 ## Still to build
 
-- **Describing a project renders and returns its file** (B66) instead of writing it.
-- **`follow` and `unfollow`**, with `acceptRewrite` sent only in answer to `REWRITTEN` and only when a
-  person said they mean it; and the reconciliation state per account.
-- **What a repository may reach** (B68): its own egress shown *added to* the project's, its limits
-  *replacing* the project's key by key — never as though a repository reached only its own block.
-- ***Check that work can start here*** without a repository (QF23, unanswered).
+- **A repository's limits** — replacing the project's key by key. **No method answers them**: they
+  are only in the file, and nothing says which key came from the repository and which fell through
+  to the project (QF33). Sokar builds it if the operator asks for it; until then nothing is shown.
+- **Follow state against a published Sokar**: built against the contract Sokar pasted on
+  2026-09-19, which no published snapshot carries yet; and `Followed.needsAPerson`, which the pasted
+  block lacks (QF30).
+
+**Built, 2026-09-19: what a repository may reach.** Each repository line in the project's header
+opens the egress editor for that repository: what every repository of the project may reach and
+what this one adds, its own hosts marked — `Egress(repository)`, each host naming its origin, so
+nothing is subtracted here. A change is previewed and written into the repository's own block,
+`SetEgress(repository)`; the project's own view names no repository.
+
+**Built, 2026-09-19: an unverified follow is marked** on the project's header and its card in
+the tree, because nothing checks what the machine is handed for it — and a verified one is not.
+
+**Built, 2026-09-19: following and no longer following.** *Describe a project* is gone with
+`CreateProject`; in its place, *Follow a repository* asks for the name, where the repository is, and
+how its commits are checked — a pinned key or unverified, **chosen, never defaulted**, with what
+unverified gives away said beside the choice. What came of it is said in the header's words, a
+refused commit makes no project, and a rewritten history is taken only by a second, separate
+press. Removing a project is *Stop following*, with the same preview and refusals the removal had.
+
+**Built, 2026-09-19: a project is named.** Every call that acts on a project sends its name —
+starting and checking, the gate, preparing, egress, backups — as Sokar's projects-by-name change
+requires, and a project the machine does not follow is said to be exactly that. **This build
+needs a Sokar that has that change**, and the one published before it needs the build before this:
+Sokar is pushed and published first.
+
+**Built, 2026-09-19: the follow state.** The project's header says where following has got — the
+commit in force, what was turned away and why, in words per reason, and what still runs — and a
+project that stopped and needs a person is under *Needs you*, counted, with the signer's
+fingerprint whole and the daemon's detail. A shut store is never worded as an unreachable
+repository. Absent and empty `following` both mean *not followed*.
+
+**Built, 2026-09-18:** each repository line in the project's header shows what work in it would
+open: the project's dry run with that `repository`, which is the project's plan and what the
+repository adds to it.
+
+**QF26 answered, 2026-09-18.** `Following()` already answers per project and account: `name`, `url`,
+the applied `commit`, `at`, and an `outcome` carrying `REWRITTEN` and `UNREACHABLE` — built against
+today. **Sokar B69, not built — nothing is built against it here**:
+
+- the refused signature as four reasons, not one `REFUSED`: `NOT_SIGNED`, `UNKNOWN_KEY`,
+  `NO_ANCHOR`, `UNREADABLE`. *Nobody signed this* and *somebody signed it with a key this machine was
+  not given* are different events; **only the second is a possible attempt**, and that is the one
+  under *Needs you*;
+- a locked vault as a reason of its own — today it is a hint in the text of `UNREACHABLE`, so
+  *cannot reach the repository* is shown for a network that is fine;
+- the refused commit beside the one in force (two fields, two questions), and the signing key's
+  fingerprint, which is not a secret and is what a person compares with the key they meant to pin;
+- the follow state on `Projects()`, so the project view does not join two calls.
+
+**Answered, 2026-09-18:** *Show what a project would open* — `Start` with `dryRun` and no
+repository — streams the project's own plan, which every repository gets and may only add to; the
+reply says so. `CanStart` with no repository answers everything else first and asks for the
+repository last. *Start again* sends the task's repository and Sokar refuses one that is not the
+task's own, so what is sent is checked rather than ignored.

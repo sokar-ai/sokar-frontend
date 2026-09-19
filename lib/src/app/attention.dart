@@ -114,6 +114,17 @@ class Attention extends ChangeNotifier {
     ];
   }
 
+  /// Every followed project whose repository stopped being taken **and will stay stopped until
+  /// somebody acts**, as the daemon says. Said about the project, never as a tile: it is not work,
+  /// and a refused signature may be somebody putting a project file past the machine.
+  List<({Machine machine, Project project, Followed followed})> get notFollowing =>
+      <({Machine machine, Project project, Followed followed})>[
+        for (final machine in _counted)
+          for (final each in _machines.of(machine).projects)
+            if (each.project.following case final followed? when followed.needsAPerson)
+              (machine: machine, project: each.project, followed: followed),
+      ];
+
   /// Stops saying that [machine] is silent, until it has answered again.
   Future<void> markSeen(Machine machine) async {
     final settings = _settings;
@@ -210,7 +221,8 @@ class Attention extends ChangeNotifier {
   int get needingSomebody =>
       tiles.where((tile) => tile.demand == Demand.question).length +
       silent.length +
-      failedUnseen.length;
+      failedUnseen.length +
+      notFollowing.length;
 
   /// Why one piece of work sits where it does.
   static Demand demandOf(Task task, List<Prompt> questions) {

@@ -12,8 +12,8 @@ import 'tokens.dart';
 
 /// The left of the window: what needs a person, then every machine with its projects under it.
 ///
-/// A machine opens like an accordion. Under it come the work running there, a way to describe a
-/// new project, and every project. The stop for every machine stays at the foot.
+/// A machine opens like an accordion. Under it come the work running there, a way to follow a
+/// repository, and every project. The stop for every machine stays at the foot.
 class MachineTree extends StatelessWidget {
   /// Constructor taking what the tree shows and what choosing an entry does.
   const MachineTree({
@@ -26,7 +26,7 @@ class MachineTree extends StatelessWidget {
     required this.onMachine,
     required this.onToggle,
     required this.onRunning,
-    required this.onNewProject,
+    required this.onFollow,
     required this.onProject,
     required this.onStopEverywhere,
     required this.onRefresh,
@@ -60,8 +60,8 @@ class MachineTree extends StatelessWidget {
   /// Shows every running piece of work on a machine.
   final void Function(Machine machine) onRunning;
 
-  /// Describes a new project on a machine.
-  final void Function(Machine machine) onNewProject;
+  /// Follows a repository on a machine, which is how a project comes to it.
+  final void Function(Machine machine) onFollow;
 
   /// Shows one project of a machine.
   final void Function(Machine machine, String project) onProject;
@@ -76,7 +76,7 @@ class MachineTree extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = machines.current;
     final onMachineSide = shell.section == Section.machine;
-    final creating = shell.opened is ProjectCreationOpened;
+    final following = shell.opened is ProjectFollowingOpened;
     return SizedBox(
       width: width,
       child: Column(
@@ -107,7 +107,7 @@ class MachineTree extends StatelessWidget {
                     context,
                     machine,
                     here: onMachineSide && machine == current,
-                    creating: creating,
+                    following: following,
                   ),
               ],
             ),
@@ -145,7 +145,7 @@ class MachineTree extends StatelessWidget {
     BuildContext context,
     Machine machine, {
     required bool here,
-    required bool creating,
+    required bool following,
   }) {
     final fleet = machines.of(machine);
     final open = shell.isExpanded(machine.name);
@@ -191,22 +191,22 @@ class MachineTree extends StatelessWidget {
           icon: Icons.play_circle_outline,
           title: 'Running',
           trailing: Text('$running'),
-          selected: here && narrowed == null && !creating,
+          selected: here && narrowed == null && !following,
           onTap: () => onRunning(machine),
         ),
         Highlight(
-          active: highlight == 'project.create',
+          active: highlight == 'project.follow',
           child: Tooltip(
-            message: answering ? '' : 'Not answering, so nothing can be created there',
+            message: answering ? '' : 'Not answering, so nothing can be followed there',
             child: _Entry(
             key: here
-                ? const Key('new-project')
-                : ValueKey<String>('new-project ${machine.name}'),
-            icon: Icons.add,
-            title: 'New project',
-            selected: here && creating,
-            autofocus: highlight == 'project.create',
-            onTap: () => onNewProject(machine),
+                ? const Key('follow-a-repository')
+                : ValueKey<String>('follow-a-repository ${machine.name}'),
+            icon: Icons.add_link,
+            title: 'Follow a repository',
+            selected: here && following,
+            autofocus: highlight == 'project.follow',
+            onTap: () => onFollow(machine),
             enabled: answering,
           ),
           ),
@@ -216,7 +216,7 @@ class MachineTree extends StatelessWidget {
             context,
             machine,
             project,
-            selected: here && !creating && narrowed == project.name,
+            selected: here && !following && narrowed == project.name,
             here: here,
           ),
       ],
@@ -295,11 +295,24 @@ class MachineTree extends StatelessWidget {
                 color: scheme.error,
               ),
             ),
+          // Said wherever the project is: nothing checks what this machine is handed for it.
+          if (project.project.following?.unverified ?? false)
+            Tooltip(
+              message:
+                  'Followed unverified: anybody who can push to its repository decides what this '
+                  'machine runs.',
+              child: Icon(
+                Icons.gpp_maybe_outlined,
+                key: const Key('project-unverified'),
+                size: Sizes.mark,
+                color: scheme.error,
+              ),
+            ),
           if (!project.canBeActedOn)
             Tooltip(
               message:
-                  'No project file recorded, so nothing can act on it. '
-                  'Running a task with it once records one.',
+                  'This machine does not follow it, so nothing can act on it. '
+                  'Following its repository makes it a project here.',
               child: Icon(
                 Icons.link_off,
                 size: Sizes.mark,
@@ -383,6 +396,8 @@ class ProjectHeader extends StatelessWidget {
     this.onShown,
     this.onSync,
     this.onBackups,
+    this.onOpens,
+    this.onReach,
     super.key,
   });
 
@@ -394,6 +409,12 @@ class ProjectHeader extends StatelessWidget {
 
   /// Shows what has been backed up of one repository.
   final void Function(String repository)? onBackups;
+
+  /// Shows what work in one repository would open, creating nothing.
+  final void Function(String repository)? onOpens;
+
+  /// Shows, and changes, what one repository adds to what the project may reach.
+  final void Function(String repository)? onReach;
 
   /// Whether nothing about it is notified.
   final bool muted;
@@ -417,7 +438,8 @@ class ProjectHeader extends StatelessWidget {
       if (p.environmentIsStale) 'environment older than its project file',
       if (p.pending > 0) '${p.pending} waiting at the gate',
       if (muted) 'not notified',
-      if (!project.canBeActedOn) 'no project file recorded',
+      if (!project.canBeActedOn) 'not followed here',
+      if (p.following?.unverified ?? false) 'unverified',
     ];
     return Container(
       key: const Key('project-header'),
@@ -474,6 +496,8 @@ class ProjectHeader extends StatelessWidget {
                       repository: repository,
                       onSync: project.canBeActedOn ? onSync : null,
                       onBackups: project.canBeActedOn ? onBackups : null,
+                      onOpens: project.canBeActedOn ? onOpens : null,
+                      onReach: project.canBeActedOn ? onReach : null,
                     )
                 // How far behind, with the age of the measurement in the same sentence.
                 else if (p.behindReason.isNotEmpty)
@@ -485,6 +509,16 @@ class ProjectHeader extends StatelessWidget {
                         ? theme.textTheme.bodySmall?.copyWith(
                             color: scheme.tertiary,
                           )
+                        : theme.textTheme.bodySmall,
+                  ),
+                // Where this account's following has got, and why it stopped when it did.
+                if (p.following case final followed?)
+                  Text(
+                    followed.words,
+                    key: const Key('project-following'),
+                    overflow: TextOverflow.ellipsis,
+                    style: followed.needsAPerson
+                        ? theme.textTheme.bodySmall?.copyWith(color: scheme.error)
                         : theme.textTheme.bodySmall,
                   ),
                 if (p.file.isNotEmpty)
@@ -511,7 +545,8 @@ class ProjectHeader extends StatelessWidget {
 
 /// One of a project's repositories: how far it has got, and its own sync and backups.
 class _RepositoryLine extends StatelessWidget {
-  const _RepositoryLine({required this.repository, this.onSync, this.onBackups});
+  const _RepositoryLine(
+      {required this.repository, this.onSync, this.onBackups, this.onOpens, this.onReach});
 
   final Repository repository;
 
@@ -519,10 +554,16 @@ class _RepositoryLine extends StatelessWidget {
 
   final void Function(String repository)? onBackups;
 
+  final void Function(String repository)? onOpens;
+
+  final void Function(String repository)? onReach;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final name = repository.name;
+    final opens = onOpens;
+    final reach = onReach;
     final sync = onSync;
     final backups = onBackups;
     return Row(
@@ -554,6 +595,22 @@ class _RepositoryLine extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           tooltip: 'Backups of $name',
           onPressed: backups == null ? null : () => backups(name),
+        ),
+        // A repository's egress is added to the project's (Sokar B68), so this is the project's
+        // plan and what this repository adds to it — the daemon's reply says which is which.
+        IconButton(
+          key: Key('opens-$name'),
+          icon: const Icon(Icons.travel_explore, size: Sizes.rowIcon),
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Show what work in $name would open, creating nothing',
+          onPressed: opens == null ? null : () => opens(name),
+        ),
+        IconButton(
+          key: Key('reach-$name'),
+          icon: const Icon(Icons.public, size: Sizes.rowIcon),
+          visualDensity: VisualDensity.compact,
+          tooltip: 'What $name may reach, on top of what the project grants',
+          onPressed: reach == null ? null : () => reach(name),
         ),
       ],
     );

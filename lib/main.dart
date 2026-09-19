@@ -24,7 +24,7 @@ import 'src/app/work_held.dart';
 import 'src/app/window.dart';
 import 'src/app/operations.dart';
 import 'src/app/backups.dart';
-import 'src/app/project_creation.dart';
+import 'src/app/project_following.dart';
 import 'src/app/project_deletion.dart';
 import 'src/app/session.dart';
 import 'src/app/settings.dart';
@@ -94,7 +94,7 @@ Future<SokarApp> _compose() async {
     deleting: ProjectDeletion(),
     readiness: HostReadiness(),
     authentication: Authentication(),
-    creating: ProjectCreation(),
+    following: ProjectFollowing(),
     backups: Backups(),
     narrowing: Narrowing(),
     held: WorkHeld(),

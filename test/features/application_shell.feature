@@ -100,15 +100,15 @@ Feature: Moving around the frame by keyboard and by pointer
     When I select the project {'checkout'}
     And the tunnel drops
     And I open the command finder
-    Then the command {'Describe a new project'} is unavailable because {'not answering'}
+    Then the command {'Follow a repository'} is unavailable because {'not answering'}
     And the command {'Build the environment for this project'} is unavailable because {'not answering'}
     And the command {'Check whether this machine can run anything'} is unavailable because {'not answering'}
     When I close what is open
     And enough time passes for another try
 
-  Scenario: a new project and the stop for every machine wait for a machine that answers
+  Scenario: following a repository and the stop for every machine wait for a machine that answers
     When the tunnel drops
-    Then creating a project on this machine is not offered
+    Then following a repository on this machine is not offered
     And stopping everything everywhere is not offered
     When enough time passes for another try
     Then stopping everything everywhere is offered

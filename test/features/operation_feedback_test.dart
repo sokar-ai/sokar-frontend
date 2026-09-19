@@ -30,6 +30,11 @@ import './step/i_open_the_failed_operation_from_what_needs_a_person.dart';
 import './step/no_failed_operation_waits.dart';
 import './step/the_app_is_restarted.dart';
 import './step/the_file_of_what_was_run_was_opened.dart';
+import './step/the_project_has_the_repositories.dart';
+import './step/i_show_what_the_repository_would_open.dart';
+import './step/the_operation_is_open.dart';
+import './step/the_launch_was_a_dry_run_in_the_repository.dart';
+import './step/the_launch_was_a_dry_run_in_no_repository.dart';
 
 void main() {
   group('''Running long operations without blocking the frame''', () {
@@ -213,6 +218,23 @@ void main() {
       await iChooseTheCommand(
           tester, 'Open the file of everything that was run');
       await theFileOfWhatWasRunWasOpened(tester);
+    });
+    testWidgets(
+        '''what one repository would open is shown on its own, creating nothing''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theProjectHasTheRepositories(
+          tester, 'checkout', 'checkout, payments-api');
+      await iShowWhatTheRepositoryWouldOpen(tester, 'payments-api');
+      await theOperationIsOpen(tester);
+      await theLaunchWasADryRunInTheRepository(tester, 'payments-api');
+    });
+    testWidgets('''what the project would open names no repository''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iChooseTheCommand(
+          tester, 'Show what this project would open, creating nothing');
+      await theLaunchWasADryRunInNoRepository(tester);
     });
   });
 }

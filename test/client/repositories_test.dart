@@ -113,4 +113,65 @@ void main() {
       expect((await asked()).values, everyElement('none sent'));
     });
   });
+
+  test('a follow state is read whole, and neither absent nor empty is a follow', () async {
+    daemon.method('Projects', (_) => <String, dynamic>{
+          'projects': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'name': 'checkout',
+              'following': <String, dynamic>{
+                'name': 'checkout',
+                'url': 'git@example.org:checkout.git',
+                'commit': '4f2a9c1e0b77',
+                'at': '2026-09-19T03:50:00Z',
+                'outcome': 'UNKNOWN_KEY',
+                'refused': 'b71d03aa9e2c',
+                'signer': 'SHA256:9xQeTbL1',
+                'detail': 'not pinned here',
+                'needsAPerson': true,
+                'unverified': true,
+              },
+            },
+            <String, dynamic>{'name': 'nobody-follows'},
+            <String, dynamic>{'name': 'empty-object', 'following': <String, dynamic>{}},
+          ],
+        });
+
+    final projects = await (await connect()).projects();
+
+    final followed = projects.first.following!;
+    expect(followed.commit, '4f2a9c1e0b77');
+    expect(followed.refused, 'b71d03aa9e2c', reason: 'what was turned away is not what runs');
+    expect(followed.signer, 'SHA256:9xQeTbL1');
+    expect(followed.needsAPerson, isTrue);
+    expect(followed.unverified, isTrue);
+    expect(projects[1].following, isNull);
+    expect(projects[2].following, isNull, reason: 'an empty object is not a follow');
+  });
+
+  group("a repository's egress is asked and written with its name", () {
+    Future<Map<String, String?>> asked({String? repository}) async {
+      final names = <String, String?>{};
+      for (final method in <String>['Egress', 'SetEgress']) {
+        daemon.method(method, (parameters) {
+          names[method] = parameters.containsKey('repository')
+              ? parameters['repository'] as String?
+              : 'none sent';
+          return <String, dynamic>{};
+        });
+      }
+      final client = await connect();
+      await client.egress('checkout', repository: repository);
+      await client.setEgress('checkout', addSets: <String>['containers'], dryRun: true, repository: repository);
+      return names;
+    }
+
+    test('named where one is chosen', () async {
+      expect((await asked(repository: 'payments-api')).values, everyElement('payments-api'));
+    });
+
+    test('none sent for the project itself, which an older Sokar can take', () async {
+      expect((await asked()).values, everyElement('none sent'));
+    });
+  });
 }

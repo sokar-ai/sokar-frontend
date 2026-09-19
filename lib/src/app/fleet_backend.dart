@@ -140,17 +140,6 @@ abstract class FleetBackend {
   /// Removes a backup, or says what removing it would take.
   Future<BackupDeleted> deleteBackup(String project, String bundle, {bool? dryRun});
 
-  /// Creates a project file, having checked the answers against this machine.
-  Future<Created> createProject({
-    String? file,
-    required String name,
-    required String securityClass,
-    required String baseImage,
-    String? upstream,
-    List<String> sets,
-    bool? dryRun,
-  });
-
   /// Builds a project's task image without starting anything. Streamed: a build takes minutes.
   Stream<PrepareProgress> prepare(
     String project, {
@@ -180,7 +169,11 @@ abstract class FleetBackend {
   ///
   /// **Never the project file, the checkout or the upstream**: those are the operator's, and
   /// `Deletion.keeps` names them so a confirmation can say so.
-  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force});
+  Future<Deletion> unfollow(String project, {bool? dryRun, bool? force});
+
+  /// Follows a project's repository and reconciles once; what came of it is the answer.
+  Future<Followed> follow(String name, String url,
+      {String? signedBy, bool? unverified, bool? acceptRewrite});
 
   /// Blocked connections from every task on this machine, as they happen.
   ///
@@ -194,7 +187,10 @@ abstract class FleetBackend {
   Future<void> decide(Prompt prompt, {required bool allow});
 
   /// What a project's work may reach, and what is asked for and deliberately not given.
-  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile);
+  ///
+  /// With [repository], what that repository adds as well — grants a repository declares are added
+  /// to the project's, never in place of them.
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile, {String? repository});
 
   /// The destination sets installed on this machine, and where they were found.
   Future<(List<EgressSet>, List<String>)> egressSets();
@@ -209,6 +205,7 @@ abstract class FleetBackend {
     List<String>? addDomains,
     List<String>? removeDomains,
     bool? dryRun,
+    String? repository,
   });
 
   /// Lets a **running** task reach names it could not reach before.
@@ -224,8 +221,9 @@ abstract class FleetBackend {
 
   /// What is waiting at a project's gate.
   ///
-  /// [projectFile] is `Project.file`, passed through unchanged. A project that has none can be
-  /// listed and not asked about — that is a state to render, never a call to make anyway.
+  /// [projectFile] is `Project.name`: every method takes a project's name, never a path on a
+  /// machine this end cannot see. A project the machine does not follow is listed and not asked
+  /// about — a state to render, never a call to make anyway.
   ///
   /// [repository] names one of the project's repositories; without one the daemon answers the
   /// project's own.
@@ -425,26 +423,6 @@ class SokarBackend implements FleetBackend {
       _opened().deleteBackup(project, bundle, dryRun: dryRun);
 
   @override
-  Future<Created> createProject({
-    String? file,
-    required String name,
-    required String securityClass,
-    required String baseImage,
-    String? upstream,
-    List<String> sets = const <String>[],
-    bool? dryRun,
-  }) =>
-      _opened().createProject(
-        file: file,
-        name: name,
-        securityClass: securityClass,
-        baseImage: baseImage,
-        upstream: upstream,
-        sets: sets,
-        dryRun: dryRun,
-      );
-
-  @override
   Stream<PrepareProgress> prepare(String project,
           {String? agent, String? rebuild, bool? dryRun}) =>
       _opened().prepare(project, agent: agent, rebuild: rebuild, dryRun: dryRun);
@@ -463,8 +441,14 @@ class SokarBackend implements FleetBackend {
   Future<String> node() => _opened().node();
 
   @override
-  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) =>
-      _opened().deleteProject(project, dryRun: dryRun, force: force);
+  Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) =>
+      _opened().unfollow(project, dryRun: dryRun, force: force);
+
+  @override
+  Future<Followed> follow(String name, String url,
+          {String? signedBy, bool? unverified, bool? acceptRewrite}) =>
+      _opened().follow(name, url,
+          signedBy: signedBy, unverified: unverified, acceptRewrite: acceptRewrite);
 
   @override
   Stream<Prompt> prompts() => _opened().prompts();
@@ -474,8 +458,8 @@ class SokarBackend implements FleetBackend {
       _opened().decide(prompt, allow: allow);
 
   @override
-  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) =>
-      _opened().egress(projectFile);
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile, {String? repository}) =>
+      _opened().egress(projectFile, repository: repository);
 
   @override
   Future<(List<EgressSet>, List<String>)> egressSets() => _opened().sets();
@@ -488,6 +472,7 @@ class SokarBackend implements FleetBackend {
     List<String>? addDomains,
     List<String>? removeDomains,
     bool? dryRun,
+    String? repository,
   }) =>
       _opened().setEgress(
         projectFile,
@@ -496,6 +481,7 @@ class SokarBackend implements FleetBackend {
         addDomains: addDomains,
         removeDomains: removeDomains,
         dryRun: dryRun,
+        repository: repository,
       );
 
   @override

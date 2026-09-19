@@ -12,6 +12,13 @@ class Egress extends ChangeNotifier {
   /// Which project this is about.
   Project? project;
 
+  /// Which of its repositories, or null for the project itself — what every repository gets.
+  ///
+  /// **A repository's grants are added to the project's, never in place of them**, so with one
+  /// chosen the list is the project's and the repository's together, each host naming its origin,
+  /// and a change is written into the repository's own block.
+  String? repository;
+
   /// Every host its work may reach, in the order the sources granted them. **Never sorted:** the
   /// first grant wins, so the order is what says which source a host came from.
   List<EgressHost> reachable = const <EgressHost>[];
@@ -40,24 +47,29 @@ class Egress extends ChangeNotifier {
   /// Why it could not be read or changed, in words.
   String? problem;
 
+  /// Whether [host] is one the chosen repository adds, rather than one every repository gets.
+  bool addedByTheRepository(EgressHost host) =>
+      repository != null && host.origin == 'repository $repository';
+
   /// Whether this project can be asked about at all.
   bool get reachableAtAll => project?.canBeActedOn ?? false;
 
   /// Reads what a project may reach, and what sets exist to choose from.
-  Future<void> lookAt(FleetBackend backend, Project project) async {
+  Future<void> lookAt(FleetBackend backend, Project project, {String? repository}) async {
     this.project = project;
+    this.repository = repository;
     preview = null;
     applied = null;
     if (!project.canBeActedOn) {
       reachable = const <EgressHost>[];
       refused = const <String>[];
-      problem = 'No project file is recorded for ${project.name}, and every call about its '
-          'egress takes one. Running a task with it once records it.';
+      problem = '${project.name} is not a project this machine follows, so nothing can be asked '
+          'about its egress. Following its repository makes it one.';
       notifyListeners();
       return;
     }
     await _asking(() async {
-      final (hosts, notGiven) = await backend.egressOf(project.file);
+      final (hosts, notGiven) = await backend.egressOf(project.name, repository: repository);
       final (installed, where) = await backend.egressSets();
       reachable = hosts;
       refused = notGiven;
@@ -74,8 +86,8 @@ class Egress extends ChangeNotifier {
     List<String>? addDomains,
     List<String>? removeDomains,
   }) async {
-    final file = project?.file;
-    if (file == null || file.isEmpty) return;
+    final file = project?.name;
+    if (file == null || file.isEmpty || !(project?.canBeActedOn ?? false)) return;
     applied = null;
     await _asking(() async {
       preview = await backend.changeEgress(
@@ -85,6 +97,7 @@ class Egress extends ChangeNotifier {
         addDomains: addDomains,
         removeDomains: removeDomains,
         dryRun: true,
+        repository: repository,
       );
     });
   }
@@ -101,8 +114,8 @@ class Egress extends ChangeNotifier {
     List<String>? addDomains,
     List<String>? removeDomains,
   }) async {
-    final file = project?.file;
-    if (file == null || file.isEmpty) return;
+    final file = project?.name;
+    if (file == null || file.isEmpty || !(project?.canBeActedOn ?? false)) return;
     await _asking(() async {
       applied = await backend.changeEgress(
         file,
@@ -110,10 +123,11 @@ class Egress extends ChangeNotifier {
         removeSets: removeSets,
         addDomains: addDomains,
         removeDomains: removeDomains,
+        repository: repository,
       );
       preview = null;
       if (applied!.outcome.wrote) {
-        final (hosts, notGiven) = await backend.egressOf(file);
+        final (hosts, notGiven) = await backend.egressOf(file, repository: repository);
         reachable = hosts;
         refused = notGiven;
       }

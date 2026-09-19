@@ -951,6 +951,10 @@ class Project {
   /// names only fills in nothing but the name.
   final List<Repository> repositoryStates;
 
+  /// Where this account has got following the project's repository, or null when it follows
+  /// nothing here — the ordinary case, and never the same as followed with nothing known yet.
+  final Followed? following;
+
   /// The project's own repository, or null where the machine names none.
   String? get ownRepository =>
       repositoryStates.where((each) => each.own).firstOrNull?.name ?? repositories.firstOrNull;
@@ -976,6 +980,7 @@ class Project {
     this.behindDetail = '',
     this.repositories = const <String>[],
     this.repositoryStates = const <Repository>[],
+    this.following,
   });
 
   /// Reads one from a reply.
@@ -995,6 +1000,7 @@ class Project {
         behindDetail: _string(map, 'behindDetail'),
         repositories: <String>[for (final each in Repository.allIn(map)) each.name],
         repositoryStates: Repository.allIn(map),
+        following: Followed.of(map['following']),
       );
 
   /// Whether this project is behind its upstream by an amount somebody can act on.
@@ -1011,8 +1017,9 @@ class Project {
 
   /// Whether anything can be done to it beyond looking at it.
   ///
-  /// Every method that acts on a project takes [file], so a project without one can be listed and
-  /// not acted on. That is a state to render, never an error.
+  /// Every method that acts on a project takes its **name**, and accepts only a project this
+  /// machine follows — which `Projects()` lists with the [file] it verified. One known only from
+  /// tasks left behind has none, and is listed and not acted on: a state to render, never an error.
   bool get canBeActedOn => file.isNotEmpty;
 }
 
@@ -2860,4 +2867,110 @@ String _behindWords(String reason, int behind, String measured, String detail) {
     '' => 'Nothing said how far behind it is',
     _ => reason.toLowerCase().replaceAll('_', ' '),
   };
+}
+
+/// How far this account has got following a project's repository.
+///
+/// **What is in force and what was turned away are two fields**, because a screen asks both: a
+/// project whose newest commit was refused goes on running what it had.
+class Followed {
+  /// The project's name.
+  final String name;
+
+  /// Where its repository is. Not a secret.
+  final String url;
+
+  /// The commit verified and in force, or empty when none ever was.
+  final String commit;
+
+  /// When it last tried, RFC 3339, or empty.
+  final String at;
+
+  /// Why it is where it is. Not an enum: new values may appear, and one this build does not know
+  /// is rendered rather than thrown on.
+  final String outcome;
+
+  /// The commit turned away, or empty. Never the same field as [commit].
+  final String refused;
+
+  /// The fingerprint of the key that signed [refused], or empty. Only a fingerprint: not a secret.
+  final String signer;
+
+  /// The daemon's own words about it. Never parsed.
+  final String detail;
+
+  /// Whether nothing changes until somebody acts. **The daemon's answer, never worked out here**:
+  /// an unreachable repository may answer on the next pass by itself, a refused signature never
+  /// will, and which is which is the daemon's knowledge.
+  final bool needsAPerson;
+
+  /// Whether it is followed with no key pinned, so whoever can push to its repository decides
+  /// what this machine runs. A state beside [outcome], never one of its values: a project can be
+  /// unverified and unreachable at once.
+  final bool unverified;
+
+  /// Constructor taking every field.
+  const Followed({
+    required this.name,
+    this.url = '',
+    this.commit = '',
+    this.at = '',
+    this.outcome = '',
+    this.refused = '',
+    this.signer = '',
+    this.detail = '',
+    this.needsAPerson = false,
+    this.unverified = false,
+  });
+
+  /// Reads one from a reply.
+  factory Followed.from(Map<String, dynamic> map) => Followed(
+        name: _string(map, 'name'),
+        url: _string(map, 'url'),
+        commit: _string(map, 'commit'),
+        at: _string(map, 'at'),
+        outcome: _string(map, 'outcome'),
+        refused: _string(map, 'refused'),
+        signer: _string(map, 'signer'),
+        detail: _string(map, 'detail'),
+        needsAPerson: map['needsAPerson'] == true,
+        unverified: map['unverified'] == true,
+      );
+
+  /// A project's `following`, or null when it follows nothing: absent, or an empty object — the
+  /// contract has said both, and neither is a follow.
+  static Followed? of(Object? value) {
+    if (value is! Map<String, dynamic>) return null;
+    final followed = Followed.from(value);
+    final nothing = followed.name.isEmpty && followed.url.isEmpty && followed.outcome.isEmpty;
+    return nothing ? null : followed;
+  }
+
+  /// Whether the newest commit it checked is the one in force.
+  bool get inForce => outcome == 'APPLIED' || outcome == 'UNCHANGED';
+
+  /// What its state is, in one line: the reason first, then what is still running.
+  String get words {
+    final turnedAway = refused.isEmpty ? 'the newest commit' : 'commit ${_short(refused)}';
+    final why = switch (outcome) {
+      'APPLIED' || 'UNCHANGED' =>
+        commit.isEmpty ? 'Following' : 'Following, at ${_short(commit)}',
+      'NOT_SIGNED' => 'Not taken: $turnedAway is not signed',
+      'UNKNOWN_KEY' => 'Not taken: $turnedAway is signed by a key this machine was never given',
+      'NO_ANCHOR' => 'Not taken: no key is pinned here, so nothing can be verified',
+      'UNREADABLE' => 'Not taken: the commit or the repository could not be read',
+      'REWRITTEN' => 'Not taken: $turnedAway rewrites the history in force',
+      'UNREACHABLE' => 'The repository cannot be reached',
+      'VAULT_LOCKED' =>
+        "This account's store is shut, and the repository needs a credential from it",
+      'UNUSABLE' => 'Not taken: the project file in $turnedAway does not read as a project',
+      'FAILED' => 'The last attempt did not work',
+      '' => 'Followed, and not tried yet',
+      _ => outcome.toLowerCase().replaceAll('_', ' '),
+    };
+    final still = !inForce && commit.isNotEmpty ? ' · still running ${_short(commit)}' : '';
+    return '$why$still';
+  }
+
+  static String _short(String commit) => commit.length > 7 ? commit.substring(0, 7) : commit;
 }

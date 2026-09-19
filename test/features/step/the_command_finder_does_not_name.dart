@@ -7,5 +7,5 @@ import '../support/world.dart';
 Future<void> theCommandFinderDoesNotName(WidgetTester tester, String command) async {
   await tester.enterText(find.byType(TextField), command);
   await World.settle(tester);
-  expect(find.widgetWithText(ListTile, command), findsNothing);
+  expect(find.descendant(of: find.byType(Dialog), matching: find.widgetWithText(ListTile, command)), findsNothing);
 }

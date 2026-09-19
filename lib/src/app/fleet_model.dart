@@ -337,7 +337,7 @@ class FleetModel extends ChangeNotifier {
 
   /// Starts a listed task: Start decides by its state, and what it did is said.
   Future<void> startAgain(Task task) async {
-    final file = projectFileOf(task);
+    final file = projectNameOf(task);
     if (file == null || task.task.isEmpty) return;
     final repository = projectOf(task)?.repositoryOf(task);
     await _acting(about: task.name, () async {
@@ -351,10 +351,11 @@ class FleetModel extends ChangeNotifier {
   Project? projectOf(Task task) =>
       projects.where((each) => each.name == task.project).map((each) => each.project).firstOrNull;
 
-  /// The file of the project [task] belongs to, or null when nothing here knows it.
-  String? projectFileOf(Task task) => projects
+  /// The name every call takes for the project [task] belongs to, or null when the machine does
+  /// not list that project — a task left over from one it no longer has.
+  String? projectNameOf(Task task) => projects
       .where((each) => each.name == task.project && each.project.file.isNotEmpty)
-      .map((each) => each.project.file)
+      .map((each) => each.project.name)
       .firstOrNull;
 
   /// Puts a refusal away without acting on it, leaving the task exactly as it is.

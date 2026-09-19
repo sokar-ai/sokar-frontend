@@ -28,7 +28,7 @@ import '../app/machines.dart';
 import '../app/narrowing.dart';
 import '../app/newer_version.dart';
 import '../app/operations.dart';
-import '../app/project_creation.dart';
+import '../app/project_following.dart';
 import '../app/project_deletion.dart';
 import '../app/session.dart';
 import '../app/settings.dart';
@@ -44,7 +44,7 @@ import 'agents_view.dart';
 import 'authentication_view.dart';
 import 'backups_view.dart';
 import 'emergency_stop_view.dart';
-import 'project_creation_view.dart';
+import 'project_following_view.dart';
 import 'project_deletion_view.dart';
 import 'session_view.dart';
 import 'vault_actions.dart';
@@ -95,7 +95,7 @@ class Shell extends StatefulWidget {
     required this.deleting,
     required this.readiness,
     required this.authentication,
-    required this.creating,
+    required this.following,
     required this.backups,
     required this.narrowing,
     required this.held,
@@ -159,8 +159,8 @@ class Shell extends StatefulWidget {
   /// What the machine being acted on can authenticate against.
   final Authentication authentication;
 
-  /// Describing and creating a project.
-  final ProjectCreation creating;
+  /// Following a repository, which is how a project comes to a machine.
+  final ProjectFollowing following;
 
   /// What has been backed up of the project being looked at.
   final Backups backups;
@@ -294,7 +294,7 @@ class _ShellState extends State<Shell> {
     checkTheMachine: _checkTheMachine,
     showTheProviders: _showTheProviders,
     prepareTheProject: _prepareTheProject,
-    describeAProject: _describeAProject,
+    followARepository: _followARepository,
     showTheBackups: _showTheBackups,
     syncTheUpstream: _syncTheUpstream,
     startWork: _startWork,
@@ -475,28 +475,20 @@ class _ShellState extends State<Shell> {
     if (said.isNotEmpty) _fleet.say(said);
   }
 
-  /// Describes a project in the machine's place, checks every answer against it, and creates it.
-  ///
-  /// **Nothing is written until the last press**: every check runs with `dryRun`.
-  Future<void> _describeAProject() async {
-    widget.creating.startOn(_fleet.backend);
-    // The sets this machine really has, rather than a list typed from memory.
-    final (sets, _) = await _fleet.backend.egressSets();
-    if (!mounted) return;
-    _setsHere = sets.map((set) => set.name).toList();
+  /// Follows a repository in the machine's place — the only way a project comes to a machine.
+  Future<void> _followARepository() async {
+    widget.following.startOn(_fleet.backend);
     widget.shell
       ..goTo(Section.machine)
-      ..openProjectCreation();
+      ..openProjectFollowing();
   }
 
-  List<String> _setsHere = const <String>[];
-
-  /// Puts the description away; a project that was made is then the one selected.
-  Future<void> _doneCreating(bool made) async {
-    final name = widget.creating.name;
+  /// Puts it away; a project that is now followed is then the one selected.
+  Future<void> _doneFollowing(bool taken) async {
+    final name = widget.following.name.trim();
     widget.shell.close();
-    widget.creating.letItBe();
-    if (!made) return;
+    widget.following.letItBe();
+    if (!taken) return;
     await _fleet.refresh();
     _fleet.selectProject(name);
   }
@@ -512,7 +504,7 @@ class _ShellState extends State<Shell> {
       title: 'Build the environment for ${project.name}',
       machine: widget.machines.current.name,
       output: _fleet.backend.buildEnvironment(
-        project.project.file,
+        project.project.name,
         rebuild: depth.name,
       ),
     );
@@ -534,11 +526,13 @@ class _ShellState extends State<Shell> {
   }
 
   /// Opens what the selected project's work may reach.
-  Future<void> _openEgress() async {
+  ///
+  /// With [repository], what that repository adds on top of what every repository gets.
+  Future<void> _openEgress({String? repository}) async {
     final project = _fleet.selectedProject?.project;
     if (project == null) return;
     widget.shell.openEgress();
-    await widget.egress.lookAt(_fleet.backend, project);
+    await widget.egress.lookAt(_fleet.backend, project, repository: repository);
   }
 
   /// Gives a piece of work something to read by, or takes it away. Nothing about its identity
@@ -948,7 +942,7 @@ class _ShellState extends State<Shell> {
 
     final project = _fleet.projects
         .where((each) => each.name == task.project)
-        .map((each) => each.project.file)
+        .map((each) => each.project.name)
         .firstOrNull;
     final operation = widget.operations.run(
       title: 'Recreate ${task.name}',
@@ -988,13 +982,18 @@ class _ShellState extends State<Shell> {
   }
 
   /// Reports what the project file opens, creating nothing.
-  void _checkWorkCanStart() {
+  ///
+  /// Without [repository] this is the plan every repository of the project gets; with one, that
+  /// plan and what the repository adds to it.
+  void _checkWorkCanStart({String? repository}) {
     final project = _fleet.selectedProject?.project;
     if (project == null) return;
     final operation = widget.operations.run(
-      title: 'Show what ${project.name} would open',
+      title: repository == null
+          ? 'Show what ${project.name} would open'
+          : 'Show what ${project.name} · $repository would open',
       machine: widget.machines.current.name,
-      output: _fleet.backend.startTask(project: project.file, dryRun: true),
+      output: _fleet.backend.startTask(project: project.name, dryRun: true, repository: repository),
     );
     widget.shell.openOperation(operation.id);
   }
@@ -1156,10 +1155,10 @@ class _ShellState extends State<Shell> {
             _leaveDrawer();
             _showRunning(machine);
           },
-      onNewProject: (machine) {
+      onFollow: (machine) {
             _leaveDrawer();
         widget.machines.select(machine);
-        unawaited(_describeAProject());
+        unawaited(_followARepository());
       },
       onProject: (machine, project) {
             _leaveDrawer();
@@ -1306,6 +1305,8 @@ class _ShellState extends State<Shell> {
             onShown: widget.shell.shown,
             onSync: (repository) => unawaited(_syncTheUpstream(repository: repository)),
             onBackups: (repository) => unawaited(_showTheBackups(repository: repository)),
+            onOpens: (repository) => _checkWorkCanStart(repository: repository),
+            onReach: (repository) => unawaited(_openEgress(repository: repository)),
           ),
         Expanded(
           child: SingleChildScrollView(
@@ -1487,17 +1488,15 @@ class _ShellState extends State<Shell> {
           logs: widget.logs,
           onClose: widget.shell.close,
         );
-      case ProjectCreationOpened():
-        return ProjectCreationPanel(
-          creation: widget.creating,
-          setsHere: _setsHere,
-          onCheck: () => widget.creating.check(_fleet.backend),
-          onCreate: () async {
-            await widget.creating.create(_fleet.backend);
-            final said = widget.creating.words;
-            if (said.isNotEmpty) _fleet.say(said);
+      case ProjectFollowingOpened():
+        return ProjectFollowingPanel(
+          following: widget.following,
+          onFollow: ({bool acceptRewrite = false}) async {
+            await widget.following.follow(acceptRewrite: acceptRewrite);
+            final said = widget.following.answer?.words;
+            if (said != null) _fleet.say('${widget.following.name.trim()}: $said');
           },
-          onDone: (made) => unawaited(_doneCreating(made)),
+          onDone: (taken) => unawaited(_doneFollowing(taken)),
         );
       case OperationsOpened():
         return OperationsList(

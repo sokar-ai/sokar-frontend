@@ -273,8 +273,13 @@ class SokarClient {
   /// The whole composition a task run uses, the agent's own grants and its provider's host
   /// included. `refused` is the distinction a dropped packet cannot make: "we said no" and
   /// "nobody added it" look identical to the firewall.
-  Future<(List<EgressHost>, List<String>)> egress(String project, {String? agent}) async {
-    final reply = await _call('Egress', {'project': project, 'agent': ?agent});
+  ///
+  /// Without [repository] it is what every repository of the project may reach; with one, that and
+  /// what the repository adds, each host naming where it came from.
+  Future<(List<EgressHost>, List<String>)> egress(String project,
+      {String? agent, String? repository}) async {
+    final reply =
+        await _call('Egress', {'project': project, 'agent': ?agent, 'repository': ?repository});
     final hosts = reply['hosts'];
     final refused = reply['refused'];
     return (
@@ -297,9 +302,11 @@ class SokarClient {
     List<String>? addDomains,
     List<String>? removeDomains,
     bool? dryRun,
+    String? repository,
   }) async =>
       EgressChange.from(await _call('SetEgress', {
         'project': project,
+        'repository': ?repository,
         'addSets': ?addSets,
         'removeSets': ?removeSets,
         'addDomains': ?addDomains,
@@ -514,36 +521,6 @@ class SokarClient {
       BackupDeleted.from(await _call('DeleteBackup',
           {'project': project, 'bundle': bundle, 'dryRun': ?dryRun}));
 
-  /// Creates a project file, having checked the answers against this machine first.
-  ///
-  /// **The checking is what a client cannot do for itself**: whether a security class is spelled
-  /// right, whether an egress set exists here, whether the name survives becoming an image tag and
-  /// an nftables set name. An answer accepted in a form and rejected at the first task start is
-  /// rejected far from where it was given.
-  ///
-  /// `ALREADY_EXISTS` is **a refusal and never an overwrite**: the file may be somebody's whole
-  /// configuration, and this is the one operation that would replace it with nothing to restore
-  /// from.
-  Future<Created> createProject({
-    String? file,
-    required String name,
-    required String securityClass,
-    required String baseImage,
-    String? upstream,
-    List<String> sets = const <String>[],
-    bool? dryRun,
-  }) async =>
-      Created.from(await _call('CreateProject', {
-        // Left out rather than sent empty: the machine then chooses where its projects live (QF22).
-        'file': ?file,
-        'name': name,
-        'securityClass': securityClass,
-        'baseImage': baseImage,
-        'upstream': ?upstream,
-        'sets': sets,
-        'dryRun': ?dryRun,
-      }));
-
   /// Builds a project's task image without starting anything.
   ///
   /// **Streamed, because a build takes minutes** and showing nothing for that long is
@@ -602,19 +579,33 @@ class SokarClient {
     return id is String ? id : '';
   }
 
-  /// Removes what Sokar built for a project.
+  /// Starts following a project's repository, and reconciles once, now — so a project that comes
+  /// back as taken can have work started in it at once.
   ///
-  /// **Not "deleting the project".** The project file is the operator's, in their own directory,
-  /// and so are their checkout and their real upstream — none is touched, and `keeps` names them.
-  /// What goes is the mirror, the image, the build directory, the registry entry, the recorded
-  /// upstream distance, and every task with its container, state and logs. Afterwards a task run
-  /// in that directory builds all of it again, which is what makes this safe to offer at all.
+  /// [signedBy] is the public key its commits must be signed with; [unverified] follows without
+  /// one. Sokar refuses both together: they are two instructions, not a stricter setting.
+  /// [acceptRewrite] is **only ever** a person's answer to `REWRITTEN`, never a retry.
+  Future<Followed> follow(String name, String url,
+          {String? signedBy, bool? unverified, bool? acceptRewrite}) async =>
+      Followed.from(<String, dynamic>{
+        'name': name,
+        'url': url,
+        ...await _call('Follow', {
+          'name': name,
+          'url': url,
+          'signedBy': ?signedBy,
+          'unverified': ?unverified,
+          'acceptRewrite': ?acceptRewrite,
+        }),
+      });
+
+  /// Stops following a project, and removes it and everything Sokar built for it from this machine.
   ///
   /// It **refuses rather than decides**: unreviewed pushes exist only in the mirror and a running
-  /// task is work cut off mid-flight. `force` is how somebody says they meant it.
-  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async =>
-      Deletion.from(await _call(
-          'DeleteProject', {'project': project, 'dryRun': ?dryRun, 'force': ?force}));
+  /// task is work cut off mid-flight. `force` is how somebody says they meant it. The project's own
+  /// repository is not on this machine and is never touched.
+  Future<Deletion> unfollow(String name, {bool? dryRun, bool? force}) async =>
+      Deletion.from(await _call('Unfollow', {'name': name, 'dryRun': ?dryRun, 'force': ?force}));
 
   /// Which logs a task has.
   ///

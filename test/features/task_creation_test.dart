@@ -15,7 +15,7 @@ import './step/i_choose.dart';
 import './step/i_start_it.dart';
 import './step/the_launch_was_called.dart';
 import './step/the_launch_asked_for_the_mode.dart';
-import './step/the_launch_was_given_the_project_file.dart';
+import './step/the_launch_named_the_project.dart';
 import './step/the_launch_left_the_naming_to_the_machine.dart';
 import './step/the_name_is_refused_saying.dart';
 import './step/starting_is_not_offered_yet.dart';
@@ -67,7 +67,7 @@ void main() {
       await iStartIt(tester);
       await theLaunchWasCalled(tester, 'schema-work');
       await theLaunchAskedForTheMode(tester, 'SHELL');
-      await theLaunchWasGivenTheProjectFile(tester);
+      await theLaunchNamedTheProject(tester, 'checkout');
     });
     testWidgets(
         '''a name is optional, so nothing has to be invented before starting''',

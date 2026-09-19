@@ -81,7 +81,10 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
   the repository and the number, so nobody discovers it by starting.
 - **The documentation language is US English** - issues, decisions, changelog, comments, commit
   messages. The channel too.
-- **Do not refer to feature numbers in commit messages.** Just state what the feature is.
+- **Do not refer to feature numbers in commit messages.** Just state what the feature is. A commit
+  says *"Start work in a chosen repository"*, not *"B67"* - the number means nothing to somebody
+  reading the history without the index beside it, and the index outlives the requirement by being
+  deleted when it is finished.
 - **Dot files and directories are not checked in.** `.gitignore` ignores `.*` and names only the
   exceptions a build needs. Anything true of one machine goes in `.AGENTS.md`, which that rule
   ignores by itself.
@@ -744,12 +747,14 @@ daemon's, because it assembles them from the gate mirrors, the tasks that exist 
 project files, and knows about work this end may not have matched by name.
 
 **Projects are asked for, never derived from the task list.** `Projects()` answers them, and a
-project that has never run anything is exactly the one a derived list could not show. Its `file`
-is the path every gate method and `Start` take — **pass it through unchanged, never build one, and
-never offer a file picker**: over a forwarded socket there is no filesystem on that machine to
-pick from. An empty `file` is a project that can be listed and not acted on, which the row says
-rather than leaving to a refusal later. Nothing refreshes the list, so it is asked for again
-beside the tasks.
+project that has never run anything is exactly the one a derived list could not show. **Every
+method that acts on a project takes its name**, since 2026-09-19 — before that it was `file`, a
+path on a machine this end cannot see, which a client could only ever pass back and never build.
+`file` is still answered, as where the verified file is, and **an empty `file` is a project the
+machine does not follow** — known only from tasks left behind — which can be listed and not acted
+on, and the row says so rather than leaving it to a refusal later. Never offer a file picker: over
+a forwarded socket there is no filesystem on that machine to pick from. Nothing refreshes the list,
+so it is asked for again beside the tasks.
 
 Two interface traps already met:
 
@@ -1697,11 +1702,12 @@ question before deciding the answer was wrong.
 
 ## Removing a project is not deleting it, and the contract says which is which
 
-`DeleteProject` removes **what Sokar built**: the mirror, the image, the build directory, the
-registry entry, the recorded upstream distance, and every task with its container, state and logs.
-The `project.yml`, the operator's checkout and their real upstream are untouched — and afterwards a
-task run in that directory builds all of it again, which is what makes the action safe to offer at
-all.
+**Since 2026-09-19 it is `Unfollow`**: a project exists on a machine because the machine follows its
+repository, so `DeleteProject` went into it. It removes **what this machine made of the project**:
+the clone it verified, the mirror, the image, the build directory, the recorded upstream distance,
+and every task with its container, state and logs. The project's repository is not on this machine
+and is never touched — and following it again brings the project back, which is what makes the
+action safe to offer at all.
 
 **`keeps` exists because this end said it would have listed `project.yml` among the casualties and
 believed it.** So the contract names what survives, and a confirmation can say so without a client
@@ -1714,11 +1720,11 @@ not in a checkout, not upstream — so forcing past it is the only action in thi
 destroys something no other copy of exists. They get different sentences on screen for that reason.
 
 `force` is a second decision about something the machine declined, never a retry: the button
-changes its word to *"Remove it anyway"* rather than staying the same and quietly meaning more.
+changes its word to *"Stop following anyway"* rather than staying the same and quietly meaning more.
 
-**It takes the project's name, not its file.** So it is offered for a project whose file nothing
-can find any more — which is exactly the one somebody wants to clear away, and the one every other
-project action is unavailable for.
+**It takes the project's name.** With `force`, a project the machine does not follow is swept
+rather than refused — which is exactly what tasks left behind need, and the one project every other
+action is unavailable for.
 
 ## The field name in a message is not the field name on the wire
 
@@ -2065,7 +2071,12 @@ agent's own login. **If somebody is observed getting stuck at exactly that quest
 fix is two strings an agent *declares* and Sokar only *displays*: a login command and a
 documentation link. On evidence, not on anticipation.
 
-## The checking is what makes creating a project not a form
+## The checking is what made creating a project not a form
+
+**Withdrawn with `CreateProject` on 2026-09-19**, by the operator's decision: a project comes to a
+machine only by being followed, its `project.yml` is written in its repository, and what is wrong
+with it comes back from `Follow` as named reasons. What stays true is the argument below: nothing
+about a project file can be judged at this end, so it is judged by the machine that will run it.
 
 Whether a name survives becoming an image tag and an nftables set name, whether an egress set
 exists on that machine, whether a class is spelled right — **none of it can be judged here**. An
@@ -2207,6 +2218,9 @@ backup was taken — but there is nothing to restore *from*, and offering it wou
 the thing when it is not.
 
 ## Name or file: four methods say only `project: string`
+
+**Settled on 2026-09-19: every method takes the name**, and a path is refused. The rest of this
+section is why it mattered while the two were mixed.
 
 `Prepare` documents *"absolute path of the project file"* and `DeleteProject` documents *"project
 name"*. **`Backups`, `DeleteBackup`, `RestoreBackup` and `SyncUpstream` document neither** — and

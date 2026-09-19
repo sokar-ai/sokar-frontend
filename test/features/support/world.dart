@@ -30,7 +30,7 @@ import 'package:sokar_frontend/src/app/host_readiness.dart';
 import 'package:sokar_frontend/src/app/logs.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/src/app/narrowing.dart';
-import 'package:sokar_frontend/src/app/project_creation.dart';
+import 'package:sokar_frontend/src/app/project_following.dart';
 import 'package:sokar_frontend/src/app/newer_version.dart';
 import 'package:sokar_frontend/src/app/where_you_were.dart';
 import 'package:sokar_frontend/src/app/notifications.dart';
@@ -227,6 +227,7 @@ class FakeBackend implements FleetBackend {
     int? minutes,
     String? repository,
   }) {
+    if (project != null) mustBeAProject(project);
     launched.add(dryRun);
     starts.add((task: task, project: project, agent: agent, mode: mode, prompt: prompt, repository: repository));
     launch = StreamController<String>();
@@ -308,6 +309,7 @@ class FakeBackend implements FleetBackend {
   /// ignored the answer would pass.
   @override
   Future<StartProgress> startAgain({required String project, required String task, String? repository}) async {
+    mustBeAProject(project);
     startedAgain.add((project: project, task: task, repository: repository));
     if (nextStart.action == StartAction.resume) {
       _tasks = <Task>[
@@ -544,18 +546,37 @@ class FakeBackend implements FleetBackend {
   /// A name this machine refuses, and its words, the way a daemon with a rule of its own would.
   ({String name, String words})? refusedName;
 
+  /// Refuses anything but the name of a project this machine has, as Sokar does since projects are
+  /// named rather than pointed at. Loud rather than a refusal a screen could render: a path sent
+  /// here is this interface being wrong, never the machine answering.
+  void mustBeAProject(String project) {
+    if (!theProjectsItHas.any((each) => each.name == project)) {
+      throw StateError('"$project" is not the name of a project this machine has');
+    }
+  }
+
   /// Every name `CanStart` was asked about, null where none was sent.
   final List<String?> askedAboutNames = <String?>[];
+
+  /// What each repository adds to what the project may reach, by repository name.
+  final Map<String, List<EgressHost>> theRepositoryAdds = <String, List<EgressHost>>{};
+
+  /// Every repository `Egress` was asked about, null where none was sent.
+  final List<String?> egressAskedIn = <String?>[];
+
+  /// Every repository `SetEgress` was asked to write into, null where none was sent.
+  final List<String?> egressChangedIn = <String?>[];
 
   /// Every repository `CanStart` was asked about, null where none was sent.
   final List<String?> askedAboutRepositories = <String?>[];
 
   @override
   Future<Readiness> canStart({String? project, String? agent, String? task, String? repository}) async {
+    if (project != null) mustBeAProject(project);
     askedAboutNames.add(task);
     askedAboutRepositories.add(repository);
     // As a Sokar with B67 answers: a project that names repositories needs one chosen.
-    final named = theProjectsItHas.where((each) => each.file == project).firstOrNull?.repositories;
+    final named = theProjectsItHas.where((each) => each.name == project).firstOrNull?.repositories;
     if (repository == null && named != null && named.isNotEmpty) {
       return Readiness(
         ready: false,
@@ -739,59 +760,6 @@ class FakeBackend implements FleetBackend {
   final List<({String file, String name, String securityClass, bool preview})> creations =
       <({String file, String name, String securityClass, bool preview})>[];
 
-  @override
-  Future<Created> createProject({
-    String? file,
-    required String name,
-    required String securityClass,
-    required String baseImage,
-    String? upstream,
-    List<String> sets = const <String>[],
-    bool? dryRun,
-  }) async {
-    // As QF22 proposes: no file given, and the machine chooses where its projects live. A Sokar from
-    // before it reads the missing path as the directory it runs in, which exists.
-    final chosen = file ?? (choosesNoPlace ? '' : '/home/somebody/.config/sokar/projects/$name/project.yml');
-    final answers = file == null && choosesNoPlace ? 'ALREADY_EXISTS' : theCreationAnswers;
-    creations.add((
-      file: file ?? '',
-      name: name,
-      securityClass: securityClass,
-      preview: dryRun == true,
-    ));
-    final blocked = theCreationProblems.any((problem) => problem.fatal);
-    // Acts, like every other stand-in here: a project made is listed afterwards.
-    if (dryRun != true && !blocked && answers == 'CREATED') {
-      theProjectsItHas = <Project>[
-        ...theProjectsItHas,
-        Project.from(<String, dynamic>{
-          'name': name,
-          'securityClass': securityClass,
-          'file': chosen,
-          'prepared': false,
-          'preparedState': 'ABSENT',
-          'behindReason': 'NEVER_CHECKED',
-          'tasks': 0,
-          'running': 0,
-        }),
-      ];
-    }
-    return Created(
-      outcome: blocked
-          ? 'INVALID'
-          : dryRun == true
-              ? 'PREVIEWED'
-              : answers,
-      file: chosen,
-      content: 'project:\n  name: "$name"\n  security_class: "$securityClass"\n'
-          'image:\n  base_image: "$baseImage"\n',
-      problems: theCreationProblems,
-      detail: answers == 'ALREADY_EXISTS'
-          ? 'a project file is already there'
-          : '',
-    );
-  }
-
   /// What a build prints before it ends. Set by the scenario.
   List<String> theBuildPrints = <String>[
     'STEP 1/6: FROM ubuntu:24.04',
@@ -809,6 +777,7 @@ class FakeBackend implements FleetBackend {
   @override
   Stream<PrepareProgress> prepare(String project,
       {String? agent, String? rebuild, bool? dryRun}) async* {
+    mustBeAProject(project);
     builds.add((project: project, rebuild: rebuild, preview: dryRun == true));
     for (final line in theBuildPrints) {
       yield PrepareProgress(line: line);
@@ -921,8 +890,47 @@ class FakeBackend implements FleetBackend {
   final List<({String project, bool preview, bool force})> deletions =
       <({String project, bool preview, bool force})>[];
 
+  /// What the next [follow] answers, or null for a project taken at once.
+  Followed? nextFollow;
+
+  /// Every follow asked for, and how its commits were to be checked.
+  final List<({String name, String url, String? signedBy, bool unverified, bool acceptRewrite})>
+      follows = <({String name, String url, String? signedBy, bool unverified, bool acceptRewrite})>[];
+
+  /// Acts like Sokar: a follow that is taken makes the project, listed with its follow state.
   @override
-  Future<Deletion> deleteProject(String project, {bool? dryRun, bool? force}) async {
+  Future<Followed> follow(String name, String url,
+      {String? signedBy, bool? unverified, bool? acceptRewrite}) async {
+    follows.add((
+      name: name,
+      url: url,
+      signedBy: signedBy,
+      unverified: unverified == true,
+      acceptRewrite: acceptRewrite == true,
+    ));
+    final answer = acceptRewrite == true || nextFollow == null
+        ? Followed(name: name, url: url, commit: 'c0ffee1d2e3f', outcome: 'APPLIED')
+        : nextFollow!;
+    if (answer.inForce && !theProjectsItHas.any((each) => each.name == name)) {
+      theProjectsItHas = <Project>[
+        ...theProjectsItHas,
+        Project(
+          name: name,
+          securityClass: 'guarded',
+          file: '/srv/$name/project.yml',
+          mirror: '/srv/$name/.sokar/mirror',
+          pending: 0,
+          tasks: 0,
+          running: 0,
+          following: answer,
+        ),
+      ];
+    }
+    return answer;
+  }
+
+  @override
+  Future<Deletion> unfollow(String project, {bool? dryRun, bool? force}) async {
     deletions.add((project: project, preview: dryRun == true, force: force == true));
     final refused = deletionAnswers.canBeForced && force != true;
     return Deletion(
@@ -1079,8 +1087,15 @@ diff --git a/lib/money.dart b/lib/money.dart
       <({List<String> addSets, bool preview})>[];
 
   @override
-  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile) async =>
-      (theHostsItMayReach, theHostsItIsRefused);
+  Future<(List<EgressHost>, List<String>)> egressOf(String projectFile, {String? repository}) async {
+    mustBeAProject(projectFile);
+    egressAskedIn.add(repository);
+    final adds = theRepositoryAdds[repository];
+    if (adds != null) {
+      return (<EgressHost>[...theHostsItMayReach, ...adds], theHostsItIsRefused);
+    }
+    return (theHostsItMayReach, theHostsItIsRefused);
+  }
 
   @override
   Future<(List<EgressSet>, List<String>)> egressSets() async =>
@@ -1094,7 +1109,10 @@ diff --git a/lib/money.dart b/lib/money.dart
     List<String>? addDomains,
     List<String>? removeDomains,
     bool? dryRun,
+    String? repository,
   }) async {
+    mustBeAProject(projectFile);
+    egressChangedIn.add(repository);
     changes.add((addSets: addSets ?? <String>[], preview: dryRun == true));
     return nextChange ??
         EgressChange.from(<String, dynamic>{
@@ -1206,10 +1224,11 @@ diff --git a/lib/money.dart b/lib/money.dart
 
   @override
   Future<GateState> gateOf(String projectFile, {String? repository}) async {
+    mustBeAProject(projectFile);
     gateAskedIn.add(repository);
     final refusal = refuseTheGate ?? refuseTheGateIn[repository];
     if (refusal != null) throw refusal;
-    final own = theProjectsItHas.where((each) => each.file == projectFile).firstOrNull?.repositories;
+    final own = theProjectsItHas.where((each) => each.name == projectFile).firstOrNull?.repositories;
     if (repository == null || own == null || own.isEmpty || repository == own.first) {
       return theGatesIn[repository] ?? theGate;
     }
@@ -1224,12 +1243,14 @@ diff --git a/lib/money.dart b/lib/money.dart
     String? against,
     String? repository,
   }) async {
+    mustBeAProject(projectFile);
     reviewedIn.add(repository);
     return (diff: theDiff, log: 'commit 9a3c1f2\n\n    Round to the nearest penny');
   }
 
   @override
   Future<void> approve(String projectFile, String name, String branch, {String? repository}) async {
+    mustBeAProject(projectFile);
     final refusal = refuseTheGate;
     if (refusal != null) throw refusal;
     approvals.add((name: name, branch: branch, repository: repository));
@@ -1243,6 +1264,7 @@ diff --git a/lib/money.dart b/lib/money.dart
 
   @override
   Future<void> reject(String projectFile, String name, {String? repository}) async {
+    mustBeAProject(projectFile);
     rejections.add(repository == null ? name : '$repository:$name');
     theGate = GateState.from(const <String, dynamic>{
       'mirror': '/srv/checkout/.sokar/mirror',
@@ -1429,8 +1451,8 @@ class World {
   /// What the machine being acted on can authenticate against.
   static late Authentication authentication;
 
-  /// Describing and creating a project.
-  static late ProjectCreation creating;
+  /// Following a repository.
+  static late ProjectFollowing following;
 
   /// What has been backed up of the project being looked at.
   static late Backups backups;
@@ -1641,8 +1663,8 @@ class World {
     addTearDown(readiness.dispose);
     authentication = Authentication();
     addTearDown(authentication.dispose);
-    creating = ProjectCreation();
-    addTearDown(creating.dispose);
+    following = ProjectFollowing();
+    addTearDown(following.dispose);
     backups = Backups();
     addTearDown(backups.dispose);
     narrowing = Narrowing();
@@ -1716,7 +1738,7 @@ class World {
       deleting: deleting,
       readiness: readiness,
       authentication: authentication,
-      creating: creating,
+      following: following,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -1789,7 +1811,7 @@ class World {
       deleting: deleting,
       readiness: readiness,
       authentication: authentication,
-      creating: creating,
+      following: following,
       backups: backups,
       narrowing: narrowing,
       held: held,
@@ -1819,7 +1841,7 @@ class World {
       deleting: deleting,
       readiness: readiness,
       authentication: authentication,
-      creating: creating,
+      following: following,
       backups: backups,
       narrowing: narrowing,
       held: held,

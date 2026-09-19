@@ -3,13 +3,13 @@ import 'package:sokar_frontend/client.dart';
 
 import 'fleet_backend.dart';
 
-/// Removing what Sokar built for a project.
+/// Stopping following a project, which removes it from this machine.
 ///
 /// **Not "deleting the project", and the difference is the whole reason this is safe to offer.**
-/// The project file is the operator's, in their own directory, and so are their checkout and their
-/// real upstream: none of them is touched. What goes is the mirror, the image, the build
-/// directory, the registry entry, the recorded upstream distance, and every task with its
-/// container, state and logs — and afterwards a task run in that directory builds all of it again.
+/// The project is its repository, which is not on this machine and is never touched. What goes is
+/// what this machine made of it — the clone it verified, the mirror, the image, the build
+/// directory, the recorded upstream distance, and every task with its container, state and logs —
+/// and following the repository again brings the project back.
 ///
 /// It **refuses rather than decides**. Two things stop it, and they are not the same weight: a
 /// running task is work cut off mid-flight, and an unreviewed push exists only in the mirror,
@@ -47,14 +47,14 @@ class ProjectDeletion extends ChangeNotifier {
   Future<void> consider(FleetBackend backend, String name) async {
     project = name;
     answer = null;
-    await _asking(() => backend.deleteProject(name, dryRun: true));
+    await _asking(() => backend.unfollow(name, dryRun: true));
   }
 
   /// Removes it. With [force], despite unreviewed work or running tasks.
   Future<void> remove(FleetBackend backend, {bool force = false}) async {
     final name = project;
     if (name == null) return;
-    await _asking(() => backend.deleteProject(name, force: force ? true : null));
+    await _asking(() => backend.unfollow(name, force: force ? true : null));
   }
 
   /// Puts what is on screen away.
@@ -71,8 +71,10 @@ class ProjectDeletion extends ChangeNotifier {
     final name = project;
     if (said == null || name == null) return '';
     return switch (said.outcome.name) {
-      'PREVIEWED' => 'This removes what Sokar built for $name. The project file stays.',
-      'DELETED' => 'What Sokar built for $name is gone. The project file is still there.',
+      'PREVIEWED' => 'This stops following $name and removes it from this machine. '
+          'Its repository is not touched.',
+      'DELETED' => '$name is no longer followed here, and what Sokar built for it is gone. '
+          'Its repository is not touched.',
       'HOLDS_WORK' => 'Work reached the gate for $name and nobody has reviewed it. '
           'Nothing was removed.',
       'TASKS_RUNNING' => 'Work is still running in $name. Nothing was removed.',

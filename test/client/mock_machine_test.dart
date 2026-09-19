@@ -110,7 +110,7 @@ void main() {
     final client = await connect();
 
     final started = await client
-        .start(project: '/srv/checkout/project.yml', task: 'migrate', now: true)
+        .start(project: 'checkout', task: 'migrate', now: true)
         .last;
 
     expect(started.action, StartAction.resume);
@@ -127,7 +127,7 @@ void main() {
     final client = await connect();
 
     final refused = await client
-        .start(project: '/srv/checkout/project.yml', task: 'shell', now: true)
+        .start(project: 'checkout', task: 'shell', now: true)
         .last;
 
     expect(refused.action, StartAction.running);
@@ -273,7 +273,7 @@ void main() {
   test('a preview writes nothing, and the same change written does', () async {
     await machineIn('work');
     final client = await connect();
-    const project = '/srv/checkout/project.yml';
+    const project = 'checkout';
 
     final (before, _) = await client.egress(project);
     final previewed = await client.setEgress(
@@ -309,7 +309,7 @@ void main() {
     final lines = <String>[];
     var code = -1;
     await for (final progress in client.start(
-      project: '/srv/checkout/project.yml',
+      project: 'checkout',
     )) {
       if (progress.line != null) lines.add(progress.line!);
       if (progress.exitCode != null) code = progress.exitCode!;
@@ -334,7 +334,7 @@ void main() {
       var code = -1;
       await for (final progress in client.start(
         task: 'sokar-checkout-run',
-        project: '/srv/checkout/project.yml',
+        project: 'checkout',
         agent: 'an-agent',
         mode: Mode.unattended,
         prompt: 'Fix the rounding in Money.pennies',
@@ -365,7 +365,7 @@ void main() {
     final lines = <String>[];
     var code = -1;
     await for (final progress in client.start(
-      project: '/srv/checkout/project.yml',
+      project: 'checkout',
       prompt: 'Fix the rounding',
     )) {
       if (progress.line != null) lines.add(progress.line!);
@@ -388,7 +388,7 @@ void main() {
     var code = -1;
     final lines = <String>[];
     await for (final progress in client.start(
-      project: '/srv/checkout/project.yml',
+      project: 'checkout',
       prompt: 'Fix the rounding',
     )) {
       if (progress.line != null) lines.add(progress.line!);
@@ -599,7 +599,7 @@ void main() {
       final client = await connect();
 
       final refused = await client.setEgress(
-        '/srv/checkout/project.yml',
+        'checkout',
         addSets: <String>['nothing-like-this'],
       );
 
@@ -612,7 +612,7 @@ void main() {
     await machineIn('work');
     final client = await connect();
 
-    final (hosts, refused) = await client.egress('/srv/checkout/project.yml');
+    final (hosts, refused) = await client.egress('checkout');
 
     expect(hosts.first.origin, startsWith('agent '));
     expect(refused, isNotEmpty);
@@ -655,7 +655,7 @@ void main() {
     () async {
       await machineIn('work');
       final client = await connect();
-      const project = '/srv/checkout/project.yml';
+      const project = 'checkout';
 
       final gate = await client.gate(project);
       expect(gate.mode, 'gatekeeping');
@@ -679,7 +679,7 @@ void main() {
     final client = await connect();
 
     await expectLater(
-      client.approve('/srv/checkout/project.yml', 'migrate', ''),
+      client.approve('checkout', 'migrate', ''),
       throwsA(
         isA<VarlinkException>().having(
           (refusal) => refusal.simpleName,
@@ -695,7 +695,7 @@ void main() {
     () async {
       await machineIn('work');
       final client = await connect();
-      const project = '/srv/checkout/project.yml';
+      const project = 'checkout';
 
       await client.reject(project, 'drop-dead-code');
 
@@ -799,22 +799,27 @@ void main() {
     expect(said.reason, 'OFFLINE');
   });
 
-  test('a name a project cannot carry is refused with the reason', () async {
+  test('following a repository makes a project that is taken at once', () async {
     await machineIn('work');
     final client = await connect();
 
-    final said = await client.createProject(
-      file: '/srv/new/project.yml',
-      name: 'Not A Name',
-      securityClass: 'guarded',
-      baseImage: 'ubuntu:24.04',
-      dryRun: true,
-    );
+    final followed = await client.follow('payments', 'file:///srv/git/payments', unverified: true);
+    final project = (await client.projects()).singleWhere((each) => each.name == 'payments');
 
-    expect(said.blocked, isTrue);
-    expect(said.refusals.single.field, 'name');
-    // Filled even on a refusal: seeing what was rejected is most of understanding why.
-    expect(said.content, contains('security_class'));
+    expect(followed.outcome, 'APPLIED');
+    expect(project.following?.commit, followed.commit);
+    expect(project.canBeActedOn, isTrue, reason: 'a followed project is one work can start in');
+  });
+
+  test('an unsigned commit is refused, needs a person, and is not in force', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    final followed = await client.follow('ledger', 'file:///srv/git/unsigned-ledger', unverified: true);
+
+    expect(followed.outcome, 'NOT_SIGNED');
+    expect(followed.needsAPerson, isTrue);
+    expect(followed.inForce, isFalse);
   });
 
   test(
@@ -848,7 +853,7 @@ void main() {
     final client = await connect();
 
     final replies = await client
-        .prepare('/srv/checkout/project.yml', rebuild: 'AGENT')
+        .prepare('checkout', rebuild: 'AGENT')
         .toList();
 
     expect(replies.where((each) => each.line != null), isNotEmpty);
@@ -918,7 +923,7 @@ void main() {
       await machineIn('work');
       final client = await connect();
 
-      final would = await client.deleteProject('billing', dryRun: true);
+      final would = await client.unfollow('billing', dryRun: true);
 
       expect(would.outcome, DeleteOutcome.previewed);
       expect(would.removes.map((each) => each.kind), contains('MIRROR'));
@@ -940,7 +945,7 @@ void main() {
       await machineIn('work');
       final client = await connect();
 
-      final refused = await client.deleteProject('checkout');
+      final refused = await client.unfollow('checkout');
 
       expect(refused.outcome, DeleteOutcome.holdsWork);
       expect(refused.unreviewed, isNotEmpty);
@@ -949,7 +954,7 @@ void main() {
         contains('checkout'),
       );
 
-      final forced = await client.deleteProject('checkout', force: true);
+      final forced = await client.unfollow('checkout', force: true);
 
       expect(forced.outcome, DeleteOutcome.deleted);
       expect(
@@ -965,7 +970,7 @@ void main() {
       await machineIn('work');
       final client = await connect();
 
-      final answer = await client.deleteProject('never-existed');
+      final answer = await client.unfollow('never-existed');
 
       expect(answer.outcome, DeleteOutcome.noSuchProject);
       expect(answer.removes, isEmpty);

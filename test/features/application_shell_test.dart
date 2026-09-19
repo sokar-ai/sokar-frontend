@@ -42,7 +42,7 @@ import './step/i_hide_the_projects_of.dart';
 import './step/the_tunnel_drops.dart';
 import './step/the_command_is_unavailable_because.dart';
 import './step/enough_time_passes_for_another_try.dart';
-import './step/creating_a_project_on_this_machine_is_not_offered.dart';
+import './step/following_a_repository_on_this_machine_is_not_offered.dart';
 import './step/stopping_everything_everywhere_is_not_offered.dart';
 import './step/stopping_everything_everywhere_is_offered.dart';
 
@@ -187,7 +187,7 @@ void main() {
       await theTunnelDrops(tester);
       await iOpenTheCommandFinder(tester);
       await theCommandIsUnavailableBecause(
-          tester, 'Describe a new project', 'not answering');
+          tester, 'Follow a repository', 'not answering');
       await theCommandIsUnavailableBecause(
           tester, 'Build the environment for this project', 'not answering');
       await theCommandIsUnavailableBecause(tester,
@@ -196,11 +196,11 @@ void main() {
       await enoughTimePassesForAnotherTry(tester);
     });
     testWidgets(
-        '''a new project and the stop for every machine wait for a machine that answers''',
+        '''following a repository and the stop for every machine wait for a machine that answers''',
         (tester) async {
       await bddSetUp(tester);
       await theTunnelDrops(tester);
-      await creatingAProjectOnThisMachineIsNotOffered(tester);
+      await followingARepositoryOnThisMachineIsNotOffered(tester);
       await stoppingEverythingEverywhereIsNotOffered(tester);
       await enoughTimePassesForAnotherTry(tester);
       await stoppingEverythingEverywhereIsOffered(tester);

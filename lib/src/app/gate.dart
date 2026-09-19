@@ -59,12 +59,12 @@ class Gate extends ChangeNotifier {
     log = '';
     if (!project.canBeActedOn) {
       waiting = const <PendingPush>[];
-      problem = 'No project file is recorded for ${project.name}, and every gate call takes '
-          'one. Running a task with it once records it.';
+      problem = '${project.name} is not a project this machine follows, so it has no gate to '
+          'ask. Following its repository makes it one.';
       notifyListeners();
       return;
     }
-    await _asking(() => _readAgain(backend, project.file));
+    await _asking(() => _readAgain(backend, project.name));
   }
 
   /// Opens one waiting push, so it can be judged before it is forwarded.
@@ -73,7 +73,7 @@ class Gate extends ChangeNotifier {
     diff = '';
     log = '';
     notifyListeners();
-    final file = project?.file;
+    final file = project?.name;
     if (file == null || file.isEmpty) return;
     await _asking(() async {
       final review = await backend.reviewOf(file, push.name,
@@ -85,7 +85,7 @@ class Gate extends ChangeNotifier {
 
   /// Forwards the push being looked at onto [branch].
   Future<String> approve(FleetBackend backend, String branch) async {
-    final file = project?.file;
+    final file = project?.name;
     final push = looking;
     if (file == null || push == null) return '';
     var said = '';
@@ -102,7 +102,7 @@ class Gate extends ChangeNotifier {
 
   /// Drops the request. The work stays in the mirror; only the asking is gone.
   Future<String> reject(FleetBackend backend) async {
-    final file = project?.file;
+    final file = project?.name;
     final push = looking;
     if (file == null || push == null) return '';
     var said = '';

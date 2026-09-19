@@ -84,6 +84,7 @@ class _AttentionViewState extends State<AttentionView> {
       final tiles = widget.attention.needing;
       final silent = widget.attention.silent;
       final failed = widget.attention.failedUnseen;
+      final notFollowing = widget.attention.notFollowing;
       final needing = widget.attention.needingSomebody;
       _keepTicking(
         tiles.any(
@@ -106,7 +107,7 @@ class _AttentionViewState extends State<AttentionView> {
             ),
           ),
           Expanded(
-            child: tiles.isEmpty && silent.isEmpty && failed.isEmpty
+            child: tiles.isEmpty && silent.isEmpty && failed.isEmpty && notFollowing.isEmpty
                 ? const Center(
                     // Not "no work": the work that needs nobody is still there, in its machine.
                     child: Text(
@@ -125,7 +126,13 @@ class _AttentionViewState extends State<AttentionView> {
                                 fleet: widget.attention.fleetOf(machine),
                                 onSeen: () => widget.attention.markSeen(machine),
                               ),
-                        if (silent.isNotEmpty)
+                        for (final stopped in notFollowing)
+                          _NotFollowing(
+                            machine: stopped.machine,
+                            project: stopped.project,
+                            followed: stopped.followed,
+                          ),
+                        if (silent.isNotEmpty || notFollowing.isNotEmpty)
                           const SizedBox(height: Space.small),
                         Wrap(
                           spacing: Space.normal,
@@ -164,6 +171,47 @@ extension on _AttentionViewState {
         onPutAway: widget.onPutAway,
         onSelect: widget.onSelect == null ? null : () => widget.onSelect!(tile),
       );
+}
+
+/// A followed project whose newest commit was not taken, and will not be until somebody acts.
+///
+/// **The key's fingerprint is shown whole**: it is not a secret, and comparing it with the key
+/// somebody meant to pin is the whole of what a person can do about a refused signature.
+class _NotFollowing extends StatelessWidget {
+  const _NotFollowing({required this.machine, required this.project, required this.followed});
+
+  final Machine machine;
+
+  final Project project;
+
+  final Followed followed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Card(
+      key: ValueKey<String>('not-following ${machine.name}/${project.name}'),
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(Space.normal),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('${project.name} on ${machine.name}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: Space.tight),
+            Text(followed.words),
+            if (followed.signer.isNotEmpty)
+              SelectableText('Signed by ${followed.signer}', style: text.bodySmall),
+            if (followed.detail.isNotEmpty) Text(followed.detail, style: text.bodySmall),
+            if (followed.url.isNotEmpty)
+              SelectableText(followed.url, style: text.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// An operation somebody started that failed, waiting until they have opened it.

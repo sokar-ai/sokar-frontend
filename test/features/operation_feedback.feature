@@ -134,3 +134,16 @@ Feature: Running long operations without blocking the frame
   Scenario: the file of what was run is opened from the finder
     When I choose the command {'Open the file of everything that was run'}
     Then the file of what was run was opened
+
+  # Sokar B68: a repository's egress is added to the project's. The project's dry run is the plan
+  # every repository gets; naming one shows what it adds.
+  Scenario: what one repository would open is shown on its own, creating nothing
+    Given the project {'checkout'} has the repositories {'checkout, payments-api'}
+    When I show what the repository {'payments-api'} would open
+    Then the operation is open
+    And the launch was a dry run in the repository {'payments-api'}
+
+  Scenario: what the project would open names no repository
+    When I choose the command {'Show what this project would open, creating nothing'}
+    Then the launch was a dry run in no repository
+

@@ -13,7 +13,7 @@ Future<void> theCommandIsUnavailableBecause(
   await tester.enterText(find.byType(TextField), command);
   await World.settle(tester);
 
-  final tile = tester.widget<ListTile>(find.widgetWithText(ListTile, command));
+  final tile = tester.widget<ListTile>(find.descendant(of: find.byType(Dialog), matching: find.widgetWithText(ListTile, command)));
   expect(tile.enabled, isFalse, reason: '$command should not be runnable now');
   expect((tile.subtitle! as Text).data, contains(because));
 }

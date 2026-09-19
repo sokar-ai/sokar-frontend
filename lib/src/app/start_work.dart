@@ -179,7 +179,7 @@ class StartWork extends ChangeNotifier {
   static String? whyNot(Project? project) {
     if (project == null) return 'no project is selected';
     if (!project.canBeActedOn) {
-      return 'no project file is recorded for ${project.name}';
+      return '${project.name} is not a project this machine follows';
     }
     return null;
   }
@@ -349,7 +349,7 @@ class StartWork extends ChangeNotifier {
     if (!ready) return const Stream<String>.empty();
     return backend.startTask(
       task: name.isEmpty ? null : name,
-      project: project!.file,
+      project: project!.name,
       agent: agent,
       mode: mode,
       // Only with `UNATTENDED`, and trimmed: a prompt of spaces is not a prompt.
@@ -379,7 +379,7 @@ class StartWork extends ChangeNotifier {
     final about = name.isEmpty || _localNameProblem != null ? null : name;
     try {
       final answer =
-          await backend.canStart(project: where.file, agent: agent, task: about, repository: repository);
+          await backend.canStart(project: where.name, agent: agent, task: about, repository: repository);
       // Typing moves faster than a machine answers.
       if (asking != _asked) return;
       readiness = answer;

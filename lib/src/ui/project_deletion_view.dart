@@ -46,8 +46,8 @@ class ProjectDeletionDialog extends StatelessWidget {
 
           return AlertDialog(
             title: Text(deleting.removed
-                ? 'Removed'
-                : 'Remove what Sokar built for ${deleting.project}?'),
+                ? 'No longer followed'
+                : 'Stop following ${deleting.project}?'),
             content: SizedBox(
               width: 560,
               child: SingleChildScrollView(
@@ -71,7 +71,7 @@ class ProjectDeletionDialog extends StatelessWidget {
                       // Said before the list, because it is the fact that decides whether
                       // somebody dares at all — and the one they would otherwise get wrong.
                       const Text(
-                        'A task run in that directory builds all of it again.',
+                        'Following its repository again brings it back.',
                         key: Key('it-can-be-built-again'),
                       ),
                       if (deleting.refused) ...<Widget>[
@@ -164,7 +164,7 @@ class ProjectDeletionDialog extends StatelessWidget {
                   style: TextButton.styleFrom(foregroundColor: scheme.error),
                   // The word changes with what it now means. Pressing past a refusal is a second
                   // decision about something the machine declined, not a retry of the first.
-                  child: Text(deleting.refused ? 'Remove it anyway' : 'Remove it'),
+                  child: Text(deleting.refused ? 'Stop following anyway' : 'Stop following'),
                 ),
               ],
             ],
