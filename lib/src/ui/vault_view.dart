@@ -17,6 +17,7 @@ class VaultView extends StatelessWidget {
     required this.onRevoke,
     required this.onClose,
     this.onUnlockHere,
+    this.onMakeHere,
     super.key,
   });
 
@@ -32,6 +33,9 @@ class VaultView extends StatelessWidget {
   /// Opens the vault by its passphrase in a terminal on the machine, or null where nothing here
   /// can reach that machine's own `sokar`.
   final VoidCallback? onUnlockHere;
+
+  /// Makes the vault by a passphrase chosen in a terminal on the machine, for a machine with none.
+  final VoidCallback? onMakeHere;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +113,17 @@ class VaultView extends StatelessWidget {
               ),
               // The way out of a vault nothing has opened yet: a device can only be enrolled into
               // an open one, so the first opening is always by the passphrase.
-              if (onUnlockHere case final unlock? when !vault.readable)
+              if (onMakeHere case final make? when vault.missing)
+                Padding(
+                  padding: const EdgeInsets.only(top: Space.small),
+                  child: FilledButton.icon(
+                    key: const Key('make-in-terminal'),
+                    onPressed: make,
+                    icon: const Icon(Icons.terminal, size: Sizes.rowIcon),
+                    label: const Text('Make it here, with a passphrase, in a terminal'),
+                  ),
+                ),
+              if (onUnlockHere case final unlock? when !vault.readable && !vault.missing)
                 Padding(
                   padding: const EdgeInsets.only(top: Space.small),
                   child: OutlinedButton.icon(

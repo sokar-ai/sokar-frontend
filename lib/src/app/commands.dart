@@ -434,6 +434,7 @@ List<Command> machineCommands({
   required void Function(VaultAct act) actOnTheVault,
   required VoidCallback addAUser,
   VoidCallback? unlockWithThePassphrase,
+  VoidCallback? makeTheVault,
 }) {
   final connected = fleet.reachability == Reachability.connected;
   final notConnected = connected ? null : 'the machine is not answering';
@@ -508,6 +509,20 @@ List<Command> machineCommands({
         run: () => actOnTheVault(act),
         unavailable: notConnected ?? vault.whyNot(act),
       ),
+    // A fresh machine has no store, and every later step starts from one being there.
+    Command(
+      id: 'vault.make',
+      label: 'Make the protected store, in a terminal',
+      group: 'Machine',
+      home: Home.machineMenu,
+      run: makeTheVault ?? () {},
+      unavailable: notConnected ??
+          (!vault.missing
+              ? 'this machine has one already'
+              : makeTheVault == null
+                  ? 'its socket is forwarded by somebody else, so nothing here reaches its sokar'
+                  : null),
+    ),
     // The first opening is always by the passphrase: a device can only be enrolled into an open
     // vault. Typed into the machine's own `sokar`, never into this program.
     Command(
@@ -607,6 +622,7 @@ List<Command> commandsFor({
   required VoidCallback askTheWorkUser,
   required VoidCallback addAUser,
   VoidCallback? unlockWithThePassphrase,
+  VoidCallback? makeTheVault,
 }) {
   final selectedProject = fleet.selectedProject;
   final selectedTask = fleet.selectedTask;
@@ -717,6 +733,7 @@ List<Command> commandsFor({
       actOnTheVault: actOnTheVault,
       addAUser: addAUser,
       unlockWithThePassphrase: unlockWithThePassphrase,
+      makeTheVault: makeTheVault,
     ),
     Command(
       id: 'project.follow',

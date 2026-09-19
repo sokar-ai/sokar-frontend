@@ -30,6 +30,8 @@ import './step/i_open_the_store_with_its_passphrase_from_the_lock.dart';
 import './step/the_machine_is_a_socket_somebody_else_forwards.dart';
 import './step/i_open_the_command_finder.dart';
 import './step/the_command_is_unavailable_because.dart';
+import './step/the_machine_has_no_store_yet.dart';
+import './step/i_make_it_here_with_a_passphrase.dart';
 
 void main() {
   group('''Seeing and shutting the secret store, without showing a value''',
@@ -147,6 +149,27 @@ void main() {
       await iShowTheProtectedStore(tester);
       await iOpenItHereWithItsPassphrase(tester);
       await aTerminalRunsOnTheMachine(tester, 'sokar vault unlock');
+    });
+    testWidgets(
+        '''a machine with no store is offered to make one from the lock, in a terminal there''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineIsReachedOverSshAs(tester, 'michi@vm');
+      await theMachineHasNoStoreYet(tester);
+      await iOpenTheStoreWithItsPassphraseFromTheLock(tester);
+      await aTerminalRunsOnTheMachine(
+          tester, 'ssh -t michi@vm sokar vault init');
+    });
+    testWidgets(
+        '''the store's own view makes one where there is none, and asks the machine afterwards''',
+        (tester) async {
+      await bddSetUp(tester);
+      await theMachineHasNoStoreYet(tester);
+      await iShowTheProtectedStore(tester);
+      await iMakeItHereWithAPassphrase(tester);
+      await aTerminalRunsOnTheMachine(tester, 'sokar vault init');
+      await theUnlockTerminalEndsAndIsPutAway(tester);
+      await theMachineIsAskedAgainWhetherTheStoreIsOpen(tester);
     });
   });
 }

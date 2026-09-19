@@ -63,6 +63,9 @@ class Vault extends ChangeNotifier {
   /// answers `readable: true`.
   bool get readable => state?.readable ?? false;
 
+  /// Whether the machine has said it has no store at all — one to make, not one to open.
+  bool get missing => state != null && !state!.exists;
+
   /// What the store holds, by name.
   List<Credential> get credentials => state?.credentials ?? const <Credential>[];
 

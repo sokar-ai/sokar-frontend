@@ -324,6 +324,7 @@ class _ShellState extends State<Shell> {
         askTheWorkUser: () => unawaited(_askTheWorkUser()),
         addAUser: () => unawaited(_addAUser()),
         unlockWithThePassphrase: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
+        makeTheVault: _canUnlockHere ? () => unawaited(_makeTheVault()) : null,
   );
 
   /// The menu in the machine's title, for the machine being acted on.
@@ -342,6 +343,7 @@ class _ShellState extends State<Shell> {
     actOnTheVault: (act) => unawaited(_actOnTheVault(act)),
     addAUser: () => unawaited(_addAUser()),
     unlockWithThePassphrase: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
+    makeTheVault: _canUnlockHere ? () => unawaited(_makeTheVault()) : null,
   );
 
   /// A project card's menu, judged for that project and run with it selected.
@@ -573,6 +575,24 @@ class _ShellState extends State<Shell> {
         : 'Storing the key did not work: $failed');
     // A failure keeps the way to store it on screen, so it can be tried again.
     if (failed == null) await widget.connections.lookAt(_fleet.backend, machine.name);
+  }
+
+  /// Makes the current machine's vault by a passphrase chosen in a terminal there, then asks the
+  /// machine whether it is there — the terminal's exit code is not the verdict.
+  Future<void> _makeTheVault() async {
+    final machine = widget.machines.current;
+    final command = makeCommandFor(machine);
+    if (command == null) return;
+    await runInATerminal(context,
+        title: 'Make the vault on ${machine.name}',
+        explanation: 'Choose a passphrase and type it twice. It goes straight to the machine and '
+            'never through this program, and nothing here keeps it. The vault is open afterwards, '
+            'so this device can be enrolled next.',
+        machine: machine,
+        command: command,
+        open: widget.sessions.openTerminal);
+    if (!mounted) return;
+    await widget.vault.lookAt(_fleet.backend, machine.name);
   }
 
   /// Whether the current machine's own `sokar` can be reached for a terminal.
@@ -1387,6 +1407,9 @@ class _ShellState extends State<Shell> {
                 fleet.reachability == Reachability.connected && _canUnlockHere
                     ? () => unawaited(_unlockHere())
                     : null,
+            onMakeIt: fleet.reachability == Reachability.connected && _canUnlockHere
+                ? () => unawaited(_makeTheVault())
+                : null,
           ),
           menu: _machineMenu(),
           highlight: highlight,
@@ -1559,6 +1582,7 @@ class _ShellState extends State<Shell> {
           onRevoke: (slot) => widget.vault.devices.revoke(_fleet.backend, slot),
           onClose: widget.shell.close,
           onUnlockHere: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
+          onMakeHere: _canUnlockHere ? () => unawaited(_makeTheVault()) : null,
         );
       case BackupsOpened():
         return BackupsView(

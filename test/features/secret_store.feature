@@ -83,3 +83,18 @@ Feature: Seeing and shutting the secret store, without showing a value
     And I open it here with its passphrase
     Then a terminal runs {'sokar vault unlock'} on the machine
 
+  # A fresh machine has no store, and enrolling and opening both start from one being there.
+  Scenario: a machine with no store is offered to make one from the lock, in a terminal there
+    Given the machine is reached over ssh as {'michi@vm'}
+    And the machine has no store yet
+    When I open the store with its passphrase from the lock
+    Then a terminal runs {'ssh -t michi@vm sokar vault init'} on the machine
+
+  Scenario: the store's own view makes one where there is none, and asks the machine afterwards
+    Given the machine has no store yet
+    When I show the protected store
+    And I make it here with a passphrase
+    Then a terminal runs {'sokar vault init'} on the machine
+    When the unlock terminal ends and is put away
+    Then the machine is asked again whether the store is open
+
