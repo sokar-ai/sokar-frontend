@@ -36,18 +36,8 @@ gap here is a backend method that has to be added, not a workaround waiting to b
   answer `PREVIEWED` with `removes`, `keeps` and `unreviewed`, and the refusals a followed project
   gets.
 
-- **Adding a connection step by step** (F47). Agreed with Sokar on 2026-09-19 and not built yet:
-  `CredentialDeclare` with `dryRun`, saying who a key logs in as, and with `fromFile`, taking a
-  key on the machine into the vault. OAuth is not offered, by the operator's decision.
-  (The machine's own ssh keys, F46, are built as `SshKeys()` in `25fdcff` and not yet published.)
-
-- **Trusting a host key a person has seen** (F48, asked 2026-09-19). A fetch that meets an unknown
-  host fails as *host key verification failed* and is reported as a missing credential. There is
-  no outcome naming the host and its fingerprint, and no way to trust exactly that key.
-
-- **An agent's own login** (F49, asked 2026-09-19). Nothing says how a given agent logs in, so a
-  missing credential can only be stored as a key or a token. The agent declaring its login
-  command, and Sokar passing it on, is the smallest way.
+- **Which link a login prints is its own** (F50, asked 2026-09-19 as QF53). An agent's login may
+  print more than one link; nothing marks the one whose reply comes back to the machine.
 
 ## On the wire, not used here yet
 

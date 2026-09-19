@@ -2423,3 +2423,58 @@ left alone.
   person sets `HETZNER_KEY` to the file. `HETZNER_API` is the token in both.
 - **The snapshot repository is in `settings.xml`**, not in the pom, and every CI call passes
   `-s settings.xml`, as the agent repositories do.
+
+## How a machine connects out, what its hosts are trusted by, and how an agent logs in
+
+What stays true from three requirements retired on 2026-09-19, each measured on the test machine by
+the operator: a key stored and a private repository followed, a host key trusted through the dialog,
+and a Claude subscription login that ended in the vault.
+
+**A connection is a description; its value never crosses the socket.** `Credentials()` lists every
+connection even with the vault shut, and *the vault is shut* is said as that, never as *missing*.
+One whose value lives outside the vault — a file, a variable, an agent — is a state, **not
+protected**, and never refused. Declaring runs through a dry run first. It may be added on `READY`,
+or on `MISSING_VALUE` when there is a `storeCommand`, because storing is the next step. Anything else
+blocks, including `NO_VAULT`, and it is offered its way out (make the vault, open it). The value then
+reaches the machine by the machine's own command. A key, which is a file, is sent over ssh on
+standard input. A token or a password is typed into a terminal on the machine, never into this
+interface. Forgetting says what still holds the value, because the key in `~/.ssh` is the person's.
+
+**A missing vault answers `readable: true`**, because there is nothing to open. Read `exists` first.
+Both the vault view and the lock read it wrong once, and drew an open empty store over none.
+
+**A device key kept here is an enrollment only while the machine lists its slot.** A vault made
+again keeps the node and loses every device. Without that check the lock sent a stale share and
+earned a refusal nobody could act on.
+
+**An unknown host key is a question for a person, and a changed one is not the same question.**
+`Follow` answers `UNKNOWN_HOST_KEY` with the `host` and every key it offers. The dialog shows each key
+whole, next to Sokar's sentence: *compare it with what the host publishes, not with this screen*. A key
+has to be chosen, and `TrustHostKey(host, fingerprint)` records exactly that one, and only if the host
+still offers it; the follow then runs again with nothing retyped. **The host comes from the answer,
+never from the URL.** An `~/.ssh/config` alias is resolved by ssh alone. `HOST_KEY_CHANGED` shows the
+keys and a warning, and nothing to trust. While either question is open, *Follow it* is not offered.
+Pressing it only asked the same question again, and the operator pressed it. Sokar checks host keys
+strictly everywhere, attended or not.
+
+**An agent's login is the agent's own, run where the work runs.** `Agents()` names `loginCommand`;
+this end runs it unchanged, in a terminal on the machine, over ssh for a remote one. The terminal
+offers every web link its program marks with OSC 8, `http(s)` only, as a button that opens the page
+in this computer's browser. **Nothing opens by itself**: whoever writes to a terminal would otherwise
+choose where the browser goes. A login terminal, and only a login terminal, honours
+`OSC 5379;forward;<port>` once. It forwards that port here to the same port on the machine, believes
+the forward only after a connection through it arrives, and takes it down when the login ends. The
+login container shares the machine's network for this; the cost is in `doc/decisions.md`.
+
+**What was measured about Claude Code, and what is still open.** On Linux its login writes
+`~/.claude/.credentials.json`, and Sokar stores the subscription token the moment it is written, so
+how the person leaves the session afterwards cannot lose it. With `BROWSER` set, the operator still
+got the code page, twice. The likeliest reason is that Claude Code prints a link of its own beside
+the helper's, and the one pressed was Claude Code's. That is F50. Claude Code also hides the terminal
+cursor and draws its own; the terminal here honours that.
+
+**The expensive lesson: a message that explains a failure away can hide it for good.** `sokar vault
+login` had never stored anything for any agent, because `podman cp` put the file one directory
+deeper than the extractor looked. Its message, *"it may have been cancelled"*, blamed the person for
+a login that had succeeded, and three agents believed it for two runs. Only a person logging in for
+real exposed it. **When something reports success nobody has seen end to end, treat it as unmeasured.**

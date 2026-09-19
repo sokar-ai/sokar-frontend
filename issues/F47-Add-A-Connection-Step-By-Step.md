@@ -1,7 +1,7 @@
 # F47 — Add A Connection Step By Step
 
 Opened on 2026-09-19 at the operator's request, after an afternoon of adding connections to the
-test machine through the single dialog F45 built. He declared the public half of a key. He declared
+test machine through the single dialog that came before it. He declared the public half of a key. He declared
 a path of this computer as a file on the machine. He declared an ssh key for an https address. And
 he declared a deploy key for another repository. The single dialog accepted every one of them, and
 each surfaced later as a refused fetch. His shape for it, with his decisions on four open points,
