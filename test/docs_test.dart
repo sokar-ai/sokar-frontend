@@ -83,6 +83,19 @@ void main() {
     expect(stale, isEmpty, reason: 'these name a requirement whose file is gone:\n${stale.join('\n')}');
   });
 
+  test('nothing but the index links a requirement by its file', () {
+    // A finished requirement's file is deleted, so a link to it breaks exactly when that
+    // requirement succeeds. The index links the numbers; everywhere else names the index.
+    final byFile = <String>[
+      for (final doc in docs)
+        if (doc.path != 'issues/README.md')
+          for (final match in _byFile.allMatches(doc.readAsStringSync()))
+            '${doc.path}: ${match[1]}',
+    ];
+    expect(byFile, isEmpty,
+        reason: 'these name a requirement by its file:\n${byFile.join('\n')}');
+  });
+
   test('every relative link in the docs resolves', () {
     final dead = <String>[
       for (final doc in docs)
@@ -92,6 +105,9 @@ void main() {
     expect(dead, isEmpty, reason: 'these links point at nothing:\n${dead.join('\n')}');
   });
 }
+
+/// A link to a requirement's own file, which the index alone may write.
+final _byFile = RegExp(r'\]\(([^)\s]*F\d\d-[^)\s]*\.md)\)');
 
 bool _isDead(File doc, String target) {
   if (target.startsWith('http') || target.startsWith('mailto:') || target.startsWith('#')) {
