@@ -1,0 +1,567 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
+import 'connections.dart';
+import 'machines.dart';
+
+/// What an attempt to start a daemon came back with.
+@immutable
+class Started {
+  /// Constructor taking whether it ran and what it said.
+  const Started({required this.went, required this.words});
+
+  /// Whether ssh ran the line and it came back without complaint.
+  ///
+  /// **Not whether a daemon is now serving.** Only connecting says that, which is why a start is
+  /// always followed by a trial: a line that ran cleanly and left nothing listening is exactly
+  /// what a missing binary or a socket already taken looks like from here.
+  final bool went;
+
+  /// What came back, as it came.
+  final String words;
+}
+
+/// Where a managed forward has got to.
+enum TunnelState {
+  /// Nothing has been asked of it yet.
+  idle,
+
+  /// `ssh` has been started and the socket is not there yet.
+  raising,
+
+  /// The socket exists and the process is alive.
+  up,
+
+  /// It could not be raised, or it went away and could not be raised again. [Tunnel.problem]
+  /// carries what the transport said.
+  down,
+}
+
+/// One forward this interface raised and owns.
+///
+/// **`ssh -L <local socket>:<remote socket> <host> -N`**, one process per machine, supervised.
+/// Running `ssh` is not a breach of the rule against shelling out: that rule is about never
+/// building a second implementation of the *domain* by parsing the `sokar` CLI, and `ssh` is
+/// transport. Nothing about the contract, the calls or the refusals goes near it.
+///
+/// Three decisions are baked in here and each of them keeps this requirement small:
+///
+/// * **`BatchMode=yes`, so it never prompts.** A passphrase and an unknown host key are both
+///   terminal prompts, and this has no terminal. With batch mode `ssh` fails instead, saying why
+///   — *"Permission denied (publickey)"*, *"Host key verification failed"* — and that sentence is
+///   shown as it came. The way through is an agent or a key with no passphrase, and accepting a
+///   host key once in a shell. **Nothing here handles a passphrase**, deliberately.
+/// * **One process per host, not a shared `ControlMaster`.** A master would be shared with the
+///   person's own sessions, and tearing ours down could take theirs with it — which is exactly
+///   what *"a tunnel the interface did not raise is never torn down by it"* forbids.
+/// * **It does not outlive the window.** Friendlier if it did, and it would contradict the
+///   criterion that closing leaves no forward running and no socket behind.
+class Tunnel {
+  /// Constructor taking which machine to reach.
+  ///
+  /// [start] is injectable so this can be proven without a remote host: a stand-in that creates
+  /// the socket and stays up, or one that fails the way `ssh` fails, exercises every path here.
+  Tunnel(
+    this.machine, {
+    Future<Process> Function(List<String> command)? start,
+    Future<ProcessResult> Function(List<String> command)? run,
+    Duration appears = const Duration(seconds: 10),
+  })  : _launch = start ?? _runIt,
+        _tighten = run ?? _runAndWait,
+        _untilItBinds = appears;
+
+  /// The machine this forwards to.
+  final Machine machine;
+
+  final Future<Process> Function(List<String> command) _launch;
+  final Future<ProcessResult> Function(List<String> command) _tighten;
+  final Duration _untilItBinds;
+
+  Process? _process;
+  bool _wanted = false;
+
+  /// Where it has got to.
+  TunnelState state = TunnelState.idle;
+
+  /// What the transport said, when it could not be raised. Null when nothing is wrong.
+  ///
+  /// **`ssh`'s own words, never ours.** *"Host key verification failed"* is a different problem
+  /// from *"Connection refused"*, and a machine reported as simply not there sends somebody
+  /// looking in the wrong place.
+  String? problem;
+
+  /// How many times it has been raised, so a re-raise is observable.
+  int raised = 0;
+
+  /// The command that raises it.
+  ///
+  /// `-N` because nothing is run at the far end; `ExitOnForwardFailure` so a forward that cannot
+  /// bind fails the process rather than leaving `ssh` up with no socket under it, which would
+  /// read as connected.
+  List<String> get command => <String>[
+        'ssh',
+        '-N',
+        '-o', 'BatchMode=yes',
+        '-o', 'ExitOnForwardFailure=yes',
+        '-o', 'ServerAliveInterval=15',
+        // A connection of its own, whatever the person's ssh config says: through their master the
+        // forward would live in the master, and letting go of this process would leave it running.
+        '-o', 'ControlMaster=no',
+        '-o', 'ControlPath=none',
+        '-L', '${machine.socketPath}:${machine.remoteSocket}',
+        machine.host,
+      ];
+
+  /// Raises it, and waits until the socket is there or the transport says why not.
+  Future<void> raise() async {
+    _wanted = true;
+    state = TunnelState.raising;
+    problem = null;
+
+    // Our own previous process first. A re-raise while the old `ssh` is still alive would
+    // otherwise meet its socket below and refuse it as somebody else's.
+    await _stopWhatWeStarted();
+
+    // **A socket that answers belongs to somebody.** It may be another program of this user that
+    // happens to sit at that path, and taking its endpoint away to put ours there would break it
+    // silently. Refused instead, and said. Told apart by connecting, exactly as
+    // [OneInstance.take] tells its own leftover from a running interface.
+    if (await _somebodyIsServing()) {
+      state = TunnelState.down;
+      problem = 'something is already serving ${machine.socketPath}, and it was left alone';
+      return;
+    }
+
+    // ssh refuses to bind a path that already exists. A socket left by a run that died answers
+    // nothing, so it is a leftover, and the alternative is a machine that can never be opened
+    // again without somebody knowing to delete a file they have never heard of.
+    _clearTheWay();
+
+    final stopped = Completer<void>();
+    try {
+      final process = await _launch(command);
+      _process = process;
+      raised++;
+      // Collected as one future rather than read line by line, because **the process can exit
+      // before a subscription has delivered anything**: `ssh` prints one line and dies, and the
+      // first version of this reported "exit code 255" with the sentence still in the pipe.
+      final saying = process.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .toList();
+      unawaited(process.exitCode.then((code) async {
+        await _itEnded(code, saying);
+        if (!stopped.isCompleted) stopped.complete();
+      }));
+    } on ProcessException catch (ex) {
+      state = TunnelState.down;
+      problem = ex.message;
+      return;
+    }
+
+    final by = DateTime.now().add(_untilItBinds);
+    while (DateTime.now().isBefore(by)) {
+      // The state and the words are both set before this completes, so there is nothing to race.
+      if (stopped.isCompleted) return;
+      // A *socket*, not merely a file. Anything left at that path would otherwise read as a
+      // working forward — which is exactly what a leftover from a run that died looks like.
+      if (FileSystemEntity.typeSync(machine.socketPath) ==
+          FileSystemEntityType.unixDomainSock) {
+        if (!await _ownerOnly()) {
+          // The one property of the transport that can be checked from here, and it is the one
+          // the requirement names. A forward anybody on the machine can read is not the thing
+          // that was asked for, so it is taken down rather than reported as working.
+          await _stopWhatWeStarted();
+          _clearTheWay();
+          state = TunnelState.down;
+          problem = 'the endpoint could not be made readable by nobody but you';
+          return;
+        }
+        state = TunnelState.up;
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    // Up, and nothing bound. Said as a wait rather than as a refusal, because it is neither a
+    // rejection by the far end nor a fault anybody can name.
+    state = TunnelState.down;
+    problem = 'the forward did not appear within ${_untilItBinds.inSeconds} seconds';
+  }
+
+  /// Takes it down and removes what it left.
+  ///
+  /// Safe to call on a tunnel that was never raised, which is what makes closing the window able
+  /// to call it on everything without asking which is which.
+  Future<void> drop() async {
+    _wanted = false;
+    await _stopWhatWeStarted();
+    _clearTheWay();
+    state = TunnelState.idle;
+  }
+
+  /// Takes down the process this tunnel started, if it is still there.
+  Future<void> _stopWhatWeStarted() async {
+    final process = _process;
+    _process = null;
+    if (process == null) return;
+    process.kill();
+    await process.exitCode;
+  }
+
+  /// Whether something answers at the endpoint. A leftover socket does not.
+  Future<bool> _somebodyIsServing() async {
+    try {
+      final socket = await Socket.connect(
+        InternetAddress(machine.socketPath, type: InternetAddressType.unix),
+        0,
+        timeout: const Duration(seconds: 1),
+      );
+      socket.destroy();
+      return true;
+    } on SocketException {
+      return false;
+    }
+  }
+
+  /// What is worth saying about it, or null when there is nothing.
+  String? get words => switch (state) {
+        TunnelState.raising => 'raising the forward…',
+        TunnelState.down => problem,
+        _ => null,
+      };
+
+  Future<void> _itEnded(int code, Future<List<String>> saying) async {
+    // Everything ssh printed, in order. It says one useful sentence and several unhelpful ones,
+    // and which is which depends on the failure — so all of it is kept and shown.
+    final said = await saying;
+    if (!_wanted) return;
+    state = TunnelState.down;
+    problem = said.isEmpty
+        ? 'the forward stopped, exit code $code'
+        : said.join(' ');
+  }
+
+  void _clearTheWay() {
+    try {
+      final left = File(machine.socketPath);
+      if (left.existsSync()) left.deleteSync();
+    } on FileSystemException {
+      // Something else owns it. Raising will fail and say so, which is better than deciding here.
+    }
+  }
+
+  /// Makes the endpoint owner-only and says whether it now is.
+  ///
+  /// `ssh` already creates it that way — it binds under a `0177` umask — so the `chmod` is belt
+  /// and braces. **What is returned is the state of the socket, not the exit code of the
+  /// command.** A `chmod` that failed on a socket ssh had already made private is nothing to
+  /// report, and a `chmod` that succeeded on one that is still group-readable would be a claim
+  /// contradicted by the thing itself.
+  Future<bool> _ownerOnly() async {
+    try {
+      await _tighten(<String>['chmod', '600', machine.socketPath]);
+    } on ProcessException {
+      // Judged below, by looking at the socket.
+    }
+    return !machine.readableByOthers;
+  }
+
+  static Future<Process> _runIt(List<String> command) =>
+      Process.start(command.first, command.sublist(1));
+
+  static Future<ProcessResult> _runAndWait(List<String> command) =>
+      Process.run(command.first, command.sublist(1));
+}
+
+/// Every forward this interface owns.
+///
+/// **It owns only what it raised.** A machine described by a socket path somebody else forwarded
+/// is opened exactly as it always was: nothing is raised, nothing is supervised, and nothing is
+/// taken down. That path has no credential handling in it at all, which is why it must keep
+/// working untouched.
+class Tunnels extends ChangeNotifier {
+  /// Constructor taking how to start a forward, injectable for tests.
+  Tunnels({
+    Future<Process> Function(List<String> command)? start,
+    Future<ProcessResult> Function(List<String> command)? run,
+    Duration appears = const Duration(seconds: 10),
+  })  : _launch = start,
+        _run = run ?? _runIt,
+        _untilItBinds = appears;
+
+  final Future<Process> Function(List<String> command)? _launch;
+  final Future<ProcessResult> Function(List<String> command) _run;
+
+  static Future<ProcessResult> _runIt(List<String> command) =>
+      Process.run(command.first, command.sublist(1));
+
+  /// How long a forward is given to bind before it is called down.
+  final Duration _untilItBinds;
+  final Map<String, Tunnel> _mine = <String, Tunnel>{};
+
+  /// The forward for one machine, or null when this interface did not raise it.
+  Tunnel? of(Machine machine) => _mine[machine.name];
+
+  /// Whether this interface raised the way in to [machine].
+  bool manages(Machine machine) => _mine.containsKey(machine.name);
+
+  /// Raises the forward for [machine], if it is one this interface manages.
+  ///
+  /// A machine that names no host is left alone and answers true: it is already reachable, by
+  /// somebody else's forward, and there is nothing to do.
+  Future<bool> raiseFor(Machine machine) async {
+    if (!machine.needsATunnel) return true;
+    final tunnel = _mine.putIfAbsent(
+      machine.name,
+      () => Tunnel(machine, start: _launch, appears: _untilItBinds),
+    );
+    await tunnel.raise();
+    notifyListeners();
+    return tunnel.state == TunnelState.up;
+  }
+
+  /// Raises a forward for a trial, owned by the caller and never listed here.
+  ///
+  /// Kept out of [of]: a trial is not a machine being watched, and the caller takes it down.
+  Future<Tunnel> trial(Machine machine) async {
+    final tunnel = Tunnel(machine, start: _launch, appears: _untilItBinds);
+    await tunnel.raise();
+    return tunnel;
+  }
+
+  /// Raises it again after it dropped.
+  ///
+  /// Without being asked, because a forward that goes away is not a decision anybody made — but
+  /// only for one this interface raised, and only while it is still wanted.
+  Future<void> raiseAgainIfItDropped(Machine machine) async {
+    final tunnel = _mine[machine.name];
+    if (tunnel == null || tunnel.state != TunnelState.down) return;
+    await tunnel.raise();
+    notifyListeners();
+  }
+
+  /// The line that would start a daemon on [machine].
+  ///
+  /// Shown to somebody before they agree to it and run unchanged afterwards, so that what was
+  /// agreed to is what happens.
+  ///
+  /// **A unit first, the binary only if there is none.** Socket activation is supervised, comes
+  /// back after a reboot and owns its socket; `setsid` is none of those and is here because the
+  /// package ships no unit yet. The fallback is deliberately loud about which one ran.
+  static List<String> startCommandFor(Machine machine) => machine.isThisComputer
+      // This computer's own daemon: the same lines, in this user's login shell, with no login.
+      ? <String>['sh', '-c', inTheLoginShell(startsIt)]
+      : <String>[
+        'ssh',
+        '-n',
+        '-o', 'BatchMode=yes',
+        '-o', 'ConnectTimeout=10',
+        machine.host,
+        inTheLoginShell(startsIt),
+      ];
+
+  /// What is run at the far end. Held apart so a scenario can say what was asked of the machine.
+  ///
+  /// `sokard.service` is a user unit the package installs and does not enable, so starting it is
+  /// one call and a daemon that is restarted on failure. **Not `sokard.socket`**: there is none,
+  /// and there will not be one — the JDK offers no way to adopt a listening descriptor systemd
+  /// bound, which is Sokar's own note rather than a guess from here.
+  ///
+  /// The last line says nothing and changes nothing; it reports. A user service lives as long as
+  /// that user has a session on the machine, and with no lingering the daemon goes when the last
+  /// one ends. The forward this interface holds *is* such a session, so a machine being watched
+  /// keeps it alive — but only for as long as it is watched, which is worth saying rather than
+  /// finding out.
+  ///
+  /// **A unit that refuses is a failure, never a reason to run the binary behind systemd's back**,
+  /// and what systemd said is what the person reads. Only with no unit loaded does it start the
+  /// binary itself, and then it looks two seconds later: a daemon that ended at once is reported with
+  /// its exit code and the last it wrote, rather than as started. Two seconds is enough for one that
+  /// cannot read its configuration and short enough not to hold every start.
+  static const String startsIt =
+      'command -v sokard >/dev/null 2>&1 || { echo "no sokard is installed there" >&2; exit 127; }; '
+      r'if [ "$(systemctl --user show sokard -p LoadState --value 2>/dev/null)" = loaded ]; then '
+      r'said=$(systemctl --user start sokard 2>&1) || { rc=$?; '
+      r'echo "systemd refused to start sokard (exit $rc): $said" >&2; exit $rc; }; '
+      'echo "started by systemd"; '
+      r'else out=$(mktemp) || exit 1; setsid sokard >"$out" 2>&1 </dev/null & pid=$!; sleep 2; '
+      r'if kill -0 "$pid" 2>/dev/null; then rm -f "$out"; '
+      'echo "started sokard itself: there is no systemd unit for it"; '
+      r'else wait "$pid"; rc=$?; '
+      r'echo "sokard ended as soon as it started (exit $rc): $(tail -n 5 "$out")" >&2; '
+      r'rm -f "$out"; exit 1; fi; fi; '
+      r'loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null | grep -qx yes || '
+      r'echo "(it stops when the last session there ends: loginctl enable-linger $(id -un))"';
+
+  /// The line that would stop the daemon on [machine]: shown before anybody agrees, run unchanged
+  /// after, like the start.
+  static List<String> stopCommandFor(Machine machine) => <String>[
+        'ssh',
+        '-n',
+        '-o', 'BatchMode=yes',
+        '-o', 'ConnectTimeout=10',
+        machine.host,
+        inTheLoginShell(stopsIt),
+      ];
+
+  /// What is run at the far end to stop it: the mirror of [startsIt].
+  ///
+  /// **The unit first**, stopped through systemd, which is what started it. A daemon started
+  /// without a unit is stopped by its own pid, and only one of this account's. A machine where none
+  /// runs says so, and that is not a failure: what was asked for is true.
+  static const String stopsIt =
+      r'if systemctl --user is-active --quiet sokard 2>/dev/null; then '
+      r'said=$(systemctl --user stop sokard 2>&1) || { rc=$?; '
+      r'echo "systemd refused to stop sokard (exit $rc): $said" >&2; exit $rc; }; '
+      'echo "stopped by systemd"; '
+      r'elif pids=$(pgrep -u "$(id -u)" -x sokard); then kill $pids && '
+      'echo "stopped sokard itself: no systemd unit was running it"; '
+      'else echo "no sokard was running there"; fi';
+
+  /// Stops the daemon on [machine], for somebody who has been asked and said yes.
+  ///
+  /// **Only for a machine this interface forwards**, for the same reason as a start.
+  Future<Started> stopSokarOn(Machine machine) async {
+    if (!machine.needsATunnel) {
+      return const Started(
+        went: false,
+        words: 'This machine names no host to log into: its socket is forwarded by somebody else.',
+      );
+    }
+    return _said(stopCommandFor(machine));
+  }
+
+  /// Starts a daemon on [machine], over the same transport that forwards it.
+  ///
+  /// **Only for a machine this interface forwards.** A socket somebody else forwarded names no
+  /// host to log into, and running something on a machine described by nothing but a path is not a
+  /// thing this can guess at.
+  ///
+  /// Running a line at the far end is further into somebody else's machine than forwarding a
+  /// socket goes, and the caller asks first — which is why this takes no decision of its own.
+  Future<Started> startSokarOn(Machine machine) async {
+    if (!machine.canBeStartedHere) {
+      return const Started(
+        went: false,
+        words: 'This machine names no host to log into: its socket is forwarded by somebody else.',
+      );
+    }
+    return _said(startCommandFor(machine));
+  }
+
+  /// Runs [line] and answers whether it went and what it said.
+  Future<Started> _said(List<String> line) async {
+    try {
+      final result = await _run(line);
+      // ssh's own words, whichever stream they came on: the useful sentence is on stderr when the
+      // far end refused and on stdout when it did something.
+      final said = <String>[
+        '${result.stdout}'.trim(),
+        '${result.stderr}'.trim(),
+      ].where((each) => each.isNotEmpty).join(' ');
+      final went = result.exitCode == 0;
+      return Started(
+        went: went,
+        words: said.isNotEmpty
+            ? said
+            : went
+                ? 'It ran and said nothing.'
+                : 'ssh gave up, exit code ${result.exitCode}.',
+      );
+    } on ProcessException catch (ex) {
+      return Started(went: false, words: ex.message);
+    }
+  }
+
+  /// The line that asks a machine which uid its login account has.
+  ///
+  /// A constant, like the start line: the host travels as its own argument and nothing of the
+  /// machine reaches the command run there.
+  static List<String> loginUidCommandFor(Machine machine) => loginUidCommandAt(machine.host);
+
+  /// The same line for a login known only by where it is, before there is a machine to describe.
+  static List<String> loginUidCommandAt(String host) => <String>[
+        'ssh',
+        '-n',
+        '-o', 'BatchMode=yes',
+        '-o', 'ConnectTimeout=10',
+        host,
+        'id -u',
+      ];
+
+  /// The uid of the account this interface logs in as on [machine], or null when it cannot say.
+  ///
+  /// **Read-only, and asked without a question** — the operator's decision. `id -u`
+  /// reports the caller's own uid, needs no privilege and changes nothing, and it is only ever run
+  /// as part of a trial somebody asked for. **Every failure is null**: a trial that cannot learn the
+  /// uid says what it said before rather than guessing one.
+  Future<int?> loginUidOn(Machine machine) async =>
+      machine.needsATunnel ? loginUidAt(machine.host) : null;
+
+  /// The uid of the account [host] logs in as, or null when it cannot say: what the wizard asks
+  /// when a person knows only how they log in, and not where Sokar's socket is there.
+  /// Why the last login [loginUidAt] tried was refused, in words a person can act on; null where it
+  /// was not refused or ssh said nothing that tells.
+  String? lastLoginRefusal;
+
+  Future<int?> loginUidAt(String host) async {
+    lastLoginRefusal = null;
+    try {
+      final result = await _run(loginUidCommandAt(host));
+      if (result.exitCode != 0) {
+        lastLoginRefusal = whySshRefused('${result.stderr}', host);
+        return null;
+      }
+      return int.tryParse('${result.stdout}'.trim());
+    } on ProcessException {
+      return null;
+    }
+  }
+
+  /// Takes down the forward for one machine, if this interface raised it.
+  Future<void> dropFor(Machine machine) async {
+    final tunnel = _mine.remove(machine.name);
+    if (tunnel == null) return;
+    await tunnel.drop();
+    notifyListeners();
+  }
+
+  /// Takes down everything this interface raised.
+  ///
+  /// Called when the window closes. **Only what is in here** — a forward somebody else raised is
+  /// not in this map and is therefore untouchable, which is the whole of that criterion.
+  Future<void> dropEverything() async {
+    for (final tunnel in _mine.values.toList()) {
+      await tunnel.drop();
+    }
+    _mine.clear();
+    notifyListeners();
+  }
+}
+
+/// What ssh's refusal to log into [host] means for the person, from its own words on stderr; null
+/// where they do not tell. Measured on the walk VM: an agent holding nine keys was cut
+/// off with "Too many authentication failures" before it offered the right one.
+String? whySshRefused(String said, String host) {
+  if (said.contains('Too many authentication failures')) {
+    return '$host stopped listening after the first few keys your ssh agent offered, before the one it '
+        'accepts. Name that key for $host in ~/.ssh/config (IdentityFile …, and IdentitiesOnly yes), '
+        'or hold fewer keys in the agent.';
+  }
+  if (said.contains('Permission denied') && said.contains('publickey')) {
+    return '$host accepted none of the keys your ssh agent offered. The account there needs your public '
+        'key in its ~/.ssh/authorized_keys, or the account does not exist yet.';
+  }
+  if (said.contains('Host key verification failed')) {
+    return 'This computer does not know $host’s host key yet, or it changed. Log in once with ssh $host in a '
+        'terminal and compare the key it shows.';
+  }
+  if (said.contains('Could not resolve hostname')) return '$host is not a name this computer can find.';
+  if (said.contains('Connection refused') || said.contains('timed out') || said.contains('No route to host')) {
+    return '$host does not answer on ssh’s port.';
+  }
+  return null;
+}

@@ -1,0 +1,25 @@
+version: 2
+
+# Why this file exists: every action is pinned to a commit, and a pin nobody moves is a pin that
+# rots. The digest is the control; this is what keeps it current without a person reading release
+# notes for six actions. Each bump arrives as a pull request that names the new commit and the
+# version behind it, which is a change somebody reviews rather than one that happens to them.
+updates:
+  - package-ecosystem: github-actions
+    # The workflows, and the local actions they use: a pin inside .github/actions is otherwise never
+    # looked at, and rots while every workflow around it moves.
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    # A release is taken once it is three days old, as every Sokar repository takes an upstream.
+    cooldown:
+      default-days: 3
+    # One pull request for every action that moved, reviewed together, never merged automatically.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "Move the pinned"

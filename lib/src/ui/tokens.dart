@@ -1,0 +1,187 @@
+/// The numbers this interface is allowed to use.
+///
+/// Nothing outside this file may spell out a spacing, a width or a radius. A widget that writes
+/// `EdgeInsets.all(16)` has made a decision this file was supposed to hold, and the next widget
+/// makes a slightly different one — which is how an interface stops looking like one thing.
+library;
+
+import 'dart:ui' show Color;
+
+/// Raw values, named for what they are rather than what they are for. Only the tokens below and
+/// the theme read these; a widget reads the tokens.
+abstract final class Primitives {
+  /// The brand color every other color is worked out from, shared with melkheftken.
+  static const Color brandIndigo600 = Color(0xFF3949AB);
+
+  /// One logical pixel, the thinnest line a screen draws.
+  static const double hairline = 1;
+
+  /// Four logical pixels.
+  static const double space1 = 4;
+
+  /// Eight logical pixels.
+  static const double space2 = 8;
+
+  /// Twelve logical pixels.
+  static const double space3 = 12;
+
+  /// Sixteen logical pixels.
+  static const double space4 = 16;
+
+  /// Twenty-four logical pixels.
+  static const double space6 = 24;
+
+  /// A small corner.
+  static const double radiusSm = 4;
+
+  /// A card's corner.
+  static const double radiusMd = 8;
+}
+
+/// Space between things, in logical pixels.
+/// The colours of a piece of work's state, each paired with a shape so it reads without colour too
+/// (walk 8, the operator: running, waiting, needing a person and stopped told apart at a glance).
+abstract final class StateColours {
+  /// Working.
+  static const Color working = Color(0xFF2E7D32);
+
+  /// Waiting, or quiet.
+  static const Color waiting = Color(0xFFF9A825);
+
+  /// Stopped.
+  static const Color stopped = Color(0xFF9E9E9E);
+}
+
+abstract final class Space {
+  /// Above and below each line of a block that reads as one, such as a diff.
+  static const hairline = Primitives.hairline;
+
+  /// Hairline separation, inside a row.
+  static const tight = Primitives.space1;
+
+  /// Between a mark and the words beside it.
+  static const small = Primitives.space2;
+
+  /// Between rows, and inside a dense control.
+  static const normal = Primitives.space3;
+
+  /// Inside a pane, around its content.
+  static const wide = Primitives.space4;
+
+  /// Around something that stands on its own.
+  static const loose = Primitives.space6;
+}
+
+/// Fixed sizes that carry a decision rather than a measurement.
+abstract final class Sizes {
+  /// The projects column. Wide enough for a project name and its counts, no wider.
+  static const projectsPane = 260.0;
+
+  /// What is open, when there is room for it beside the work rather than over it.
+  static const openedPane = 420.0;
+
+  /// A mark saying whether something is running.
+  static const mark = 16.0;
+
+  /// The dot beside a task or a project.
+  static const dot = 8.0;
+
+  /// An icon inside a row.
+  static const rowIcon = 18.0;
+
+  /// A dialog that asks several things at once, wide enough for a URL or a key on one line.
+  static const dialog = 620.0;
+
+  /// A dialog that explains before it asks: a paragraph, a command line or a list, then the choice.
+  static const dialogMedium = 560.0;
+
+  /// Widening or narrowing what a running task can reach.
+  static const reachDialog = 540.0;
+
+  /// The emergency stop, before it acts and after.
+  static const emergencyStopDialog = 520.0;
+
+  /// A short question with one field or one short list under it.
+  static const dialogSmall = 460.0;
+
+  /// A dialog holding a single field or a single sentence of answer.
+  static const dialogNarrow = 420.0;
+
+  /// The command finder's width.
+  static const finder = 560.0;
+
+  /// The command finder's height at most, so its list scrolls rather than filling the window.
+  static const finderHeight = 460.0;
+
+  /// How far below the window's top edge the command finder opens.
+  static const finderInset = 72.0;
+
+  /// The tree of machines when it slides in over a narrow window.
+  static const drawer = 300.0;
+
+  /// The tree of machines beside the work, while the rail shows its labels.
+  static const treeWithLabels = 280.0;
+
+  /// The tree of machines beside the work, while the rail shows icons only.
+  static const tree = 240.0;
+
+  /// The name column of a list of names and values in small print.
+  static const label = 110.0;
+
+  /// The name column of a detail's fields.
+  static const fieldName = 140.0;
+
+  /// A tile in a wall of them: a task, a failed operation, the tile that starts work.
+  static const tile = 320.0;
+
+  /// How tall the tile that starts work is.
+  static const startTileHeight = 120.0;
+
+  /// The mark on the tile that starts work.
+  static const startMark = 32.0;
+
+  /// A saved job's tile.
+  static const jobTile = 220.0;
+
+  /// How tall a saved job's tile is.
+  static const jobTileHeight = 48.0;
+
+  /// A running operation's spinner, in place of its mark.
+  static const operationSpinner = 14.0;
+
+  /// The line a spinner is drawn with.
+  static const spinnerStroke = 2.0;
+
+  /// The status line's bar, saying something is under way.
+  static const progressBar = 2.0;
+
+  /// The border of the selected tile.
+  static const selectedBorder = 2.0;
+
+  /// The border around what the finder has taken you to.
+  static const highlightBorder = 3.0;
+
+  /// A divider takes no more room than its line.
+  static const divider = Primitives.hairline;
+
+  /// A terminal inside a dialog: enough rows for a prompt, an answer and what came of it.
+  static const terminal = 240.0;
+
+  /// What an agent writes, in the terminal's look: on a tile, and enlarged.
+  static const terminalText = 12.0;
+
+  /// The same, small, on a tile.
+  static const terminalTextSmall = 11.0;
+
+  /// The line height of terminal text, as a terminal spaces its rows.
+  static const terminalLineHeight = 1.25;
+}
+
+/// Corner radii.
+abstract final class Radii {
+  /// Inside a pane: a card, a summary, a block of output.
+  static const small = Primitives.radiusSm;
+
+  /// A card that stands on its own.
+  static const medium = Primitives.radiusMd;
+}

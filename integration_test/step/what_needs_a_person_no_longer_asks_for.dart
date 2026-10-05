@@ -1,0 +1,13 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../support/e2e.dart';
+
+/// Usage: what needs a person no longer asks for {'e2e-needed'}
+Future<void> whatNeedsAPersonNoLongerAsksFor(WidgetTester tester, String entry) async {
+  expect(find.textContaining('Granted. It is kept in the vault'), findsOneWidget);
+  await tester.tap(find.byKey(const Key('grant-close')));
+  // The machine says it is granted, whoever answered, and the question goes.
+  await pumpUntil(tester, () => find.byKey(ValueKey<String>('grant-needed $entry')).evaluate().isEmpty,
+      timeout: const Duration(seconds: 30), what: 'the question about $entry to go');
+}

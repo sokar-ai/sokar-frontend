@@ -1,0 +1,401 @@
+name: Build
+
+# The same shape as the backend's release, deliberately: one workflow, publishing `main` to the
+# `snapshots` distribution and a version tag to `releases`. A consumer puts that word in their
+# sources.list, so snapshots and releases can never mix.
+#
+# **A push that changes only documentation starts nothing**: every run leases a machine and publishes
+# a snapshot, and Markdown changes neither the package nor what it does. The docs are checked by
+# test/docs_test.dart before such a commit is made. A push that changes code and docs together runs
+# in full. `workflow_dispatch` ignores the path filter, so a run can always be forced.
+on:
+  push:
+    branches: [main]
+    # A version tag builds the release, into the `releases` distribution beside `snapshots`.
+    tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - 'issues/**'
+      - 'mkdocs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Every action is pinned to a commit, the version in a trailing comment: a tag is a name its owner
+# can repoint, and these jobs hold the publishing token. Dependabot keeps the pins current, and
+# test/packaging_test.dart rejects any action reference without a SHA.
+
+jobs:
+  build:
+    name: Test and package
+    # The oldest distribution this interface is meant to install on, and not a preference: the
+    # Flutter bundle links the system GTK3 stack, so **the build machine sets the floor**. Built on
+    # 24.04 the package refuses to install on 22.04, and the failure arrives at somebody else's
+    # `apt`. Raising this is a decision about who can no longer install, not a maintenance chore —
+    # and the same runner is used for the other two jobs so nothing is built against a newer GTK
+    # by accident.
+    runs-on: ubuntu-22.04
+    # A run that hangs or crawls is stopped, never left to hold a runner for hours: one ran 1 h 29 min
+    # (the operator: never again). Limits are about three times what the last four
+    # green runs took: this job 9-15 minutes, its build step 7-12.
+    timeout-minutes: 45
+    outputs:
+      channel: ${{ steps.channel.outputs.channel }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Before anything is built, because the packages carry the version it decides: `main` makes
+      # `<version>~snapshot.<run>` for `snapshots`; a tag `v<version>` makes `<version>` for
+      # `releases`, and only where `pubspec.yaml` says exactly that version, with no `-SNAPSHOT`.
+      - name: Which channel
+        id: channel
+        run: |
+          set -eu
+          have="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//' | tr -d '[:space:]')"
+          if [ "${{ github.ref_type }}" = tag ]; then
+            want="${GITHUB_REF_NAME#v}"
+            [ "$have" = "$want" ] || { echo "::error::the tag says $want, pubspec.yaml says $have" >&2; exit 1; }
+            case "$have" in *-SNAPSHOT*) echo "::error::$have is a snapshot, not a release" >&2; exit 1;; esac
+            echo "channel=releases" >> "$GITHUB_OUTPUT"
+            echo "RELEASE=1" >> "$GITHUB_ENV"
+          else
+            echo "channel=snapshots" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+
+      # Maven drives the build, so the runner needs a JDK as well as Flutter: the pinned one.
+      - uses: ./.github/actions/pinned-jdk
+
+      # What this build runs is pinned and moved only by review, and Sokar's own tool says so for
+      # every repository alike; the action above already resolved it beside sokar-machines.
+      - name: Check that every action is pinned
+        run: java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-actions
+
+      # A shared rules block whose hash no longer fits its text is a copy someone edited here.
+      - name: Check that the shared rules are unchanged copies
+        run: java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-shared AGENTS.md
+
+      # GTK and the toolchain, which the runner has by default in neither case. The third-party
+      # lists go first: `apt-get update` exits 100 when any index fails, and everything installed
+      # here is Ubuntu's own. Chrome's cost run 93144262860.
+      - name: Install what a Linux desktop build needs
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev \
+            libstdc++-12-dev dpkg-dev binutils rpm
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      # Generated tests are committed, so CI proves they are current rather than trusting that
+      # somebody ran the generator. A diff here means a .feature was edited and not regenerated.
+      - name: Prove the generated tests are current
+        run: |
+          dart run build_runner build
+          git diff --exit-code test/features integration_test || {
+            echo "::error::a .feature changed without build_runner being run" >&2
+            exit 1
+          }
+
+      # Maven runs pub get, analyze, the tests and the release build. `set +e` so a red run still
+      # reports; the report's exit code and Maven's both fail the job.
+      - name: Build and test
+        timeout-minutes: 35
+        run: |
+          set +e
+          ./mvnw -B verify
+          built=$?
+          set -e
+          dart tool/test_report.dart
+          exit $built
+
+      # The builder is pinned by digest, not by version. A version names what was *meant*; the
+      # digest is what arrives. This binary writes the packages that this workflow then publishes,
+      # so an asset replaced upstream would be a package nobody here ever inspected.
+      - name: Package
+        run: |
+          nfpm_sha=a80d5f724ed70b192ffa8a2bde469c013cef559c8afa3441eb51dd9a918beb6b
+          curl -sSL --fail -o nfpm.tar.gz \
+            https://github.com/goreleaser/nfpm/releases/download/v2.43.0/nfpm_2.43.0_Linux_x86_64.tar.gz
+          echo "$nfpm_sha  nfpm.tar.gz" | sha256sum -c -
+          tar xzf nfpm.tar.gz nfpm
+          # Each build supersedes the last, or a repository called `snapshots` never updates
+          # anybody. Locally this defaults to 0.
+          NFPM="$PWD/nfpm" SNAPSHOT_RUN="${{ github.run_number }}" tool/package.sh
+
+      # What was built, named once. The backend learned this the hard way: two lists of files drift,
+      # and the symptom is a publish failing after the tests have already passed.
+      - name: Say what was built
+        run: |
+          ls -1 build/packages/*.deb build/packages/*.rpm > build/packages/fetched.txt
+          cat build/packages/fetched.txt
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packages
+          path: |
+            build/packages/*.deb
+            build/packages/*.rpm
+            build/packages/fetched.txt
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            build/test-results.xml
+            build/test-report.html
+
+  # Against a machine rented for the run: Maven leases it, the GUI tests run headless over ssh,
+  # and the sweep takes it down whether they passed or not. Not a gate for publishing: a rented
+  # machine that cannot be had is not a fault in this interface.
+  integration:
+    name: Test against a leased machine
+    runs-on: ubuntu-22.04
+    # 12-15 minutes with the lease (its step 10-13); stopped well before a rented machine is paid for
+    # by the hour, with ten minutes left under the job for the sweep.
+    timeout-minutes: 50
+    # A fork's pull request gets no secrets, and would rent nothing.
+    if: github.event_name != 'pull_request'
+    env:
+      # With GITHUB_RUN_ID this names the run, so the last step sweeps what this run leased.
+      SOKAR_CI_LEG: frontend-e2e
+      HETZNER_API: ${{ secrets.HETZNER_API }}
+      # The key as material, never written to a file: the lease and tool/e2e.sh both read it.
+      HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+
+      - uses: ./.github/actions/pinned-jdk
+
+      - name: Install what a headless desktop test needs
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev \
+            libstdc++-12-dev xvfb
+
+      # Before anything is rented, so the sweep at the end always has a tool to run.
+      - name: Resolve the machine tool
+        run: |
+          mkdir -p build
+          ./mvnw -B -q -s settings.xml -Phetzner dependency:build-classpath \
+            -Dmdep.outputFile=build/cp.txt
+
+      # Its own limit, under the job's, so the sweep below still has time to run when it is hit.
+      - name: Lease, test and sweep
+        timeout-minutes: 40
+        run: |
+          set +e
+          ./mvnw -B -s settings.xml verify -Pe2e,hetzner -DskipTests
+          built=$?
+          set -e
+          dart tool/test_report.dart build/e2e-results.json build/e2e-report.html \
+            build/e2e-results.xml --heading=Integration --against="a real machine, over ssh"
+          exit $built
+
+      # The net under Maven's own sweep: whatever this run leased, whatever failed on the way.
+      - name: Sweep anything this run leased
+        if: always()
+        run: |
+          test -s build/cp.txt || { echo "::warning::the machine tool was never resolved"; exit 0; }
+          java -cp "$(cat build/cp.txt)" org.fuin.sokar.machines.Main sweep --mine
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: integration-reports
+          path: |
+            build/e2e-results.xml
+            build/e2e-report.html
+
+  installs:
+    name: Prove the packages install
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [debian:12, fedora:40]
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: packages
+          path: packages
+
+      # A package that does not install is worth catching here rather than in somebody's apt. The
+      # container is clean, so a dependency that was only ever satisfied by the build machine
+      # fails loudly.
+      - name: Install it in a clean ${{ matrix.image }}
+        run: |
+          docker run --rm -v "$PWD/packages:/packages" ${{ matrix.image }} sh -c '
+            set -e
+            if command -v apt-get >/dev/null; then
+              apt-get update
+              apt-get install -y /packages/*.deb
+              test -x /usr/bin/sokar-frontend
+              test -f /usr/lib/sokar-frontend/lib/libapp.so
+              test -f /usr/lib/sokar-frontend/data/icudtl.dat
+            else
+              dnf install -y /packages/*.rpm
+              test -x /usr/bin/sokar-frontend
+              test -f /usr/lib/sokar-frontend/lib/libapp.so
+              test -f /usr/lib/sokar-frontend/data/icudtl.dat
+            fi
+            test -f /usr/share/applications/sokar-frontend.desktop
+          '
+
+  publish:
+    name: Publish to Artifactory
+    needs: [build, installs, integration]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    # A pull request from a fork has no access to the token, and a run that publishes nothing is
+    # better than one that fails at the last step. A release waits for every job, the leg on a
+    # rented machine included, since it is never replaced; a snapshot needs only the build and the
+    # installs, and is published whatever that leg says (the operator's decision).
+    if: >-
+      !cancelled() && github.event_name != 'pull_request'
+      && needs.build.result == 'success' && needs.installs.result == 'success'
+      && (needs.integration.result == 'success' || !startsWith(github.ref, 'refs/tags/v'))
+    env:
+      CHANNEL: ${{ needs.build.outputs.channel }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: packages
+          path: packages
+
+      # The manifest is checked rather than trusted: the file list lives in one place, and this is
+      # where it is proven to still describe what arrived.
+      - name: Check everything the build said it made is here
+        run: |
+          while read -r built; do
+            file="packages/$(basename "$built")"
+            test -f "$file" || { echo "::error::$file is missing" >&2; exit 1; }
+          done < packages/fetched.txt
+
+      - uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        with:
+          # Otherwise it writes build-info to a repository this token cannot write, and warns on
+          # every run.
+          disable-auto-build-publish: true
+
+      # `--target-props` is not optional. Without them Artifactory **stores the file and never
+      # indexes it**: apt sees nothing and no error appears anywhere. Setting properties needs
+      # Annotate permission as well as Deploy — and without Annotate the upload still succeeds and
+      # the properties are silently dropped, which is why `artifactory-probe.yml` exists.
+      #
+      # `--flat=true`, or the source directory travels and the package lands under
+      # `pool/main/s/sokar-frontend/packages/...`.
+      # A release is published once: the same version uploaded again would replace what people
+      # installed, under the same name.
+      - name: Refuse a release that is there already
+        if: env.CHANNEL == 'releases'
+        run: |
+          set -u
+          base="${{ vars.JF_URL }}"
+          while [ "${base%/}" != "$base" ]; do base="${base%/}"; done
+          base="${base%/artifactory}/artifactory"
+          version="$(dpkg-deb -f packages/*.deb Version)"
+          # This package's own file: the index holds every Sokar package, many at one version.
+          file="Filename: pool/main/s/sokar-frontend/$(basename packages/*.deb)"
+          if curl -fsSL "$base/sokar-dist-deb/dists/releases/main/binary-amd64/Packages" 2>/dev/null \
+               | grep -qxF "$file"; then
+            echo "::error::sokar-frontend $version is released already" >&2
+            exit 1
+          fi
+
+      - name: Upload the deb
+        run: |
+          jf rt upload "packages/*.deb" "sokar-dist-deb/pool/main/s/sokar-frontend/" \
+            --flat=true \
+            --target-props="deb.distribution=${CHANNEL};deb.component=main;deb.architecture=amd64"
+
+      - name: Upload the rpm
+        run: |
+          jf rt upload "packages/*.rpm" "sokar-dist-rpm/${CHANNEL}/" --flat=true
+
+      # An upload that succeeded is not a package anybody can install. Artifactory indexes
+      # asynchronously, and **a missing index, an empty index and a late index look identical from
+      # a client** — measured when the Debian index went 404, then 200 with an empty
+      # Packages file, then 404 again inside twelve minutes. A single probe of an asynchronous
+      # index is not a measurement, so this retries before it believes the answer.
+      #
+      # This is the other half of the `--target-props` lesson: the properties being *passed* is
+      # asserted by a test, and the package being *indexed* can only be seen from outside.
+      - name: Wait until it is actually indexed
+        run: |
+          set -u
+          # `JF_URL` is the **platform** url — `https://…jfrog.io` — and the `jf` CLI appends
+          # `/artifactory` itself. Raw curl does not, which is why the first version of this step
+          # spent two minutes asking a 404 and the second blamed a trailing slash it had never
+          # measured. Normalised both ways so either shape works.
+          base="${{ vars.JF_URL }}"
+          while [ "${base%/}" != "$base" ]; do base="${base%/}"; done
+          base="${base%/artifactory}"
+          test -n "$base" || { echo "::error::vars.JF_URL is not set" >&2; exit 1; }
+          base="$base/artifactory"
+
+          version="$(dpkg-deb -f packages/*.deb Version)"
+          test -n "$version" || { echo "::error::could not read the built version" >&2; exit 1; }
+
+          deb="$base/sokar-dist-deb/dists/${CHANNEL}/main/binary-amd64/Packages"
+          rpm="$base/sokar-dist-rpm/${CHANNEL}/repodata/repomd.xml"
+          # This package's own files, never its version alone: other packages share it.
+          deb_file="Filename: pool/main/s/sokar-frontend/$(basename packages/*.deb)"
+          rpm_file="$(basename packages/*.rpm)"
+          echo "looking for $version"
+          echo "  $deb"
+          echo "  $rpm"
+
+          found_deb=no
+          found_rpm=no
+          for attempt in $(seq 1 20); do
+            if [ "$found_deb" = no ] && \
+               curl -fsSL "$deb" 2>/dev/null | grep -qxF "$deb_file"; then
+              found_deb=yes
+              echo "the deb index carries $version"
+            fi
+            if [ "$found_rpm" = no ]; then
+              primary="$(curl -fsSL "$rpm" 2>/dev/null \
+                | grep -oE 'repodata/[a-f0-9]+-primary.xml.gz' | head -1)"
+              if [ -n "$primary" ] && curl -fsSL "$base/sokar-dist-rpm/${CHANNEL}/$primary" \
+                   2>/dev/null | gunzip -c | grep -qF "href=\"$rpm_file\""; then
+                found_rpm=yes
+                echo "the rpm index carries $rpm_file"
+              fi
+            fi
+            if [ "$found_deb" = yes ] && [ "$found_rpm" = yes ]; then exit 0; fi
+            sleep 6
+          done
+
+          # What it asked and what came back, rather than a cause it cannot know. The first
+          # version of this asserted the token lacked Annotate; the packages were indexed and the
+          # URL was wrong.
+          echo "deb index: HTTP $(curl -sSL -o /dev/null -w '%{http_code}' "$deb")"
+          echo "rpm index: HTTP $(curl -sSL -o /dev/null -w '%{http_code}' "$rpm")"
+          curl -fsSL "$deb" 2>/dev/null | grep '^Version:' | sed 's/^/  in the index: /' || true
+          echo "::error::uploaded but not indexed after two minutes" \
+               "(deb: $found_deb, rpm: $found_rpm). The packages are stored and nothing can" \
+               "install them. What was asked for and what came back is above." >&2
+          exit 1

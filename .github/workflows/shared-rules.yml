@@ -1,0 +1,27 @@
+name: Shared rules
+
+# The build ignores Markdown and leases a machine, so a change to AGENTS.md alone is checked here,
+# with nothing leased: its shared rules block must still fit the hash its markers carry.
+on:
+  push:
+    branches: [main]
+    paths: ['AGENTS.md']
+  pull_request:
+    paths: ['AGENTS.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: The shared rules are unchanged copies
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/pinned-jdk
+
+      - name: Check that the shared rules are unchanged copies
+        run: java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-shared AGENTS.md

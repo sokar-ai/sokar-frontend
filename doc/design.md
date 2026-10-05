@@ -1,0 +1,204 @@
+# Design
+
+How this interface is built. The requirements say what must be true for a person using it; this
+says what it is made of. One section per decision, each with the reason it was taken — a decision
+without one gets re-argued every time somebody new reads it.
+
+## Flutter
+
+- **Language:** Dart 3.13, Flutter 3.47 stable. Pinned in `pubspec.yaml` once the app exists;
+  until then these are what the decisions below were taken against.
+- **UI:** Flutter, one codebase for desktop and tablet. **Linux desktop is the only target that
+  works today** — the backend is a unix socket, so a client has to be able to open one, and a
+  phone cannot without a tunnel it has no way to raise. Phone is not designed out; it is simply
+  not reachable until there is a way for a device without a shell to get
+  a socket. Do not build layouts that assume it will never arrive.
+- **Contract:** the Sokar backend and its API contract — the varlink interface
+  `org.fuin.sokar.Tasks1`, over one unix socket. **No REST, no HTTP, no shared code with the
+  backend at all**: the only thing crossing the boundary is the IDL, which the daemon serves
+  from itself. See [Backend API](Backend-API.md) before writing a call.
+- **Client:** hand-written, in one package, against the contract. There is no varlink code
+  generator for Dart and the protocol is small enough — a socket, JSON objects, a NUL between
+  them — that generating it would be more machinery than it saves. Whether that stays true once
+  every method has a typed request and reply is the open question below.
+- **Auth:** **none, and that is the design.** The socket is owner-only, so the filesystem decides
+  who may connect and there is nothing to log in to. A remote backend is an SSH forward, so its
+  authentication is SSH's. If a design here starts needing a token, a session or a login screen,
+  something has gone wrong upstream of it — say so rather than building one.
+- **Build:** **Maven drives Flutter here**, decided by the operator on 2026-09-11. A `pom.xml` in
+  this repository calls `flutter` through `exec-maven-plugin` — `pub get` in `generate-sources`,
+  analyze and the tests in theirs, `flutter build` in `package` — following the pattern this house
+  already runs in `melkheftken/frontend/flutter`, including the profile keyed on `env.FLUTTER_ROOT`
+  so a machine without Flutter still builds.
+
+  **What this gives up, said out loud because it was the rule until today.** The previous rule was
+  *"`flutter build` and nothing else … on a machine with no JDK on it"*, and the reason was that the
+  interface builds, tests and releases on its own. **It still does — but it now needs a JDK to do
+  it.** That is the price, and it was paid for one thing: an end-to-end test that drives this
+  interface against a real machine has to lease one, and leasing is
+  `org.fuin.sokar.machines`, which is Java. With Maven here it is a library call; without it, a
+  downloaded jar and a command.
+
+  **This repository is still not in the backend's reactor.** It resolves `sokar-machines` as a
+  published artifact like any other dependency. The split that matters — that the interface
+  releases on its own schedule, against a published contract rather than a checkout of the
+  backend — is unchanged. What changed is the tool that runs the build, not who owns it.
+- **Test:** `flutter test` per package. **`dart analyze` must stay at "No issues found!"** — and
+  it is `dart analyze`, not `flutter analyze`: the latter has been seen to rewrite
+  `analysis_options.yaml` with an exclude block nobody wrote, which silences findings instead of
+  fixing them.
+
+## The terminal, and the only dependency there is
+
+A session inside running work needs two things this codebase did not have: something that
+understands escape sequences, and a pseudoterminal. They were decided separately and the answers
+are different.
+
+- **`xterm` from pub.dev draws it, and it is the first runtime dependency here.** Everything else
+  is hand-written against a contract — the varlink client included, because that protocol is a
+  socket, JSON and a NUL. A VT emulator is where that argument stops holding: cursor motion, an
+  alternate screen, scroll regions, colour, wide characters and reflow are not a small protocol,
+  and getting one subtly wrong is the failure the requirement was about — colours work, and then
+  `Ctrl-C` ends the wrong thing. It is pure Dart, so it changes nothing about the package.
+- **The pty is ours, written with `dart:ffi`.** The usual companion, `flutter_pty`, is a native
+  plugin, and a native plugin is another `.so` in the bundle. Every `.so` in the bundle goes
+  through `dpkg-shlibdeps` and the rpm scanner and comes out as a package dependency, which is
+  the chain the packaging requirement was about — met and retired — and the most delicate part of shipping this.
+  `dart:ffi` is in the SDK and costs the packaging nothing.
+- **Nothing forks.** The obvious shape is `forkpty` and then `exec` in the child — and the child
+  returns into the Dart runtime, in a process whose other threads no longer exist. `posix_spawn`
+  with `POSIX_SPAWN_SETSID` does both inside libc, and the child takes the terminal by opening it
+  as a session leader, so no Dart code ever runs in a forked process.
+- **A blocking `read` needs somewhere to block.** `dart:io` cannot wrap a descriptor it did not
+  create, so an isolate sits in `read(2)` and posts what it gets. It reaps the child too, so a
+  session that ends leaves no zombie.
+- **The terminal holds the frame's keyboard for what is open**, rather than the frame holding it.
+  Every other thing that opens over the frame is read rather than typed into, so the frame keeping
+  the keyboard costs them nothing; a terminal is the opposite. With the frame holding it `Escape`
+  closed the pane and never reached the far end, which would have made `vim` unusable inside a
+  session.
+- **What cannot be faked is tested against the kernel.** `test/app/pty_test.dart` runs `stty size`
+  in a pty and reads the answer back, which proves the controlling terminal and the window size in
+  one line. Everything above the byte channel is proven through a seam, on the fake clock, like
+  the rest of the interface.
+
+## Testing
+
+Tests are written as Gherkin `.feature` files and run as ordinary Flutter widget tests, via
+**[`bdd_widget_test`](https://pub.dev/packages/bdd_widget_test)**, which generates the tests from
+the features.
+
+- **Why that one, measured rather than assumed.** It is the only live option in this space:
+  `sdk: ^3.7.0`, 63k downloads, 181 likes — against `flutter_gherkin` (declares `sdk: <3.0.0`,
+  changelog ends May 2021, pins `gherkin ^2.0.2` while that is at 3.1.0, drags in the legacy
+  `flutter_driver` stack), the `gherkin` package itself (`sdk: <3.0.0`, changelog ends July
+  2022), and `bdd_flutter` (41 downloads).
+- **It generates real tests, which is the whole point.** A feature becomes a `group` and each
+  scenario a `testWidgets`. Every other Gherkin option for Dart is a *parallel runner* with its
+  own reporters — `flutter_gherkin` contains no `testWidgets` and no `group` anywhere — so its
+  scenarios never become `package:test` events, never reach JUnit XML, and never appear
+  individually on a build server. That single fact decided this.
+- **Results on the build server:** `tool/test_report.dart` reads `flutter test --machine` once and
+  writes the HTML page, JUnit XML grouped by feature, a table on the run's summary page, and an
+  `::error` on the line of each failing scenario. Why each is shaped that way is in
+  [AGENTS.md](https://github.com/sokar-ai/sokar-frontend/blob/main/AGENTS.md), under *What the build reports*.
+- **The `Feature` line says what the file tests**, in one short sentence of 70 characters at most.
+  It is the group name in every report, so a reworded scenario never moves a row.
+- **Steps are shared by name.** `Given the app is running` resolves to
+  `test/features/step/the_app_is_running.dart` across every feature that uses it, and the generator
+  scaffolds the file the first time. So step wording *is* the API: phrase a step the way you
+  want to reuse it, and vary the data rather than the sentence.
+- **Names are checked, not maintained.** `test/features_named_test.dart` holds every `Feature`
+  line to one short sentence, unique, with no requirement id in it, and `test/docs_test.dart`
+  holds these documents to files that exist. A table nobody checks is a table that lies.
+
+A green row is not completeness: a feature with one shallow scenario shows as green as one
+with twelve. Only reading the scenarios fixes that, and no framework changes it.
+
+**Generated tests are committed**, and the build runs `build_runner` and fails on a diff. Left
+out, a build that did not generate them would find no tests and report green; committed and
+checked, they cannot drift or silently vanish.
+
+### How it is laid out, as measured
+
+- **`test/features/*.feature`**, with step definitions in **`test/features/step/`** — beside the
+  feature, not in `test/step/`. The generator scaffolds a stub there the first time it meets a
+  step, referencing `MyApp`; replace it. A stub left unreplaced fails to compile, which is the
+  right way round.
+- **Generated tests land beside their feature** as `<name>_test.dart`.
+- `dart run build_runner build` after adding or editing a feature. Its
+  `--delete-conflicting-outputs` flag has been removed and is silently ignored.
+- `avoid_print` is disabled per-file in `tool/contract.dart`: it is a command-line tool and
+  printing is its output. That is the only lint exception, and it is stated in the file.
+
+## The mock backend
+
+A mock daemon — a small Dart program binding a real unix socket and speaking real varlink. The
+app's own client runs against it unchanged, because the socket path is the only thing that
+differs. That is the same property that makes a remote backend work, so the mock costs nothing
+extra to reach.
+
+**It is permanent, not scaffolding until the backend is ready.** It produces states a real
+daemon cannot be made to produce on demand, and those are the hard requirements:
+
+- `MethodNotFound`, to prove per-feature degradation against an older backend. A real daemon
+  always has all its methods, so this rule is otherwise unenforceable.
+- An unrecognized `Outcome` value, to prove the tolerance rule. A real daemon only ever sends
+  values it knows — and a generated Dart enum with no fallback case is exactly how this breaks.
+- `GetInfo` advertising `Tasks2`, to prove the client picks the highest name it understands.
+- A stream cut mid-flight, for the requirement that tunnel loss reads as disconnection and never
+  as an empty fleet.
+- `HOLDS_WORK` on demand, without contriving a task that genuinely holds unpushed commits.
+- A four-minute image build, and a clearance prompt with a live deadline.
+
+It also means the test suite needs no podman, no containers and no Linux host with a runtime —
+so it runs on any hosted runner.
+
+- **Scenarios are named for the situation, not the requirement** — `task-holds-unpushed-work`,
+  not `f09-case-2`. A finished requirement is deleted; the situation and the test guarding it
+  outlive it.
+- **Events are driven by the test, never by wall clock.** Otherwise stream tests are flaky, and
+  flaky tests get deleted.
+- **Drift is caught by one CI job with a real daemon**: install the `sokar` package, start
+  `sokard`, compare the mock's method and field set against `GetInterfaceDescription`. The mock
+  proves the client handles what it is sent; that job proves the contract is what we think it is.
+  Neither substitutes for the other, and a drifted mock is worse than no mock.
+- **Watch the socket path length.** Unix paths are limited to about 108 bytes on Linux and
+  temporary directories in test harnesses get long enough to hit it.
+
+## Packaging
+
+Delivered as a `.deb` and an `.rpm`, from the same repository as the `sokar` package —
+The packaging requirement is met and retired; this is what it is made of.
+
+- **Output:** `flutter build linux --release` produces a bundle directory — the binary,
+  `lib/libapp.so`, `lib/libflutter_linux_gtk.so`, `data/`. Measured at 22 MB and 11 s. The
+  package installs that directory, a launcher on the path, a `.desktop` entry and an icon.
+- **Dependencies:** derived, never listed. The shipped `.so` resolves the system GTK3 stack, and
+  `dpkg-shlibdeps` and rpm's ELF scanner both work that out themselves. A hand-written list is a
+  list that goes stale between Flutter releases.
+- **Tool:** [nfpm](https://nfpm.goreleaser.com/) — one static binary, one YAML, both formats.
+  **Not `rpm-maven-plugin` and jdeb**, which is what the backend uses. One of the two reasons for
+  that is gone as of 2026-09-11 — there is a JDK here now — and **the other still stands on its
+  own**: those plugins need `rpmbuild` on a Debian runner, where nfpm writes both formats from one
+  binary. What must match the rest of Sokar is the package a person installs, not the tool that
+  wrote it. So packaging stays with nfpm until somebody has a reason that is not *"we have Maven
+  anyway"*.
+- **Relationship to the backend:** `Recommends: sokar`, not `Depends:`. An interface talking to
+  a remote daemon over SSH is useful with no local backend, and a hard dependency would be wrong
+  for that.
+- **Where it is published:** into the same Artifactory repository as `sokar` and the agent
+  packages. A dependency between packages does not resolve when they are split across configured
+  sources — this is recorded in the backend's own notes and applies here unchanged.
+- **Build machine:** Ubuntu, never Fedora, because the bundle links glibc dynamically — the
+  backend's own rule. Flutter adds one the CLI never had: the bundle links the GTK3 stack too,
+  so the build machine's GTK is the oldest GTK the package can run against. Build on the oldest
+  distribution that must be supported, not the newest available.
+- **Architecture:** Flutter has no cross-compile for Linux desktop. Every architecture shipped
+  needs a builder of that architecture.
+
+### Where it lives
+
+**`lib/` at the root, one package named `sokar_frontend`**, organization `org.fuin`, Linux the only
+enabled platform. A `packages/` split pays for itself only once something is shared, and nothing
+is; a second consumer of the client code is what would change that.

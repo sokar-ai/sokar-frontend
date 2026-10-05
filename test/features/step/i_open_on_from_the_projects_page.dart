@@ -1,0 +1,16 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../support/world.dart';
+
+/// Usage: I open {'billing'} on {'this machine'} from the projects page
+Future<void> iOpenOnFromTheProjectsPage(WidgetTester tester, String project, String machine) async {
+  await tester.tap(find.byKey(ValueKey<String>('projects-row $project')));
+  await World.settle(tester);
+  // Where it lies on several machines, its page chooses which one it shows.
+  final on = find.byKey(ValueKey<String>('project-on $machine'));
+  if (on.evaluate().isNotEmpty) {
+    await tester.tap(on);
+    await World.settle(tester);
+  }
+}
