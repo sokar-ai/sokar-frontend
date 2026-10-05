@@ -5,6 +5,7 @@ docs_dir: doc
 exclude_docs: |
   walks/
 nav:
+  - index.md
   - design.md
   - decisions.md
   - Backend-API.md
