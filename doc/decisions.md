@@ -10,7 +10,7 @@ taken, `git log` answers.
 | [The interface can do what a console can](#the-interface-can-do-what-a-console-can) |
 | [No browser: the interface is a desktop application over a unix socket](#no-browser) |
 | [The interface raises and supervises its own ssh forward, and a cut stream is a disconnection](#the-interface-raises-and-supervises-its-own-ssh-forward) |
-| [A connection trial may ask the machine `id -u` without a question, to name a wrong uid](#a-connection-trial-may-ask-the-machine-id--u-without-a-question) |
+| [A connection trial may ask the machine for its uid without a question, to name a wrong one](#a-connection-trial-may-ask-the-machine-for-its-uid-without-a-question) |
 | [A socket that answers is refused rather than deleted; the remaining race is accepted](#a-socket-that-answers-is-refused-rather-than-deleted) |
 | [`XDG_RUNTIME_DIR` is trusted, and that is not a hole worth closing](#xdg_runtime_dir-is-trusted) |
 | [An agent's login redirects to localhost, forwarded here, rather than asking for a code](#an-agents-login-redirects-to-localhost-forwarded-here) |
@@ -78,7 +78,7 @@ Three choices Sokar's remote access leaves to the client:
   `Watch` that ends without its final reply reports a lost connection. Nothing is re-derived from
   silence.
 
-## A connection trial may ask the machine `id -u` without a question
+## A connection trial may ask the machine for its uid without a question
 
 When *Try the connection* finds the forward up and nothing serving, it runs
 `ssh -n -o BatchMode=yes <host> id -u` and compares the uid with the one in the typed socket path, so

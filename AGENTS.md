@@ -267,12 +267,15 @@ several machines over their varlink socket. Its issues carry the prefix `F`; its
 - **Everything reaches a daemon through `org.fuin.sokar.Tasks1` over its socket; nothing parses the
   `sokar` CLI and no code is shared with the backend.** `ssh` (transport), `sokar task attach` in a
   pty (a session the contract cannot carry), a command the machine itself names, and `notify-send`
-  (the desktop) are not breaches.
+  (the desktop) are not breaches. Nothing reads or writes a backend's files.
+- **No design here needs a token, a session or a login screen**; one that seems to is said in the
+  channel rather than built.
 - **The contract is served, never copied**: `dart tool/contract.dart <socket>` prints it from a
   running daemon.
 - **A requirement is checked against the IDL parameter by parameter and field by field**, never
-  against a method's name or a field named in prose; what the daemon lacks goes into
-  `doc/Contract-Gaps.md`, never around it.
+  against a method's name or a field named in prose. `doc/Contract-Gaps.md` is read before a
+  requirement is picked up; what the daemon lacks goes there and is raised as a requirement in
+  `sokar`, never designed around, and comes off the page once it has landed.
 - **Take the highest `org.fuin.sokar.TasksN` `GetInfo` offers, turn `MethodNotFound` into
   `FeatureNotSupported` for that feature alone, ignore unknown fields, and render an unknown enum
   value rather than throwing** (`Outcome` is no Dart enum); a feature is never gated on the build
@@ -284,8 +287,8 @@ several machines over their varlink socket. Its issues carry the prefix `F`; its
   compose; take counts, states and instants as parts and word them here.
 - **Every project-scoped method takes the project's name, never a file path**, and a path is
   refused rather than answered as an empty list.
-- **Before the first release the contract may change in place**, only after both sides agree in the
-  channel, and both change together.
+- **A change to the contract is agreed in the channel first**; within `Tasks1` it only grows, and a
+  change that cannot is a `Tasks2` served beside it.
 
 ### The client
 
@@ -315,6 +318,7 @@ several machines over their varlink socket. Its issues carry the prefix `F`; its
   vault or a lost connection never reads as a good state, and losing contact keeps the last list.
 - **Nothing is applied optimistically**: a decision shows once the daemon's own answer or echo
   confirms it.
+- **No layout assumes the window is never a phone's.**
 - **A spacing, width or radius is spelled only in `tokens.dart`, a width compared only in
   `window_size.dart`**, which reads the window, never the pane; icons are outlined, filled only when
   selected.

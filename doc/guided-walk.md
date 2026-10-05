@@ -26,7 +26,7 @@ What Sokar adds to the plugin:
 - the terminals are wrapped in `WalkSecret`;
 - a symbol beside the information button shows the walk again once it was put away.
 
-**The walks of the MVP's paths** are in [`doc/walks/`](walks/). A test checks that every key they
+**The walks of the MVP's paths** are in [`doc/walks/`](https://github.com/sokar-ai/sokar-frontend/tree/main/doc/walks). A test checks that every key they
 name is in the interface. One is started by copying it over the walk file:
 
 ```bash

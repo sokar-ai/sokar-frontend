@@ -13,7 +13,7 @@ the daemon serves as one interface, and a build
 there fails if a method is registered without appearing in it, or appears in it without being
 registered, or reads a parameter it does not describe.
 
-**Do not keep a copy of it here.** A running daemon serves its own contract:
+**No copy of it is kept in this repository**: a running daemon serves its own contract:
 
 ```
 varlinkctl introspect $XDG_RUNTIME_DIR/sokar/sokard.sock org.fuin.sokar.Tasks1
@@ -36,7 +36,7 @@ ssh -L /tmp/sokard-remote.sock:/run/user/1001/sokar/sokard.sock user@host -N
 ```
 
 and open `/tmp/sokard-remote.sock` instead. **That is the entire difference between a local and
-a remote Sokar** — one string. Do not build two transports. Streaming works through the forward
+a remote Sokar** — one string, and the interface has one transport for both. Streaming works through the forward
 unchanged; measured, an event raised on the far machine arrived 0.4 s later.
 
 `ssh` creates the local endpoint owner-only, so the forwarded socket is no more exposed than the
@@ -77,26 +77,26 @@ contract commits to three things, and the IDL states them in full at the top of 
 1. **The `1` in `Tasks1` is the promise.** Within it the interface only grows — new methods, new
    optional parameters, new reply fields. Nothing is removed, renamed, retyped, or given a new
    meaning. A change that cannot be made that way becomes `Tasks2`, served *beside* `Tasks1` for
-   at least one release. So: call `org.varlink.service.GetInfo`, read its `interfaces` list, and
-   use the highest one you understand. Do not compare version numbers to decide this.
+   at least one release. So a client calls `org.varlink.service.GetInfo`, reads its `interfaces`
+   list, and uses the highest one it understands, never comparing version numbers to decide it.
 
 2. **Degrade per feature, not per connection.** A method an older daemon lacks answers
-   `org.varlink.service.MethodNotFound`. Catch it, disable that one feature, keep the rest. An
+   `org.varlink.service.MethodNotFound`; a client turns off that one feature and keeps the rest. An
    optional parameter an older daemon does not know is ignored, and it behaves as its documented
    default says.
 
-3. **Unknown values must not be fatal.** Ignore reply fields you do not recognize, and render an
-   unrecognized enum value rather than throwing on it. `Outcome` in particular will gain entries,
+3. **Unknown values are not fatal.** A client ignores reply fields it does not recognize, and
+   renders an unrecognized enum value rather than throwing on it. `Outcome` in particular will gain entries,
    and adding one is explicitly *not* a breaking change — so a client that cannot survive one
    will break on a routine release. This is the rule most likely to be broken by a generated
    Dart enum with no fallback case.
 
-`GetInfo` also reports the daemon's build version. Show it and put it in bug reports; do not
-gate features on it.
+`GetInfo` also reports the daemon's build version. The interface shows it, for bug reports, and
+gates no feature on it.
 
 ## What is there
 
-Read the IDL for the detail — it carries a comment per method and per field. The shape of it:
+The IDL carries the detail, a comment per method and per field. The shape of it:
 
 | | |
 |---|---|

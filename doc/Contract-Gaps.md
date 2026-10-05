@@ -1,16 +1,16 @@
 # What the contract does not yet cover
 
-What the interface needs that `org.fuin.sokar.Tasks1` has no method or field for yet. When it is
-empty, delete it.
+What the interface needs that `org.fuin.sokar.Tasks1` has no method or field for yet. Once nothing
+is left, the page goes.
 
-**Read it before picking up a requirement.** A convincing screen with no method behind it is the
-most expensive kind of wasted work, because it looks finished.
+A convincing screen with no method behind it is the most expensive kind of wasted work, because
+it looks finished.
 
 ## The rule that makes these real gaps
 
-- **Never shell out to the `sokar` CLI and parse it.** An interface that did would be a second
-  implementation of every refusal the product makes, and those refusals are the product.
-- **Never read or write the backend's files directly.** Over a forwarded socket there is no
+- **The interface never parses the `sokar` CLI.** One that did would be a second implementation of
+  every refusal the product makes, and those refusals are the product.
+- **The interface never reads or writes the backend's files.** Over a forwarded socket there is no
   filesystem on that machine at all, so the API is the only way in.
 
 Both rules, and why running `ssh` is not a breach of the first, are in [AGENTS.md](https://github.com/sokar-ai/sokar-frontend/blob/main/AGENTS.md). A
@@ -45,10 +45,8 @@ gap here is a backend method that has to be added, not a workaround waiting to b
 - **`WatchProjects`**, a push for what `Projects` answers. The project row still asks again after
   anything that would change it; moving it onto the push makes its counts arrive rather than age.
 
-## What to do with this
+## What becomes of a gap
 
-- **Do not design around a gap**, and do not invent a local workaround: it will not survive the
-  first remote backend.
-- **Raise it as a backend requirement**, in the `sokar` repository. Adding a method is additive and
-  costs nothing under the compatibility promise.
-- **Keep this file honest.** When something lands, take it off; when the file is empty, delete it.
+A gap is closed by a backend method, raised as a requirement in the `sokar` repository: adding one
+is additive and costs nothing under the compatibility promise. A local workaround would not
+survive the first remote backend. What has landed is taken off this page.
