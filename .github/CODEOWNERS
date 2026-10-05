@@ -1,0 +1,17 @@
+# Changes here wait for the operator's review.
+/.github/                 @michael-schnell
+/AGENTS.md                @michael-schnell
+/CLAUDE.md                @michael-schnell
+/pom.xml                  @michael-schnell
+/mvnw                     @michael-schnell
+/mvnw.cmd                 @michael-schnell
+/.mvn/                    @michael-schnell
+/settings.xml             @michael-schnell
+/pubspec.yaml             @michael-schnell
+/pubspec.lock             @michael-schnell
+/analysis_options.yaml    @michael-schnell
+/build.yaml               @michael-schnell
+/tool/                    @michael-schnell
+/packaging/               @michael-schnell
+/linux/                   @michael-schnell
+/mkdocs.yml               @michael-schnell
