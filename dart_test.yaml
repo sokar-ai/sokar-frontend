@@ -1,0 +1,3 @@
+# A change to documents or issues runs only these: `flutter test --tags documents`.
+tags:
+  documents:

@@ -1,3 +1,6 @@
+@Tags(<String>['documents'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
