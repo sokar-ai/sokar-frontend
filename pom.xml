@@ -30,6 +30,9 @@
         <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
         <!-- Sokar's BOM names every tool's version; this is the one to bump. -->
         <sokar.version>0.4.0</sokar.version>
+        <!-- The build tools, ahead of the BOM's own pin: the release that carries a check this build
+             calls can be newer than the Sokar release the BOM belongs to. -->
+        <sokar.buildtools.version>0.4.1</sokar.buildtools.version>
     </properties>
 
     <build>
@@ -174,6 +177,21 @@
             <id>hetzner</id>
             <dependencyManagement>
                 <dependencies>
+                    <dependency>
+                        <groupId>org.fuin.sokar</groupId>
+                        <artifactId>sokar-json</artifactId>
+                        <version>${sokar.buildtools.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.fuin.sokar</groupId>
+                        <artifactId>sokar-machines</artifactId>
+                        <version>${sokar.buildtools.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.fuin.sokar</groupId>
+                        <artifactId>sokar-release</artifactId>
+                        <version>${sokar.buildtools.version}</version>
+                    </dependency>
                     <dependency>
                         <groupId>org.fuin.sokar</groupId>
                         <artifactId>sokar-bom</artifactId>

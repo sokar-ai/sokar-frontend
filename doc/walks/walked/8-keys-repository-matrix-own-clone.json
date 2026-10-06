@@ -172,7 +172,7 @@
       "then": "!leave-session"
     },
     {
-      "say": "Dasselbe auf der Kommandozeile (B92). In einem Terminal auf der VM:\n\nssh walk8@192.168.122.174\nsokar task start -p sokar-test-project -r sokar-test-project\nsokar task start -p sokar-test-project\n\nBeide werden abgelehnt: das erste, weil sokar-test-project das eigene Repository des Projekts ist, das zweite, weil keins genannt ist. Beide nennen sokar-test-1, sokar-test-2; keins wird für dich gewählt. Dann „Next“ hier.",
+      "say": "Dasselbe auf der Kommandozeile. In einem Terminal auf der VM:\n\nssh walk8@192.168.122.174\nsokar task start -p sokar-test-project -r sokar-test-project\nsokar task start -p sokar-test-project\n\nBeide werden abgelehnt: das erste, weil sokar-test-project das eigene Repository des Projekts ist, das zweite, weil keins genannt ist. Beide nennen sokar-test-1, sokar-test-2; keins wird für dich gewählt. Dann „Next“ hier.",
       "at": []
     },
     {

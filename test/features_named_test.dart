@@ -60,7 +60,10 @@ void main() {
     // document that once existed; this names a line nobody reading the class can reach.
     final question = RegExp(r'\bQ[A-Z]\d{1,3}\b');
     final offending = <String>[];
-    for (final file in _sources()) {
+    final sources = _sources().toList();
+    // Without git's list every file would be skipped, and this test would pass by reading nothing.
+    expect(sources.where((file) => file.path.endsWith('.yml')), isNotEmpty);
+    for (final file in sources) {
       for (final line in file.readAsLinesSync()) {
         if (question.hasMatch(line)) offending.add('${file.path}: ${line.trim()}');
       }
@@ -69,29 +72,7 @@ void main() {
         reason: 'these cite a question in the agent channel, which no reader of the code can '
             'follow:\n${offending.join('\n')}');
   });
-
-  test('no requirement id survives anywhere in the code or the features', () {
-    // A finished requirement's file is deleted, in this repository or another Sokar one. An id left
-    // behind points at a document that cannot be opened, which is worse than no reference.
-    final id = _requirementId;
-    final offending = <String>[];
-    final sources = _sources().toList();
-    // Without git's list every file would be skipped, and this test would pass by reading nothing.
-    expect(sources.where((file) => file.path.endsWith('.yml')), isNotEmpty);
-    for (final file in sources) {
-      for (final line in file.readAsLinesSync()) {
-        if (id.hasMatch(line)) offending.add('${file.path}: ${line.trim()}');
-      }
-    }
-    expect(offending, isEmpty,
-        reason: 'requirement ids point at files that no longer exist:\n'
-            '${offending.join('\n')}');
-  });
 }
-
-/// A requirement id of any repository: one or two capitals and two or three digits, with no list of
-/// prefixes to keep.
-final _requirementId = RegExp(r'\b[A-Z]{1,2}\d{2,3}\b');
 
 /// Every text file this repository keeps outside its Markdown, this test excepted: it names the
 /// shapes it refuses, so scanning itself would fail on its own rules.

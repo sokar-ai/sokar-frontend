@@ -342,8 +342,9 @@ several machines over their varlink socket. Its issues carry the prefix `F`; its
 - **Features are Gherkin files generated into widget tests by `bdd_widget_test`, and the generated
   tests are committed.** A `Feature` line is one short sentence, step wording is an API reused as
   is, and an apostrophe or a `$` in a step's text breaks the generated Dart.
-- **No requirement id appears in `lib`, `test`, `tool`, a feature or the docs**;
-  `test/features_named_test.dart` and `test/docs_test.dart` enforce it.
+- **No requirement id appears outside `issues/`**: `sokar-release check-citations .` enforces it, and
+  `check-doc-site doc mkdocs.yml` holds `doc/` to the site's navigation; `shared-rules` runs both on
+  every push. A channel question number is kept out of the code by `test/features_named_test.dart`.
 - **Three levels**: the frame against `FakeBackend` in `testWidgets`; the client against `MockDaemon`
   over a real unix socket in plain `test()`; `test/client/live_daemon_test.dart` against a real
   `sokard` when `SOKAR_SOCKET` is set (and `SOKAR_VAULT_TEST=1` for the vault round trip).
