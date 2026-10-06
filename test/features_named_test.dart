@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// Holds the feature files to the one thing the build report reads off them.
 ///
 /// **The `Feature:` line is the report row.** It used to carry a requirement id, and the ids are
-/// gone: every requirement file this project had has been finished and deleted, so a row headed
-/// `F11` named a document nobody could open. What the row says now is what the file tests, in one
+/// gone: every requirement file this project had has been finished and deleted, so a row headed by
+/// an id named a document nobody could open. What the row says now is what the file tests, in one
 /// short sentence — the only description of it that survives the requirement it came from.
 void main() {
   final features = <File>[
