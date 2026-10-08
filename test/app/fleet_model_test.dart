@@ -270,6 +270,12 @@ class _Wedged implements FleetBackend {
       outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
 
   @override
+  Future<List<Followed>> refreshProjects({String? project}) async => const <Followed>[];
+
+  @override
+  Future<TaskRefreshed> refreshTask(String task) async => const TaskRefreshed(outcome: 'UNCHANGED');
+
+  @override
   Future<Restored> restoreBackup(String project, String bundle,
           {bool? dryRun, bool? force, String? repository}) async =>
       const Restored(
@@ -360,6 +366,23 @@ class _Wedged implements FleetBackend {
   @override
   Future<Labelled> labelTask(String task, {String? label}) async =>
       const Labelled(outcome: 'LABELLED', label: '');
+
+  @override
+  Future<HandInPart> handIn(String task,
+          {required String name,
+          required int bytes,
+          required String sha256,
+          required int offset,
+          required List<int> part}) async =>
+      throw const FeatureNotSupported('HandIn');
+
+  @override
+  Future<HandedFile> takeBack(String task, String name) async =>
+      throw const FeatureNotSupported('TakeBack');
+
+  @override
+  Future<List<HandInEvent>> handIns(String task) async =>
+      throw const FeatureNotSupported('HandIns');
 
 }
 
@@ -638,6 +661,12 @@ class _Machine implements FleetBackend {
       outcome: 'MEASURED', behind: 0, measured: true, reason: 'MEASURED', detail: '');
 
   @override
+  Future<List<Followed>> refreshProjects({String? project}) async => const <Followed>[];
+
+  @override
+  Future<TaskRefreshed> refreshTask(String task) async => const TaskRefreshed(outcome: 'UNCHANGED');
+
+  @override
   Future<Restored> restoreBackup(String project, String bundle,
           {bool? dryRun, bool? force, String? repository}) async =>
       const Restored(
@@ -728,6 +757,23 @@ class _Machine implements FleetBackend {
   @override
   Future<Labelled> labelTask(String task, {String? label}) async =>
       const Labelled(outcome: 'LABELLED', label: '');
+
+  @override
+  Future<HandInPart> handIn(String task,
+          {required String name,
+          required int bytes,
+          required String sha256,
+          required int offset,
+          required List<int> part}) async =>
+      throw const FeatureNotSupported('HandIn');
+
+  @override
+  Future<HandedFile> takeBack(String task, String name) async =>
+      throw const FeatureNotSupported('TakeBack');
+
+  @override
+  Future<List<HandInEvent>> handIns(String task) async =>
+      throw const FeatureNotSupported('HandIns');
 
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:sokar_frontend/client.dart';
 
 import 'fleet_model.dart';
+import 'hand_in.dart';
 import 'machines.dart';
 import 'narrowing.dart';
 import 'notifications.dart';
@@ -150,6 +151,9 @@ List<Command> workCommands({
   required void Function(Task task) narrowTheWork,
   void Function(Task task)? talkForTheWork,
   void Function(Task task)? tellTheWork,
+  void Function(Task task)? handInTo,
+  void Function(Task task)? takeBackFrom,
+  void Function(Task task)? refreshFromItsSource,
   VoidCallback? unlockTheVault,
 }) {
   const nothingSelected = 'no work is selected';
@@ -291,6 +295,35 @@ List<Command> workCommands({
       home: Home.tileMenu,
       run: () => nameTheWork(task!),
       unavailable: task == null ? nothingSelected : null,
+    ),
+    Command(
+      id: 'work.handIn',
+      label: 'Hand it a file from this computer',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => handInTo!(task!),
+      unavailable: handInTo == null ? 'not offered here' : HandingIn.whyNot(task),
+    ),
+    Command(
+      id: 'work.takeBack',
+      label: 'Take back a file it was handed',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => takeBackFrom!(task!),
+      unavailable: takeBackFrom == null ? 'not offered here' : HandingIn.whyNotTakeBack(task),
+    ),
+    // What moved in the checkout or the remote it works from, brought to it without stopping it.
+    Command(
+      id: 'work.refresh',
+      label: 'Bring it up to its source',
+      group: 'Work',
+      home: Home.tileMenu,
+      run: () => refreshFromItsSource!(task!),
+      unavailable: refreshFromItsSource == null
+          ? 'not offered here'
+          : task == null
+              ? nothingSelected
+              : null,
     ),
     Command(
       id: 'work.recreate',
@@ -750,6 +783,9 @@ List<Command> commandsFor({
   required void Function(Task task) narrowTheWork,
   void Function(Task task)? talkForTheWork,
   void Function(Task task)? tellTheWork,
+  void Function(Task task)? handInTo,
+  void Function(Task task)? takeBackFrom,
+  void Function(Task task)? refreshFromItsSource,
   VoidCallback? unlockTheVault,
   required VoidCallback openTheGate,
   required VoidCallback openEgress,
@@ -1005,6 +1041,9 @@ List<Command> commandsFor({
       narrowTheWork: narrowTheWork,
       talkForTheWork: talkForTheWork,
       tellTheWork: tellTheWork,
+      handInTo: handInTo,
+      takeBackFrom: takeBackFrom,
+      refreshFromItsSource: refreshFromItsSource,
       unlockTheVault: unlockTheVault,
     ),
     Command(

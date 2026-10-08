@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -462,6 +463,173 @@ class FakeBackend implements FleetBackend {
       label: caption,
     );
   }
+
+  /// Every part of a hand-in that arrived: which task, which file, where it started and how long.
+  final List<({String task, String name, int offset, int length})> parts =
+      <({String task, String name, int offset, int length})>[];
+
+  /// Set to lose the reply to the next part after keeping it, as a cut connection does.
+  bool loseTheNextReply = false;
+
+  /// Set to refuse the next hand-in or take-back with this, before anything is kept.
+  VarlinkException? refuseTheHandIn;
+
+  /// Set for a machine older than hand-in, which answers `MethodNotFound`.
+  bool noHandIn = false;
+
+  /// Set to keep every part but never place the file, as a machine that never completes it.
+  bool neverPlaces = false;
+
+  final Map<String, ({int bytes, String sha256, List<int> got})> _incoming =
+      <String, ({int bytes, String sha256, List<int> got})>{};
+
+  final Map<String, List<HandInEvent>> _handInRecord = <String, List<HandInEvent>>{};
+
+  /// What arrived in a task, by file name, for a scenario to compare with what was read here.
+  final Map<String, List<int>> arrived = <String, List<int>>{};
+
+  @override
+  Future<HandInPart> handIn(String task,
+      {required String name,
+      required int bytes,
+      required String sha256,
+      required int offset,
+      required List<int> part}) async {
+    if (noHandIn) throw const FeatureNotSupported('HandIn');
+    parts.add((task: task, name: name, offset: offset, length: part.length));
+    final refusal = refuseTheHandIn;
+    if (refusal != null) {
+      refuseTheHandIn = null;
+      throw refusal;
+    }
+    final to = _runningOrRefused(task);
+    final limit = to.handInLimit ?? 0;
+    if (bytes > limit) {
+      throw VarlinkException('org.fuin.sokar.Tasks1.FileTooLarge', {'bytes': bytes, 'limit': limit});
+    }
+    final key = '$task/$name';
+    var coming = _incoming[key];
+    if (coming != null && (coming.bytes != bytes || coming.sha256 != sha256)) {
+      throw VarlinkException('org.fuin.sokar.Tasks1.HandInInProgress',
+          {'name': name, 'received': coming.got.length, 'bytes': coming.bytes});
+    }
+    coming ??= _incoming[key] = (bytes: bytes, sha256: sha256, got: <int>[]);
+    if (offset != coming.got.length) {
+      throw VarlinkException(
+          'org.fuin.sokar.Tasks1.PartOutOfOrder', {'name': name, 'received': coming.got.length});
+    }
+    coming.got.addAll(part);
+    if (loseTheNextReply) {
+      loseTheNextReply = false;
+      throw const VarlinkDisconnected('the reply never arrived');
+    }
+    if (coming.got.length < bytes || neverPlaces) return HandInPart(received: coming.got.length);
+    _incoming.remove(key);
+    final actual = crypto.sha256.convert(coming.got).toString();
+    if (coming.got.length != bytes || actual != sha256) {
+      throw VarlinkException('org.fuin.sokar.Tasks1.FileDiffers', {'expected': sha256, 'actual': actual});
+    }
+    final placed = HandedFile(
+        name: name, bytes: bytes, sha256: sha256, at: '2026-10-06T10:00:00Z', by: 'somebody', run: to.run ?? '');
+    final before = to.files ?? const <HandedFile>[];
+    final replaced = before.any((each) => each.name == name);
+    arrived['$task/$name'] = List<int>.of(coming.got);
+    _withFiles(task, [for (final each in before) if (each.name != name) each, placed]);
+    (_handInRecord[task] ??= <HandInEvent>[]).add(HandInEvent(event: replaced ? 'replaced' : 'given', file: placed));
+    return HandInPart(received: bytes, file: placed);
+  }
+
+  @override
+  Future<HandedFile> takeBack(String task, String name) async {
+    if (noHandIn) throw const FeatureNotSupported('TakeBack');
+    final refusal = refuseTheHandIn;
+    if (refusal != null) {
+      refuseTheHandIn = null;
+      throw refusal;
+    }
+    final from = _runningOrRefused(task);
+    final files = from.files ?? const <HandedFile>[];
+    final file = files.where((each) => each.name == name).firstOrNull;
+    if (file == null) {
+      throw VarlinkException('org.fuin.sokar.Tasks1.NoSuchFile', {'task': task, 'name': name});
+    }
+    _withFiles(task, [for (final each in files) if (each.name != name) each]);
+    (_handInRecord[task] ??= <HandInEvent>[]).add(HandInEvent(event: 'taken back', file: file));
+    return file;
+  }
+
+  @override
+  Future<List<HandInEvent>> handIns(String task) async {
+    if (noHandIn) throw const FeatureNotSupported('HandIns');
+    return List<HandInEvent>.of(_handInRecord[task] ?? const <HandInEvent>[]);
+  }
+
+  Task _runningOrRefused(String task) {
+    final found = _tasks.where((each) => each.name == task).firstOrNull;
+    if (found == null) throw VarlinkException('org.fuin.sokar.Tasks1.NoSuchTask', {'task': task});
+    if (!found.running) throw VarlinkException('org.fuin.sokar.Tasks1.NotRunning', {'task': task});
+    return found;
+  }
+
+  /// Puts [files] onto [task], every other field kept, and tells whoever watches.
+  void _withFiles(String task, List<HandedFile> files) {
+    _tasks = <Task>[
+      for (final each in _tasks)
+        if (each.name == task) withHandIn(each, files: files) else each,
+    ];
+    _changes.add(_tasks);
+  }
+
+  /// [task] with what hand-in adds to it, every other field kept.
+  static Task withHandIn(Task task,
+          {required List<HandedFile>? files,
+          int? limit,
+          String? run,
+          List<Build>? builds,
+          String? buildReader,
+          String? buildProblem}) =>
+      Task(
+        name: task.name,
+        label: task.label,
+        project: task.project,
+        securityClass: task.securityClass,
+        state: task.state,
+        running: task.running,
+        helpers: task.helpers,
+        agent: task.agent,
+        provider: task.provider,
+        mode: task.mode,
+        prompt: task.prompt,
+        branch: task.branch,
+        since: task.since,
+        activity: task.activity,
+        waitingFor: task.waitingFor,
+        clearance: task.clearance,
+        waiting: task.waiting,
+        task: task.task,
+        startAction: task.startAction,
+        startDetail: task.startDetail,
+        phase: task.phase,
+        repository: task.repository,
+        credentials: task.credentials,
+        grants: task.grants,
+        agentEnded: task.agentEnded,
+        run: run ?? task.run,
+        handInLimit: limit ?? task.handInLimit,
+        files: files,
+        builds: builds ?? task.builds,
+        buildReader: buildReader ?? task.buildReader,
+        buildProblem: buildProblem ?? task.buildProblem,
+      );
+
+  /// Changes what the machine says about [work]'s builds, every other field kept.
+  void followBuilds(String work, {List<Build>? builds, String? reader, String? problem}) => publish(<Task>[
+        for (final task in _tasks)
+          if (task.name == work)
+            withHandIn(task, files: task.files, builds: builds, buildReader: reader, buildProblem: problem)
+          else
+            task,
+      ]);
 
   /// What `Credentials` answers. A scenario sets it to produce a shut store, which is a state no
   /// contrived list of names can express.
@@ -1033,6 +1201,51 @@ class FakeBackend implements FleetBackend {
     syncs.add(project);
     syncedIn.add(repository);
     return theSyncAnswers;
+  }
+
+  /// Every task a refresh from its source was asked for.
+  final List<String> taskRefreshes = <String>[];
+
+  /// What the next refresh of a task answers. Set by the scenario.
+  TaskRefreshed taskRefreshAnswers = const TaskRefreshed(outcome: 'UNCHANGED');
+
+  @override
+  Future<TaskRefreshed> refreshTask(String task) async {
+    taskRefreshes.add(task);
+    return taskRefreshAnswers;
+  }
+
+  /// Every project a refresh was asked for, null for all of them.
+  final List<String?> refreshes = <String?>[];
+
+  /// Held open by a scenario so a refresh is seen under way; completed when the machine answers.
+  Completer<void>? refreshHeld;
+
+  /// What the next refresh finds instead of the commit in force, by outcome. Set by the scenario.
+  String? nextRefreshFinds;
+
+  /// Projects this account no longer follows, so a refresh of one is refused.
+  final Set<String> noLongerFollowed = <String>{};
+
+  /// Acts like Sokar: fetches now and answers the records as they are afterwards.
+  @override
+  Future<List<Followed>> refreshProjects({String? project}) async {
+    refreshes.add(project);
+    if (project != null && noLongerFollowed.contains(project)) {
+      throw VarlinkException('org.fuin.sokar.Tasks1.NoSuchProject', {'project': project});
+    }
+    await refreshHeld?.future;
+    return <Followed>[
+      for (final each in theProjectsItHas)
+        if (each.following case final followed? when project == null || each.name == project)
+          Followed(
+            name: each.name,
+            url: followed.url,
+            commit: 'c0ffee1d2e3f',
+            outcome: nextRefreshFinds ?? 'UNCHANGED',
+            needsAPerson: nextRefreshFinds != null,
+          ),
+    ];
   }
 
   /// Refs a restore would destroy, or empty when it would destroy none. Set by the scenario.

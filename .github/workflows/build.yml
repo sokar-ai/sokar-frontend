@@ -83,10 +83,22 @@ jobs:
 
       # No page or source cites an issue, whose file is deleted once it is done, and every page under
       # doc/ is in the site's navigation once, with no link out of doc/.
-      - name: Check the citations and the documentation site
+      - name: Check the citations, the documentation site and the READMEs
         run: |
           java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-citations .
+          java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-readmes .
           java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-doc-site doc mkdocs.yml
+
+      # A release depends only on releases: every -SNAPSHOT Maven resolved for this build - the parent,
+      # the tools and their plugin dependencies, inactive profiles included - is refused on a tag.
+      # pom.xml's own 0-SNAPSHOT is the reactor's and outside the rule; the version that ships is
+      # pubspec.yaml's, which *Which channel* holds.
+      - name: Check that a release uses releases only
+        if: github.ref_type == 'tag'
+        run: |
+          ./mvnw -B -q -s settings.xml help:effective-pom -Doutput=build/effective-pom.xml
+          java -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.release.Main check-releases \
+            build/effective-pom.xml --requires org.fuin.sokar:sokar-release
 
       # GTK and the toolchain, which the runner has by default in neither case. The third-party
       # lists go first: `apt-get update` exits 100 when any index fails, and everything installed

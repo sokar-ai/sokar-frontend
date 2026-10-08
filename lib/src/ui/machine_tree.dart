@@ -40,6 +40,9 @@ class ProjectHeader extends StatelessWidget {
     this.highlight,
     this.onShown,
     this.onSync,
+    this.onCheck,
+    this.checking = false,
+    this.checked = const <String>[],
     this.onBackups,
     this.onOpens,
     this.onReach,
@@ -65,6 +68,15 @@ class ProjectHeader extends StatelessWidget {
 
   /// Asks one repository's upstream how far behind it is, now.
   final void Function(String repository)? onSync;
+
+  /// Fetches the project now and asks its repositories' upstream; null for a project not followed.
+  final VoidCallback? onCheck;
+
+  /// Whether that check runs now.
+  final bool checking;
+
+  /// What the last check found, a line each.
+  final List<String> checked;
 
   /// Shows what has been backed up of one repository.
   final void Function(String repository)? onBackups;
@@ -154,12 +166,34 @@ class ProjectHeader extends StatelessWidget {
           Text(words, key: const Key('project-homeserver'), style: theme.textTheme.bodySmall),
         // Where this account's following has got, and why it stopped when it did.
         if (p.following case final followed?)
-          Text(
-            followed.words,
-            key: const Key('project-following'),
-            style: followed.needsAPerson
-                ? theme.textTheme.bodySmall?.copyWith(color: scheme.error)
-                : theme.textTheme.bodySmall,
+          Wrap(
+            spacing: Space.small,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Text(
+                followed.words,
+                key: const Key('project-following'),
+                style: followed.needsAPerson
+                    ? theme.textTheme.bodySmall?.copyWith(color: scheme.error)
+                    : theme.textTheme.bodySmall,
+              ),
+              // Now rather than at the machine's next round, which can be minutes away - after the
+              // vault was opened, say, or a push to the project's repository.
+              if (checking)
+                Text('checking…', key: const Key('project-checking'), style: theme.textTheme.bodySmall)
+              else if (onCheck != null && project.canBeActedOn)
+                TextButton(
+                  key: const Key('project-check-now'),
+                  onPressed: onCheck,
+                  child: const Text('Check it now'),
+                ),
+            ],
+          ),
+        if (checked.isNotEmpty)
+          Column(
+            key: const Key('project-check-said'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[for (final line in checked) Text(line, style: theme.textTheme.bodySmall)],
           ),
         if (workRepositories.isNotEmpty) ...<Widget>[
           const SizedBox(height: Space.normal),

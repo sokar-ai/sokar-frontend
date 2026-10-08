@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart' as crypto;
+
 import 'mock_daemon.dart';
 
 /// A machine, answered by a [MockDaemon] the way a real one would answer.
@@ -137,6 +139,8 @@ class MockMachine {
     daemon.method('Panic', _panic);
     daemon.method('Unfollow', _deleteProject);
     daemon.method('Follow', _follow);
+    daemon.method('RefreshProjects', _refreshProjects);
+    daemon.method('RefreshTask', _refreshTask);
     daemon.method('Doctor', _doctor);
     daemon.method('Providers', _providers);
     daemon.method('ImportCredential', _importCredential);
@@ -152,6 +156,9 @@ class MockMachine {
     daemon.method('SetClearance', _setClearance);
     daemon.stream('Prepare', _prepare);
     daemon.method('Label', _label);
+    daemon.method('HandIn', _handIn);
+    daemon.method('TakeBack', _takeBack);
+    daemon.method('HandIns', _handIns);
     daemon.method('CanStart', _canStart);
     daemon.method('Credentials', _credentials);
     daemon.method('CredentialDeclare', _credentialDeclare);
@@ -995,6 +1002,27 @@ class MockMachine {
   /// Follows a repository and takes it at once, as Sokar does — so the project can be worked in
   /// straight after. A URL saying `unsigned` is refused as `NOT_SIGNED`, which needs a person; the
   /// same name at another address is refused, because that is a different project wearing a name.
+  /// Fetches now, as Sokar does: the records as they are afterwards, and `NoSuchProject` for a name
+  /// this account does not follow. A commit already in force comes back `UNCHANGED`.
+  Map<String, dynamic> _refreshProjects(Map<String, dynamic> parameters) {
+    final name = parameters['project'] as String?;
+    if (name != null && !_followed.containsKey(name)) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.NoSuchProject', <String, dynamic>{'project': name});
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    return <String, dynamic>{
+      'projects': <Map<String, dynamic>>[
+        for (final each in _followed.entries)
+          if (name == null || each.key == name)
+            _followed[each.key] = <String, dynamic>{
+              ...each.value,
+              'at': now,
+              if ((each.value['commit'] as String? ?? '').isNotEmpty) 'outcome': 'UNCHANGED',
+            },
+      ],
+    };
+  }
+
   Map<String, dynamic> _follow(Map<String, dynamic> parameters) {
     final name = parameters['name'] as String? ?? '';
     final url = parameters['url'] as String? ?? '';
@@ -1738,9 +1766,145 @@ class MockMachine {
             : 'RESUME',
         'startDetail': '',
         'phase': '',
+        'run': '${task['name']}-run-1',
+        'handInLimit': handInLimit,
+        'files': <Map<String, dynamic>>[],
+        // No forge follows this machine's work, which is a state, not an older machine.
+        'builds': <Map<String, dynamic>>[],
+        'buildReader': '',
+        'buildProblem': '',
         ...task,
       },
   ];
+
+  /// The bytes one file handed to a task may have, as a project's `limits.hand_in` sets it.
+  int handInLimit = 64 * 1024 * 1024;
+
+  final Map<String, ({int bytes, String sha256, List<int> got})> _incoming =
+      <String, ({int bytes, String sha256, List<int> got})>{};
+
+  final Map<String, List<Map<String, dynamic>>> _handInRecord =
+      <String, List<Map<String, dynamic>>>{};
+
+  /// Keeps one part of a file handed to a running task, and places the file once it is whole and
+  /// its SHA-256 matches, as the machine does.
+  Map<String, dynamic> _handIn(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final file = parameters['name'] as String? ?? '';
+    final bytes = parameters['bytes'] as int? ?? 0;
+    final sha256 = parameters['sha256'] as String? ?? '';
+    final offset = parameters['offset'] as int? ?? 0;
+    final task = _runningOrRefused(name);
+    if (file.isEmpty || file.contains('/') || file.startsWith('.')) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.FileNameRefused',
+          <String, dynamic>{'name': file, 'reason': 'not a plain file name'});
+    }
+    if (bytes > handInLimit) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.FileTooLarge',
+          <String, dynamic>{'bytes': bytes, 'limit': handInLimit});
+    }
+    final key = '$name/$file';
+    var coming = _incoming[key];
+    if (coming != null && (coming.bytes != bytes || coming.sha256 != sha256)) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.HandInInProgress',
+          <String, dynamic>{'name': file, 'received': coming.got.length, 'bytes': coming.bytes});
+    }
+    coming ??= _incoming[key] = (bytes: bytes, sha256: sha256, got: <int>[]);
+    if (offset != coming.got.length) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.PartOutOfOrder',
+          <String, dynamic>{'name': file, 'received': coming.got.length});
+    }
+    coming.got.addAll(base64.decode(parameters['part'] as String? ?? ''));
+    if (coming.got.length < bytes) return <String, dynamic>{'received': coming.got.length};
+    _incoming.remove(key);
+    final actual = crypto.sha256.convert(coming.got).toString();
+    if (coming.got.length != bytes || actual != sha256) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.FileDiffers',
+          <String, dynamic>{'expected': sha256, 'actual': actual});
+    }
+    final placed = <String, dynamic>{
+      'name': file,
+      'bytes': bytes,
+      'sha256': sha256,
+      'at': DateTime.now().toUtc().toIso8601String(),
+      'by': 'somebody',
+      'run': '$name-run-1',
+    };
+    final before = _filesOf(task);
+    _putFiles(name, <Map<String, dynamic>>[
+      for (final each in before)
+        if (each['name'] != file) each,
+      placed,
+    ]);
+    (_handInRecord[name] ??= <Map<String, dynamic>>[]).add(<String, dynamic>{
+      'event': before.any((each) => each['name'] == file) ? 'replaced' : 'given',
+      'file': placed,
+    });
+    return <String, dynamic>{'received': bytes, 'file': placed};
+  }
+
+  /// Takes a handed-in file out of a running task again.
+  Map<String, dynamic> _takeBack(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final file = parameters['name'] as String? ?? '';
+    final files = _filesOf(_runningOrRefused(name));
+    final taken = files.where((each) => each['name'] == file).firstOrNull;
+    if (taken == null) {
+      throw MockRefusal(
+          'org.fuin.sokar.Tasks1.NoSuchFile', <String, dynamic>{'task': name, 'name': file});
+    }
+    _putFiles(name, <Map<String, dynamic>>[
+      for (final each in files)
+        if (each['name'] != file) each,
+    ]);
+    (_handInRecord[name] ??= <Map<String, dynamic>>[])
+        .add(<String, dynamic>{'event': 'taken back', 'file': taken});
+    return <String, dynamic>{'file': taken};
+  }
+
+  /// The record under a task's name, also after the task is gone.
+  Map<String, dynamic> _handIns(Map<String, dynamic> parameters) => <String, dynamic>{
+        'record': _handInRecord[parameters['task'] as String? ?? ''] ?? <Map<String, dynamic>>[],
+      };
+
+  /// Brings a task up to its source, as Sokar does: an online task fetches its upstream itself, and
+  /// the stand-in's gate never moves, so any other task is up to date.
+  Map<String, dynamic> _refreshTask(Map<String, dynamic> parameters) {
+    final name = parameters['task'] as String? ?? '';
+    final task = tasks.where((each) => each['name'] == name).firstOrNull;
+    if (task == null) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.NoSuchTask', <String, dynamic>{'task': name});
+    }
+    return <String, dynamic>{
+      'outcome': task['securityClass'] == 'online' ? 'NOT_GATED' : 'UNCHANGED',
+      'moved': <String, String>{},
+      'detail': '',
+      'told': false,
+    };
+  }
+
+  Map<String, dynamic> _runningOrRefused(String name) {
+    final task = tasks.where((each) => each['name'] == name).firstOrNull;
+    if (task == null) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.NoSuchTask', <String, dynamic>{'task': name});
+    }
+    if (task['running'] != true) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.NotRunning', <String, dynamic>{'task': name});
+    }
+    return task;
+  }
+
+  static List<Map<String, dynamic>> _filesOf(Map<String, dynamic> task) => task['files'] is List
+      ? (task['files'] as List).whereType<Map<String, dynamic>>().toList()
+      : <Map<String, dynamic>>[];
+
+  void _putFiles(String name, List<Map<String, dynamic>> files) {
+    tasks = <Map<String, dynamic>>[
+      for (final each in tasks)
+        if (each['name'] == name) <String, dynamic>{...each, 'files': files} else each,
+    ];
+    _changes.add(<String, dynamic>{'tasks': _listing});
+  }
 
   /// Stops a task and keeps it: its container is its workspace.
   Map<String, dynamic> _stop(Map<String, dynamic> parameters) {

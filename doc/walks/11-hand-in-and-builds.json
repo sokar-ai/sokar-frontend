@@ -1,0 +1,148 @@
+{
+  "title": "Walk 11: a file handed to the work, and the build of its push",
+  "steps": [
+    {
+      "say": "Walk 11: eine Datei an die Arbeit geben und zurücknehmen, und was der Build ihres Pushs sagt, mit dem echten Claude Code auf walk9. Zuerst den Tresor von walk9 öffnen (er ist seit dem Neustart der VM zu), in einem Terminal auf dem Desktop:\n\nssh walk9@192.168.122.174 'bash -lc \"sokar vault unlock && sokar vault list && sokar project following\"'\n\n„vault list“ nennt sokar-test-actions und die drei deploy:sokar-test-project:…; „project following“ zeigt c42f9cd, nicht mehr vault_locked. Dann „Next“ hier.",
+      "at": []
+    },
+    {
+      "say": "Links „Machines“: walk9 antwortet mit Sokar 0.4.1~snapshot.259. Fehlt walk9 in der Liste: „Watch another machine…“, Name walk9, „Raise the forward for me“, „Where it is“ walk9@192.168.122.174, das Socket-Feld leer lassen (die Maschine wird gefragt).",
+      "at": [
+        "rail-machine walk9",
+        "rail machines",
+        "open-rail"
+      ]
+    },
+    {
+      "say": "Links „Projects“, die Zeile sokar-test-project: online, drei Repositories.",
+      "at": [
+        "project sokar-test-project",
+        "rail projects",
+        "open-rail"
+      ]
+    },
+    {
+      "say": "Die rote Arbeit starten: auf der Seite von sokar-test-project an der Zeile sokar-test-2 rechts ⋮ → „Start work in sokar-test-2“ (oder links „Work“ → „New work“, walk9, sokar-test-project, sokar-test-2).",
+      "at": [
+        "start-in-*test-2",
+        "repository-menu *test-2",
+        "new-work"
+      ]
+    },
+    {
+      "say": "„Which repository“: sokar-test-2. Name: ganz löschen, red tippen. „Which agent“: Claude Code, „How you take part“: „A shell, driven by hand“. Fragt das Formular nach der Anmeldung bei Claude: „Sign in first“, Link öffnen, Code einfügen, „Done“.",
+      "at": [
+        "start-name",
+        "start-repository-*",
+        "start-agent",
+        "start-mode-agent",
+        "start-sign-in"
+      ]
+    },
+    {
+      "say": "„Start it“. Das Terminal von red öffnet sich, Claude Code startet. Es bekommt Sokars Leitfaden /run/sokar/guide/README.md mit: was in /sokar/files ankommt und was nach einem Push zu lesen ist.",
+      "at": "start-go"
+    },
+    {
+      "say": "„Leave“ oben rechts: red läuft weiter.",
+      "at": "leave-session",
+      "then": "!leave-session"
+    },
+    {
+      "say": "Links „Work“, die Kachel von red: eine eigene Zeile „No build yet“ (grau), darunter „no push yet; its builds are read from github“.",
+      "at": [
+        "tile-build",
+        "rail work",
+        "open-rail"
+      ]
+    },
+    {
+      "say": "Eine Datei vorbereiten, im Terminal auf dem Desktop:\n\necho \"a note for the agent\" > /tmp/note.txt\n\nDann an der Kachel von red ⋮ → „Hand it a file from this computer“, im Dateidialog /tmp/note.txt.",
+      "at": [
+        "text:Hand it a file from this computer",
+        "tile-menu *red"
+      ]
+    },
+    {
+      "say": "Die Statuszeile sagt „note.txt is in sokar-sokar-test-project-red now, as /sokar/files/note.txt.“ Die Arbeit öffnen mit › rechts an der Kachel: „Handed in“ zeigt note.txt, 21 bytes, by walk9; „Hand-in record“ note.txt given by walk9.",
+      "at": [
+        "handed-in",
+        "hand-in-record",
+        "tile-open"
+      ]
+    },
+    {
+      "say": "Claudes Terminal (der Knopf neben der Mini-Konsole der Kachel): ruht Claude an seinem Prompt, steht dort „A file arrived in /sokar/files: note.txt - read /run/sokar/guide/README.md if you do not know what it is for.“ Schau, was Claude damit macht.",
+      "at": [
+        "tile-fold *red",
+        "leave-session"
+      ]
+    },
+    {
+      "say": "Zurücknehmen: an der Kachel ⋮ → „Take back a file it was handed“ → „note.txt, 21 bytes, by walk9“. Die Statuszeile: „note.txt is out of … again.“ In der geöffneten Arbeit steht im „Hand-in record“ jetzt auch note.txt taken back by walk9.",
+      "at": [
+        "take back *",
+        "text:Take back a file it was handed",
+        "tile-menu *red"
+      ]
+    },
+    {
+      "say": "Der rote Build: auf den Branch der Arbeit pushen, wie der Agent es täte (der Branch heisst wie die Arbeit, red), im Terminal auf dem Desktop:\n\ncd ~/.sokar/git/sokar-test-2 && git fetch -q origin && git switch -c red origin/main && git commit -q --allow-empty -m \"A push the task's build watch follows\" && git push -q origin red\n\nDann „Next“ hier.",
+      "at": [],
+      "then": "!walk-stays-until-next"
+    },
+    {
+      "say": "Die Kachel von red: nach höchstens 20 Sekunden „Build queued“ oder „Build running“ (gelb), wenn GitHub fertig ist „Build failed“ (rot, ✕), darunter „<Commit> · 3 jobs, 1 failed · …“.",
+      "at": [
+        "tile-build"
+      ]
+    },
+    {
+      "say": "In der geöffneten Arbeit: „Builds“ listet jeden Job mit seinem Ergebnis – Build / unit tests: failure, mit der Log-Datei in /sokar/files, die beiden anderen success, no log here. „Handed in“ zeigt build-….txt und das Log, by Sokar.",
+      "at": [
+        "builds",
+        "handed-in",
+        "tile-open"
+      ]
+    },
+    {
+      "say": "Claudes Terminal: „A file arrived in /sokar/files: build-….txt …“ (und für das Log). Wie sein Leitfaden sagt, liest Claude das Ergebnis und das Log, das die job:-Zeile nennt – es endet mit „FooTest expected 1 but was 2“. Schau, was Claude daraus macht.",
+      "at": [
+        "tile-fold *red",
+        "leave-session"
+      ]
+    },
+    {
+      "say": "Die grüne Arbeit, auf walk9: links „Work“ → „New work“ → „Where should it run?“ walk9, dann sokar-test-project (oder links „Projects“ → sokar-test-project, an der Zeile sokar-test-1 ⋮ → „Start work in sokar-test-1“). Repository sokar-test-1, Name green, Claude Code, „A shell, driven by hand“, „Start it“, dann „Leave“.",
+      "at": [
+        "start-in-*test-1",
+        "repository-menu *test-1",
+        "new-work"
+      ]
+    },
+    {
+      "say": "Der grüne Build, im Terminal auf dem Desktop:\n\ncd ~/.sokar/git/sokar-test-1 && git fetch -q origin && git switch -c green origin/main && git commit -q --allow-empty -m \"A push the task's build watch follows\" && git push -q origin green\n\nDann „Next“ hier.",
+      "at": [],
+      "then": "!walk-stays-until-next"
+    },
+    {
+      "say": "Die Kachel von green: „Build passed“ (grün, ✓), darunter „<Commit> · 3 jobs · …“; in der geöffneten Arbeit unter „Builds“ jeder Job success, no log here (Logs kommen nur von fehlgeschlagenen Jobs), unter „Handed in“ build-….txt by Sokar, in Claudes Terminal die Zeile dazu.",
+      "at": [
+        "tile-build",
+        "builds",
+        "tile-open"
+      ]
+    },
+    {
+      "say": "Aufräumen: an beiden Kacheln ⋮ → „Stop it, keeping its workspace“, dann „Remove it“. Die Branches bei GitHub, im Terminal auf dem Desktop:\n\ncd ~/.sokar/git/sokar-test-2 && git switch -q main && git push -q origin --delete red\ncd ~/.sokar/git/sokar-test-1 && git switch -q main && git push -q origin --delete green\n\nDie Anmeldung bei Claude Code bleibt im Tresor von walk9, wie Du willst.",
+      "at": [
+        "text:Remove it",
+        "text:Stop it, keeping its workspace",
+        "tile-menu *green"
+      ]
+    },
+    {
+      "say": "Fertig. Schreib mir, was Du beim Übergeben, beim Zurücknehmen, bei den beiden Builds und in Claudes Terminal gesehen hast und was nicht."
+    }
+  ]
+}

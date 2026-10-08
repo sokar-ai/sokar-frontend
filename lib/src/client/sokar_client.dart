@@ -406,6 +406,40 @@ class SokarClient {
   Future<Labelled> label(String task, {String? label}) async =>
       Labelled.from(await _call('Label', {'task': task, 'label': ?label}));
 
+  /// Sends one part of a file handed to a running [task]: [part] starts at [offset] of a file of
+  /// [bytes] with [sha256]. Each part is a call of its own, so a cut connection loses one part, and
+  /// the machine's `PartOutOfOrder` says where to go on.
+  Future<HandInPart> handIn(String task,
+          {required String name,
+          required int bytes,
+          required String sha256,
+          required int offset,
+          required List<int> part}) async =>
+      HandInPart.from(await _call('HandIn', <String, dynamic>{
+        'task': task,
+        'name': name,
+        'bytes': bytes,
+        'sha256': sha256,
+        'offset': offset,
+        'part': base64.encode(part),
+      }));
+
+  /// Takes the file [name] out of a running [task] again.
+  Future<HandedFile> takeBack(String task, String name) async {
+    final reply = await _call('TakeBack', {'task': task, 'name': name});
+    return HandedFile.from(
+        reply['file'] is Map<String, dynamic> ? reply['file'] as Map<String, dynamic> : const {});
+  }
+
+  /// Every hand-in, replacement and removal under [task]'s name, oldest first, of every run that
+  /// carried it - also after the task is gone.
+  Future<List<HandInEvent>> handIns(String task) async {
+    final record = (await _call('HandIns', {'task': task}))['record'];
+    return record is List
+        ? record.whereType<Map<String, dynamic>>().map(HandInEvent.from).toList()
+        : const <HandInEvent>[];
+  }
+
   /// Shuts the vault.
   ///
   /// **There is deliberately no passphrase `Unlock`.** A daemon has no terminal to take a passphrase
@@ -640,6 +674,23 @@ class SokarClient {
   /// Which project repositories this account follows, and how far each has got.
   Future<List<Followed>> following() async {
     final reply = await _call('Following', const <String, dynamic>{});
+    final projects = reply['projects'];
+    return projects is List
+        ? projects.whereType<Map<String, dynamic>>().map(Followed.from).toList()
+        : const <Followed>[];
+  }
+
+  /// Brings [task]'s repository at the gate up to its source and tells its agent what moved.
+  Future<TaskRefreshed> refreshTask(String task) async =>
+      TaskRefreshed.from(await _call('RefreshTask', {'task': task}));
+
+  /// Fetches a followed project's repository now, or every one's when [project] is null, rather than at
+  /// the machine's next round, and answers their records as they are afterwards.
+  ///
+  /// A fetch that failed is a record with its outcome, never an error; a named project this account
+  /// does not follow raises `NoSuchProject`.
+  Future<List<Followed>> refreshProjects({String? project}) async {
+    final reply = await _call('RefreshProjects', {'project': ?project});
     final projects = reply['projects'];
     return projects is List
         ? projects.whereType<Map<String, dynamic>>().map(Followed.from).toList()

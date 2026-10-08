@@ -396,10 +396,40 @@ class Task {
     this.credentials = const <String, String>{},
     this.grants = const <String, Authorization>{},
     this.agentEnded,
+    this.run,
+    this.handInLimit,
+    this.files,
+    this.builds,
+    this.buildReader,
+    this.buildProblem,
   });
 
   /// How its agent ended, or null while it has not or the machine does not say.
   final AgentEnded? agentEnded;
+
+  /// The container this task is, which tells its hand-in record from that of a later task with the
+  /// same name. Null from a machine that does not say.
+  final String? run;
+
+  /// The bytes one file handed to this task may have. Null from a machine without hand-in, which
+  /// is no limit of zero.
+  final int? handInLimit;
+
+  /// What the task has been handed, oldest first. **Null is not empty**: a machine without hand-in
+  /// cannot say, and a person must not read that as *nothing was handed in*.
+  final List<HandedFile>? files;
+
+  /// The builds of what this task pushed, newest first. **Null is not empty**: a machine without
+  /// them cannot say, which is not *nothing was built*.
+  final List<Build>? builds;
+
+  /// The forge whose builds of this task's pushes are followed, `""` when none are; null from a
+  /// machine that cannot say.
+  final String? buildReader;
+
+  /// Why the named reader does not follow them, `""` while it does; null from a machine that cannot
+  /// say.
+  final String? buildProblem;
 
   /// Reads one from a reply.
   factory Task.from(Map<String, dynamic> map) => Task(
@@ -431,6 +461,170 @@ class Task {
         grants: Authorization.allIn(map, 'grants'),
         agentEnded: map['agentEnded'] is Map<String, dynamic>
             ? AgentEnded.from(map['agentEnded'] as Map<String, dynamic>)
+            : null,
+        run: map['run'] is String ? map['run'] as String : null,
+        handInLimit: map['handInLimit'] is num ? (map['handInLimit'] as num).toInt() : null,
+        files: map['files'] is List
+            ? (map['files'] as List).whereType<Map<String, dynamic>>().map(HandedFile.from).toList()
+            : null,
+        builds: map['builds'] is List
+            ? (map['builds'] as List).whereType<Map<String, dynamic>>().map(Build.from).toList()
+            : null,
+        buildReader: map['buildReader'] is String ? map['buildReader'] as String : null,
+        buildProblem: map['buildProblem'] is String ? map['buildProblem'] as String : null,
+      );
+}
+
+/// The build of one commit a task pushed, as the machine follows it at the forge.
+class Build {
+  /// The commit that was pushed.
+  final String commit;
+
+  /// `queued`, `running`, `success`, `failure`, `cancelled` or `unknown`; a string, so a value added
+  /// later renders rather than throws.
+  final String verdict;
+
+  /// Every job the forge reported, once the verdict is `failure` or final; empty before.
+  final List<BuildJob> jobs;
+
+  /// When the verdict last changed, as the machine wrote it.
+  final String since;
+
+  /// Why it is `unknown`, or what more the forge said; empty otherwise.
+  final String detail;
+
+  /// Constructor taking every field.
+  const Build({
+    required this.commit,
+    required this.verdict,
+    this.jobs = const <BuildJob>[],
+    this.since = '',
+    this.detail = '',
+  });
+
+  /// Reads one from a reply.
+  factory Build.from(Map<String, dynamic> map) => Build(
+        commit: _string(map, 'commit'),
+        verdict: _string(map, 'verdict'),
+        jobs: _list(map, 'jobs').map(BuildJob.from).toList(),
+        since: _string(map, 'since'),
+        detail: _string(map, 'detail'),
+      );
+
+  /// The commit as people read it: its first twelve characters.
+  String get short => commit.length > 12 ? commit.substring(0, 12) : commit;
+
+  /// Whether the forge is still working on it, so no job is listed yet.
+  bool get underway => verdict == 'queued' || verdict == 'running';
+}
+
+/// One job of a build, as the forge names it.
+class BuildJob {
+  /// Workflow and job, as the forge spells them.
+  final String name;
+
+  /// What became of it, or its state while it runs, lower case as the forge says it.
+  final String result;
+
+  /// Its log's name in `/sokar/files`, or empty when none of it was delivered.
+  final String log;
+
+  /// Constructor taking every field.
+  const BuildJob({required this.name, required this.result, this.log = ''});
+
+  /// Reads one from a reply.
+  factory BuildJob.from(Map<String, dynamic> map) => BuildJob(
+        name: _string(map, 'name'),
+        result: _string(map, 'result'),
+        log: _string(map, 'log'),
+      );
+}
+
+/// One file handed to a running task, as the machine's record holds it.
+class HandedFile {
+  /// The value [by] has for what Sokar hands in itself, such as a build's verdict and its log.
+  static const sokar = 'sokar';
+
+  /// As it appears in the task, under `/sokar/files`.
+  final String name;
+
+  /// Its size.
+  final int bytes;
+
+  /// Of its content, lower-case hex.
+  final String sha256;
+
+  /// When it was complete in the task, as the machine wrote it.
+  final String at;
+
+  /// The account that handed it in, or [sokar].
+  final String by;
+
+  /// The task's run it went to.
+  final String run;
+
+  /// Constructor taking every field.
+  const HandedFile({
+    required this.name,
+    required this.bytes,
+    required this.sha256,
+    this.at = '',
+    this.by = '',
+    this.run = '',
+  });
+
+  /// Reads one from a reply.
+  factory HandedFile.from(Map<String, dynamic> map) => HandedFile(
+        name: _string(map, 'name'),
+        bytes: _int(map, 'bytes'),
+        sha256: _string(map, 'sha256'),
+        at: _string(map, 'at'),
+        by: _string(map, 'by'),
+        run: _string(map, 'run'),
+      );
+
+  /// Whether Sokar handed it in rather than a person; compared, never guessed from the name.
+  bool get bySokar => by == sokar;
+
+  /// Who handed it in, in words.
+  String get from => bySokar ? 'Sokar' : (by.isEmpty ? 'someone the machine does not name' : by);
+}
+
+/// One line of a task's hand-in record.
+class HandInEvent {
+  /// `given`, `replaced` or `taken back`; a string, so a value added later renders rather than throws.
+  final String event;
+
+  /// The file it was about.
+  final HandedFile file;
+
+  /// Constructor taking both.
+  const HandInEvent({required this.event, required this.file});
+
+  /// Reads one from a reply.
+  factory HandInEvent.from(Map<String, dynamic> map) => HandInEvent(
+        event: _string(map, 'event'),
+        file: HandedFile.from(
+            map['file'] is Map<String, dynamic> ? map['file'] as Map<String, dynamic> : const {}),
+      );
+}
+
+/// What one part of a hand-in did: how far the machine is, and the file once it is complete.
+class HandInPart {
+  /// Bytes the machine holds for this file.
+  final int received;
+
+  /// Set once the last part made it complete and it is in the task.
+  final HandedFile? file;
+
+  /// Constructor taking both.
+  const HandInPart({required this.received, this.file});
+
+  /// Reads one from a reply.
+  factory HandInPart.from(Map<String, dynamic> map) => HandInPart(
+        received: _int(map, 'received'),
+        file: map['file'] is Map<String, dynamic>
+            ? HandedFile.from(map['file'] as Map<String, dynamic>)
             : null,
       );
 }
@@ -751,8 +945,16 @@ class DefaultRepository {
   /// What its tasks name it by.
   final String name;
 
-  /// Where approved work goes: its `origin`.
+  /// Where approved work goes: for a [source] of `CHECKOUT` the checkout's path, else the address.
   final String upstream;
+
+  /// Where its history comes from and its approved work goes: `CHECKOUT` or `REMOTE`; null from a
+  /// machine older than one source per repository, which is not the same as either.
+  final String? source;
+
+  /// The checkout's `origin` where it was added from one, shown only and never reached; else the
+  /// address. Null from an older machine.
+  final String? remote;
 
   /// Where it is checked out on the machine, where it was added from one, or empty.
   final String checkout;
@@ -762,7 +964,21 @@ class DefaultRepository {
   final String claimedBy;
 
   /// Constructor taking every field.
-  const DefaultRepository({required this.name, required this.upstream, required this.checkout, required this.claimedBy});
+  const DefaultRepository(
+      {required this.name,
+      required this.upstream,
+      required this.checkout,
+      required this.claimedBy,
+      this.source,
+      this.remote});
+
+  /// Where its work comes from and goes, in one line; the address alone from an older machine.
+  String get comesFromAndGoes => switch (source) {
+        'CHECKOUT' => 'From the checkout $upstream, and back into it as sokar/<task>; '
+            '${(remote ?? '').isEmpty ? 'it has no remote' : 'its remote $remote is yours to pull and push'}',
+        'REMOTE' => 'From ${(remote ?? '').isEmpty ? upstream : remote}, and back there',
+        _ => upstream,
+      };
 
   /// Reads one from a reply.
   factory DefaultRepository.from(Map<String, dynamic> map) => DefaultRepository(
@@ -770,7 +986,50 @@ class DefaultRepository {
         upstream: _string(map, 'upstream'),
         checkout: _string(map, 'checkout'),
         claimedBy: _string(map, 'claimedBy'),
+        source: map['source'] as String?,
+        remote: map['remote'] as String?,
       );
+}
+
+/// What bringing a task up to its source did (`RefreshTask`).
+class TaskRefreshed {
+  /// `MOVED`, `UNCHANGED`, `NOT_GATED` or `FAILED`; another is said as it comes.
+  final String outcome;
+
+  /// Each branch that moved, and the commit it names now.
+  final Map<String, String> moved;
+
+  /// Why, for `FAILED`.
+  final String detail;
+
+  /// Whether its agent heard of it.
+  final bool told;
+
+  /// Constructor taking every field.
+  const TaskRefreshed({required this.outcome, this.moved = const <String, String>{}, this.detail = '', this.told = false});
+
+  /// Reads one from a reply.
+  factory TaskRefreshed.from(Map<String, dynamic> map) => TaskRefreshed(
+        outcome: _string(map, 'outcome'),
+        moved: <String, String>{
+          for (final each in ((map['moved'] as Map?) ?? const <String, dynamic>{}).entries) '${each.key}': '${each.value}',
+        },
+        detail: _string(map, 'detail'),
+        told: map['told'] == true,
+      );
+
+  /// What it did, for [task], in one line.
+  String wordsFor(String task) {
+    String short(String commit) => commit.length > 12 ? commit.substring(0, 12) : commit;
+    return switch (outcome) {
+      'MOVED' => '${[for (final each in moved.entries) '${each.key} moved to ${short(each.value)}'].join(', ')}; '
+          '${told ? 'its agent was told, and git fetch sokar brings it' : 'its agent was not told - git fetch sokar in $task brings it'}',
+      'UNCHANGED' => '$task is up to date with its source.',
+      'NOT_GATED' => '$task is not brought up to a source here: an online task fetches its upstream itself.',
+      'FAILED' => '$task could not be brought up to its source: $detail',
+      _ => '$task: ${outcome.toLowerCase().replaceAll('_', ' ')}${detail.isEmpty ? '' : ': $detail'}',
+    };
+  }
 }
 
 /// A machine's deploy key for one repository of a project: **only the public half**; the secret half

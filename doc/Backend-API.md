@@ -102,6 +102,8 @@ The IDL carries the detail, a comment per method and per field. The shape of it:
 |---|---|
 | **What exists** | `List`, `Watch` (streams), `Projects`, `WatchProjects` (streams), `Agents`, `Credentials` |
 | **Running tasks** | `Start` (creates or brings back; streams the build), `Stop` (keeps it), `Remove`, `Tail` (follows a log) |
+| **Builds of a push** | `Task.builds`, `buildReader`, `buildProblem` (no method: `Watch` carries them) |
+| **Files handed in** | `HandIn` (in parts), `TakeBack`, `HandIns` (the record, also after the task is gone) |
 | **The gate** | `Pending`, `Review`, `Approve`, `Reject` |
 | **Clearance** | `Prompts` (streams, and only streams), `Decide` |
 
@@ -110,6 +112,20 @@ Worth knowing before designing around them:
 - **`Stop` refuses.** A task holding commits that never reached the gate comes back as
   `HOLDS_WORK` and is left exactly as it was. That refusal is a feature and needs a real place in
   the interface, not an error toast.
+- **`HandIn` goes in parts, each a call of its own.** A request may be at most 4 MiB, the JSON
+  around the base64 included, and a single call has a deadline, so a file goes in parts of 1 MiB.
+  Every part repeats the name, size and SHA-256; a part at the wrong offset is refused as
+  `PartOutOfOrder`, which carries where the machine is, so a cut connection costs one part and the
+  hand-in goes on from there. The file reaches the task only once it is whole and its hash matches,
+  so nothing is shown as handed in before the answer carries `file`. The task's `handInLimit` is
+  read first, and a larger file is refused here before a byte of it is read. A machine without
+  hand-in leaves `files`, `handInLimit` and `run` absent, which is drawn as absent, never as empty;
+  `by` is `"sokar"` for what Sokar hands in itself.
+- **A task's builds come with the task.** `buildReader` `""` means no forge follows its pushes and
+  nothing is said; set, with `builds` empty and `buildProblem` `""`, it means nothing was pushed yet;
+  `buildProblem` says why a named reader does not work. A `Build` lists its jobs only once the verdict
+  is `failure` or final, and a job's `log` is the name of a file in the task, never its text. All
+  three are absent from a machine older than builds, which is drawn as saying nothing.
 - **`Prompts` has a deadline.** A task is *blocked* while a clearance prompt is unanswered and
   the watcher gives up after its own timeout. This is the one place where interface latency costs
   something real, which is why it is a stream and not a poll.

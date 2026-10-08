@@ -18,6 +18,9 @@ void main() {
   bool inTheCode(String key) {
     // `!` waits for it to go, `filled:` for something in it: the key itself is what is in the code.
     final plain = key.replaceFirst(RegExp('^!'), '').replaceFirst(RegExp('^(filled|usable):'), '');
+    // The walk panel's own, which guided_walk counts as on screen wherever the panel is: a push step
+    // waits on one that never goes, so it stays until Next instead of being skipped.
+    if (plain.startsWith('walk-')) return true;
     // A button found by its words: the words are in the code.
     if (plain.startsWith('text:')) return code.contains(plain.substring('text:'.length));
     // A key with a part that varies, such as a machine's name: what comes before the part is.

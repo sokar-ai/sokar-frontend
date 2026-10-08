@@ -7,6 +7,7 @@ import '../app/session.dart';
 import 'panes.dart';
 import 'package:guided_walk/guided_walk.dart';
 import 'tokens.dart';
+import 'terminal_copy.dart';
 import 'terminal_links.dart';
 
 /// A shell inside running work, drawn in the window.
@@ -52,6 +53,9 @@ class SessionView extends StatefulWidget {
 class _SessionViewState extends State<SessionView> {
   Timer? _back;
 
+  /// What is selected, so a copy can be made of it as it shows.
+  final _selection = TerminalController();
+
   Session get session => widget.session;
 
   @override
@@ -64,6 +68,7 @@ class _SessionViewState extends State<SessionView> {
   void dispose() {
     session.removeListener(_changed);
     _back?.cancel();
+    _selection.dispose();
     super.dispose();
   }
 
@@ -116,9 +121,14 @@ class _SessionViewState extends State<SessionView> {
               Expanded(
                 child: ColoredBox(
                   color: scheme.surfaceContainerLowest,
-                  child: WalkSecret(child: TerminalView(
+                  child: WalkSecret(child: CopiesAsShown(
+                    terminal: session.terminal,
+                    controller: _selection,
+                    child: TerminalView(
                     session.terminal,
                     key: const Key('terminal'),
+                    controller: _selection,
+                    shortcuts: copyAsShownShortcuts,
                     focusNode: widget.focusNode,
                     autofocus: true,
                     padding: const EdgeInsets.all(Space.small),
@@ -126,7 +136,7 @@ class _SessionViewState extends State<SessionView> {
                     // like they went somewhere.
                     readOnly: !session.live,
                     textStyle: const TerminalStyle(fontSize: 13),
-                  )),
+                  ))),
                 ),
               ),
               Padding(

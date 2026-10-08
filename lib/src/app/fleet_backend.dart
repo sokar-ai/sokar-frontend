@@ -86,6 +86,20 @@ abstract class FleetBackend {
   /// Sets or clears the caption a task reads by. **Nothing about its identity moves.**
   Future<Labelled> labelTask(String task, {String? label});
 
+  /// Sends one part of a file handed to a running task; see [SokarClient.handIn].
+  Future<HandInPart> handIn(String task,
+      {required String name,
+      required int bytes,
+      required String sha256,
+      required int offset,
+      required List<int> part});
+
+  /// Takes a handed-in file out of a running task again.
+  Future<HandedFile> takeBack(String task, String name);
+
+  /// The hand-in record under a task's name, of every run that carried it.
+  Future<List<HandInEvent>> handIns(String task);
+
   /// What the vault holds, by name. **Never a value.**
   Future<VaultState> credentials();
 
@@ -135,6 +149,12 @@ abstract class FleetBackend {
 
   /// Asks the upstream how far behind a project's mirror is, now.
   Future<Synced> syncUpstream(String project, {String? repository});
+
+  /// Fetches a followed project's repository now, rather than at the machine's next round.
+  Future<List<Followed>> refreshProjects({String? project});
+
+  /// Brings a task's repository at the gate up to its source, and tells its agent what moved.
+  Future<TaskRefreshed> refreshTask(String task);
 
   /// Restores a mirror from a backup, or says what restoring would take.
   Future<Restored> restoreBackup(String project, String bundle,
@@ -483,6 +503,21 @@ class SokarBackend implements FleetBackend {
       _opened().label(task, label: label);
 
   @override
+  Future<HandInPart> handIn(String task,
+          {required String name,
+          required int bytes,
+          required String sha256,
+          required int offset,
+          required List<int> part}) =>
+      _opened().handIn(task, name: name, bytes: bytes, sha256: sha256, offset: offset, part: part);
+
+  @override
+  Future<HandedFile> takeBack(String task, String name) => _opened().takeBack(task, name);
+
+  @override
+  Future<List<HandInEvent>> handIns(String task) => _opened().handIns(task);
+
+  @override
   Future<VaultState> credentials() => _opened().credentials();
 
   @override
@@ -537,6 +572,12 @@ class SokarBackend implements FleetBackend {
   @override
   Future<Synced> syncUpstream(String project, {String? repository}) =>
       _opened().syncUpstream(project, repository: repository);
+
+  @override
+  Future<List<Followed>> refreshProjects({String? project}) => _opened().refreshProjects(project: project);
+
+  @override
+  Future<TaskRefreshed> refreshTask(String task) => _opened().refreshTask(task);
 
   @override
   Future<Restored> restoreBackup(String project, String bundle,

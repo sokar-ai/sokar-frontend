@@ -26,6 +26,8 @@ is in `doc/` or `AGENTS.md`; decisions are in [doc/decisions.md](../doc/decision
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
+| [F101](F101-What-The-Build-Of-A-Push-Did.md) | built, to be walked | `sokar` B37 on `main` | What the build of the work's last push did, on its tile and in its detail. | 0 |
+| [F100](F100-A-File-Handed-To-A-Running-Task.md) | built, to be walked | `sokar` B39 on `main` | A file handed to a running task, taken back, and its record. | 1 |
 | [F99](F99-An-Attached-Agent-Shown-At-Rest-Or-Working.md) | blocked | `sokar` B118 | A work tile says whether an attached agent is at rest or working. | 1 |
 | [F93](F93-Connections-Rare-Actions-Out-Of-The-Way.md) | open | — | Connections' rare actions in its ⋮. | 0 |
 | [F91](F91-One-Way-To-Show-Loading.md) | open | — | Every view shows the same way that it is reading. | 0 |

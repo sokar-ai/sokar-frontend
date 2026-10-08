@@ -10,7 +10,8 @@ The desktop interface for [Sokar](https://github.com/sokar-ai/sokar), on Linux.
 Sokar runs AI coding agents in locked-down containers: no network except what a project declares, no
 credential the agent can read, and nothing leaves the machine without somebody approving it. This
 interface does what Sokar's command line does, on this computer and on machines reached over ssh,
-without a terminal.
+without a terminal. It is not a backend: it runs no task and decides nothing itself, and everything it
+does goes through the daemon's socket. Maven only drives its build; the one `pom.xml` has no modules.
 
 **Documentation: [sokar-ai.github.io/frontend](https://sokar-ai.github.io/frontend/)**, the interface's chapter of all of Sokar's documentation.
 

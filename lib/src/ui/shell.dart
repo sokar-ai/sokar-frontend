@@ -21,6 +21,7 @@ import '../app/egress.dart';
 import '../app/agent_inventory.dart';
 import '../app/authentication.dart';
 import '../app/backups.dart';
+import '../app/project_check.dart';
 import '../app/emergency_stop.dart';
 import '../app/start_work.dart';
 import '../app/templates.dart';
@@ -40,6 +41,7 @@ import '../app/connections.dart';
 import '../app/project_following.dart';
 import '../app/vault_unlock.dart';
 import '../app/project_deletion.dart';
+import '../app/hand_in.dart';
 import '../app/session.dart';
 import 'clearing_view.dart';
 import '../app/settings.dart';
@@ -232,6 +234,15 @@ class _ShellState extends State<Shell> {
   final _frameFocus = FocusNode(debugLabel: 'frame');
   late final Attention _attention;
 
+  /// A file being handed to work, and the last one's outcome.
+  final _handing = HandingIn();
+
+  /// A followed project checked now, at a person's word, rather than at the machine's next round.
+  final _check = ProjectCheck();
+
+  /// What the open work's name has been handed, asked when it opens.
+  final _handIns = HandInRecord();
+
   /// The homeservers joined from here, forwarded while the window runs.
   late final HomeserverForwards _homeservers;
   late final AppLifecycleListener _leaving;
@@ -250,6 +261,7 @@ class _ShellState extends State<Shell> {
     // One that cannot be raised is said under Needs you; the project's page says the address.
     _attention.homeservers = _homeservers;
     _homeservers.addListener(_homeserversChanged);
+    _check.addListener(_homeserversChanged);
     // What was joined before is reachable again from the start, at the same port.
     unawaited(_homeservers.restore(widget.machines));
     // Which forges are set up is read now, asking none of them anything, so a project's menu can say
@@ -350,6 +362,9 @@ class _ShellState extends State<Shell> {
     narrowTheWork: (_) => _narrowTheWork(),
     talkForTheWork: _talkForTheWork,
     tellTheWork: (task) => unawaited(_tellTheWork(task)),
+    handInTo: (task) => unawaited(_handInTo(task)),
+    takeBackFrom: (task) => unawaited(_takeBackFrom(task)),
+    refreshFromItsSource: (task) => unawaited(_refreshFromItsSource(task)),
     unlockTheVault: _canUnlockHere ? () => unawaited(_unlockHere()) : null,
     openTheGate: _openTheGate,
     openEgress: _openEgress,
@@ -487,6 +502,9 @@ class _ShellState extends State<Shell> {
       narrowTheWork: (_) => _narrowTheWork(),
       talkForTheWork: _talkForTheWork,
       tellTheWork: (task) => unawaited(_tellTheWork(task)),
+      handInTo: (task) => unawaited(_handInTo(task)),
+      takeBackFrom: (task) => unawaited(_takeBackFrom(task)),
+      refreshFromItsSource: (task) => unawaited(_refreshFromItsSource(task)),
       unlockTheVault: unlockCommandFor(tile.machine) != null ? () => unawaited(_unlockHere()) : null,
     ))
       command.after(() => _actOn(tile)),
@@ -680,6 +698,16 @@ class _ShellState extends State<Shell> {
   /// Asks the upstream how far behind this project is, now.
   ///
   /// [repository] is one of the project's; without one, the project's own.
+  /// Fetches [project] now and asks its repositories' upstream; the page says what came back.
+  Future<void> _checkNow(ProjectOnScreen project) async {
+    final repositories = <String>[
+      for (final each in project.project.repositoryStates)
+        if (!each.own || project.project.repositoryStates.length == 1) each.name,
+    ];
+    await _check.checkNow(_fleet.backend, project.name, repositories);
+    await _fleet.refresh(quietly: true);
+  }
+
   Future<void> _syncTheUpstream({String? repository}) async {
     final project = _fleet.selectedProject;
     if (project == null) return;
@@ -1464,6 +1492,58 @@ class _ShellState extends State<Shell> {
               if (each.project == task.project) each.name,
           }));
 
+  /// Hands a file chosen on this computer to running work, in parts, and says what came of it.
+  Future<void> _handInTo(Task task) async {
+    final path = await widget.pickAFile(title: 'A file to hand to ${task.name}');
+    if (path == null || !mounted) return;
+    final backend = _fleet.backend;
+    await _handing.give(backend, task, path);
+    if (!mounted) return;
+    _fleet.say(_handing.said ?? '');
+    unawaited(_handIns.look(backend, task.name));
+  }
+
+  /// Brings [task]'s repository at the gate up to its source, and says what moved and whether its
+  /// agent was told.
+  Future<void> _refreshFromItsSource(Task task) async {
+    String said;
+    try {
+      said = (await _fleet.backend.refreshTask(task.name)).wordsFor(task.name);
+    } on VarlinkException catch (refusal) {
+      said = '${task.name} was not brought up to its source: ${refusal.simpleName}.';
+    } on VarlinkDisconnected catch (lost) {
+      said = 'Lost contact with the machine: ${lost.message}';
+    } on FeatureNotSupported catch (older) {
+      said = '$older';
+    }
+    if (mounted) _fleet.say(said);
+  }
+
+  /// Takes back a file the work was handed, chosen from what it holds.
+  Future<void> _takeBackFrom(Task task) async {
+    final files = task.files ?? const <HandedFile>[];
+    final name = await showDialog<String>(
+      context: context,
+      builder: (asked) => SimpleDialog(
+        title: Text('Take a file back from ${task.name}'),
+        children: <Widget>[
+          for (final file in files)
+            SimpleDialogOption(
+              key: Key('take back ${file.name}'),
+              onPressed: () => Navigator.of(asked).pop(file.name),
+              child: Text('${file.name}, ${HandingIn.inWords(file.bytes)}, by ${file.from}'),
+            ),
+        ],
+      ),
+    );
+    if (name == null || !mounted) return;
+    final backend = _fleet.backend;
+    await _handing.takeBack(backend, task, name);
+    if (!mounted) return;
+    _fleet.say(_handing.said ?? '');
+    unawaited(_handIns.look(backend, task.name));
+  }
+
   /// A person's own words straight into the work's inbox, where its agent reads them.
   Future<void> _tellTheWork(Task task) async {
     final words = await askForWords(
@@ -1930,6 +2010,7 @@ class _ShellState extends State<Shell> {
     widget.shell.openDetail();
     // Asked when the detail opens, for this one task: it runs git inside the container.
     unawaited(widget.held.look(_fleet.backend, task.name));
+    unawaited(_handIns.look(_fleet.backend, task.name));
   }
 
   /// Reports what the project file opens, creating nothing.
@@ -2484,6 +2565,9 @@ class _ShellState extends State<Shell> {
                 highlight: highlight,
                 onShown: widget.shell.shown,
                 onSync: (repository) => unawaited(_syncTheUpstream(repository: repository)),
+                onCheck: narrowed.project.following == null ? null : () => unawaited(_checkNow(narrowed)),
+                checking: _check.isChecking(narrowed.name),
+                checked: _check.saidAbout(narrowed.name),
                 onBackups: (repository) => unawaited(_showTheBackups(repository: repository)),
                 onOpens: (repository) => _checkWorkCanStart(repository: repository),
                 onReach: (repository) => unawaited(_openEgress(repository: repository)),
@@ -2638,6 +2722,8 @@ class _ShellState extends State<Shell> {
           task: task,
           repository: _fleet.projectOf(task)?.repositoryOf(task),
           held: widget.held,
+          handing: _handing,
+          handIns: _handIns,
           onClose: widget.shell.close,
         );
       case ConnectionsOpened():
@@ -2782,10 +2868,14 @@ class _ShellState extends State<Shell> {
     _refreshing?.cancel();
     _leaving.dispose();
     _homeservers.removeListener(_homeserversChanged);
+    _check.removeListener(_homeserversChanged);
+    _check.dispose();
     _attention.dispose();
     _homeservers.dispose();
     _openedFocus.dispose();
     _frameFocus.dispose();
+    _handing.dispose();
+    _handIns.dispose();
     super.dispose();
   }
 }

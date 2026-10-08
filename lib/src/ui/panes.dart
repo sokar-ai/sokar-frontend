@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
+import '../app/builds.dart';
+import '../app/hand_in.dart';
 import '../app/work_held.dart';
 import 'how_long.dart';
 import 'tokens.dart';
@@ -55,8 +57,16 @@ class WorkDetail extends StatelessWidget {
     required this.held,
     required this.onClose,
     this.repository,
+    this.handing,
+    this.handIns,
     super.key,
   });
+
+  /// A file being handed to work, or the last one, where this frame hands files in.
+  final HandingIn? handing;
+
+  /// What work of this name has been handed, asked when this opened.
+  final HandInRecord? handIns;
 
   /// What is open.
   final Task task;
@@ -72,7 +82,7 @@ class WorkDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: held,
+    animation: Listenable.merge(<Listenable?>[held, handing, handIns]),
     builder: (context, _) => _detail(context),
   );
 
@@ -141,6 +151,25 @@ class WorkDetail extends StatelessWidget {
               if (held.words(task.name).isNotEmpty)
                 _Field(name: 'Never pushed', value: held.words(task.name)),
               _Field(name: 'Doing', value: task.activity.label),
+              // Absent from a machine without hand-in, rather than *nothing*: it cannot say.
+              if (task.files != null || _sending(task) != null)
+                _Field(
+                  key: const Key('handed-in'),
+                  name: 'Handed in',
+                  value: <String>[
+                    ?_sending(task),
+                    if (task.files case final files?)
+                      if (files.isEmpty)
+                        'nothing, under /sokar/files'
+                      else
+                        for (final file in files)
+                          '${file.name}, ${HandingIn.inWords(file.bytes)}, by ${file.from}',
+                  ].join('\n'),
+                ),
+              if (BuildsSaid.inTheDetail(task) case final lines when lines.isNotEmpty)
+                _Field(key: const Key('builds'), name: 'Builds', value: lines.join('\n')),
+              if (handIns?.lines(task.name) case final lines? when lines.isNotEmpty)
+                _Field(key: const Key('hand-in-record'), name: 'Hand-in record', value: lines.join('\n')),
               if (task.takenDownByARestart) _Field(name: 'Why it is down', value: task.startDetail),
               // By name and destination, as the machine keeps them: never a token.
               if (task.credentials.isNotEmpty)
@@ -202,6 +231,16 @@ class WorkDetail extends StatelessWidget {
   }
 }
 
+extension on WorkDetail {
+  /// The file on its way to [task], as a line, or null when none is.
+  String? _sending(Task task) {
+    final going = handing;
+    if (going == null || !going.busy || going.task != task.name) return null;
+    return 'sending ${going.name}: ${HandingIn.inWords(going.received)} of '
+        '${HandingIn.inWords(going.bytes)}';
+  }
+}
+
 /// Who the task acts as for one credential, where a person granted it: as it stood at its start.
 String _grantedBy(Authorization? grant) => grant == null
     ? ''
@@ -209,7 +248,7 @@ String _grantedBy(Authorization? grant) => grant == null
         '${grant.grantedAt.isEmpty ? '' : ' at ${grant.grantedAt}'}';
 
 class _Field extends StatelessWidget {
-  const _Field({required this.name, required this.value});
+  const _Field({required this.name, required this.value, super.key});
 
   final String name;
   final String value;

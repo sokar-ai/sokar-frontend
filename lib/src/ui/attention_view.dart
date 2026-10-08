@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:sokar_frontend/client.dart';
 
+import '../app/builds.dart';
 import '../app/attention.dart';
 import '../app/commands.dart';
 import '../app/fleet_model.dart';
@@ -675,6 +676,12 @@ class TaskTile extends StatelessWidget {
                         ),
                     ],
                   ),
+                  // What the build of its last push did, as the machine reads it from the forge: in a
+                  // line of its own under the head, folded or not, since a build is a step that matters;
+                  // the commit, the jobs and the age only when opened.
+                  if (task != null)
+                    if (BuildsSaid.onTheTile(task) case final said?)
+                      _BuildLine(said, scheme, folded: folded),
                   // Folded, the tile is its work, its machine and its mark; the rest when opened.
                   if (!folded) ...<Widget>[
                   // What its agent writes, small, while there is an agent to write.
@@ -942,6 +949,55 @@ class _StateMark extends StatelessWidget {
           color: filled ? colour : null,
           border: Border.all(color: colour, width: Sizes.selectedBorder),
         ),
+      ),
+    );
+  }
+}
+
+/// A work's build in a word that stands out, with a mark whose shape says it without colour too.
+class _BuildLine extends StatelessWidget {
+  const _BuildLine(this.said, this.scheme, {required this.folded});
+
+  final BuildLine said;
+  final ColorScheme scheme;
+  final bool folded;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final (icon, colour) = switch (said.look) {
+      BuildLook.passed => (Icons.check_circle, StateColours.working),
+      BuildLook.failed => (Icons.cancel, scheme.error),
+      BuildLook.running => (Icons.timelapse, StateColours.waiting),
+      BuildLook.none => (Icons.remove_circle_outline, StateColours.stopped),
+    };
+    return Padding(
+      key: const Key('tile-build'),
+      padding: const EdgeInsets.only(top: Space.small),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                icon,
+                key: ValueKey<String>('tile-build-look ${said.look.name}'),
+                color: colour,
+                size: Sizes.rowIcon,
+              ),
+              const SizedBox(width: Space.small),
+              Flexible(
+                child: Text(
+                  said.headline,
+                  key: const Key('tile-build-headline'),
+                  style: text.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          if (!folded)
+            Text(said.detail, key: const Key('tile-build-detail'), style: text.bodySmall),
+        ],
       ),
     );
   }

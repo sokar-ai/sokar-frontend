@@ -224,8 +224,8 @@ class _DefaultDialogState extends State<DefaultDialog> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(each.name),
                   subtitle: Text(each.claimedBy.isEmpty
-                      ? each.upstream
-                      : '${each.upstream} · ${each.claimedBy} names it too: its next task starts there, '
+                      ? each.comesFromAndGoes
+                      : '${each.comesFromAndGoes} · ${each.claimedBy} names it too: its next task starts there, '
                           'so it can be taken out of default'),
                   // Taking one out is offered when starting too: since Default left Projects, this is the
                   // one place a repository named by its address is taken out again (walk 10).

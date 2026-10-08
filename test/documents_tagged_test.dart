@@ -38,9 +38,9 @@ void main() {
 /// Markdown file at the root, or a listing kept to its Markdown. A path built in a scratch directory
 /// starts with `$` and is no document.
 final _readsADocument = <RegExp>[
-  RegExp(r"(File|Directory)\(\s*'(doc|issues)(/[^']*)?'"),
+  RegExp(r"\b(File|Directory)\(\s*'(doc|issues)(/[^']*)?'"),
   RegExp(r"'(doc|issues)'"),
-  RegExp(r"File\(\s*'[^'$/]*\.md'"),
+  RegExp(r"\bFile\(\s*'[^'$/]*\.md'"),
   RegExp(r"(?<!!)\b\w+\.path\.endsWith\('\.md'\)"),
 ];
 

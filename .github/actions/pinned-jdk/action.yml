@@ -24,6 +24,6 @@ runs:
         mkdir -p build
         # -U: the Sokar tools are snapshots, and a cache restored from earlier the same day would
         # otherwise keep an older check-actions than the one published.
-        JAVA_HOME="$JAVA_HOME_25_X64" ./mvnw -B -q -U -s settings.xml -Phetzner dependency:build-classpath \
+        JAVA_HOME="$JAVA_HOME_25_X64" ./mvnw -B -q -U -s settings.xml -Pci-tools dependency:build-classpath \
           -Dmdep.outputFile=build/jdk-cp.txt
         "$JAVA_HOME_25_X64/bin/java" -cp "$(cat build/jdk-cp.txt)" org.fuin.sokar.machines.Main jdk --github

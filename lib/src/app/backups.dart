@@ -87,7 +87,7 @@ class Backups extends ChangeNotifier {
     var said = '';
     await _asking(() async {
       final answer = await backend.syncUpstream(project, repository: repository);
-      said = _whatTheSyncSaid(answer);
+      said = wordsFor(answer);
     });
     return said;
   }
@@ -179,7 +179,7 @@ class Backups extends ChangeNotifier {
   ///
   /// **`behind` means nothing unless it was measured**, and zero is the answer both for a project
   /// that is up to date and for one nothing could be measured about.
-  static String _whatTheSyncSaid(Synced said) {
+  static String wordsFor(Synced said) {
     if (said.outcome == 'NO_MIRROR') {
       return 'Nothing has used the gate here yet, so there is nothing to measure against.';
     }
