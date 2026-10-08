@@ -5,9 +5,7 @@ All notable changes to this project are recorded here.
 The format is [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and this project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-Initial public version.
+## [0.4.1] - 2026-10-08
 
 ### Added
 
@@ -45,3 +43,7 @@ Initial public version.
 
 - Text copied out of a work's terminal keeps the spaces it shows, also where the program moved the
   cursor instead of writing them, as Claude Code does.
+
+## [0.4.0] - 2026-10-05
+
+Initial public version.
