@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Every workflow run is titled with its workflow, its branch or tag and its commit's subject; the
+  shared rules' workflow is called "Shared rules check" and the Artifactory probe "Artifactory probe
+  test".
+
 ## [0.4.1] - 2026-10-08
 
 ### Added
