@@ -65,6 +65,15 @@ Feature: Reviewing what work pushed, and what it holds back
     Then it says {'moved since you reviewed it: you read 9a3c1f2, and it holds b7e21d4 now'}
     And it says {'Nothing was forwarded'}
 
+  Scenario: a branch that already holds earlier work is not forwarded onto, and another is named
+    When I review what is waiting at the gate
+    And I open the waiting push
+    And the branch {'fix-rounding'} already holds earlier work
+    And I forward it onto the branch {'fix-rounding'}
+    Then it says {'fix-rounding already holds 4d2e9a1, from earlier work'}
+    And it says {'Nothing was forwarded'}
+    And it says {'onto another branch, such as fix-rounding-2'}
+
   # Return and the button are two ways to answer, and only the button refused an empty name once.
   Scenario: an empty branch is not an answer, however it is given
     When I review what is waiting at the gate

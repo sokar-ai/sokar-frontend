@@ -464,7 +464,7 @@ class SokarBackend implements FleetBackend {
       minutes: minutes,
       repository: repository,
       credentials: credentials,
-    ).transform(destinationRefusalsSaid);
+    ).transform(startRefusalsSaid);
     await for (final progress in replies) {
       final line = progress.line;
       if (line != null) yield line;
@@ -926,16 +926,51 @@ class StartRefused implements Exception {
       };
 }
 
-/// Turns `Start`'s `NoSuchDestination` into [NoSuchDestination], which says it in words; any other
-/// error passes as it came.
-final StreamTransformer<StartProgress, StartProgress> destinationRefusalsSaid =
+/// Turns `Start`'s named refusals into exceptions that say them in words: `NoSuchDestination` into
+/// [NoSuchDestination], `EarlierWorkWaits` into [EarlierWorkWaits]. Any other error passes as it
+/// came.
+final StreamTransformer<StartProgress, StartProgress> startRefusalsSaid =
     StreamTransformer<StartProgress, StartProgress>.fromHandlers(
   handleError: (error, stack, sink) => sink.addError(
-      error is VarlinkException && error.simpleName == 'NoSuchDestination'
-          ? NoSuchDestination('${error.parameters['name'] ?? ''}')
-          : error,
+      switch (error) {
+        VarlinkException(simpleName: 'NoSuchDestination') =>
+          NoSuchDestination('${error.parameters['name'] ?? ''}'),
+        VarlinkException(simpleName: 'EarlierWorkWaits') => EarlierWorkWaits(
+            '${error.parameters['task'] ?? ''}',
+            commit: '${error.parameters['commit'] ?? ''}',
+            subject: '${error.parameters['subject'] ?? ''}'),
+        _ => error,
+      },
       stack),
 );
+
+/// Start refused because the task's earlier work still waits at the gate, before anything was
+/// created. Said in words, naming that work: it is decided at the gate, and then the task starts.
+class EarlierWorkWaits implements Exception {
+  /// Constructor taking the task and the work that waits, as the machine named them.
+  const EarlierWorkWaits(this.task, {this.commit = '', this.subject = ''});
+
+  /// The task that was not started.
+  final String task;
+
+  /// The waiting work's commit, in full; empty when the machine did not name it.
+  final String commit;
+
+  /// The waiting work's subject line; empty when the machine did not name it.
+  final String subject;
+
+  @override
+  String toString() {
+    final short = commit.length > 7 ? commit.substring(0, 7) : commit;
+    final work = <String>[
+      if (short.isNotEmpty) short,
+      if (subject.isNotEmpty) '"$subject"',
+    ].join(' ');
+    return '${task.isEmpty ? 'It' : task} was not started: its earlier work '
+        '${work.isEmpty ? '' : '$work '}still waits at the gate. Forward it or drop it there, then '
+        'start again.';
+  }
+}
 
 /// Start refused a credential for a destination the machine does not declare, before anything
 /// existed. Said in words: nothing was created, so there is nothing to clear up or read.

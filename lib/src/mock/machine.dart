@@ -348,6 +348,10 @@ class MockMachine {
   /// What was forwarded, and onto which branch, so a manual run can see it happened.
   final List<String> forwarded = <String>[];
 
+  /// Which push each branch was forwarded from, and the commit it holds since.
+  final Map<String, ({String name, String commit})> _branchHolds =
+      <String, ({String name, String commit})>{};
+
   Map<String, dynamic> _pending(Map<String, dynamic> parameters) =>
       <String, dynamic>{
         'mirror': '/srv/checkout/.sokar/mirror',
@@ -369,11 +373,21 @@ class MockMachine {
 
   Map<String, dynamic> _approve(Map<String, dynamic> parameters) {
     final name = '${parameters['name']}';
-    if ('${parameters['branch']}'.isEmpty) {
+    final branch = '${parameters['branch']}';
+    if (branch.isEmpty) {
       throw const MockRefusal('org.fuin.sokar.Tasks1.BranchRequired');
     }
+    // As Sokar does: a branch already holding other work is never overwritten, and nothing is pushed.
+    final holder = _branchHolds[branch];
+    if (holder != null && holder.name != name) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.BranchExists', <String, dynamic>{
+        'branch': branch,
+        'at': holder.commit,
+      });
+    }
+    _branchHolds[branch] = (name: name, commit: '${_waiting[name]?['commit'] ?? ''}');
     _waiting.remove(name);
-    forwarded.add('$name -> ${parameters['branch']}');
+    forwarded.add('$name -> $branch');
     return <String, dynamic>{
       'forwarded': name,
       'branch': '${parameters['branch']}',
@@ -2074,6 +2088,15 @@ class MockMachine {
     if (existing != null) {
       yield _startAgain(existing);
       return;
+    }
+    // As Sokar does: a task whose earlier work still waits at the gate is not started beside it.
+    final waits = _waiting[parameters['task']];
+    if (waits != null) {
+      throw MockRefusal('org.fuin.sokar.Tasks1.EarlierWorkWaits', <String, dynamic>{
+        'task': parameters['task'],
+        'commit': waits['commit'],
+        'subject': waits['subject'],
+      });
     }
     const steps = <String>[
       'Resolving project.yml',

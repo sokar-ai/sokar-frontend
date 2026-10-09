@@ -719,6 +719,38 @@ void main() {
     );
   });
 
+  test('a branch already holding other work is refused by name, and nothing is forwarded', () async {
+    await machineIn('work');
+    final client = await connect();
+    await client.approve('checkout', 'migrate', 'fix-rounding');
+
+    await expectLater(
+      client.approve('checkout', 'drop-dead-code', 'fix-rounding'),
+      throwsA(isA<VarlinkException>()
+          .having((refusal) => refusal.simpleName, 'simpleName', 'BranchExists')
+          .having((refusal) => refusal.parameters, 'parameters',
+              <String, dynamic>{'branch': 'fix-rounding', 'at': '9a3c1f2'})),
+    );
+    expect((await client.gate('checkout')).pending.map((push) => push.name), <String>['drop-dead-code']);
+  });
+
+  test('a new task whose earlier work waits at the gate is refused by name, naming that work', () async {
+    await machineIn('work');
+    final client = await connect();
+
+    await expectLater(
+      // drop-dead-code's container is gone, so this is a new task, not one started again.
+      client.start(task: 'drop-dead-code', project: 'checkout').drain<void>(),
+      throwsA(isA<VarlinkException>()
+          .having((refusal) => refusal.simpleName, 'simpleName', 'EarlierWorkWaits')
+          .having((refusal) => refusal.parameters, 'parameters', <String, dynamic>{
+            'task': 'drop-dead-code',
+            'commit': '7f21b0e',
+            'subject': 'Delete the retry loop nothing calls any more',
+          })),
+    );
+  });
+
   test(
     'dropping a request takes it out of the gate and sends nothing',
     () async {

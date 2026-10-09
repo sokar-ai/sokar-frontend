@@ -24,6 +24,7 @@ import './step/the_forward_named_the_commit_reviewed.dart';
 import './step/the_status_line_mentions.dart';
 import './step/the_projects_were_read_again_after_it.dart';
 import './step/the_push_moves_before_it_is_forwarded.dart';
+import './step/the_branch_already_holds_earlier_work.dart';
 import './step/i_press_return_on_the_branch.dart';
 import './step/no_push_went_upstream.dart';
 import './step/i_drop_the_request.dart';
@@ -137,6 +138,19 @@ void main() {
       await itSays(tester,
           'moved since you reviewed it: you read 9a3c1f2, and it holds b7e21d4 now');
       await itSays(tester, 'Nothing was forwarded');
+    });
+    testWidgets(
+        '''a branch that already holds earlier work is not forwarded onto, and another is named''',
+        (tester) async {
+      await bddSetUp(tester);
+      await iReviewWhatIsWaitingAtTheGate(tester);
+      await iOpenTheWaitingPush(tester);
+      await theBranchAlreadyHoldsEarlierWork(tester, 'fix-rounding');
+      await iForwardItOntoTheBranch(tester, 'fix-rounding');
+      await itSays(
+          tester, 'fix-rounding already holds 4d2e9a1, from earlier work');
+      await itSays(tester, 'Nothing was forwarded');
+      await itSays(tester, 'onto another branch, such as fix-rounding-2');
     });
     testWidgets('''an empty branch is not an answer, however it is given''',
         (tester) async {

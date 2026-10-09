@@ -246,6 +246,11 @@ class Gate extends ChangeNotifier {
         'MovedSinceReview' => '${refusal.parameters['name'] ?? 'It'} moved since you reviewed it: you read '
             '${_short(refusal.parameters['reviewed'])}, and it holds ${_short(refusal.parameters['now'])} now. '
             'Nothing was forwarded. Open it again and review what it holds now.',
+        // The branch holds a commit the reviewed work did not grow from: nothing was pushed, and the
+        // machine never overwrites it. The next free name is the machine's own suggestion.
+        'BranchExists' => '${refusal.parameters['branch']} already holds '
+            '${_short(refusal.parameters['at'])}, from earlier work. Nothing was forwarded. Forward it '
+            'onto another branch, such as ${refusal.parameters['branch']}-2.',
         'Failed' => '${refusal.parameters['message'] ?? 'It did not work.'}',
         _ => 'Refused: ${refusal.simpleName}.',
       };

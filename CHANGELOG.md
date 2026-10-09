@@ -21,6 +21,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Bringing work up to its source no longer says that an online task fetches its upstream itself:
   an online task has a gate now and is brought up like any other. A task with no gate at all, one
   started without a gate or an offline one, is told as that.
+- A push forwarded onto a branch that already holds earlier work is refused in words: the branch,
+  the commit it holds, that nothing was forwarded, and another branch to forward onto. A start
+  refused because the task's earlier work still waits at the gate names that work, in words rather
+  than as the machine's error.
 
 ## [0.4.1] - 2026-10-08
 

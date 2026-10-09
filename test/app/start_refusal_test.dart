@@ -9,7 +9,7 @@ void main() {
   test("Start's refusal of a credential nobody can reach is said in words, naming the entry", () async {
     final refused = Stream<StartProgress>.error(
       const VarlinkException('org.fuin.sokar.Tasks1.NoSuchDestination', <String, dynamic>{'name': 'f56-extra'}),
-    ).transform(destinationRefusalsSaid);
+    ).transform(startRefusalsSaid);
     await expectLater(
       refused,
       emitsError(isA<NoSuchDestination>().having((it) => '$it', 'words',
@@ -17,9 +17,27 @@ void main() {
     );
   });
 
+  // Sokar's Start answers this by name when the task's earlier work still waits at the gate.
+  test("Start's refusal while earlier work waits is said in words, naming the work", () async {
+    final refused = Stream<StartProgress>.error(
+      const VarlinkException('org.fuin.sokar.Tasks1.EarlierWorkWaits', <String, dynamic>{
+        'task': 'migrate',
+        'commit': '9a3c1f2b8e7d6c5a4f3e2d1c0b9a8f7e6d5c4b3a',
+        'subject': 'Round to the nearest penny, not away from zero',
+      }),
+    ).transform(startRefusalsSaid);
+    await expectLater(
+      refused,
+      emitsError(isA<EarlierWorkWaits>().having((it) => '$it', 'words', allOf(
+          contains('migrate was not started'),
+          contains('9a3c1f2 "Round to the nearest penny, not away from zero" still waits at the gate'),
+          contains('Forward it or drop it there, then start again')))),
+    );
+  });
+
   test('any other error passes as it came', () async {
     const other = VarlinkException('org.fuin.sokar.Tasks1.NoSuchProject', <String, dynamic>{});
-    final passed = Stream<StartProgress>.error(other).transform(destinationRefusalsSaid);
+    final passed = Stream<StartProgress>.error(other).transform(startRefusalsSaid);
     await expectLater(passed, emitsError(same(other)));
   });
 }
