@@ -12,6 +12,9 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Every workflow run is titled with its workflow, its branch or tag and its commit's subject; the
   shared rules' workflow is called "Shared rules check" and the Artifactory probe "Artifactory probe
   test".
+- The build takes `sokar-parent` `0.1.4-SNAPSHOT` and with it the build tools' snapshot, and its
+  Maven build and tests read the project's `settings.xml` like every other Maven call, so the
+  snapshots come from Central's snapshot repository.
 
 ## [0.4.1] - 2026-10-08
 

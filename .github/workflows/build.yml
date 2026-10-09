@@ -131,7 +131,7 @@ jobs:
         timeout-minutes: 35
         run: |
           set +e
-          ./mvnw -B verify
+          ./mvnw -B -s settings.xml verify
           built=$?
           set -e
           dart tool/test_report.dart
