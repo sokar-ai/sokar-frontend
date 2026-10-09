@@ -16,6 +16,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Maven build and tests read the project's `settings.xml` like every other Maven call, so the
   snapshots come from Central's snapshot repository.
 
+### Fixed
+
+- Bringing work up to its source no longer says that an online task fetches its upstream itself:
+  an online task has a gate now and is brought up like any other. A task with no gate at all, one
+  started without a gate or an offline one, is told as that.
+
 ## [0.4.1] - 2026-10-08
 
 ### Added

@@ -357,9 +357,9 @@ class Task {
 
   /// What to say about this task's own work at the gate.
   ///
-  /// Three answers, not two. **An `online` task has no gate at all** — its ref is
-  /// `refs/heads/<task>` and nothing is ever reviewed — so *"nothing of its own is waiting"*
-  /// would imply that something could be.
+  /// Three answers, not two. **An `online` task's push passes through its gate to the forge, and
+  /// nothing is ever reviewed**, so *"nothing of its own is waiting"* would imply that something
+  /// could be.
   String get atTheGate => hasWorkWaiting
       ? 'its own work is waiting for review'
       : securityClass == 'online'
@@ -1025,7 +1025,10 @@ class TaskRefreshed {
       'MOVED' => '${[for (final each in moved.entries) '${each.key} moved to ${short(each.value)}'].join(', ')}; '
           '${told ? 'its agent was told, and git fetch sokar brings it' : 'its agent was not told - git fetch sokar in $task brings it'}',
       'UNCHANGED' => '$task is up to date with its source.',
-      'NOT_GATED' => '$task is not brought up to a source here: an online task fetches its upstream itself.',
+      // Only a task with no gate at all answers this: one started without a gate, or an offline one.
+      // An online task has a gate too, and answers MOVED or UNCHANGED.
+      'NOT_GATED' => '$task has no gate, so there is nothing here to bring up to its source: '
+          'it was started without one, or it is offline.',
       'FAILED' => '$task could not be brought up to its source: $detail',
       _ => '$task: ${outcome.toLowerCase().replaceAll('_', ' ')}${detail.isEmpty ? '' : ': $detail'}',
     };

@@ -1867,8 +1867,8 @@ class MockMachine {
         'record': _handInRecord[parameters['task'] as String? ?? ''] ?? <Map<String, dynamic>>[],
       };
 
-  /// Brings a task up to its source, as Sokar does: an online task fetches its upstream itself, and
-  /// the stand-in's gate never moves, so any other task is up to date.
+  /// Brings a task up to its source, as Sokar does: an offline task has no gate to bring up, and
+  /// the stand-in's gate never moves, so any other task, an online one included, is up to date.
   Map<String, dynamic> _refreshTask(Map<String, dynamic> parameters) {
     final name = parameters['task'] as String? ?? '';
     final task = tasks.where((each) => each['name'] == name).firstOrNull;
@@ -1876,7 +1876,7 @@ class MockMachine {
       throw MockRefusal('org.fuin.sokar.Tasks1.NoSuchTask', <String, dynamic>{'task': name});
     }
     return <String, dynamic>{
-      'outcome': task['securityClass'] == 'online' ? 'NOT_GATED' : 'UNCHANGED',
+      'outcome': task['securityClass'] == 'offline' ? 'NOT_GATED' : 'UNCHANGED',
       'moved': <String, String>{},
       'detail': '',
       'told': false,

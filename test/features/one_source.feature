@@ -39,12 +39,13 @@ Feature: Where a repository's work comes from and goes, and catching up
     Then the machine was asked to refresh the task {'sokar-checkout-shell'}
     And the status line mentions {'main moved to 111df4193e7e; its agent was told, and git fetch sokar brings it'}
 
-  Scenario: an online task fetches its upstream itself, and says so rather than nothing
+  Scenario: a task without a gate says there is nothing to bring up, rather than nothing
     Given a refresh answers {'NOT_GATED'}
     When I select the project {'checkout'}
     And I select the work {'sokar-checkout-shell'}
     And I choose the command {'Bring it up to its source'}
-    Then the status line mentions {'an online task fetches its upstream itself'}
+    Then the status line mentions {'has no gate, so there is nothing here to bring up to its source'}
+    And the status line mentions {'started without one, or it is offline'}
 
   Scenario: a refresh that failed says why, in the machine's words
     Given a refresh answers {'FAILED'} because {'the checkout /home/walk9/walk/app is gone'}

@@ -83,15 +83,17 @@ void main() {
           'main moved to 111df4193e7e; its agent was told, and git fetch sokar brings it');
     });
     testWidgets(
-        '''an online task fetches its upstream itself, and says so rather than nothing''',
+        '''a task without a gate says there is nothing to bring up, rather than nothing''',
         (tester) async {
       await bddSetUp(tester);
       await aRefreshAnswers(tester, 'NOT_GATED');
       await iSelectTheProject(tester, 'checkout');
       await iSelectTheWork(tester, 'sokar-checkout-shell');
       await iChooseTheCommand(tester, 'Bring it up to its source');
+      await theStatusLineMentions(tester,
+          'has no gate, so there is nothing here to bring up to its source');
       await theStatusLineMentions(
-          tester, 'an online task fetches its upstream itself');
+          tester, 'started without one, or it is offline');
     });
     testWidgets('''a refresh that failed says why, in the machine's words''',
         (tester) async {
