@@ -313,7 +313,8 @@ class Tunnels extends ChangeNotifier {
   /// A machine that names no host is left alone and answers true: it is already reachable, by
   /// somebody else's forward, and there is nothing to do.
   Future<bool> raiseFor(Machine machine) async {
-    if (!machine.needsATunnel) return true;
+    // A machine this build cannot reach is said so where it is opened, never forwarded.
+    if (!machine.needsATunnel || machine.whyNotReachableHere != null) return true;
     final tunnel = _mine.putIfAbsent(
       machine.name,
       () => Tunnel(machine, start: _launch, appears: _untilItBinds),

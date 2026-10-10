@@ -1,7 +1,7 @@
 # F102 — A Sokar In WSL Reached From Windows
 
-**Status:** later; decided on 2026-10-10, built in three stages (see *The stages*), the first in the
-round after that day's.
+**Status:** stage 1 built; stage 2 built locally on 2026-10-10 and run first on GitHub's Windows
+runner from a branch `windows/stage2`; stage 3 later. See *The stages*.
 
 **What must be true.** On a Windows machine with Sokar in a WSL2 distribution, the interface runs as
 a Windows application on the same machine. It reaches that Sokar with no ssh and no open port, and
@@ -164,6 +164,25 @@ Decided on 2026-10-10: the ZIP first, the MSIX after it.
    `.exe`, made by a Windows job on GitHub's runner. It is pushed on the operator's word, and then
    the operator tests it on a Windows machine with WSL2, against the published snapshots.
 3. **The MSIX**, self-signed at first.
+
+**Built in stage 2, and what it settled:**
+- **`wsl.exe -d <distribution> --exec …`, not `-- …`.** After `--`, `wsl.exe` hands the words to the
+  distribution's shell, which splits them again; `--exec` runs the program with exactly the
+  arguments given. The measurement above ran `sokar daemon connect` with `--`, where no word needs
+  quoting, and `--exec` carries the same bytes.
+- **The distributions are read without the translated column.** The names come from `wsl.exe -l -q`,
+  which run from `-l --running -q`, the version from the last column of `-l -v`; `-l -v`'s state is
+  in Windows' language. Each call into a distribution is preceded by that reading, so a stopped one
+  is said to be stopped and stays so.
+- **A machine over ssh is reached from the Linux build only, so far.** `dart:io` opens no unix
+  socket on Windows, so the forward of today does not work there; reaching one through
+  `ssh host sokar daemon connect` is the way, built later. A socket entry carried over from Linux is
+  said to name a path Windows cannot open.
+- **Notifications are not raised on Windows yet**, and that is said once: Windows' own need the
+  application registered with the shell, which comes with the MSIX.
+- **The files:** `%APPDATA%\sokar\frontend.json`, the plugin's too; the operations record under
+  `%LOCALAPPDATA%\sokar`; a file kept to its owner with `icacls`; one window over a loopback port
+  named in `%LOCALAPPDATA%\sokar\frontend.port`.
 
 ## The machine file, which `sokar-intellij` reads too
 

@@ -11,6 +11,7 @@ import 'fleet_model.dart';
 import 'host_keys.dart';
 import 'machine_setup.dart';
 import 'tunnel.dart';
+import 'wsl.dart';
 import 'settings.dart';
 
 /// One machine this interface can reach.
@@ -117,16 +118,28 @@ class Machine {
   final Map<String, Object?> unknownFields;
 
   /// Why this build cannot reach it, or null when it can.
+  String? get whyNotReachableHere => whyNotReachableOn(windows: desk.isWindows);
+
+  /// Why it cannot be reached from Linux, or from Windows when [windows] is true, or null when it can.
   ///
-  /// A WSL distribution is reached from Windows, and this build does not do that yet; an entry of a
-  /// kind it does not know is left exactly as it is. Either is said, never tried as a path.
-  String? get whyNotReachableHere => switch (kind) {
+  /// A WSL distribution is reached from Windows only. On Windows, a socket entry names a path on a
+  /// Linux computer, and a machine over ssh is reached from the Linux build only so far. An entry of
+  /// a kind this version does not know is left exactly as it is. Each is said, never tried as a path.
+  String? whyNotReachableOn({required bool windows}) => switch (kind) {
+        '' when windows && needsATunnel => 'A machine over ssh is reached from the Linux build of the '
+            'interface; this Windows build reaches WSL distributions only, so far.',
+        '' when windows => 'This entry names a socket on a Linux computer, which Windows cannot open.',
         '' => null,
+        'wsl' when windows => null,
         'wsl' => 'The WSL distribution ${distribution.isEmpty ? '' : '$distribution '}is reached from '
             'Windows, through wsl.exe, and this build of the interface cannot do that.',
         _ => 'This version of the interface does not know machines of the kind "$kind", so it '
             'leaves this one as it is.',
       };
+
+  /// What its daemon is reached through instead of a socket: `sokar daemon connect` in the WSL
+  /// distribution, on Windows. Null for a socket.
+  List<String>? get relay => kind == 'wsl' && desk.isWindows ? Wsl.relayTo(distribution) : null;
 
   /// Where it is, in a word or two: the host, the WSL distribution, or the socket.
   String get where => switch (kind) {
@@ -304,8 +317,16 @@ class Machines extends ChangeNotifier {
     }
   }
 
-  static FleetBackend _overSocket(Machine machine) => SokarBackend(Backend(
-      socketPath: machine.socketPath, label: machine.name, notReachable: machine.whyNotReachableHere));
+  static FleetBackend _overSocket(Machine machine) => SokarBackend(backendFor(machine));
+
+  /// Where [machine]'s daemon is: its socket, or the relay into its WSL distribution, which is
+  /// asked before each connection whether the distribution runs.
+  static Backend backendFor(Machine machine) => Backend(
+      socketPath: machine.socketPath,
+      label: machine.name,
+      notReachable: machine.whyNotReachableHere,
+      relay: machine.relay,
+      whyNotNow: machine.relay == null ? null : () => Wsl().whyNotNow(machine.distribution));
 
   /// Tries [machine] as watching it would, without watching it or leaving anything running.
   /// Where Sokar's socket is for the account [host] logs in as, asked of the machine, or null when

@@ -9,6 +9,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- On Windows, a WSL distribution is a machine. The interface lists the distributions with
+  `wsl.exe`, never starting a stopped one, and reaches the chosen one's daemon through
+  `wsl.exe -d <distribution> --exec sokar daemon connect`, the same Varlink over the relay's standard
+  input and output, with no ssh and no open port. Terminals and commands run there through
+  `wsl.exe --exec`. Before connecting it checks the Windows version, WSL, WSL2, a system Sokar
+  supports, systemd, Sokar and its daemon, and says in words where it stops. Where Sokar is missing
+  it offers to set it up: every line shown first, run as root only after a yes, the repository's key
+  checked against the fingerprint the interface carries, the agents chosen with none chosen in
+  advance, and each line kept in the operations record. Turning systemd on, which restarts the
+  distribution, is asked on its own, and the answer is no until changed.
 - A Windows build of the interface, the first part of reaching a Sokar in WSL from Windows. Its
   files are under the user's profile: the machine list at `%APPDATA%\sokar\frontend.json`, where the
   IntelliJ plugin reads it, and what it records under `%LOCALAPPDATA%`. A file is kept to its owner

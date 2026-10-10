@@ -9,8 +9,10 @@ import 'environment.dart';
 /// Where a backend is.
 ///
 /// Local and remote differ by one string - the socket path - because a remote daemon is reached
-/// by forwarding its socket over SSH. **There is no second transport, and there must never be
-/// one**; anything that looks like it needs one is a design that has gone wrong.
+/// by forwarding its socket over SSH. **There is no second protocol, and there must never be
+/// one**: where no socket can be opened, as from Windows into a WSL distribution, the same Varlink
+/// runs over the standard input and output of [relay], `sokar daemon connect` on the far side,
+/// which joins them to the daemon's socket.
 class Backend {
   /// Path to the daemon's unix socket.
   final String socketPath;
@@ -23,14 +25,41 @@ class Backend {
   /// call ends at once as a lost connection with these words.
   final String? notReachable;
 
+  /// The program, and its arguments, whose standard input and output are the daemon, or null for a
+  /// socket. Started as a process of its own for each connection, never through a shell.
+  final List<String>? relay;
+
+  /// Asked before each connection through [relay]: why not now, or null. A relay can start what it
+  /// reaches, and this is where a WSL distribution that is stopped stays stopped.
+  final Future<String?> Function()? whyNotNow;
+
   /// Constructor with the socket and how to name it.
-  const Backend({required this.socketPath, required this.label, this.notReachable});
+  const Backend({
+    required this.socketPath,
+    required this.label,
+    this.notReachable,
+    this.relay,
+    this.whyNotNow,
+  });
 
   /// Opens a connection to it, or says in [notReachable]'s words why there is none.
   Future<VarlinkConnection> open() async {
     final why = notReachable;
     if (why != null) throw VarlinkDisconnected(why);
-    return VarlinkConnection.open(socketPath);
+    final through = relay;
+    if (through == null) return VarlinkConnection.open(socketPath);
+    final notNow = await whyNotNow?.call();
+    if (notNow != null) throw VarlinkDisconnected(notNow);
+    final Process process;
+    try {
+      process = await Process.start(through.first, through.sublist(1));
+    } on ProcessException catch (failed) {
+      throw VarlinkDisconnected('`${through.first}` could not be started: ${failed.message}');
+    }
+    // What the relay says goes to its standard error, never into the stream. Drained, so a relay
+    // that says much there is never held up by it.
+    process.stderr.drain<void>().ignore();
+    return VarlinkConnection.over(incoming: process.stdout, outgoing: process.stdin, destroy: process.kill);
   }
 
   /// The daemon on this machine.

@@ -97,6 +97,7 @@ import 'tile_console.dart';
 import 'tokens.dart';
 import 'window_size.dart';
 import 'work_page.dart';
+import 'wsl_machine.dart';
 
 /// The one window: a rail saying where you are, and that place beside it.
 ///
@@ -1730,6 +1731,15 @@ class _ShellState extends State<Shell> {
       socketAt: widget.machines.socketAt,
       whyNotLoggedIn: () => widget.machines.tunnels.lastLoginRefusal,
       thenConnections: () => thenConnections = true,
+      // Every line that runs in a WSL distribution is kept in the operations record, as it ran.
+      wslSteps: (onReady) => WslSteps(
+        onReady: onReady,
+        record: (distribution, line, said) => widget.operations.run(
+          title: 'In $distribution: $line',
+          machine: distribution,
+          output: Stream<String>.fromIterable(<String>[line, if (said.trim().isNotEmpty) said.trimRight()]),
+        ),
+      ),
     );
     if (machine == null) return;
     await widget.machines.add(machine);

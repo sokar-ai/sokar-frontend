@@ -3,6 +3,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'fleet_backend.dart';
 import 'machines.dart';
+import 'wsl.dart';
 
 /// How one machine connects out: the credentials it is configured with, described without a
 /// secret, and the declaring and forgetting of them.
@@ -120,6 +121,7 @@ class Connections extends ChangeNotifier {
 /// one, which a command that prompts needs and one fed on standard input must not have.
 List<String>? onTheMachine(Machine machine, List<String> command, {required bool terminal}) {
   if (command.isEmpty) return null;
+  if (machine.relay != null) return Wsl.runIn(machine.distribution, command);
   if (machine.needsATunnel) {
     // ssh joins what follows the host into one line for the far shell, so each word is quoted.
     return <String>['ssh', if (terminal) '-t', machine.host, inTheLoginShell(command.map(quoteForAShell).join(' '))];
@@ -164,6 +166,7 @@ String? notAPrivateKey(String value) {
 /// write is not one it may take apart. Null where nothing here reaches that machine.
 List<String>? onTheMachineAsWritten(Machine machine, String line) {
   if (line.trim().isEmpty) return null;
+  if (machine.relay != null) return Wsl.runIn(machine.distribution, <String>['sh', '-c', line]);
   if (machine.needsATunnel) return <String>['ssh', '-t', machine.host, inTheLoginShell(line)];
   if (machine.host.isEmpty && machine.socketPath == Backend.local().socketPath) {
     return <String>['sh', '-c', line];

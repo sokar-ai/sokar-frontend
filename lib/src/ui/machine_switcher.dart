@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/connection_trial.dart';
+import '../app/desk.dart';
 import '../app/fleet_model.dart';
 import '../app/host_keys.dart';
 import '../app/machine_setup.dart';
@@ -17,6 +18,7 @@ import 'new_machine.dart';
 import 'choice_field.dart';
 import 'tokens.dart';
 import 'dialog_scroll.dart';
+import 'wsl_machine.dart';
 
 /// What one machine says about itself: the kind of way in, and whether it is a second way in to
 /// a node already listed. **That is asked, not worked out**: a hostname has many spellings, and a
@@ -81,6 +83,9 @@ enum MachineKind {
 
   /// Another user that runs work, on a machine the wizard prepared before.
   newUser,
+
+  /// A WSL distribution of this Windows user, reached through `wsl.exe`. Offered on Windows only.
+  wsl,
 }
 
 /// Asks for another machine to watch, as a wizard: its name and kind first, then what that kind
@@ -104,7 +109,9 @@ Future<Machine?> askForAMachine(BuildContext context,
         Future<int?> Function(Machine machine)? countKeyslots,
         Future<String?> Function(String host)? socketAt,
         String? Function()? whyNotLoggedIn,
-        VoidCallback? thenConnections}) =>
+        VoidCallback? thenConnections,
+        bool? onWindows,
+        Widget Function(ValueChanged<Machine?> onReady)? wslSteps}) =>
     showDialog<Machine>(
       context: context,
       builder: (context) => _AskForAMachine(
@@ -121,7 +128,9 @@ Future<Machine?> askForAMachine(BuildContext context,
           countKeyslots: countKeyslots,
           socketAt: socketAt,
           whyNotLoggedIn: whyNotLoggedIn,
-          thenConnections: thenConnections),
+          thenConnections: thenConnections,
+          onWindows: onWindows ?? desk.isWindows,
+          wslSteps: wslSteps),
     );
 
 class _AskForAMachine extends StatefulWidget {
@@ -140,7 +149,15 @@ class _AskForAMachine extends StatefulWidget {
     this.socketAt,
     this.whyNotLoggedIn,
     this.thenConnections,
+    this.onWindows = false,
+    this.wslSteps,
   });
+
+  /// Whether this runs on Windows, where a WSL distribution is the one way offered.
+  final bool onWindows;
+
+  /// The WSL way's steps, told the machine once every check passed; null for the real ones.
+  final Widget Function(ValueChanged<Machine?> onReady)? wslSteps;
 
   /// The names already watched. A second with the same name would never be added.
   final List<String> taken;
@@ -232,6 +249,9 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// Which page of the wizard is showing: the name and kind, or what that kind needs.
   int _page = 0;
+
+  /// The WSL distribution that passed every check, or null.
+  Machine? _wslReady;
 
   /// The user that runs work, for the two kinds that make one.
   late final _user = TextEditingController(text: widget.workUser);
@@ -492,7 +512,22 @@ class _AskForAMachineState extends State<_AskForAMachine> {
             ),
           ),
         ),
-        if (widget.only == null) ...<Widget>[
+        if (widget.only == null && widget.onWindows) ...<Widget>[
+          const SizedBox(height: Space.wide),
+          Text('How to reach it', style: Theme.of(context).textTheme.labelLarge),
+          ChoiceField<MachineKind>(
+            id: 'machine-kind-choice',
+            label: 'How to reach it',
+            value: _kind,
+            onChanged: (chosen) => setState(() => _kind = chosen),
+            choices: const <Choice<MachineKind>>[
+              Choice(MachineKind.wsl, 'A WSL distribution on this computer', id: 'machine-wsl',
+                  means: 'Reached through wsl.exe, with no ssh and no open port; only you reach it. '
+                      'Machines over ssh are reached from the Linux build, so far.'),
+            ],
+          ),
+        ],
+        if (widget.only == null && !widget.onWindows) ...<Widget>[
           const SizedBox(height: Space.wide),
           Text('Are you an administrator there?', style: Theme.of(context).textTheme.labelLarge),
           ChoiceField<bool>(
@@ -561,6 +596,8 @@ class _AskForAMachineState extends State<_AskForAMachine> {
 
   /// What the chosen kind needs.
   List<Widget> _secondPage(BuildContext context) => <Widget>[
+        if (_kind == MachineKind.wsl)
+          widget.wslSteps?.call(_wslChanged) ?? WslSteps(onReady: _wslChanged),
         if (_makesAUser && _run != null)
           NewMachineSteps(run: _run!, onGrew: _showTheEnd, openTerminal: widget.openTerminal),
         const SizedBox(height: Space.normal),
@@ -851,12 +888,25 @@ class _AskForAMachineState extends State<_AskForAMachine> {
       _takenBy == null &&
       (!_makesAUser || Settings.isUserName(_user.text.trim()));
 
+  void _wslChanged(Machine? ready) {
+    if (mounted) setState(() => _wslReady = ready);
+  }
+
   bool get _ready {
+    if (_kind == MachineKind.wsl) return _name.text.trim().isNotEmpty && _takenBy == null && _wslReady != null;
     if (_name.text.trim().isEmpty || _raiseIt == null || _takenBy != null) return false;
     return _raiseIt! ? _host.text.trim().isNotEmpty && _remoteKnowable : _socket.text.trim().isNotEmpty;
   }
 
   Future<void> _watchIt() async {
+    if (_kind == MachineKind.wsl) {
+      final ready = _wslReady;
+      if (ready != null) {
+        Navigator.of(context).pop(Machine(
+            name: _name.text.trim(), socketPath: '', kind: 'wsl', distribution: ready.distribution));
+      }
+      return;
+    }
     if (!await _hostKeyAccepted() || !await _remoteAsked() || !mounted) return;
     Navigator.of(context).pop(_described);
   }

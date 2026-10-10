@@ -14,6 +14,7 @@ import 'machines.dart';
 import 'modified_keys.dart';
 import 'pty.dart';
 import 'shell_model.dart';
+import 'wsl.dart';
 
 /// How a terminal is opened. Injectable, so everything above it runs without a process.
 typedef OpenTerminal = SessionChannel Function(
@@ -180,9 +181,12 @@ class Session extends ChangeNotifier {
   /// There is deliberately **no `BatchMode=yes` here**, and the tunnel deliberately has one. A
   /// forward has no terminal, so a prompt there is a hang; this *is* a terminal, so a passphrase
   /// or an unknown host key can be answered by the person sitting in front of it.
-  List<String> get command => run ?? (machine.needsATunnel
-      ? <String>['ssh', '-t', machine.host, inTheLoginShell('sokar task attach ${quoteForAShell(task)}')]
-      : <String>['sokar', 'task', 'attach', task]);
+  List<String> get command => run ??
+      (machine.relay != null
+          ? Wsl.runIn(machine.distribution, <String>['sokar', 'task', 'attach', task])
+          : machine.needsATunnel
+              ? <String>['ssh', '-t', machine.host, inTheLoginShell('sokar task attach ${quoteForAShell(task)}')]
+              : <String>['sokar', 'task', 'attach', task]);
 
   /// Sends what somebody typed. Does nothing once it is over, rather than throwing into a widget.
   void type(String input) {
