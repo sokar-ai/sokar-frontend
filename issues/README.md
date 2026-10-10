@@ -38,6 +38,7 @@ is in `doc/` or `AGENTS.md`; decisions are in [doc/decisions.md](../doc/decision
 | [F103](F103-The-Packages-Promise-The-Systems-Sokar-Supports.md) | mostly built | `sokar-buildtools`' next push (`check-linkage --declared-only`) | The packages proven on the systems Sokar supports, with a declared glibc floor. | 0 |
 | [F105](F105-A-Tasks-Terminal-In-The-Interface-As-Outside-It.md) | open | — | A task's terminal in the interface behaves as in a plain terminal. | 1 |
 | [F104](F104-A-Project-Followed-From-A-File.md) | blocked | `sokar` B160 | A project followed from a bundle or a directory; offline projects again. | 1 |
+| [F106](F106-The-Wizard-Shows-What-Sokar-Doctor-Says.md) | blocked | `sokar doctor --json` | Adding a machine shows what `sokar doctor` says about it. | 1 |
 | [F77](F77-What-A-Piece-Of-Work-Did-Is-One-Page.md) | open | — | What a piece of work did, on one page with one timeline. | 0 |
 | [F78](F78-A-Waiting-Push-Is-Reviewed-As-At-A-Forge.md) | open | — | A waiting push read as a pull request. | 0 |
 | [F74](F74-A-Waiting-Pushs-Tests-Run-In-A-Container-Of-Its-Own.md) | blocked | `sokar` B95 | A waiting push's tests run in a container of their own on the machine. | 0 |
