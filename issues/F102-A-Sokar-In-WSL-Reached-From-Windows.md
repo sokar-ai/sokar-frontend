@@ -216,9 +216,10 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
 
 ## To be checked
 
-- **Whether the two permissions are held to the one Windows job by a check.** `check-actions` reads
-  only `uses:` lines today, so they pass, but nothing keeps them from spreading to other jobs.
-  Holding them there would be a requirement for `sokar-buildtools`; whether to write it is open.
+- **The two permissions held to the one Windows job by a check:** `sokar-buildtools`' BT02, "Check
+  Actions Reads Permissions". `check-actions` reads only `uses:` lines today. With BT02 a `write`
+  permission is allowed only in a job its list names, so the Windows job is named in that list
+  before it is built.
 
 - **How the socket is found** inside the distribution without a login shell, since
   `$XDG_RUNTIME_DIR` is set only in a user session: whether `sokar daemon connect` finds its
