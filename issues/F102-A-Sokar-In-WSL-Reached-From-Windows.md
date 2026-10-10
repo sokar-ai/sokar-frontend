@@ -240,7 +240,8 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
   permission is allowed only in a job its list names, so the Windows job is named in that list
   before it is built.
 
-- **How the socket is found** inside the distribution without a login shell, since
-  `$XDG_RUNTIME_DIR` is set only in a user session: whether `sokar daemon connect` finds its
-  account's socket by itself when `wsl.exe` starts it, or is given `--socket` from `id -u`.
+- **The socket under `wsl.exe --exec`, on Windows itself.** `sokar daemon connect` needs no
+  `--socket`: with `XDG_RUNTIME_DIR` unset it takes `/run/user/<uid>`, the uid read from
+  `/proc/self/status`, where `sokard` listens under systemd, which lingering keeps up with no session
+  open. Seen on Linux with an emptied environment and no shell; on Windows, in the operator's test.
 - **Where the MSIX and the ZIP are published**, and which certificate replaces the self-signed one.
