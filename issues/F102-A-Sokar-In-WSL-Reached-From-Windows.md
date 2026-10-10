@@ -37,7 +37,8 @@ the socket's file permissions are the only guard, and an open port would remove 
 - **A stopped distribution is never started by the interface.** `wsl.exe -d <distro> -- …` would
   start it, with its memory and CPU, so the interface reads each distribution's state with
   `wsl.exe -l -v`, which starts nothing, and calls into one only when it runs. A stopped one is
-  shown as stopped, and the person starts it.
+  shown as stopped, and the person starts it. The one exception is the restart for systemd, below,
+  after its own question.
 - **What the interface runs on a machine through ssh today runs through `wsl.exe` as well**: the
   terminal of a task, attaching to it, a sign-in (`sokar vault login`), and the checks the connection
   trial makes.
@@ -93,11 +94,17 @@ connection goes on.
 - **What it runs** is what Sokar's `doc/getting-started.md` says for the distribution's package
   manager. On Ubuntu and Debian: the key to `/usr/share/keyrings/sokar.gpg`, the source line for
   releases (snapshots only when the person asks for them, as that page's "Snapshots" section says),
-  `apt install sokar` and an agent. On Fedora: `/etc/yum.repos.d/sokar.repo` and `dnf install`.
+  `apt install sokar` and the agents chosen. On Fedora: `/etc/yum.repos.d/sokar.repo` and
+  `dnf install`.
   Then `loginctl enable-linger <user>` as root, so that `sokard` runs whether or not a session
   is open: `sokar setup` does not turn lingering on, and whether `wsl.exe` opens a login session
   that `sokard` lives in is not measured. Then `sokar setup` as the distribution's user. Each line
   is shown to the person before anything runs.
+- **The agents are a choice:** Claude Code, Pi and Oh My Pi, one or more, as `sokar`'s B159 offers a
+  list. Nothing is chosen in advance.
+- **The repository's key is checked against a fingerprint the interface carries.** A key whose
+  fingerprint does not match stops the setup, saying the fingerprint expected and the one that came.
+  So a change of the repository's key needs a new version of the interface.
 - **SELinux:** where it is off, as in Fedora's WSL images, the offer does not insist on Sokar's
   SELinux module. `sokar doctor` already reads WSL2 that way.
 - **Root inside the distribution:** `wsl.exe -d <distro> -u root -- …` runs as root with no
@@ -107,21 +114,15 @@ connection goes on.
 - **Only on a system Sokar supports,** as the check above reads it. Any other distribution is told
   why in words, with no offer.
 - **systemd:** a distribution without systemd (no `[boot] systemd=true` in `/etc/wsl.conf`) needs it
-  turned on and the distribution restarted (`wsl.exe --terminate <distro>`). The interface never
-  starts or restarts a distribution by itself, so it asks for that separately, says what it means
-  for anything running there, and the answer is no unless the person changes it.
+  turned on and the distribution restarted. The interface asks for that with a question of its own,
+  saying that everything running in the distribution ends: shells, services and running Sokar
+  tasks. The answer is no unless the person changes it. After a yes the interface runs
+  `wsl.exe --terminate <distro>`, and its next call starts the distribution again. This is the one
+  time the interface starts a distribution.
 - **For a person who says no:** the same lines as text to copy.
 - **Acceptance:** on a Windows machine with a fresh supported distribution and no Sokar, the
   interface offers the setup, the person says yes, Sokar is installed, and the distribution is
   reached. In the operator's test after stage 2.
-
-**Questions for this part:**
-- After the person says yes to the restart, does the interface run `wsl.exe --terminate` and the
-  next call start the distribution again, or does the person restart it? The first starts a
-  distribution through the interface, which the rule above forbids otherwise.
-- Which agent is installed when the person names none: the offer asks, or one is proposed?
-- Is the key fetched inside the distribution, or by the interface and checked against a fingerprint
-  the interface carries?
 
 ## Measured on Windows
 
