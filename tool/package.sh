@@ -124,6 +124,25 @@ requires="$(
   done
 )"
 test -n "$requires" || { echo "no sonames found; refusing to ship an rpm with no dependencies" >&2; exit 1; }
+
+say "Holding the C library floor"
+# The newest glibc symbol version any object needs is the floor both packages promise. The Debian
+# side has it from dpkg-shlibdeps as `libc6 (>= …)`; the RPM side says it as rpm's own scanner
+# would, `libc.so.6(GLIBC_…)(64bit)`. Above Debian 13's glibc 2.41 the package would no longer
+# install on a system Sokar supports, so that is refused here, before anything is published.
+ceiling="${GLIBC_CEILING:-2.41}"
+floor="$(
+  for object in "${objects[@]}"; do
+    objdump -T "$object" | grep -oE 'GLIBC_[0-9]+(\.[0-9]+)+'
+  done | sed 's/^GLIBC_//' | sort -uV | tail -1
+)"
+test -n "$floor" || { echo "no GLIBC_ symbol versions found; refusing to guess the C library floor" >&2; exit 1; }
+if [ "$(printf '%s\n%s\n' "$floor" "$ceiling" | sort -V | tail -1)" != "$ceiling" ]; then
+  echo "the binaries need glibc $floor, above the ceiling $ceiling (Debian 13's glibc is 2.41)" >&2
+  exit 1
+fi
+echo "glibc $floor (at most $ceiling)"
+requires="$(printf '%s\nlibc.so.6(GLIBC_%s)(64bit)' "$requires" "$floor")"
 echo "$requires"
 
 say "Writing the nfpm configuration"

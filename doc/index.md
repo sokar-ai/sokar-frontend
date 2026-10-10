@@ -7,7 +7,8 @@ computer and on machines reached over ssh, without a terminal.
 
 ## Install
 
-From the same package repository as Sokar itself.
+From the same package repository as Sokar itself, on the systems Sokar supports: Ubuntu 26.04,
+Debian 13, Fedora 43 and Fedora 44.
 
 Debian and Ubuntu:
 

@@ -16,6 +16,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The packages are proven to install on the systems Sokar supports, Ubuntu 26.04, Debian 13,
+  Fedora 43 and Fedora 44, each image pinned by its digest, instead of Debian 12 and Fedora 40.
+  The `.rpm` declares the oldest C library it needs, as the `.deb` does, and a build that would need
+  more than Debian 13's glibc 2.41 is refused before anything is published.
 - Every workflow run is titled with its workflow, its branch or tag and its commit's subject; the
   shared rules' workflow is called "Shared rules check" and the Artifactory probe "Artifactory probe
   test".

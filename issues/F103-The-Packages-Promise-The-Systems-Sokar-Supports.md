@@ -1,6 +1,7 @@
 # F103 — The Packages Promise The Systems Sokar Supports
 
-**Status:** open; decided on 2026-10-10.
+**Status:** mostly built on 2026-10-10; the switch to `check-linkage --declared-only` waits for
+`sokar-buildtools`' next push.
 
 **What must be true.** The interface's `.deb` and `.rpm` are proven to install and start on exactly
 the systems Sokar supports, and they declare the oldest C library they need. A build that would need
@@ -27,12 +28,18 @@ The interface's packages do neither:
 - **The install check runs in the supported systems:** `ubuntu:26.04`, `debian:13`, `fedora:43` and
   `fedora:44`, each image pinned by its digest. Each one installs the package and starts the binary
   far enough to prove it links, as the check does today with its file tests.
-- **The floor is declared and held** with the shared `check-linkage`: `libc.so.6` at most at
-  Debian 13's glibc 2.41, as Sokar's. The binaries are `sokar-frontend` and the bundle's own
-  libraries under `lib/`.
-- **The build runner is chosen for the floor** and named with the reason, as today. Whether it stays
-  `ubuntu-22.04` or moves to `ubuntu-24.04` (glibc 2.39, still under 2.41) is decided by what the
-  four systems accept.
+- **The floor is declared and held:** the `.deb` declares it as `libc6 (>= …)` from
+  `dpkg-shlibdeps`, the `.rpm` as `libc.so.6(GLIBC_…)(64bit)`, the newest `GLIBC_` symbol version
+  any object needs. A floor above Debian 13's glibc 2.41 is refused before anything is published.
+  `tool/package.sh` holds it with `objdump -T` for now. Once `sokar-buildtools` publishes
+  `check-linkage --declared-only`, the shared command holds it instead:
+  `check-linkage --declared-only --declare libc.so.6=GLIBC:<floor> --ceiling GLIBC=2.41`, over
+  `sokar_frontend` and `lib/*.so`. `--declared-only` leaves GTK and the bundle's own libraries to the
+  dependencies derived from the binary.
+- **The build runner stays `ubuntu-22.04`.** Measured on 2026-10-10: the `0.4.2~snapshot.141`
+  built there needs `GLIBC_2.34`, and its `.deb` and `.rpm` install in clean `ubuntu:26.04`,
+  `debian:13`, `fedora:43` and `fedora:44` with no library missing. The old library names resolve
+  on the `t64` systems.
 - `doc/` names the supported systems, as Sokar's `getting-started.md` does.
 
 ## Acceptance
@@ -40,13 +47,12 @@ The interface's packages do neither:
 - **The install check covers exactly the four systems**, and none below them. Seen to fail: a
   package built on Ubuntu 26.04 is refused by the check in `debian:13`, or else installs. Either way
   the result is measured, not assumed.
-- **`check-linkage` refuses a build that needs more than glibc 2.41.** Seen to fail: the check run
-  with a ceiling below what the binary needs.
+- **A build that needs more than glibc 2.41 is refused.** Seen to fail: `GLIBC_CEILING=2.30
+  tool/package.sh` refuses a bundle that needs 2.38. The same with `check-linkage` once it is
+  used.
 - **The whole workflow ran green on the VM** before the change is handed over: the install check
   runs in podman on this host as it runs on the runner.
 
 ## To be checked
 
-- **Which GTK and other library versions** the four systems have, and whether a bundle built on
-  `ubuntu-22.04` installs on all of them. The `t64` renaming of Debian 13 and Ubuntu 24.04 onward
-  changes package names, not only versions.
+Nothing open.

@@ -35,7 +35,7 @@ is in `doc/` or `AGENTS.md`; decisions are in [doc/decisions.md](../doc/decision
 | [F95](F95-A-Waiting-Push-Fetched-Here.md) | open | — | A waiting push fetched here, into a clone the person chooses. | 0 |
 | [F96](F96-Keys-A-Machine-No-Longer-Knows.md) | open | — | Clearing a machine also removes the forge keys it no longer knows. | 0 |
 | [F97](F97-Forwarding-Measured-Against-GitHub.md) | open | — | Forwarding to a chosen branch measured against GitHub. | 0 |
-| [F103](F103-The-Packages-Promise-The-Systems-Sokar-Supports.md) | open | — | The packages proven on the systems Sokar supports, with a declared glibc floor. | 1 |
+| [F103](F103-The-Packages-Promise-The-Systems-Sokar-Supports.md) | mostly built | `sokar-buildtools`' next push (`check-linkage --declared-only`) | The packages proven on the systems Sokar supports, with a declared glibc floor. | 0 |
 | [F105](F105-A-Tasks-Terminal-In-The-Interface-As-Outside-It.md) | open | — | A task's terminal in the interface behaves as in a plain terminal. | 1 |
 | [F104](F104-A-Project-Followed-From-A-File.md) | blocked | `sokar` B160 | A project followed from a bundle or a directory; offline projects again. | 1 |
 | [F77](F77-What-A-Piece-Of-Work-Did-Is-One-Page.md) | open | — | What a piece of work did, on one page with one timeline. | 0 |
