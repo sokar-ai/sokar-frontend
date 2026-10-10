@@ -65,6 +65,14 @@ the socket's file permissions are the only guard, and an open port would remove 
       `0.4.2~snapshot.141` becomes, for example, `0.4.2.141`.
     - **A ZIP with the `.exe` and what it needs**, offered for download on GitHub, for a person
       who may not install anything on their computer: unpacked and started, with no installation.
+      The ZIP is not signed. It comes with a `SHA256SUMS` beside it and a build provenance
+      attestation made in the Windows job (`actions/attest-build-provenance`, through Sigstore, with
+      no certificate of the project's). Before unpacking, a person checks both: `sha256sum -c
+      SHA256SUMS` (or `Get-FileHash` in PowerShell, compared with the line), and
+      `gh attestation verify <zip> --repo sokar-ai/sokar-frontend`, which shows the ZIP was built
+      from this repository by this workflow. The download page says how. The attestation needs
+      `id-token: write` and `attestations: write`, for that one job only. The MSIX's signature in
+      stage 3 comes on top of both.
     - Where the MSIX is published, beside `sokar-dist-deb` and `sokar-dist-rpm`.
 
 ## What the interface checks before it connects
@@ -104,7 +112,8 @@ connection goes on.
   list. Nothing is chosen in advance.
 - **The repository's key is checked against a fingerprint the interface carries.** A key whose
   fingerprint does not match stops the setup, saying the fingerprint expected and the one that came.
-  So a change of the repository's key needs a new version of the interface.
+  So a change of the repository's key needs a new version of the interface. The fingerprint is
+  only as trustworthy as the interface it comes in: in stage 2, the check of the ZIP above.
 - **SELinux:** where it is off, as in Fedora's WSL images, the offer does not insist on Sokar's
   SELinux module. `sokar doctor` already reads WSL2 that way.
 - **Root inside the distribution:** `wsl.exe -d <distro> -u root -- …` runs as root with no
@@ -206,6 +215,9 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
   as stopped and it is still stopped afterwards. Seen to fail: the same with a call that starts it.
 
 ## To be checked
+
+- **Whether `check-actions` accepts the attestation's two permissions** for the one Windows job, and
+  nothing wider. If it does not, that is a requirement for `sokar-buildtools`.
 
 - **How the socket is found** inside the distribution without a login shell, since
   `$XDG_RUNTIME_DIR` is set only in a user session: whether `sokar daemon connect` finds its
