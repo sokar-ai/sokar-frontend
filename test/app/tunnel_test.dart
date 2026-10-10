@@ -1,3 +1,7 @@
+// Linux only: it forwards unix sockets with ssh and sh, which dart:io cannot open on Windows.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

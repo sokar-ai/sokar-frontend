@@ -1,3 +1,7 @@
+// Linux only: it opens a pty with libc; Windows' terminal is ConPTY, tested on Windows by hand.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

@@ -5,6 +5,7 @@ import 'package:sokar_frontend/src/app/one_instance.dart';
 
 /// Two interfaces running is not untidy, it is wrong: each watches every configured machine, so a
 /// clearance question is raised twice and answered by whichever window somebody happened to see.
+/// The tests at a unix socket are Linux's; the loopback way below is Windows', and runs on both.
 void main() {
   late String path;
 
@@ -21,7 +22,7 @@ void main() {
 
     expect(first.inCharge, isTrue);
     await first.release();
-  });
+  }, tags: 'linux');
 
   test('a second launch joins rather than competing, and asks for the window', () async {
     var asked = 0;
@@ -35,7 +36,7 @@ void main() {
     }
     expect(asked, 1);
     await first.release();
-  });
+  }, tags: 'linux');
 
   test('a socket left by a run that died is taken over, not surrendered to', () async {
     // Otherwise one crash means the interface can never be opened again without somebody knowing
@@ -46,7 +47,7 @@ void main() {
 
     expect(taking.inCharge, isTrue);
     await taking.release();
-  });
+  }, tags: 'linux');
 
   test('releasing leaves nothing behind for the next launch to trip over', () async {
     final first = await OneInstance.take(comeForward: () {}, at: path);
@@ -54,7 +55,7 @@ void main() {
     await first.release();
 
     expect(File(path).existsSync(), isFalse);
-  });
+  }, tags: 'linux');
 
   group('over the loopback address, as on Windows', () {
     late String portFile;

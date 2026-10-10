@@ -1,22 +1,15 @@
-name: Windows
+name: Windows trial
 run-name: "${{ github.workflow }} · ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.workflow }}"
 
-# The interface on Windows, which reaches a Sokar in a WSL distribution through `wsl.exe`. There is
-# no Windows machine beside the VM the Linux build is proven on, so this runs on GitHub's Windows
-# runner: the analyzer, every test not marked as Linux's own, and the release build. It publishes
-# nothing.
+# A trial of the interface on Windows, for a branch under `windows/` only, so a Windows change is
+# seen on GitHub's Windows runner before it reaches `main`. It publishes nothing, and its name says
+# so: the Windows build that publishes is a job of the Build itself.
 #
-# `main` and the version tags run it, as they run the Linux build. A branch under `windows/` runs it
-# too, so a Windows change is seen on Windows before it reaches `main`.
+# Every wait is bounded. A test has a minute, the steps their own limits well under the job's, so a
+# test that would wait for ever ends the run soon and names itself.
 on:
   push:
-    branches: [main, 'windows/**']
-    tags: ['v*']
-    paths-ignore:
-      - '**.md'
-      - 'doc/**'
-      - 'issues/**'
-      - 'mkdocs.yml'
+    branches: ['windows/**']
   workflow_dispatch:
 
 permissions:
@@ -26,7 +19,7 @@ jobs:
   windows:
     name: Test and build on Windows
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -44,7 +37,9 @@ jobs:
       # A test marked `linux` needs what only Linux has: a pty, a unix socket, `chmod`, a Bash tool.
       # Each such mark says why in the test itself.
       - name: Test
-        run: flutter test --exclude-tags linux
+        timeout-minutes: 20
+        run: flutter test --exclude-tags linux --timeout 60s --reporter expanded
 
       - name: Build
+        timeout-minutes: 20
         run: flutter build windows --release

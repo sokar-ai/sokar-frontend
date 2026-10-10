@@ -167,4 +167,8 @@ class WindowsDesk extends Desk {
 }
 
 /// The desk of the computer the interface runs on.
-final Desk desk = Desk.of(Platform.operatingSystem, Platform.environment);
+///
+/// Settable for tests alone: the suite runs as on Linux wherever it runs, so a test never starts a
+/// Windows program by accident on a Windows runner. A test of the Windows way builds a [Desk] of its
+/// own, or sets this and puts it back.
+Desk desk = Desk.of(Platform.operatingSystem, Platform.environment);

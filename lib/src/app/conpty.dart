@@ -12,7 +12,11 @@ import 'pty.dart';
 /// What runs in it is `wsl.exe` or `ssh.exe`, and what they reach is the task's `tmux` on a Linux
 /// machine. So the terminal's bytes are the far end's, as on Linux; Windows only carries them.
 ///
-/// Three things about it are not obvious and all are deliberate:
+/// Four things about it are not obvious and all are deliberate:
+///
+/// * **What runs in it ends with it.** On Windows a child does not end with its parent, so the
+///   program is put in a job object that kills what is in it when its last handle closes: when the
+///   session ends, and when the interface itself ends, however it ends.
 ///
 /// * **The output ends only when the pseudoconsole is closed.** A pseudoconsole keeps its output
 ///   pipe open after the program in it has exited, so a reader waiting for the end of the pipe
@@ -106,10 +110,11 @@ class ConPty implements SessionChannel {
       final process = information.cast<IntPtr>().value;
       // The thread's handle is not needed; the process's is waited for and closed by the waiter.
       k.closeHandle(information.cast<IntPtr>()[1]);
+      final job = _killedWithUs(k, process);
 
       final output = StreamController<List<int>>.broadcast();
       final ended = Completer<int>();
-      final closing = _Console(hpc);
+      final closing = _Console(hpc, job);
       _pump(closing, process, outputRead, output, ended);
       return ConPty._(closing, inputWrite, output, ended.future);
     } finally {
@@ -243,6 +248,22 @@ class ConPty implements SessionChannel {
     send.send(value);
   }
 
+  /// A job object that kills [process], and whatever it starts, when the job's handle closes; 0
+  /// where Windows would not make one, and the program then only ends as its console closes.
+  static int _killedWithUs(_Kernel32 k, int process) {
+    final job = k.createJobObject(nullptr, nullptr);
+    if (job == 0) return 0;
+    final limits = k.alloc(_extendedLimitBytes);
+    (limits.cast<Uint8>() + _limitFlagsOffset).cast<Uint32>().value = _killOnJobClose;
+    final set = k.setInformationJobObject(job, _extendedLimitInformation, limits, _extendedLimitBytes);
+    k.free(limits);
+    if (set == 0 || k.assignProcessToJobObject(job, process) == 0) {
+      k.closeHandle(job);
+      return 0;
+    }
+    return job;
+  }
+
   /// A `COORD` passed by value: columns in the low half, rows in the high.
   static int _coord(int columns, int rows) => (rows & 0xffff) << 16 | (columns & 0xffff);
 
@@ -258,15 +279,20 @@ class ConPty implements SessionChannel {
 
 /// A pseudoconsole, closed once: by this side, or when its program has exited.
 class _Console {
-  _Console(this.handle);
+  _Console(this.handle, this.job);
 
   final int handle;
+
+  /// The job object its program is in, or 0. Closing it kills what is still in it.
+  final int job;
   bool closed = false;
 
   void close() {
     if (closed) return;
     closed = true;
-    _Kernel32().closePseudoConsole(handle);
+    final k = _Kernel32();
+    k.closePseudoConsole(handle);
+    if (job != 0) k.closeHandle(job);
   }
 }
 
@@ -314,6 +340,12 @@ const int _errorFileNotFound = 2;
 const int _errorAccessDenied = 5;
 const int _heapZeroMemory = 0x00000008;
 
+// JOBOBJECT_EXTENDED_LIMIT_INFORMATION on 64-bit Windows, and its LimitFlags after two LARGE_INTEGERs.
+const int _extendedLimitInformation = 9;
+const int _extendedLimitBytes = 144;
+const int _limitFlagsOffset = 16;
+const int _killOnJobClose = 0x00002000;
+
 // STARTUPINFOEXW on 64-bit Windows: STARTUPINFOW is 104 bytes, its dwFlags at 60, and the
 // attribute list's pointer follows it.
 const int _startupInfoExBytes = 112;
@@ -358,6 +390,12 @@ class _Kernel32 {
         getExitCodeProcess = k.lookupFunction<Int32 Function(IntPtr, Pointer<Uint32>),
             int Function(int, Pointer<Uint32>)>('GetExitCodeProcess'),
         closeHandle = k.lookupFunction<Int32 Function(IntPtr), int Function(int)>('CloseHandle'),
+        createJobObject = k.lookupFunction<IntPtr Function(Pointer<Void>, Pointer<Uint16>),
+            int Function(Pointer<Void>, Pointer<Uint16>)>('CreateJobObjectW'),
+        setInformationJobObject = k.lookupFunction<Int32 Function(IntPtr, Int32, Pointer<Void>, Uint32),
+            int Function(int, int, Pointer<Void>, int)>('SetInformationJobObject'),
+        assignProcessToJobObject =
+            k.lookupFunction<Int32 Function(IntPtr, IntPtr), int Function(int, int)>('AssignProcessToJobObject'),
         getLastError = k.lookupFunction<Uint32 Function(), int Function()>('GetLastError'),
         _heap = k.lookupFunction<IntPtr Function(), int Function()>('GetProcessHeap')(),
         _heapAlloc = k.lookupFunction<Pointer<Void> Function(IntPtr, Uint32, IntPtr),
@@ -382,6 +420,9 @@ class _Kernel32 {
   final int Function(int, int) waitForSingleObject;
   final int Function(int, Pointer<Uint32>) getExitCodeProcess;
   final int Function(int) closeHandle;
+  final int Function(Pointer<Void>, Pointer<Uint16>) createJobObject;
+  final int Function(int, int, Pointer<Void>, int) setInformationJobObject;
+  final int Function(int, int) assignProcessToJobObject;
   final int Function() getLastError;
   final int _heap;
   final Pointer<Void> Function(int, int, int) _heapAlloc;

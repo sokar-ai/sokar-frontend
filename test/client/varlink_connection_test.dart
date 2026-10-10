@@ -1,3 +1,7 @@
+// Linux only: it speaks over unix sockets, which dart:io cannot open on Windows.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';

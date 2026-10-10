@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -123,10 +124,26 @@ class Wsl {
   /// Runs `wsl.exe` with [arguments] and answers what it printed, its standard error after its
   /// standard output. `WSL_UTF8=1` asks for UTF-8, which older `wsl.exe` ignores; [decodeWsl] reads
   /// either.
-  static Future<({int code, List<int> printed})> runWslExe(List<String> arguments) async {
-    final result = await Process.run('wsl.exe', arguments,
-        environment: const <String, String>{'WSL_UTF8': '1'}, stdoutEncoding: null, stderrEncoding: null);
-    return (code: result.exitCode, printed: <int>[...result.stdout as List<int>, ...result.stderr as List<int>]);
+  ///
+  /// **Bounded, with nothing on its input**: where WSL is not installed, `wsl.exe` can be a stub that
+  /// prints a notice and waits for a key. Its input is closed at once, and after [within] it is
+  /// ended and answered as having failed, so nothing here waits for ever.
+  static Future<({int code, List<int> printed})> runWslExe(List<String> arguments,
+      {Duration within = const Duration(seconds: 20)}) async {
+    final process = await Process.start('wsl.exe', arguments, environment: const <String, String>{'WSL_UTF8': '1'});
+    unawaited(process.stdin.close());
+    final out = <int>[];
+    final err = <int>[];
+    final reading = Future.wait(<Future<void>>[
+      process.stdout.forEach(out.addAll),
+      process.stderr.forEach(err.addAll),
+    ]);
+    final code = await process.exitCode.timeout(within, onTimeout: () {
+      process.kill(ProcessSignal.sigkill);
+      return -1;
+    });
+    await reading.timeout(const Duration(seconds: 2), onTimeout: () => <void>[]);
+    return (code: code, printed: <int>[...out, ...err]);
   }
 }
 

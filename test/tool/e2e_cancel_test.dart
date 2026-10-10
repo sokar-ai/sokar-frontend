@@ -1,3 +1,7 @@
+// Linux only: it runs tool/e2e.sh in Bash and signals it.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

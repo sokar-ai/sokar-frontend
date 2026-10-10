@@ -1,3 +1,7 @@
+// Linux only: it runs the workflow's publishing steps in Bash.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

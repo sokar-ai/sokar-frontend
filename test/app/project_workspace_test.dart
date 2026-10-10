@@ -1,3 +1,7 @@
+// Linux only: it runs chmod, ssh-agent and ssh-keygen as on Linux.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

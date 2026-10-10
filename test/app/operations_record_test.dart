@@ -1,3 +1,7 @@
+// Linux only: it reads the file's mode with stat, which Windows has no such thing as.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:async';
 import 'dart:io';
 

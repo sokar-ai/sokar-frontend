@@ -1,3 +1,7 @@
+// Linux only: it starts the mock daemon on a unix socket, which dart:io cannot open on Windows.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 

@@ -1,3 +1,7 @@
+// Linux only: it runs its stand-ins for ssh as Bash scripts.
+@Tags(<String>['linux'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
