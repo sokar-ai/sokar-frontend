@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'desk.dart';
 import 'machines.dart';
-import 'package:sokar_frontend/src/client/environment.dart';
 
 /// Where the interface's own preferences live.
 ///
@@ -27,10 +27,11 @@ class FileSettingsStore implements SettingsStore {
   final File _file;
 
   /// Where it is kept unless told otherwise, read from [environment] or this process's.
-  static File defaultFile([Map<String, String>? environment]) {
-    final home = setIn('HOME', environment) ?? '.';
-    final config = setIn('XDG_CONFIG_HOME', environment) ?? '$home/.config';
-    return File('$config/sokar/frontend.json');
+  /// On Linux `$XDG_CONFIG_HOME/sokar/frontend.json`, on Windows `%APPDATA%\sokar\frontend.json`:
+  /// the IntelliJ plugin reads the same file. [operatingSystem] is `Platform.operatingSystem`'s word.
+  static File defaultFile([Map<String, String>? environment, String? operatingSystem]) {
+    final here = Desk.of(operatingSystem ?? Platform.operatingSystem, environment ?? Platform.environment);
+    return File(here.join(<String>[here.configuration, 'frontend.json']));
   }
 
   @override
@@ -63,7 +64,7 @@ class FileSettingsStore implements SettingsStore {
       final beside = File('${_file.path}.writing');
       await beside.writeAsString(jsonEncode(values), flush: true);
       // Before the rename, so the file is never briefly readable by others under its real name.
-      await Process.run('chmod', <String>['600', beside.path]);
+      await desk.keepPrivate(beside.path);
       await beside.rename(_file.path);
     } on Exception {
       // Losing a theme choice is not worth interrupting anybody over.

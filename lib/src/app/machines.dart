@@ -1,4 +1,5 @@
 import 'connection_trial.dart';
+import 'desk.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -253,7 +254,10 @@ class Machines extends ChangeNotifier {
   bool get sokarIsInstalledHere => _sokarHere();
 
   /// Whether `sokard` is on this computer's path, or where an account's own install puts it.
+  ///
+  /// On Windows never: Sokar runs in a WSL distribution there, which is a machine of its own.
   static bool _sokardOnThePath() {
+    if (desk.isWindows) return false;
     final environment = Platform.environment;
     final home = environment['HOME'] ?? '';
     final places = <String>[

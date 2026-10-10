@@ -1,0 +1,50 @@
+name: Windows
+run-name: "${{ github.workflow }} · ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.workflow }}"
+
+# The interface on Windows, which reaches a Sokar in a WSL distribution through `wsl.exe`. There is
+# no Windows machine beside the VM the Linux build is proven on, so this runs on GitHub's Windows
+# runner: the analyzer, every test not marked as Linux's own, and the release build. It publishes
+# nothing.
+#
+# `main` and the version tags run it, as they run the Linux build. A branch under `windows/` runs it
+# too, so a Windows change is seen on Windows before it reaches `main`.
+on:
+  push:
+    branches: [main, 'windows/**']
+    tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - 'issues/**'
+      - 'mkdocs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Test and build on Windows
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: pubspec.yaml
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+      # A test marked `linux` needs what only Linux has: a pty, a unix socket, `chmod`, a Bash tool.
+      # Each such mark says why in the test itself.
+      - name: Test
+        run: flutter test --exclude-tags linux
+
+      - name: Build
+        run: flutter build windows --release

@@ -5,7 +5,7 @@ import 'connections.dart';
 
 import 'host_keys.dart';
 import 'settings.dart';
-import 'package:sokar_frontend/src/client/environment.dart';
+import 'package:sokar_frontend/src/app/desk.dart';
 
 /// An ssh key pair as text: what a person pastes, or what the wizard generates.
 ///
@@ -30,13 +30,21 @@ class KeyPair {
 /// **Everything that could hold the private key is owner-only before it is written**, and nothing
 /// here puts it in a command line, a log or an error.
 class MachineSetup {
-  /// Constructor, optionally with what runs a program and whose home `~/.ssh` is in.
-  MachineSetup({RunWith? run, String? home})
+  /// Constructor, optionally with what runs a program, whose home `~/.ssh` is in, and the desk.
+  MachineSetup({RunWith? run, String? home, Desk? on})
       : _run = run ?? _runForReal,
-        _home = home ?? setIn('HOME') ?? '';
+        _desk = on ?? desk,
+        _home = home ?? (on ?? desk).home;
 
   final RunWith _run;
+  final Desk _desk;
   final String _home;
+
+  /// Keeps [path] to its owner, through [_run] so a test sees it.
+  Future<void> _keepPrivate(String path, {bool directory = false}) async {
+    final command = _desk.privateCommand(path, directory: directory);
+    if (command != null) await _run(command);
+  }
 
   static Future<ProcessResult> _runForReal(List<String> command, {String? input}) async {
     if (input == null) return Process.run(command.first, command.sublist(1));
@@ -227,7 +235,7 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     final directory = Directory(sshDirectory);
     if (!directory.existsSync()) {
       directory.createSync(recursive: true);
-      await _run(<String>['chmod', '700', directory.path]);
+      await _keepPrivate(directory.path, directory: true);
     }
     final config = File('${directory.path}/config');
     final before = config.existsSync() ? config.readAsStringSync() : '';
@@ -239,11 +247,11 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     if (before.isNotEmpty) {
       final kept = '${config.path}.before-$alias';
       File(kept).writeAsStringSync(before);
-      await _run(<String>['chmod', '600', kept]);
+      await _keepPrivate(kept);
     } else {
       config.createSync();
     }
-    await _run(<String>['chmod', '600', config.path]);
+    await _keepPrivate(config.path);
     final separator = before.isEmpty || before.endsWith('\n\n') ? '' : (before.endsWith('\n') ? '\n' : '\n\n');
     config.writeAsStringSync('$separator$entry', mode: FileMode.append, flush: true);
     return 'Added Host $alias to ~/.ssh/config.';
@@ -281,10 +289,10 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     final before = config.readAsStringSync();
     final kept = '${config.path}.before-forgetting-$alias';
     File(kept).writeAsStringSync(before);
-    await _run(<String>['chmod', '600', kept]);
+    await _keepPrivate(kept);
     final after = before.replaceFirst(written.entry, '').replaceAll(RegExp('\n{3,}'), '\n\n');
     config.writeAsStringSync(after.trim().isEmpty ? '' : after, flush: true);
-    await _run(<String>['chmod', '600', config.path]);
+    await _keepPrivate(config.path);
     return 'Removed Host $alias from ~/.ssh/config; the file as it was is kept as ${kept.split('/').last}.';
   }
 
@@ -322,7 +330,7 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
   Future<String?> mismatch(KeyPair pair) => _inAPrivateDirectory((directory) async {
         // Owner-only before it holds anything: ssh-keygen refuses a private key others could read.
         final file = File('${directory.path}/key')..createSync();
-        await _run(<String>['chmod', '600', file.path]);
+        await _keepPrivate(file.path);
         file.writeAsStringSync(_ending(pair.privateKey));
         final derived = await _run(<String>['ssh-keygen', '-y', '-P', '', '-f', file.path]);
         if (derived.exitCode != 0) {
@@ -343,7 +351,7 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     final directory = Directory(sshDirectory);
     if (!directory.existsSync()) {
       directory.createSync(recursive: true);
-      await _run(<String>['chmod', '700', directory.path]);
+      await _keepPrivate(directory.path, directory: true);
     }
     final private = File('${directory.path}/$name');
     final public = File('${private.path}.pub');
@@ -354,12 +362,12 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
     }
     if (!private.existsSync()) {
       private.createSync();
-      await _run(<String>['chmod', '600', private.path]);
+      await _keepPrivate(private.path);
       private.writeAsStringSync(_ending(pair.privateKey), flush: true);
     }
     if (!public.existsSync()) {
       public.writeAsStringSync('${pair.publicKey.trim()}\n', flush: true);
-      await _run(<String>['chmod', '644', public.path]);
+      if (!_desk.isWindows) await _run(<String>['chmod', '644', public.path]);
     }
     return private.path;
   }
@@ -440,7 +448,7 @@ systemctl reload ssh 2>/dev/null || systemctl reload sshd
   Future<T> _inAPrivateDirectory<T>(Future<T> Function(Directory directory) body) async {
     final directory = Directory.systemTemp.createTempSync('sokar-key-');
     try {
-      await _run(<String>['chmod', '700', directory.path]);
+      await _keepPrivate(directory.path, directory: true);
       return await body(directory);
     } finally {
       directory.deleteSync(recursive: true);

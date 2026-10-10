@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'desk.dart';
 
 /// Opens an address in this desktop's browser. Injectable, so a test records what it would open.
 typedef OpenLink = Future<void> Function(Uri address);
@@ -6,13 +6,8 @@ typedef OpenLink = Future<void> Function(Uri address);
 /// What opens a link here: the desktop's own opener, quiet where there is none.
 OpenLink openLink = _withTheDesktop;
 
-Future<void> _withTheDesktop(Uri address) async {
-  try {
-    await Process.start('xdg-open', <String>[address.toString()], mode: ProcessStartMode.detached);
-  } on ProcessException {
-    // No opener on this desktop; the address is on screen to be copied by hand.
-  }
-}
+/// Quiet where nothing opens it: the address is on screen to be copied by hand.
+Future<void> _withTheDesktop(Uri address) => desk.open(address.toString());
 
 /// A web address a terminal's program marked as a link.
 class TerminalLink {

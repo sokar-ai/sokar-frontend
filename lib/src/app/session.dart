@@ -6,6 +6,8 @@ import 'package:sokar_frontend/client.dart';
 import 'package:xterm/xterm.dart';
 
 import 'connections.dart';
+import 'conpty.dart';
+import 'desk.dart';
 import 'links.dart';
 import 'login_forward.dart';
 import 'machines.dart';
@@ -74,7 +76,7 @@ class Session extends ChangeNotifier {
     int rows = 24,
     this.run,
     this.forwardsALoginReply = false,
-  }) : _open = open ?? Pty.start {
+  }) : _open = open ?? (desk.isWindows ? ConPty.start : Pty.start) {
     terminal = Terminal(maxLines: scrollback)
       ..inputHandler = CascadeInputHandler(<TerminalInputHandler>[_modifiedKeys, defaultInputHandler])
       ..onOutput = _typed

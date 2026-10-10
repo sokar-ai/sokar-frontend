@@ -55,4 +55,55 @@ void main() {
 
     expect(File(path).existsSync(), isFalse);
   });
+
+  group('over the loopback address, as on Windows', () {
+    late String portFile;
+
+    setUp(() {
+      portFile = '${Directory.systemTemp.path}/sokar-one-${DateTime.now().microsecondsSinceEpoch}.port';
+      addTearDown(() {
+        final file = File(portFile);
+        if (file.existsSync()) file.deleteSync();
+      });
+    });
+
+    test('a second launch joins rather than competing, and asks for the window', () async {
+      var asked = 0;
+      final first = await OneInstance.take(comeForward: () => asked++, at: portFile, overLoopback: true);
+
+      final second = await OneInstance.take(comeForward: () {}, at: portFile, overLoopback: true);
+
+      expect(first.inCharge, isTrue);
+      expect(second.inCharge, isFalse, reason: 'two would raise everything twice');
+      while (asked == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      await first.release();
+      expect(File(portFile).existsSync(), isFalse, reason: 'the next launch must not trip over it');
+    });
+
+    test('a port some other program answers on after a crash is taken over, not surrendered to', () async {
+      final other = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(other.close);
+      other.listen((from) {
+        from.write('SSH-2.0-somebody-else\n');
+        from.destroy();
+      });
+      File(portFile).writeAsStringSync('${other.port}');
+
+      final taking = await OneInstance.take(comeForward: () {}, at: portFile, overLoopback: true);
+
+      expect(taking.inCharge, isTrue);
+      await taking.release();
+    });
+
+    test('a port file that names nothing is taken over', () async {
+      File(portFile).writeAsStringSync('not a port');
+
+      final taking = await OneInstance.take(comeForward: () {}, at: portFile, overLoopback: true);
+
+      expect(taking.inCharge, isTrue);
+      await taking.release();
+    });
+  });
 }

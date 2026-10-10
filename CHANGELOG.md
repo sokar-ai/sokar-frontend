@@ -9,6 +9,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A Windows build of the interface, the first part of reaching a Sokar in WSL from Windows. Its
+  files are under the user's profile: the machine list at `%APPDATA%\sokar\frontend.json`, where the
+  IntelliJ plugin reads it, and what it records under `%LOCALAPPDATA%`. A file is kept to its owner
+  with `icacls` and opened as a double click opens it, with no shell reading its name. A task's
+  terminal runs in a Windows pseudoconsole, and a second launch joins the first over a loopback
+  port. Notifications are not raised on Windows yet, and that is said once. A workflow of its own
+  builds and tests it on GitHub's Windows runner and publishes nothing.
 - The machine list keeps a WSL distribution, `{"name", "kind": "wsl", "distribution"}`, and any
   entry of a kind this version does not know, every field of it, instead of dropping it on the next
   save. On Linux such a machine is shown as not reachable, with the reason in words. The connection

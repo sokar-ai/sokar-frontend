@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:sokar_frontend/src/app/desk.dart';
 import 'package:sokar_frontend/src/client/environment.dart';
 
 /// Keeps one interface in charge of a machine.
@@ -11,6 +14,10 @@ import 'package:sokar_frontend/src/client/environment.dart';
 ///
 /// A unix socket rather than a lock file, because a lock file cannot be talked to: the second
 /// launch has something to say, and "come forward" is the whole of it.
+///
+/// **On Windows, a port on the loopback address**, named in a file beside the operations record:
+/// `dart:io` has no unix socket there. The running interface greets whoever connects, so a port
+/// that some other program took over after a crash is told from this interface's own.
 class OneInstance {
   OneInstance._(this._listening, this.socketPath);
 
@@ -29,7 +36,11 @@ class OneInstance {
   static Future<OneInstance> take({
     required void Function() comeForward,
     String? at,
+    bool? overLoopback,
   }) async {
+    if (overLoopback ?? desk.isWindows) {
+      return _takeOverLoopback(comeForward, at ?? desk.join(<String>[desk.state, 'frontend.port']));
+    }
     final path = at ?? _besideTheRuntime();
     try {
       final listening = await ServerSocket.bind(
@@ -62,6 +73,48 @@ class OneInstance {
       File(socketPath).deleteSync();
     } on FileSystemException {
       // Something else removed it. Nothing to do and nothing worth saying.
+    }
+  }
+
+  /// What the running interface says to whoever connects on the loopback port.
+  static const String _greeting = 'sokar-frontend\n';
+
+  static Future<OneInstance> _takeOverLoopback(void Function() comeForward, String portFile) async {
+    if (await _answeredOnLoopback(portFile)) return OneInstance._(null, portFile);
+    final listening = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    listening.listen((from) {
+      from.write(_greeting);
+      unawaited(from.flush().whenComplete(from.destroy).catchError((Object _) {}));
+      comeForward();
+    });
+    final file = File(portFile);
+    await file.parent.create(recursive: true);
+    await file.writeAsString('${listening.port}', flush: true);
+    return OneInstance._(listening, portFile);
+  }
+
+  /// Whether this interface answers on the port [portFile] names. A missing file, a port nobody
+  /// listens on, or one where something else answers, is a leftover.
+  static Future<bool> _answeredOnLoopback(String portFile) async {
+    final int? port;
+    try {
+      port = int.tryParse(File(portFile).readAsStringSync().trim());
+    } on FileSystemException {
+      return false;
+    }
+    if (port == null) return false;
+    try {
+      final socket = await Socket.connect(InternetAddress.loopbackIPv4, port,
+          timeout: const Duration(seconds: 1));
+      final said = await socket
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .join()
+          .timeout(const Duration(seconds: 1), onTimeout: () => '');
+      socket.destroy();
+      return said == _greeting;
+    } on SocketException {
+      return false;
     }
   }
 

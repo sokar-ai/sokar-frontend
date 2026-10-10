@@ -7,6 +7,7 @@ import 'package:sokar_frontend/client.dart';
 
 import 'authorizations.dart';
 import 'clearance.dart';
+import 'desk.dart';
 import 'fleet_model.dart';
 import 'machines.dart';
 import 'operations.dart';
@@ -75,12 +76,25 @@ abstract class Notifier {
 /// Running `notify-send` is not a breach of the rule against shelling out: that rule is about
 /// never building a second implementation of the *domain* by parsing the `sokar` CLI. This is the
 /// desktop, and nothing about the contract goes near it.
+///
+/// **On Windows nothing is raised yet**, and that is said once rather than silently, as a missing
+/// `notify-send` is: Windows' own notifications need the app registered with the shell, which comes
+/// with the MSIX.
 class DesktopNotifier implements Notifier {
+  /// Constructor, optionally told it runs on Windows.
+  DesktopNotifier({bool? onWindows}) : _onWindows = onWindows ?? desk.isWindows;
+
+  final bool _onWindows;
+
   @override
   String? problem;
 
   @override
   Future<void> raise(Announcement note, {required VoidCallback onOpened}) async {
+    if (_onWindows) {
+      problem = 'Nothing could be notified: this build raises no notifications on Windows yet.';
+      return;
+    }
     try {
       final process = await Process.start('notify-send', <String>[
         '--app-name=Sokar',

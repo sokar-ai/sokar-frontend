@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:sokar_frontend/src/client/environment.dart';
+import 'package:sokar_frontend/src/app/desk.dart';
 
 /// Where a long operation got to.
 enum OperationState {
@@ -137,10 +137,9 @@ class FileOperationsStore implements OperationsStore {
   final File file;
 
   /// Where it is kept unless told otherwise, read from [environment] or this process's.
-  static File defaultFile([Map<String, String>? environment]) {
-    final home = setIn('HOME', environment) ?? '.';
-    final state = setIn('XDG_STATE_HOME', environment) ?? '$home/.local/state';
-    return File('$state/sokar/operations.json');
+  static File defaultFile([Map<String, String>? environment, String? operatingSystem]) {
+    final here = Desk.of(operatingSystem ?? Platform.operatingSystem, environment ?? Platform.environment);
+    return File(here.join(<String>[here.state, 'operations.json']));
   }
 
   @override
@@ -164,7 +163,7 @@ class FileOperationsStore implements OperationsStore {
       await file.parent.create(recursive: true);
       final beside = File('${file.path}.writing');
       await beside.writeAsString(jsonEncode(<String, Object?>{'operations': records}), flush: true);
-      await Process.run('chmod', <String>['600', beside.path]);
+      await desk.keepPrivate(beside.path);
       await beside.rename(file.path);
     } on Exception {
       // Losing the record of a run is not worth interrupting the run over.
@@ -229,7 +228,7 @@ class Operations extends ChangeNotifier {
     Future<void> Function(String path)? open,
     this.saveDelay = const Duration(seconds: 1),
   })  : _now = now ?? DateTime.now,
-        _open = open ?? _xdgOpen;
+        _open = open ?? _withTheDesktop;
 
   /// Where what is run is kept between runs of the window, or null for nowhere.
   final OperationsStore? store;
@@ -324,13 +323,7 @@ class Operations extends ChangeNotifier {
     await _open(where.path);
   }
 
-  static Future<void> _xdgOpen(String path) async {
-    try {
-      await Process.start('xdg-open', <String>[path], mode: ProcessStartMode.detached);
-    } on ProcessException {
-      // No opener on this desktop; the path is on screen to be opened by hand.
-    }
-  }
+  static Future<void> _withTheDesktop(String path) => desk.open(path);
 
   void _saveSoon() {
     if (store == null) return;

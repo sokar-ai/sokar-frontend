@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:sokar_frontend/src/client/environment.dart';
+import 'package:sokar_frontend/src/app/desk.dart';
 
 /// Runs a program and answers what it printed, the way [Process.run] does, with optional input.
 typedef RunWith = Future<ProcessResult> Function(List<String> command, {String? input});
@@ -64,13 +64,21 @@ abstract interface class HostKeys {
 /// Host keys through OpenSSH's own tools, so an alias, a port or a `known_hosts` elsewhere in the
 /// person's ssh config is honored exactly as `ssh` itself will honor it.
 class SshHostKeys implements HostKeys {
-  /// Constructor, optionally with what runs a program and whose home `~/.ssh` is in.
-  SshHostKeys({RunWith? run, String? home})
+  /// Constructor, optionally with what runs a program, whose home `~/.ssh` is in, and the desk.
+  SshHostKeys({RunWith? run, String? home, Desk? on})
       : _run = run ?? _runForReal,
-        _home = home ?? setIn('HOME') ?? '';
+        _desk = on ?? desk,
+        _home = home ?? (on ?? desk).home;
 
   final RunWith _run;
+  final Desk _desk;
   final String _home;
+
+  /// Keeps [path] to its owner, through [_run] so a test sees it.
+  Future<void> _keepPrivate(String path, {bool directory = false}) async {
+    final command = _desk.privateCommand(path, directory: directory);
+    if (command != null) await _run(command);
+  }
 
   static Future<ProcessResult> _runForReal(List<String> command, {String? input}) async {
     if (input == null) return Process.run(command.first, command.sublist(1));
@@ -171,10 +179,10 @@ class SshHostKeys implements HostKeys {
     final directory = file.parent;
     if (!directory.existsSync()) {
       directory.createSync(recursive: true);
-      await _run(<String>['chmod', '700', directory.path]);
+      await _keepPrivate(directory.path, directory: true);
     }
     final existed = file.existsSync();
     file.writeAsStringSync('${check.scanned.join('\n')}\n', mode: FileMode.append, flush: true);
-    if (!existed) await _run(<String>['chmod', '600', file.path]);
+    if (!existed) await _keepPrivate(file.path);
   }
 }

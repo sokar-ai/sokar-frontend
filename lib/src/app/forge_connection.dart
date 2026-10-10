@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'desk.dart';
 import 'forge.dart';
 import 'project_workspace.dart';
 
@@ -75,11 +75,7 @@ typedef WorkspaceFor = ProjectWorkspace Function(ForgeRepository repository, Str
 
 /// Where a person's working folders are kept on this computer: one per repository, under this
 /// interface's own data directory.
-String workingFolders() {
-  final data = Platform.environment['XDG_DATA_HOME'];
-  final home = Platform.environment['HOME'] ?? '.';
-  return '${data == null || data.isEmpty ? '$home/.local/share' : data}/sokar-frontend/projects';
-}
+String workingFolders() => desk.join(<String>[desk.data, 'projects']);
 
 /// The forges a person set up on this computer, the one being used, and the repositories it reaches.
 ///
