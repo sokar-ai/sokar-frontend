@@ -23,8 +23,9 @@ the socket's file permissions are the only guard, and an open port would remove 
 ## The shape
 
 - **A third way to a machine**, beside "this computer" and "over ssh": **a WSL distribution**,
-  reached through `wsl.exe -d <distro> -- sokar relay`. Sokar's `relay` joins standard input and
-  output to the daemon's socket, so nothing else, `socat` included, has to be in the distribution.
+  reached through `wsl.exe -d <distro> -- sokar daemon connect`. That command, which exists already
+  for `ssh host sokar daemon connect`, joins standard input and output to the daemon's socket, so
+  nothing else, `socat` included, has to be in the distribution.
   This is how Docker Desktop and Podman Desktop reach their WSL machines. No port
   is opened and no key is needed. `wsl.exe` runs as the Windows user, so only that user reaches the
   distribution.
@@ -70,8 +71,8 @@ the socket's file permissions are the only guard, and an open port would remove 
 Decided on 2026-10-10: the ZIP first, the MSIX after it.
 
 1. **On Linux, in the next round.** `VarlinkConnection` speaks over any byte stream, and the WSL
-   entry in `frontend.json` (below) is read and kept, shown as not reachable on Linux. `sokar` adds
-   `sokar relay` in the same round. Tested as the Linux build always is: the whole workflow green on
+   entry in `frontend.json` (below) is read and kept, shown as not reachable on Linux. The relay,
+   `sokar daemon connect`, exists already. Tested as the Linux build always is: the whole workflow green on
    the VM before the push.
 2. **On Windows, in the round after.** The Windows build, the WSL way in the switcher and the wizard,
    and terminals, attach and sign-in through `wsl.exe`. The only package is **the ZIP** with the
@@ -98,9 +99,10 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
 
 ## Where it touches `sokar`
 
-- **`sokar relay`**, in stage 1: a command that joins standard input and output to the daemon's
-  socket of the account it runs as, refusing anyone but the socket's owner as the socket does.
-  `sokar`'s to build; the IntelliJ plugin uses it too.
+- **`sokar daemon connect`** is the relay, the one command for it: it joins standard input and
+  output to the daemon's socket (`--socket` names another), passes bytes both ways unbuffered,
+  exits when either end closes, and says a missing socket on standard error, never on the stream.
+  The IntelliJ plugin uses it too. Nothing new for `sokar` to build.
 - Nothing else: the interface speaks the same contract over the relay as over a socket.
 
 ## Acceptance
@@ -130,6 +132,6 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
 ## To be checked
 
 - **How the socket is found** inside the distribution without a login shell, since
-  `$XDG_RUNTIME_DIR` is set only in a user session: by `sokar relay` itself, from the account it
-  runs as, or by the interface reading `id -u` first. Settled with `sokar relay`'s shape.
+  `$XDG_RUNTIME_DIR` is set only in a user session: whether `sokar daemon connect` finds its
+  account's socket by itself when `wsl.exe` starts it, or is given `--socket` from `id -u`.
 - **Where the MSIX and the ZIP are published**, and which certificate replaces the self-signed one.
