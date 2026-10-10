@@ -94,8 +94,10 @@ connection goes on.
   manager. On Ubuntu and Debian: the key to `/usr/share/keyrings/sokar.gpg`, the source line for
   releases (snapshots only when the person asks for them, as that page's "Snapshots" section says),
   `apt install sokar` and an agent. On Fedora: `/etc/yum.repos.d/sokar.repo` and `dnf install`.
-  Then `sokar setup` as the distribution's user. Each line is shown to the person before anything
-  runs.
+  Then `loginctl enable-linger <user>` as root, so that `sokard` runs whether or not a session
+  is open: `sokar setup` does not turn lingering on, and whether `wsl.exe` opens a login session
+  that `sokard` lives in is not measured. Then `sokar setup` as the distribution's user. Each line
+  is shown to the person before anything runs.
 - **SELinux:** where it is off, as in Fedora's WSL images, the offer does not insist on Sokar's
   SELinux module. `sokar doctor` already reads WSL2 that way.
 - **Root inside the distribution:** `wsl.exe -d <distro> -u root -- …` runs as root with no
@@ -117,9 +119,6 @@ connection goes on.
 - After the person says yes to the restart, does the interface run `wsl.exe --terminate` and the
   next call start the distribution again, or does the person restart it? The first starts a
   distribution through the interface, which the rule above forbids otherwise.
-- Does `sokard` run for the distribution's user without a login session? `sokar setup` installs a
-  user service, and WSL starts no user session by itself; `loginctl enable-linger` may be needed,
-  and whether `sokar setup` does that is for `sokar` to say.
 - Which agent is installed when the person names none: the offer asks, or one is proposed?
 - Is the key fetched inside the distribution, or by the interface and checked against a fingerprint
   the interface carries?

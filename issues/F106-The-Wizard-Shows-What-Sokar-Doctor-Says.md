@@ -1,7 +1,7 @@
 # F106 — The Wizard Shows What `sokar doctor` Says
 
-**Status:** blocked; decided on 2026-10-10. Blocked by `sokar doctor --json` in `sokar`, whose
-number is to come.
+**Status:** blocked; decided on 2026-10-10. Blocked by `sokar`'s B161, "Doctor As Data"
+(`sokar doctor --json`).
 
 **What must be true.** When a Linux machine is added, this computer or one over ssh, the interface
 shows what `sokar doctor` says about it, finding by finding, with its colour. The checks live in one
@@ -19,8 +19,11 @@ finds out only when the first start fails.
 - **When a machine is added, and on demand later** from the machine's view, the interface runs
   `sokar doctor --json` there: on this computer directly, over ssh as the other `sokar` commands
   are run there.
-- **Each finding is shown** with its words and its remedy, coloured as `sokar` colours it on a
-  terminal: red a failure, yellow a warning, green fine.
+- **Each finding is shown** with its words and its remedy, coloured by its state as `sokar` colours
+  it on a terminal: `MISSING` red, `DEGRADED` and `UNKNOWN` yellow, `OK` green.
+- **In `sokar`'s order:** `--json` lists the findings in the order of the text, from the same
+  checks, so the interface and the terminal cannot disagree. Its `notes` (what was not used, not
+  taken, or failed) are shown below the findings.
 - **Nothing is repaired from here.** The remedy is shown; running it stays the person's.
 - **The machine is added either way.** A red finding is said, not a reason to refuse the machine.
 
@@ -34,5 +37,5 @@ finds out only when the first start fails.
 
 ## To be checked
 
-- **The shape of `sokar doctor --json`:** each finding's check, its state (`OK`, `DEGRADED`,
-  `MISSING`, `UNKNOWN`), its words and its remedy, and how a state maps to the three colours.
+- **A daemon method beside the command**, open in B161: if `sokar` adds one, a machine already
+  connected is read through it instead of through `sokar doctor --json` run there.
