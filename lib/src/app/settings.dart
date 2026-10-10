@@ -202,14 +202,15 @@ class Settings extends ChangeNotifier {
   Future<List<Machine>> machines() async {
     final stored = (await _store.read())['machines'];
     if (stored is! List) return const <Machine>[];
-    // One unusable entry is dropped and the rest are kept. A machine with no name or no socket
-    // cannot be watched or told apart from another, and losing every other machine over it would
-    // be the worse answer.
+    // One unusable entry is dropped and the rest are kept. A machine with no name, or with neither a
+    // socket nor a kind of its own, cannot be watched or told apart from another, and losing every
+    // other machine over it would be the worse answer. An entry with a kind is kept even without a
+    // socket: a WSL distribution has none, and a kind this version does not know is not its to drop.
     final machines = <Machine>[];
     for (final each in stored) {
       if (each is! Map<String, Object?>) continue;
       final machine = Machine.fromStored(each);
-      if (machine.name.isNotEmpty && machine.socketPath.isNotEmpty) machines.add(machine);
+      if (machine.name.isNotEmpty && (machine.socketPath.isNotEmpty || machine.kind.isNotEmpty)) machines.add(machine);
     }
     return machines;
   }

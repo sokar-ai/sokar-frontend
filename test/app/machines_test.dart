@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sokar_frontend/src/app/machines.dart';
 import 'package:sokar_frontend/client.dart';
+import 'package:sokar_frontend/src/app/fleet_model.dart';
 import 'package:sokar_frontend/src/app/settings.dart';
 
 import '../features/support/world.dart';
@@ -61,6 +62,24 @@ void main() {
       expect(machines.nodeOf(machine), isEmpty);
       expect(machines.sameNodeAs(machine), isEmpty);
     }
+    machines.dispose();
+  });
+
+  test('a WSL distribution in the list is said to be unreachable here, and no socket is tried', () async {
+    final machines = Machines(Settings(MemorySettingsStore(<String, Object?>{
+      'machines': <Object?>[
+        <String, Object?>{'name': 'Ubuntu on this PC', 'kind': 'wsl', 'distribution': 'Ubuntu'},
+      ],
+    })), tunnels: FakeTunnels());
+    await machines.load();
+    final machine = machines.all.single;
+    final fleet = machines.of(machine);
+    await fleet.connect();
+
+    expect(machine.where, 'WSL: Ubuntu');
+    expect(fleet.reachability, Reachability.unreachable);
+    expect(fleet.status, contains('The WSL distribution Ubuntu is reached from Windows'));
+    expect(fleet.status, isNot(contains('cannot reach')), reason: 'no socket path was tried');
     machines.dispose();
   });
 

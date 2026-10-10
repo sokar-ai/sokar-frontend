@@ -118,7 +118,7 @@ class MachineTitle extends StatelessWidget {
     final theme = Theme.of(context);
     final info = fleet.info;
     final where = <String>[
-      if (machine.needsATunnel) machine.host else machine.socketPath,
+      machine.where,
       if (info != null) '${info.product} ${info.version}',
     ].join('  ·  ');
     return Container(

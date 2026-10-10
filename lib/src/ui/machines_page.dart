@@ -87,7 +87,7 @@ class MachinesPage extends StatelessWidget {
         ),
         subtitle: Text(
           <String>[
-            if (machine.needsATunnel) machine.host else machine.socketPath,
+            machine.where,
             if (info != null) '${info.product} ${info.version}',
             if (answering) running == 1 ? '1 running' : '$running running' else 'not answering',
           ].join('  ·  '),

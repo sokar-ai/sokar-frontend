@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The machine list keeps a WSL distribution, `{"name", "kind": "wsl", "distribution"}`, and any
+  entry of a kind this version does not know, every field of it, instead of dropping it on the next
+  save. On Linux such a machine is shown as not reachable, with the reason in words. The connection
+  to a daemon speaks over any byte stream, the first step to reaching a Sokar in WSL from Windows.
+
 ### Changed
 
 - Every workflow run is titled with its workflow, its branch or tag and its commit's subject; the

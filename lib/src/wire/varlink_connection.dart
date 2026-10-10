@@ -5,13 +5,15 @@ import 'dart:typed_data';
 
 import 'varlink_exception.dart';
 
-/// One connection to a varlink service over a unix socket.
+/// One connection to a varlink service: over a unix socket, or over any byte stream, such as a
+/// relay's standard input and output.
 ///
 /// The whole protocol is here, and it is small: a JSON object per message, a NUL byte between
 /// them, no length prefix and no request ids. Because there are no ids, **a connection carries one
 /// call at a time** - so a stream gets its own connection, which costs nothing.
 class VarlinkConnection {
-  final Socket _socket;
+  final StreamSink<List<int>> _out;
+  final void Function() _end;
   final StreamController<Map<String, dynamic>> _replies =
       StreamController<Map<String, dynamic>>();
 
@@ -25,12 +27,22 @@ class VarlinkConnection {
 
   bool _broken = false;
 
-  VarlinkConnection._(this._socket) {
+  /// Speaks over [incoming] and [outgoing], ending both with [destroy].
+  ///
+  /// **The bytes are the protocol, whatever carries them.** A relay's standard input and output
+  /// (`wsl.exe -d <distro> -- sokar daemon connect`) are as good a way to a daemon as its socket,
+  /// and a socket is only one way to get such a pair.
+  VarlinkConnection.over({
+    required Stream<List<int>> incoming,
+    required StreamSink<List<int>> outgoing,
+    required void Function() destroy,
+  })  : _out = outgoing,
+        _end = destroy {
     final buffer = BytesBuilder();
     // A write to a peer that has gone fails here, not where it was written, and a failure nobody
     // waits for escapes unhandled. It is the same lost connection as a read error.
-    unawaited(_socket.done.catchError((Object error) => _lost(error)));
-    _socket.listen(
+    unawaited(outgoing.done.catchError((Object error) => _lost(error)));
+    incoming.listen(
       (chunk) {
         // **Every failure in here is the connection, not an exception.** A throw inside this
         // callback does not reach `onError`: it escapes the zone, and the call waiting on the
@@ -70,11 +82,11 @@ class VarlinkConnection {
 
   /// Reports the connection broken and stops reading it.
   ///
-  /// The socket is destroyed rather than left open: a peer talking nonsense will go on talking,
+  /// The way in is destroyed rather than left open: a peer talking nonsense will go on talking,
   /// and there is nothing left here that could act on it.
   void _breakOff(String why) {
     _broken = true;
-    _socket.destroy();
+    _end();
     _lost(why);
   }
 
@@ -90,7 +102,7 @@ class VarlinkConnection {
     try {
       final socket = await Socket.connect(
           InternetAddress(socketPath, type: InternetAddressType.unix), 0);
-      return VarlinkConnection._(socket);
+      return VarlinkConnection.over(incoming: socket, outgoing: socket, destroy: socket.destroy);
     } on SocketException catch (ex) {
       throw VarlinkDisconnected('cannot reach $socketPath: ${ex.message}');
     }
@@ -171,8 +183,8 @@ class VarlinkConnection {
   void _send(String method, Map<String, dynamic> parameters, {required bool more}) {
     final call = <String, dynamic>{'method': method, 'parameters': parameters};
     if (more) call['more'] = true;
-    _socket.add(utf8.encode(jsonEncode(call)));
-    _socket.add(const [0]);
+    _out.add(utf8.encode(jsonEncode(call)));
+    _out.add(const [0]);
   }
 
   static Map<String, dynamic> _parameters(Map<String, dynamic> reply) {
@@ -192,5 +204,5 @@ class VarlinkConnection {
   /// peer has closed too, and a daemon holding a stream open has no reason to — so awaiting it
   /// hangs for ever. Canceling a stream is an ordinary act, not an error: leaving a log view or
   /// closing a window does it, and neither may block.
-  Future<void> close() async => _socket.destroy();
+  Future<void> close() async => _end();
 }

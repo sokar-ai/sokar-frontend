@@ -70,10 +70,10 @@ the socket's file permissions are the only guard, and an open port would remove 
 
 Decided on 2026-10-10: the ZIP first, the MSIX after it.
 
-1. **On Linux, in the next round.** `VarlinkConnection` speaks over any byte stream, and the WSL
-   entry in `frontend.json` (below) is read and kept, shown as not reachable on Linux. The relay,
-   `sokar daemon connect`, exists already. Tested as the Linux build always is: the whole workflow green on
-   the VM before the push.
+1. **On Linux, in the next round** (built on 2026-10-10). `VarlinkConnection` speaks over any
+   byte stream, and the WSL entry in `frontend.json` (below) is read and kept, shown as not
+   reachable on Linux. The relay, `sokar daemon connect`, exists already. Tested as the Linux build
+   always is: the whole workflow green on the VM before the push.
 2. **On Windows, in the round after.** The Windows build, the WSL way in the switcher and the wizard,
    and terminals, attach and sign-in through `wsl.exe`. The only package is **the ZIP** with the
    `.exe`, made by a Windows job on GitHub's runner. It is pushed on the operator's word, and then

@@ -19,8 +19,19 @@ class Backend {
   /// must never be ambiguous about which machine it acts on.
   final String label;
 
+  /// Why this backend cannot be reached from here, or null. When set, nothing is opened: every
+  /// call ends at once as a lost connection with these words.
+  final String? notReachable;
+
   /// Constructor with the socket and how to name it.
-  const Backend({required this.socketPath, required this.label});
+  const Backend({required this.socketPath, required this.label, this.notReachable});
+
+  /// Opens a connection to it, or says in [notReachable]'s words why there is none.
+  Future<VarlinkConnection> open() async {
+    final why = notReachable;
+    if (why != null) throw VarlinkDisconnected(why);
+    return VarlinkConnection.open(socketPath);
+  }
 
   /// The daemon on this machine.
   factory Backend.local() => Backend(socketPath: _localSocket, label: 'this machine');
@@ -96,7 +107,7 @@ class SokarClient {
   /// all, and is worth saying plainly rather than failing on the first call.
   static Future<SokarClient> connect(Backend backend,
       {Duration answerWithin = VarlinkConnection.answerWithin}) async {
-    final connection = await VarlinkConnection.open(backend.socketPath);
+    final connection = await backend.open();
     try {
       // Shorter than the default: "is there a daemon on the other end of this socket" has to
       // answer quickly, or the window sits on an empty frame saying it is connecting.
@@ -1113,7 +1124,7 @@ class SokarClient {
 
   Future<Map<String, dynamic>> _call(String method,
       [Map<String, dynamic> parameters = const {}, bool qualify = true]) async {
-    final connection = await VarlinkConnection.open(backend.socketPath);
+    final connection = await backend.open();
     try {
       return await connection.call(
           qualify ? '$interfaceName.$method' : method, parameters, answerWithin);
@@ -1127,7 +1138,7 @@ class SokarClient {
 
   Stream<Map<String, dynamic>> _callMore(String method,
       [Map<String, dynamic> parameters = const {}]) async* {
-    final connection = await VarlinkConnection.open(backend.socketPath);
+    final connection = await backend.open();
     try {
       yield* connection.callMore('$interfaceName.$method', parameters).handleError(
             (Object error) => throw FeatureNotSupported(method),

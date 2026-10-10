@@ -29,6 +29,9 @@ class Machine {
     required this.socketPath,
     this.host = '',
     this.remoteSocket = '',
+    this.kind = '',
+    this.distribution = '',
+    this.unknownFields = const <String, Object?>{},
   });
 
   /// The machine to open when nothing has been stored yet.
@@ -65,12 +68,27 @@ class Machine {
   /// throw during the load, and the load runs where nobody is waiting for it — so the symptom was
   /// an interface that opened with the machine list silently reduced to the local daemon, which
   /// is indistinguishable from having lost the list.
+  ///
+  /// **An entry of a kind this build does not know is kept, every field of it.** The file is also
+  /// read by `sokar-intellij`, and written by later versions of this program: dropping what is not
+  /// understood here would lose a machine somebody set up elsewhere, the next time this list is
+  /// saved.
   factory Machine.fromStored(Map<String, Object?> stored) => Machine(
         name: _text(stored['name']),
         socketPath: _text(stored['socket']),
         host: _text(stored['host']),
         remoteSocket: _text(stored['remoteSocket']),
+        kind: _text(stored['kind']),
+        distribution: _text(stored['distribution']),
+        unknownFields: <String, Object?>{
+          for (final entry in stored.entries)
+            if (!_knownFields.contains(entry.key)) entry.key: entry.value,
+        },
       );
+
+  static const Set<String> _knownFields = <String>{
+    'name', 'socket', 'host', 'remoteSocket', 'kind', 'distribution', //
+  };
 
   static String _text(Object? value) => value is String ? value : '';
 
@@ -85,6 +103,36 @@ class Machine {
 
   /// The socket on that machine. Empty when somebody else forwards it.
   final String remoteSocket;
+
+  /// Which way in this is, when it is neither a socket nor a machine behind ssh: `wsl` for a WSL
+  /// distribution, reached from Windows through `wsl.exe -d <distribution> -- sokar daemon connect`.
+  /// Empty for the two kinds every version knows.
+  final String kind;
+
+  /// The WSL distribution, for a machine of the kind `wsl`.
+  final String distribution;
+
+  /// What an entry held beyond the fields this build knows, kept so that saving loses nothing.
+  final Map<String, Object?> unknownFields;
+
+  /// Why this build cannot reach it, or null when it can.
+  ///
+  /// A WSL distribution is reached from Windows, and this build does not do that yet; an entry of a
+  /// kind it does not know is left exactly as it is. Either is said, never tried as a path.
+  String? get whyNotReachableHere => switch (kind) {
+        '' => null,
+        'wsl' => 'The WSL distribution ${distribution.isEmpty ? '' : '$distribution '}is reached from '
+            'Windows, through wsl.exe, and this build of the interface cannot do that.',
+        _ => 'This version of the interface does not know machines of the kind "$kind", so it '
+            'leaves this one as it is.',
+      };
+
+  /// Where it is, in a word or two: the host, the WSL distribution, or the socket.
+  String get where => switch (kind) {
+        '' => needsATunnel ? host : socketPath,
+        'wsl' => 'WSL: $distribution',
+        _ => 'kind "$kind"',
+      };
 
   /// Whether this interface raises the way in to it.
   ///
@@ -103,11 +151,17 @@ class Machine {
   ///
   /// The host is stored; **nothing about a key ever is.** What makes the forward possible lives
   /// in the person's own SSH configuration, which is where it was before this interface existed.
+  ///
+  /// A WSL entry carries no `socket`: the plugin, which reads this file too, drops an entry
+  /// without one, rather than opening a Linux path on Windows.
   Map<String, Object?> get stored => <String, Object?>{
         'name': name,
-        'socket': socketPath,
+        if (kind.isEmpty || socketPath.isNotEmpty) 'socket': socketPath,
         if (host.isNotEmpty) 'host': host,
         if (remoteSocket.isNotEmpty) 'remoteSocket': remoteSocket,
+        if (kind.isNotEmpty) 'kind': kind,
+        if (distribution.isNotEmpty) 'distribution': distribution,
+        ...unknownFields,
       };
 
   /// Where Sokar serves the daemon of the account with [uid], on its machine.
@@ -148,10 +202,13 @@ class Machine {
       other.name == name &&
       other.socketPath == socketPath &&
       other.host == host &&
-      other.remoteSocket == remoteSocket;
+      other.remoteSocket == remoteSocket &&
+      other.kind == kind &&
+      other.distribution == distribution &&
+      mapEquals(other.unknownFields, unknownFields);
 
   @override
-  int get hashCode => Object.hash(name, socketPath, host, remoteSocket);
+  int get hashCode => Object.hash(name, socketPath, host, remoteSocket, kind, distribution);
 }
 
 /// Every machine this interface is watching, and which one it is acting on.
@@ -243,8 +300,8 @@ class Machines extends ChangeNotifier {
     }
   }
 
-  static FleetBackend _overSocket(Machine machine) =>
-      SokarBackend(Backend(socketPath: machine.socketPath, label: machine.name));
+  static FleetBackend _overSocket(Machine machine) => SokarBackend(Backend(
+      socketPath: machine.socketPath, label: machine.name, notReachable: machine.whyNotReachableHere));
 
   /// Tries [machine] as watching it would, without watching it or leaving anything running.
   /// Where Sokar's socket is for the account [host] logs in as, asked of the machine, or null when
