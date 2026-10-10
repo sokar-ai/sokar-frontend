@@ -216,8 +216,9 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
 
 ## To be checked
 
-- **Whether `check-actions` accepts the attestation's two permissions** for the one Windows job, and
-  nothing wider. If it does not, that is a requirement for `sokar-buildtools`.
+- **Whether the two permissions are held to the one Windows job by a check.** `check-actions` reads
+  only `uses:` lines today, so they pass, but nothing keeps them from spreading to other jobs.
+  Holding them there would be a requirement for `sokar-buildtools`; whether to write it is open.
 
 - **How the socket is found** inside the distribution without a login shell, since
   `$XDG_RUNTIME_DIR` is set only in a user session: whether `sokar daemon connect` finds its
