@@ -36,7 +36,7 @@ class HeldMessageRow extends StatelessWidget {
             Text(standingWords(message.standing), style: text.bodySmall),
             if (message.reason.isNotEmpty) Text(message.reason, style: text.bodySmall),
             // Held on its way in: what was written is out already, for everybody else; what is decided
-            // here is only whether this task reads it (walk 10, the operator took it for the sent one).
+            // here is only whether this task reads it (walk 10: it was taken for the sent one).
             if (message.direction == 'in')
               Text(
                 'Whoever wrote it has sent it already; it only waits to reach ${message.task}. What you decide '
@@ -76,7 +76,7 @@ class HeldMessageRow extends StatelessWidget {
       return '$kind coming in from $from to ${message.task}, on $machine';
     }
     // Written by the person at this interface, through a task: said as theirs, since "from a person"
-    // left them asking whose it was (walk 8, the operator).
+    // left them asking whose it was (walk 8).
     if (message.role == 'ROLE_USER') {
       final kindOf = message.kind.isEmpty ? 'A message' : 'A ${message.kind}';
       final to = message.peer.isEmpty ? '' : ' to ${message.peer}';
@@ -159,7 +159,7 @@ class _HeldMessageDialogState extends State<HeldMessageDialog> {
           .decide(widget.fleet.backend, read, widget.message.task, refuse: refuse, reason: reason);
       if (!mounted) return;
       // Closed once decided, with what came of it said where the person goes back to: the dialog
-      // left open after a decision read as if nothing had happened (walk 8, the operator).
+      // left open after a decision read as if nothing had happened (walk 8).
       final said = <String>[
         _outcome(done, widget.message.direction, withWords: reason.isNotEmpty),
         if (done.outcome == 'RELEASED' && done.detail.isNotEmpty) done.detail,
@@ -329,7 +329,7 @@ class _HeldMessageDialogState extends State<HeldMessageDialog> {
 }
 
 /// The start of a held message's text, read for the row: what it says tells more than that it waits
-/// (walk 8, the operator). Reading has no side effect: a release decides on the message as it lies.
+/// (walk 8). Reading has no side effect: a release decides on the message as it lies.
 class _Preview extends StatefulWidget {
   const _Preview({required this.fleet, required this.message});
 

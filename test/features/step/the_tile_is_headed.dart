@@ -8,6 +8,6 @@ Future<void> theTileIsHeaded(WidgetTester tester, String work, String machine) a
   await toTheTile(tester, work);
   final heading = tester.widget<Text>(
       find.descendant(of: tileFor(work), matching: find.byKey(const Key('tile-machine'))));
-  // The machine is said on every tile, under the work that heads it (walk 8, the operator).
+  // The machine is said on every tile, under the work that heads it (walk 8).
   expect(heading.data, machine);
 }

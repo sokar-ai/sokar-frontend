@@ -88,7 +88,7 @@ Feature: Working inside a container by hand, locally or over ssh
     Then the session is on screen
     And {1} sessions are open
 
-  # The operator's decision: one at a time. A second way in leaves the first; its work carries on.
+  # Decided: one at a time. A second way in leaves the first; its work carries on.
   # A session opened from the work page stays on it until it is left: work has one page now, so
   # another session is opened from a tile once this one is left.
   Scenario: a session left and another opened from a tile keeps one open, and stops no work

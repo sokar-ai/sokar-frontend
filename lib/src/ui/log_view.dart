@@ -122,7 +122,7 @@ class _LogViewState extends State<LogView> {
   }
 
   /// How much of one line is drawn. An agent writes whole conversations as one line of JSON, 85 000
-  /// characters and more, and laying those out stalled the window (walk 9, the operator).
+  /// characters and more, and laying those out stalled the window (walk 9).
   static const int longestDrawn = 2000;
 
   static String _shortened(String line) => line.length <= longestDrawn
@@ -141,7 +141,7 @@ class _LogViewState extends State<LogView> {
 
   /// Jumps to the end, and again while the end moves: a list of lines of different heights only
   /// estimates where it ends until the last lines are laid out, and one jump to the estimate left
-  /// the view between the two, which flickered under a log written hard (walk 9, the operator).
+  /// the view between the two, which flickered under a log written hard (walk 9).
   void _toTheEnd(LogTail tail, int tries) {
     if (!mounted || !tail.following || !_scroll.hasClients) return;
     final end = _scroll.position.maxScrollExtent;

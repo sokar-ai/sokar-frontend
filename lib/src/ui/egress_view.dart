@@ -6,8 +6,8 @@ import 'panes.dart';
 import 'tokens.dart';
 
 /// What a project's work may reach, and where each host came from. **Shown, never changed here**: the
-/// project's repository holds its project.yml, the one place it is changed (walk 10, the operator:
-/// "nur project.yml im Repo wird als single source of truth angepasst").
+/// project's repository holds its project.yml, the one place it is changed (walk 10:
+/// the project.yml in the repository is the single source of truth).
 class EgressView extends StatelessWidget {
   /// Constructor taking the egress.
   const EgressView({

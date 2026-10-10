@@ -8,7 +8,7 @@ import 'machines.dart';
 import 'settings.dart';
 
 /// The homeservers a person joined from this computer, **forwarded while the window runs**, not
-/// only while the Messages dialog is open (walk 10, the operator: nheko lost its server the moment
+/// only while the Messages dialog is open (walk 10: nheko lost its server the moment
 /// the dialog closed, and two messages went nowhere).
 ///
 /// Each is kept in [Settings], so the window raises it again when it starts. One that drops is

@@ -494,7 +494,7 @@ class Tunnels extends ChangeNotifier {
 
   /// The uid of the account this interface logs in as on [machine], or null when it cannot say.
   ///
-  /// **Read-only, and asked without a question** — the operator's decision. `id -u`
+  /// **Read-only, and asked without a question**. `id -u`
   /// reports the caller's own uid, needs no privilege and changes nothing, and it is only ever run
   /// as part of a trial somebody asked for. **Every failure is null**: a trial that cannot learn the
   /// uid says what it said before rather than guessing one.

@@ -22,7 +22,7 @@ Feature: What a project may reach, and no longer following one
     And I look inside the set {'Container registries'}
     Then it lists {'quay.io'}
 
-  # Walk 10, the operator: project.yml in the repository is the one place it is changed.
+  # Walk 10: project.yml in the repository is the one place it is changed.
   Scenario: what a project may reach is shown, and said to be changed only in its repository
     When I open what this project may reach
     Then it says {'under egress; a machine following it takes the change'}

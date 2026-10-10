@@ -40,7 +40,7 @@ abstract final class Primitives {
 
 /// Space between things, in logical pixels.
 /// The colours of a piece of work's state, each paired with a shape so it reads without colour too
-/// (walk 8, the operator: running, waiting, needing a person and stopped told apart at a glance).
+/// (walk 8: running, waiting, needing a person and stopped told apart at a glance).
 abstract final class StateColours {
   /// Working.
   static const Color working = Color(0xFF2E7D32);

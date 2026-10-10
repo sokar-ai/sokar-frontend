@@ -6,8 +6,8 @@ import 'tokens.dart';
 ///
 /// **Room above the first field**, because a floating label rises above its field's box and a
 /// scroll view clips at its own top edge. **A scrollbar that is always drawn**, because a dialog
-/// taller than the window otherwise gives no sign that anything is below the fold — found by the
-/// operator, starting work.
+/// taller than the window otherwise gives no sign that anything is below the fold — found when
+/// starting work.
 class DialogScroll extends StatefulWidget {
   /// Constructor taking what scrolls.
   const DialogScroll({super.key, required this.child, this.controller});

@@ -43,7 +43,7 @@ Feature: Starting work with an agent, a mode and a credential
     And the launch asked for the mode {'AGENT'}
     And the launch named the project {'checkout'}
 
-  # The operator's decision: a name is required, filled in from the repository; an unnamed start was
+  # Decided: a name is required, filled in from the repository; an unnamed start was
   # called `shell` by the machine, which read as the wrong way of taking part.
   Scenario: the name is filled in from the repository chosen, and is what the work is called
     Given the project {'checkout'} has the repositories {'checkout, payments-api'}
@@ -69,7 +69,7 @@ Feature: Starting work with an agent, a mode and a credential
     And I call it {''}
     Then starting is not offered yet
 
-  # Walk 9, the operator: a name the project's work has already was refused only when started.
+  # Walk 9: a name the project's work has already was refused only when started.
   Scenario: a name the project's work has already is refused as it is typed
     When I start work in this project
     And I call it {'shell'}
@@ -77,7 +77,7 @@ Feature: Starting work with an agent, a mode and a credential
     Then the name is refused saying {'The name "shell" is taken'}
     And starting is not offered yet
 
-  # The operator's Foo Bar was sent, the image was built, and only podman's create refused the name.
+  # A `Foo Bar` was sent, the image was built, and only podman's create refused the name.
   Scenario: a name no container could have is refused before anything starts
     When I start work in this project
     And I call it {'Foo Bar'}
@@ -127,7 +127,7 @@ Feature: Starting work with an agent, a mode and a credential
     And starting is not offered yet
     And the machine was asked about the name {'login-7'}
 
-  # The operator's decision: a first start lands in the agent's session, not in a shell to type it into.
+  # Decided: a first start lands in the agent's session, not in a shell to type it into.
   Scenario: a start works through the agent's session unless somebody chooses otherwise
     When I start work in this project
     And I choose the agent {'An Agent'}
@@ -290,7 +290,7 @@ Feature: Starting work with an agent, a mode and a credential
     When I start work in this project
     Then the agent chosen is {'claude'}
 
-  # The operator's report: a new person pressed "Start it", landed in a shell, and the agent said
+  # Reported: a new person pressed "Start it", landed in a shell, and the agent said
   # "Not logged in". With nothing to sign in with, the sign-in comes first, at the top, and no start.
   Scenario: an agent with nothing to sign in with is signed in first, and no start of any kind is offered
     Given the vault holds no credential for what a run would use
@@ -403,7 +403,7 @@ Feature: Starting work with an agent, a mode and a credential
     Then it says {'a container you will have to clear up'}
 
 
-  # The operator's decision: work always starts in a named repository, and none is chosen
+  # Decided: work always starts in a named repository, and none is chosen
   # for anybody — not even when there is only one.
   Scenario: work starts in a repository somebody chose, never in one chosen for them
     Given the project {'checkout'} has the repositories {'checkout, payments-api, billing'}

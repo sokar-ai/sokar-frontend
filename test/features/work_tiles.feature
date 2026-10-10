@@ -26,7 +26,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     Then the detail for {'sokar-checkout-shell'} is shown
     And it says {'github-copilot'}
 
-  # Walk 8, the operator: every tile on a machine's page was headed by the same machine, and running
+  # Walk 8: every tile on a machine's page was headed by the same machine, and running
   # and stopped work could not be told apart at a glance.
   Scenario: a tile is headed by its work, and its state is marked by colour and shape
     Given the work {'sokar-billing-shell'} is waiting on {'api.example.test:443'}
@@ -42,7 +42,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     Then the tile {'sokar-checkout-shell'} says {'Running'}
     And the tile {'sokar-checkout-shell'} is not marked as a guess
 
-  # The operator's report: opened from Running and put away, it came back to the work's project.
+  # Reported: opened from Running and put away, it came back to the work's project.
   Scenario: work is opened by hand from the work page, and leaving it comes back there
     When I work in {'sokar-checkout-shell'} by hand from its tile
     Then the session runs {'sokar task attach sokar-checkout-shell'}
@@ -76,7 +76,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     And I choose {'Start it again'} from the menu of the tile {'sokar-checkout-shell'}
     Then the tile {'sokar-checkout-shell'} says {'the vault is locked'}
 
-  # The operator's report: only "failed with exit code 70", where the machine had said why.
+  # Reported: only "failed with exit code 70", where the machine had said why.
   Scenario: a start that failed with an exit code says what the machine printed, on the tile
     Given the work {'sokar-checkout-shell'} has stopped
     And starting it again will fail with exit code {70} saying {'Several agents are installed'}
@@ -189,7 +189,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     Then the menu offers {'Start it again'} as unavailable because {'vault is locked'}
     And the menu offers {'Unlock the vault, so this can start'}
 
-  # Walk 9, the operator: what an unattended agent does is seen on its tile, small, updated now and
+  # Walk 9: what an unattended agent does is seen on its tile, small, updated now and
   # then so many tiles cost little, and enlarged to the right side when wanted.
   Scenario: a tile shows the newest lines its agent writes, drawn only now and then
     Given the work {'sokar-billing-shell'} runs unattended
@@ -211,7 +211,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
   Scenario: a tile of work in a terminal says where its agent's lines are, and reads no log
     Then the tile of {'sokar-billing-shell'} shows {'Its agent works in its terminal - open it to see.'}
 
-  # Walk 9, the operator: work by hand shows on its tile what its terminal shows, like a picture of it,
+  # Walk 9: work by hand shows on its tile what its terminal shows, like a picture of it,
   # asked of the machine every few seconds without attaching.
   Scenario: a tile of work in a terminal shows what its session shows, asked only every few seconds
     Given the terminal of {'sokar-billing-shell'} shows {'agent> make test'}
@@ -221,7 +221,7 @@ Feature: Work in its machine's area, as tiles that carry their own actions
     When {9} seconds pass
     Then the screen of {'sokar-billing-shell'} was asked for at most {5} times
 
-  # Walk 10, the operator: enlarging the console of work in a terminal opened its details, not its terminal.
+  # Walk 10: enlarging the console of work in a terminal opened its details, not its terminal.
   Scenario: enlarging the console of work in a terminal opens its session
     Given the terminal of {'sokar-billing-shell'} shows {'agent> make test'}
     Then the tile of {'sokar-billing-shell'} shows {'Its agent works in its terminal - open it to see.'}

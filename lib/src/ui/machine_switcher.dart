@@ -219,7 +219,7 @@ class _AskForAMachineState extends State<_AskForAMachine> {
   MachineKind? _kind;
 
   /// Whether the person may run commands as root on that machine - sudo, or root logging in. Asked
-  /// first: only then is Sokar set up there from here (walk 9, the operator); without it, a Sokar
+  /// first: only then is Sokar set up there from here (walk 9); without it, a Sokar
   /// somebody else set up is connected to. **Nothing is preselected.**
   bool? _admin;
 

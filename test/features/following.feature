@@ -49,7 +49,7 @@ Feature: How far following a project's repository has got, and who must act
     Given the project {'checkout'} follows its repository at {'4f2a9c1e0b77'}
     Then the card of {'checkout'} is not marked unverified
 
-  # Walk 10, the operator: the card said a rewritten history waits, with no way to take it there.
+  # Walk 10: the card said a rewritten history waits, with no way to take it there.
   Scenario: a rewritten history is taken from what needs a person, after agreeing
     Given the history of {'checkout'} was rewritten
     When I go to what needs a person

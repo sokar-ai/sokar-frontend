@@ -89,7 +89,7 @@ class _MessagesDialogState extends State<MessagesDialog> {
                       TextField(
                         key: const Key('join-person'),
                         controller: _person,
-                        // Walk 10, the operator: the name a person goes by in the chat, not "who".
+                        // Walk 10: the name a person goes by in the chat, not "who".
                         decoration: const InputDecoration(
                           labelText: 'Your name in the chat',
                           helperText: 'A short nickname; your Matrix ID is made from it.',

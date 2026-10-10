@@ -439,7 +439,7 @@ void main() {
       expect(File(marker).existsSync(), isFalse, reason: 'a supervised start ran the binary as well');
     });
 
-    // The operator's report: a refused start said only that nothing answered.
+    // Reported: a refused start said only that nothing answered.
     test('a unit that refuses says what systemd said, and the binary is not run instead', () async {
       final marker = '${where.path}/binary-ran';
       sokardThat('echo ran > $marker\nsleep 5');

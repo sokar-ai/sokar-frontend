@@ -56,7 +56,7 @@ class ProjectsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final rows = <({Machine machine, ProjectOnScreen project})>[
-      // Default is not listed (walk 10, the operator): its work is under Work, and a repository is put
+      // Default is not listed (walk 10): its work is under Work, and a repository is put
       // into it from its card on the forge's page.
       for (final machine in machines.all)
         for (final project in machines.of(machine).projects)
@@ -109,7 +109,7 @@ class ProjectsPage extends StatelessWidget {
         const SizedBox(height: Space.normal),
         if (rows.isEmpty) const Text('No project yet.', key: Key('projects-none')),
         // Each project once, however many machines it is on: Projects is the view of what projects
-        // there are, Default among them, and where each lies is said under it (walk 9, the operator).
+        // there are, Default among them, and where each lies is said under it (walk 9).
         for (final name in <String>{for (final row in rows) row.project.name})
           _row(context, <({Machine machine, ProjectOnScreen project})>[
             for (final row in rows)

@@ -4,7 +4,7 @@ import '../support/world.dart';
 
 /// Usage: the agent of {'sokar-checkout-shell'} ended with the provider's {402} {'This request requires more credits'}
 ///
-/// The operator's run: OpenRouter refused the first request, and the agent ended.
+/// A run: OpenRouter refused the first request, and the agent ended.
 /// The container stays up; the machine says the agent ended, and how.
 Future<void> theAgentOfEndedWithTheProviders(WidgetTester tester, String work, int status, String error) async {
   World.theWorkIs(work, activity: 'ENDED', agentEnded: <String, dynamic>{

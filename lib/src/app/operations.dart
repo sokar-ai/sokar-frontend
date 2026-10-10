@@ -240,7 +240,7 @@ class Operations extends ChangeNotifier {
   final DateTime Function() _now;
   final Future<void> Function(String path) _open;
 
-  /// How long anything is kept, the operator's decision.
+  /// How long anything is kept.
   static const Duration kept = Duration(days: 30);
 
   /// How many of an operation's last lines are kept.

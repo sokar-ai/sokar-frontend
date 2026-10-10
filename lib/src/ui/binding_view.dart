@@ -30,7 +30,7 @@ class BindingDialog extends StatefulWidget {
   final MachineBinding binding;
 
   /// Whether starting work follows the binding by itself, the dialog closing on its own once the
-  /// machine holds the project (the operator's choice); what it pinned is then said
+  /// machine holds the project; what it pinned is then said
   /// at the foot of the window.
   final bool startFollows;
 
@@ -188,7 +188,7 @@ class _BindingDialogState extends State<BindingDialog> {
                 if (keys != null && !_hasProject)
                   const Text('It has no project.yml yet: make it a project first.', key: Key('binding-no-project')),
                 // Asked only where the forge did not say which key is theirs: the key that signed
-                // the project file was asked for again here (the operator).
+                // the project file was asked for again here.
                 if (keys != null && keys.length > 1 && key?.atTheForge == null)
                   DropdownButtonFormField<String>(
                     key: const Key('binding-key'),

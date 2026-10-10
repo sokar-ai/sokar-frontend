@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/e2e.dart';
 import 'the_test_machine_has_a_repository_to_work_on.dart';
 
-/// Opens default as the window offers it: Work, "New work", the test machine, "Default" (walk 10, the
-/// operator: Default is no project listed under Projects any more).
+/// Opens default as the window offers it: Work, "New work", the test machine, "Default" (walk 10:
+/// Default is no project listed under Projects any more).
 Future<void> openTheDefaultFromWork(WidgetTester tester) async {
   await toThePlace(tester, 'work');
   await tester.tap(find.byKey(const Key('new-work')));

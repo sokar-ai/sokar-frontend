@@ -15,7 +15,7 @@ Feature: Work on a repository without writing a project first
     And I open the command finder
     Then the command {'Stop following this project'} is unavailable because {'default is always there'}
 
-  # One way, the operator's decision: a repository is named, typed or picked at a forge beside the
+  # One way: a repository is named, typed or picked at a forge beside the
   # field, and work starts on it; it goes into default on the way.
   Scenario: work in default starts on a repository named by its address, which goes into default on the way
     When I select the project {'default'}
@@ -85,7 +85,7 @@ Feature: Work on a repository without writing a project first
     When I start forwarding it to its origin
     Then the forwarding asks {'Forward it to its origin'}
 
-  # Walk 10, the operator: Default left Projects; its work is under Work, and a repository is put
+  # Walk 10: Default left Projects; its work is under Work, and a repository is put
   # into it from its card on the forge's page.
   Scenario: work without a project is not listed among the projects
     When I go to the place {'projects'}

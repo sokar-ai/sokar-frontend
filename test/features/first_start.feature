@@ -2,7 +2,7 @@
 # saying what this file tests. It is the group name in every surface CI renders.
 Feature: A first start led from a machine to a project to the first work
 
-  # The operator's decision: set up a machine (this computer or one over ssh), then a project
+  # Decided: set up a machine (this computer or one over ssh), then a project
   # unless working without one, then start work. Once there is work, the window opens on it.
   Scenario: with no work anywhere, the work page leads through three steps
     Given a backend with nothing on it

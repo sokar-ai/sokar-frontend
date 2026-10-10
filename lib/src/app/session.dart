@@ -315,7 +315,7 @@ class ConsolePlace {
 
 /// The one session that is open, and where it belongs.
 ///
-/// **One at a time**, the operator's decision: several open at once, drawn as chips
+/// **One at a time**: several open at once, drawn as chips
 /// over one terminal, made leaving one look like leaving all. Opening another leaves this one — the
 /// work behind it carries on, and opening it again shows its last lines.
 class Sessions extends ChangeNotifier {

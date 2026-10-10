@@ -36,7 +36,7 @@ Feature: A project's conversation, and a person joining it
     And it says {'anna, as @anna:localhost'}
     And a forward of port {'8008'} is held
     And it says {'port 8008 is forwarded from this computer while this window runs'}
-    # Walk 10, the operator: nheko lost its server when the dialog closed. Kept while the window runs.
+    # Walk 10: nheko lost its server when the dialog closed. Kept while the window runs.
     When I am done with the messages
     Then the forward of port {'8008'} is still held
     When I choose the command {'Messages — the conversation of this project, and who has joined it'}

@@ -31,7 +31,7 @@ class StartWork extends ChangeNotifier {
   Mode? mode;
 
   /// Which of the project's repositories the work starts in. **Null until chosen, and never
-  /// chosen for somebody** (the operator's decision): not even when there is one.
+  /// chosen for somebody**: not even when there is one.
   String? repository;
 
   /// Whether a repository has to be chosen: whenever the machine named any. A machine older than
@@ -229,7 +229,7 @@ class StartWork extends ChangeNotifier {
 
   /// Why the name cannot be a task's, or null when it can or none was typed.
   ///
-  /// **Sokar's rule for a task name**, accepted by the operator after `Foo Bar` was
+  /// **Sokar's rule for a task name**, accepted after `Foo Bar` was
   /// sent, the image built, and only `podman create` refused it. Lowercase letters, digits and
   /// inner hyphens: podman names the container `sokar-<project>-<task>`, git names the ref after the
   /// task, and a case-insensitive filesystem makes `Foo` and `foo` one ref. Not only digits, which a
@@ -261,7 +261,7 @@ class StartWork extends ChangeNotifier {
     }
     if (_onlyDigits.hasMatch(name)) return 'A name cannot be only digits.';
     // A start under a name the project has means *that* work again, so new work never takes one
-    // (walk 9, the operator: said at once, not only when it is started).
+    // (walk 9: said at once, not only when it is started).
     if (continuing == null && _taken.contains(name)) {
       return 'The name "$name" is taken: work of this project on this machine has it already. Choose '
           'another, or open that work from its tile.';

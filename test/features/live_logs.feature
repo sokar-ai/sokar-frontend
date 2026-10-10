@@ -15,13 +15,13 @@ Feature: Reading a task's logs as they are written
     Then the log shows {'building the image'}
     And the log was asked from its last {1000} lines
 
-  # Walk 9, the operator: following a log written hard flickered.
+  # Walk 9: following a log written hard flickered.
   Scenario: a log written hard is drawn in bundles while followed, and stays at its end
     When I read the log {'agent.log'}
     And the log prints {'400'} lines one by one
     Then the newest line {'line 400 of a log written hard'} is in view
 
-  # Walk 9, the operator: following a log of 53 MB closed the interface. Only a window of it is kept.
+  # Walk 9: following a log of 53 MB closed the interface. Only a window of it is kept.
   Scenario: only the newest lines are kept, and the earlier ones are said to be on the machine
     When I read the log {'agent.log'}
     And the log prints {'6000'} lines at once

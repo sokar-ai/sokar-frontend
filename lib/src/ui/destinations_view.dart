@@ -13,7 +13,7 @@ Future<void> showDestinations(BuildContext context, FleetBackend backend) =>
 
 /// The services a credential can be for, as the machine declares them.
 ///
-/// **What a console can do, this can**, the operator's decision: a destination is a file at the
+/// **What a console can do, this can**: a destination is a file at the
 /// machine, and here it is listed, written with a preview the machine answers first, and removed.
 /// A packaged one cannot be changed or removed; one of the user's own can take its place.
 class DestinationsDialog extends StatefulWidget {

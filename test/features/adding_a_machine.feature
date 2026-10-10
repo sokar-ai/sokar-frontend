@@ -8,7 +8,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     And I go to the work
     When I open the machine dialog
 
-  # Walk 9, the operator: whether the person may run commands as root there is asked first. Only
+  # Walk 9: whether the person may run commands as root there is asked first. Only
   # then is the machine set up from here; otherwise a Sokar somebody else set up is connected to.
   Scenario: the first page asks whether the person is an administrator there, then how to reach it
     Then the dialog offers {'Yes: I may run commands as root there'}
@@ -465,7 +465,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     Then it says {'sokar setup did not register what a task needs: podman: cannot write hooks.d'}
     And the wizard cannot go to the next step yet
 
-  # The operator's decision: the passphrase goes keyboard → terminal → ssh → sokar, never
+  # Decided: the passphrase goes keyboard → terminal → ssh → sokar, never
   # through this program, and whether the vault is there is asked of the daemon, not read off the terminal.
   Scenario: the vault is made in a terminal as the work user, and the daemon says it is there
     Given a new machine whose root logs in
@@ -481,7 +481,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     When the terminal ends with {0}
     Then it says {'The vault is there, and it opens with the passphrase typed.'}
 
-  # The operator's requirement: a machine left with no vault refused the first credential later, far
+  # Required: a machine left with no vault refused the first credential later, far
   # from where the vault is made.
   Scenario: the vault step is not left while the machine has no vault
     Given a new machine whose root logs in
@@ -566,7 +566,7 @@ Feature: Adding a machine through a wizard that starts from what you have
     Then it says {'Connections — how the build machine connects out'}
     And adding a connection is offered
 
-  # Found by the operator: asked before the new machine's socket answered, an unhandled error.
+  # Found in use: asked before the new machine's socket answered, an unhandled error.
   Scenario: the connections of a new machine are asked once it answers, not before
     Given a new machine whose root logs in
     When I see what it can install

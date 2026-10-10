@@ -164,7 +164,7 @@ void main() {
       expect(script, contains(r'if [ "${RELEASE:-0}" = 1 ]; then version="$base"; fi'));
     });
 
-    // The operator's decision: a Markdown-only push leased a machine and published a
+    // Decided: a Markdown-only push leased a machine and published a
     // snapshot. Only documentation may be skipped, and nothing that builds or tests.
     test('a push that changes only documentation starts no build, and nothing else is skipped', () {
       final ignored = RegExp(r"paths-ignore:\n((?:\s+- '[^']+'\n)+)").firstMatch(workflow);
@@ -276,7 +276,7 @@ void main() {
       expect(workflow, contains('!cancelled()'), reason: 'a skipped or red job must not make Publish run anyway');
     });
 
-    // The operator's decision, after a run of 1 h 29 min: no job runs without a limit, and the
+    // Decided, after a run of 1 h 29 min: no job runs without a limit, and the
     // leased machine's test stops before the job does, so the sweep after it still runs.
     test('every job stops after a limit, and the lease leaves time for its sweep', () {
       for (final file in Directory('.github/workflows').listSync().whereType<File>()) {

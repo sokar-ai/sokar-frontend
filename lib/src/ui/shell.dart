@@ -459,8 +459,8 @@ class _ShellState extends State<Shell> {
       }),
   ];
 
-  /// What concerns a project as a whole, on its row's menu and its page's (walk 9, the operator's
-  /// choice): starting work, what waits at its gate, being told about it, clearing it, letting it go.
+  /// What concerns a project as a whole, on its row's menu and its page's (walk 9):
+  /// starting work, what waits at its gate, being told about it, clearing it, letting it go.
   static const List<String> _projectAsAWhole = <String>[
     'work.start', 'gate.open', 'notifications.mute', 'project.clear', 'project.delete',
   ];
@@ -512,7 +512,7 @@ class _ShellState extends State<Shell> {
 
   /// Makes a tile's machine and work the ones being acted on, **and changes nothing about where
   /// somebody is**: acting on work from Running leaves Running on screen, and from a project that
-  /// project. The operator's report: a session opened from Running and put away came
+  /// project. Reported: a session opened from Running and put away came
   /// back to the work's project, because acting narrowed to it.
   void _actOn(Tile tile) {
     widget.machines.select(tile.machine);
@@ -913,7 +913,7 @@ class _ShellState extends State<Shell> {
   /// Follows a repository in the machine's place — the only way a project comes to a machine.
   /// The person's own repositories on a forge: made a project, and this machine bound to one.
   /// A project from a repository the person has: their forges, or the one forge's repositories
-  /// straight away where there is only one (walk 10, the operator: forges are a place of their own).
+  /// straight away where there is only one (walk 10: forges are a place of their own).
   void _fromARepository() => unawaited(() async {
         await _forges.readList();
         if (_forges.entries.length == 1) return _openTheForge(_forges.entries.single);
@@ -956,7 +956,7 @@ class _ShellState extends State<Shell> {
       );
 
   /// The watched machines on which the repository called [fullName] is worked on, or holds the
-  /// settings of a project: by name, nothing else (walk 10, the operator).
+  /// settings of a project: by name, nothing else (walk 10).
   List<String> _machinesWorkingOn(String fullName) => <String>[
         for (final machine in widget.machines.all)
           if (widget.machines.of(machine).projects.any((each) =>
@@ -1198,7 +1198,7 @@ class _ShellState extends State<Shell> {
       );
       if (yes != true) return;
     }
-    // Back to the list of machines, where it was removed from (walk 9, the operator): never to a
+    // Back to the list of machines, where it was removed from (walk 9): never to a
     // page of the machine that is gone.
     widget.shell.goTo(Section.machines);
     await widget.machines.forget(machine);
@@ -1282,7 +1282,7 @@ class _ShellState extends State<Shell> {
     final project = listed();
     if (project == null || !mounted) return;
     // The project the work starts in is the one shown in the tree: a project made from a repository
-    // appeared there unselected, and the person looked for it (walk 8, the operator).
+    // appeared there unselected, and the person looked for it (walk 8).
     if (name != defaultProject) {
       _fleet.selectProject(name);
       widget.shell.goTo(Section.project);
@@ -1620,7 +1620,7 @@ class _ShellState extends State<Shell> {
     if (said.isNotEmpty) _fleet.say(said);
     if (widget.gate.problem == null) widget.shell.openGate();
     // What waits is read again at once: the project's badge said "1" after the push was through
-    // (walk 8, the operator).
+    // (walk 8).
     unawaited(_fleet.refresh(quietly: true));
   }
 
@@ -1676,7 +1676,7 @@ class _ShellState extends State<Shell> {
     if (said.isNotEmpty) _fleet.say(said);
     if (widget.gate.problem == null) widget.shell.openGate();
     // What waits is read again at once: the project's badge said "1" after the push was through
-    // (walk 8, the operator).
+    // (walk 8).
     unawaited(_fleet.refresh(quietly: true));
   }
 
@@ -2209,9 +2209,9 @@ class _ShellState extends State<Shell> {
           ].fold<int>(0, (sum, each) => sum + each),
           needing: _attention.needingSomebody,
           machines: widget.machines.all.length,
-          // Each project once, as the Projects page lists them (walk 10, the operator: Default on two
+          // Each project once, as the Projects page lists them (walk 10: Default on two
           // machines counted twice).
-          // Default is not among them: it left Projects (walk 10, the operator).
+          // Default is not among them: it left Projects (walk 10).
           projects: <String>{
             for (final machine in widget.machines.all)
               for (final project in widget.machines.of(machine).projects)
@@ -2281,7 +2281,7 @@ class _ShellState extends State<Shell> {
   /// Every piece of work on every machine, or what is open over it.
   Widget _workArea() {
     // A refusal takes the place of the page, as on the machine's: a removal the machine refused,
-    // said only in the status line, looked like nothing happening (walk 9, the operator).
+    // said only in the status line, looked like nothing happening (walk 9).
     final refusal = _fleet.refusal;
     final opened = refusal != null ? RefusalView(refusal: refusal, fleet: _fleet) : _opened() ?? _console();
     final page = opened ?? Focus(
@@ -2469,7 +2469,7 @@ class _ShellState extends State<Shell> {
     final machine = widget.machines.current;
     final fleet = _fleet;
     // A project's page whose project went - deleted, cleared, no longer followed - goes back to the
-    // list of projects rather than standing empty (walk 9, the operator).
+    // list of projects rather than standing empty (walk 9).
     if (widget.shell.section == Section.project && fleet.selectedProject == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && widget.shell.section == Section.project && _fleet.selectedProject == null) {
@@ -2488,7 +2488,7 @@ class _ShellState extends State<Shell> {
     return Column(
       children: <Widget>[
         // A project's page is the project's alone: its machine is in the title bar, never a bar of its
-        // own above it (walk 9, the operator).
+        // own above it (walk 9).
         if (widget.shell.section != Section.project)
         MachineTitle(
           machine: machine,
@@ -2554,7 +2554,7 @@ class _ShellState extends State<Shell> {
                 project: narrowed,
                 muted: widget.notifications.muted.contains(narrowed.name),
                 // Everything about the project in its one menu, its points after what concerns it as a
-                // whole (walk 10, the operator). Starting work is on each repository's row too, with
+                // whole (walk 10). Starting work is on each repository's row too, with
                 // that repository chosen; here it is where the command finder lands.
                 menu: <Command>[
                   if (_startsFromItsRows(narrowed)) ..._commands().where((command) => command.id == 'work.start'),
@@ -2576,7 +2576,7 @@ class _ShellState extends State<Shell> {
                 startUnavailable: StartWork.whyNot(narrowed.project) ?? notAnswering(fleet),
               ),
                 // A project is one, wherever it lies: where it is on several machines, which one this
-                // page shows is chosen here (walk 9, the operator).
+                // page shows is chosen here (walk 9).
                 if (narrowed != null)
                   Builder(builder: (context) {
                     final on = <Machine>[
@@ -2636,8 +2636,8 @@ class _ShellState extends State<Shell> {
                   spacing: Space.normal,
                   runSpacing: Space.normal,
                   children: <Widget>[
-                    // Its work is under Work, narrowed to it: never shown here as well (walk 9, the
-                    // operator: work only under Work).
+                    // Its work is under Work, narrowed to it: never shown here as well (walk 9:
+                    // work only under Work).
                     OutlinedButton.icon(
                       key: const Key('its-work'),
                       onPressed: () {

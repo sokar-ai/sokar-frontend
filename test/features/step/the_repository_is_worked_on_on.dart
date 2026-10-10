@@ -7,6 +7,6 @@ Future<void> theRepositoryIsWorkedOnOn(WidgetTester tester, String repository, S
   final count = machines.split(',').length;
   expect(find.descendant(of: card, matching: find.textContaining('on $count machine')), findsOneWidget);
   final bubble = tester.widget<Tooltip>(find.byKey(ValueKey<String>('repository-machines $repository')));
-  // The machines' names and nothing else (walk 10, the operator).
+  // The machines' names and nothing else (walk 10).
   expect(bubble.message, machines.split(',').map((each) => each.trim()).join('\n'));
 }

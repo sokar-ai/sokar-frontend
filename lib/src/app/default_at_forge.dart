@@ -3,8 +3,8 @@ import 'package:sokar_frontend/client.dart';
 import 'fleet_backend.dart';
 import 'forge.dart';
 
-/// Working on a forge's repository without a project, from its card on the forge's page (walk 10, the
-/// operator: Default left Projects, and its one task went to where the repository is seen).
+/// Working on a forge's repository without a project, from its card on the forge's page (walk 10:
+/// Default left Projects, and its one task went to where the repository is seen).
 ///
 /// The repository goes into the machine's `default` and the machine gets a key of its own there, as
 /// working on a project gives it; taken out, its key goes at the forge too. Answers what was done.

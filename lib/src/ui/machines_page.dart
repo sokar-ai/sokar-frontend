@@ -5,7 +5,7 @@ import '../app/machines.dart';
 import 'machine_switcher.dart';
 import 'tokens.dart';
 
-/// Every machine watched, as a list: where work runs, set up rarely (the operator, walk 9). One row
+/// Every machine watched, as a list: where work runs, set up rarely (walk 9). One row
 /// per machine says how it stands; its details are a page of their own, and its projects and work
 /// are under *Projects* and *Work*, never here.
 class MachinesPage extends StatelessWidget {
@@ -66,7 +66,7 @@ class MachinesPage extends StatelessWidget {
     final info = fleet.info;
     final running = fleet.tasks.where((task) => task.running).length;
     final answering = fleet.reachability == Reachability.connected;
-    // This computer itself is never taken off the list (walk 9, the operator): it is where the window
+    // This computer itself is never taken off the list (walk 9): it is where the window
     // runs, whatever else is watched.
     final local = Machine.local();
     final thisComputer = !machine.needsATunnel && machine.name == local.name && machine.socketPath == local.socketPath;

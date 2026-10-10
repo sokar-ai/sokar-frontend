@@ -442,7 +442,7 @@ class _MoreCredentials extends StatelessWidget {
 }
 
 /// The project's repositories, the project's own first, with **none chosen** until somebody
-/// chooses — not even when there is only one (the operator's decision).
+/// chooses — not even when there is only one.
 class _WhichRepository extends StatelessWidget {
   const _WhichRepository({required this.starting});
 
@@ -458,7 +458,7 @@ class _WhichRepository extends StatelessWidget {
       onChanged: (chosen) => chosen == null ? null : starting.chooseRepository(chosen),
       choices: <Choice<String>>[
         // Only where work happens: a project naming others under `repositories:` is never worked
-        // in itself, and the person found the two kinds side by side unclear (the operator).
+        // in itself, and the person found the two kinds side by side unclear.
         for (final name in project.workRepositories)
           Choice(name, name,
               id: 'start-repository-$name',
@@ -485,11 +485,11 @@ class _WhichMode extends StatelessWidget {
         label: 'How you take part',
         value: starting.mode,
         onChanged: (chosen) => chosen == null ? null : starting.chooseMode(chosen),
-        // Two ways, the operator's decision: an agent session ends in the container's
+        // Two ways: an agent session ends in the container's
         // shell when the agent is left, so a start into a bare shell was a third way to the same
         // place. A shell is offered only to work that was started as one before.
         choices: <Choice<Mode>>[
-          // Called a shell, as the operator reads it, and the agent is started in it.
+          // Called a shell, as a person reads it, and the agent is started in it.
           const Choice(Mode.agent, 'A shell, driven by hand', id: 'start-mode-agent',
               means: 'A terminal in the container with the agent already started in it. Leaving the '
                   'agent (/exit) leaves you in the shell.'),

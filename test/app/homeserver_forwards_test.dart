@@ -25,7 +25,7 @@ void main() {
     return machines;
   }
 
-  // Walk 10, the operator: nheko lost its server when the Messages dialog closed. What was joined
+  // Walk 10: nheko lost its server when the Messages dialog closed. What was joined
   // before is reachable again when the window starts, at the same port.
   test('a homeserver joined before is forwarded again when the window starts, at the same port', () async {
     final settings = Settings(MemorySettingsStore());

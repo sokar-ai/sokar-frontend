@@ -416,7 +416,7 @@ class GitHub implements Forge {
 }
 
 /// The forge over the network, with connections kept open and reused between requests: one per
-/// token's forge. Asking about fifty repositories one handshake at a time took the operator a
+/// token's forge. Asking about fifty repositories one handshake at a time took a
 /// minute or two.
 class _Network {
   HttpClient? _client;

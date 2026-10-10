@@ -13,7 +13,7 @@ class _NotOpenYet implements FleetBackend {
 }
 
 void main() {
-  // Found by the operator on the console: asked before the machine answered, an unhandled error.
+  // Found on the console: asked before the machine answered, an unhandled error.
   test('connections asked of a machine that has not answered yet say so, and throw nothing', () async {
     final connections = Connections();
 

@@ -399,7 +399,7 @@ class _RepositoriesDialogState extends State<RepositoriesDialog> {
       says = 'Asking ${forges.current?.name ?? 'the forge'} what it holds, and what this token may do there…';
       actions = const <Widget>[];
     } else if (!isProject) {
-      // Made a project in its repository, never here (walk 10, the operator: the project.yml in the
+      // Made a project in its repository, never here (walk 10: the project.yml in the
       // repository is the one place it is written).
       says = 'It has no project.yml, so it is no Sokar project. Add one in the repository itself; then '
           'choose it again here.';

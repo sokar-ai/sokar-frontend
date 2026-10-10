@@ -12,7 +12,7 @@ import 'tokens.dart';
 
 /// How the work page was left: its filters, its folded groups and its opened tiles. Kept by the
 /// window rather than the page, so they stay when something takes the page's place for a while - a
-/// refusal, a detail - and the page comes back (walk 9, the operator).
+/// refusal, a detail - and the page comes back (walk 9).
 class WorkView {
   /// The machine the work is narrowed to, or null for every machine.
   String? machine;
@@ -279,7 +279,7 @@ class _WorkPageState extends State<WorkPage> {
             ],
           ),
         // Shown while a project is chosen too, even when only one is left: a filter nobody can see made
-        // "No work matches" a riddle (walk 10, the operator).
+        // "No work matches" a riddle (walk 10).
         if (projects.length > 1 || (_project != null && !projects.contains(_project))) ...<Widget>[
           const SizedBox(height: Space.tight),
           Wrap(

@@ -5,7 +5,7 @@ import '../support/remote.dart';
 
 /// Usage: the account of a person new to Sokar, as it was given to them
 ///
-/// As the operator made it: Sokar installed on the machine and set up for the account, nothing of
+/// As it was made: Sokar installed on the machine and set up for the account, nothing of
 /// Sokar's used yet - no daemon running, no vault, no project, no task, no connection. What an
 /// earlier walk left is taken away first, the daemon stopped and its containers removed.
 Future<void> theAccountOfAPersonNewToSokarAsItWasGivenToThem(WidgetTester tester) async {

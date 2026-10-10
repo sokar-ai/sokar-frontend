@@ -4,7 +4,7 @@ import 'package:xterm/xterm.dart';
 import 'tokens.dart';
 
 /// How something that shows what an agent writes looks: like the terminal a person works in, by
-/// hand, whatever the window's theme (the operator, walk 9). Its colours are the real terminal's own
+/// hand, whatever the window's theme (walk 9). Its colours are the real terminal's own
 /// (`TerminalThemes.defaultTheme`), so the small console on a tile and the session look alike.
 abstract final class TerminalLook {
   static const TerminalTheme _theme = TerminalThemes.defaultTheme;

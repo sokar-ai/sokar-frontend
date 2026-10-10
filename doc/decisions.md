@@ -284,9 +284,9 @@ decision names the message that was shown, who wrote it, which way it was going 
 is shown as selectable monospaced text and never interpreted: no markup, no link that can be pressed,
 nothing fetched, because it has not been cleared. It is released or refused, never edited.
 
-**A message the filter refused is read in full too, and can still be delivered** (the operator:
-*"I need to decide if I still want it to be delivered or not. For that I need to see it
-and then execute a decision."*). That reverses the earlier rule that it be shown only by a masked
+**A message the filter refused is read in full too, and can still be delivered**: a person decides
+whether it is still delivered, and to decide must first see it whole and then act on it. That
+reverses the earlier rule that it be shown only by a masked
 excerpt. Delivered that way it is said as *delivered despite the filter*, never as released, and a
 person delivering to an `external` peer is told that its own filter checks it again. What the filter
 could not check at all is never offered.
@@ -303,7 +303,7 @@ words go to the task the work or the message came from, so its agent knows why i
 the same thing over again. The task is told that the push was dropped even without words; where no
 task of that name is left, the interface says nobody was told. **Writing to a task's agent** puts a
 person's words straight into its inbox, marked as a person's. It never leaves the machine, so it is
-neither signed nor filtered (the operator chose all three).
+neither signed nor filtered: all three, by decision.
 
 **What it costs:** a new way for content to enter a task. Accepted, because it carries only what a
 person typed at their own interface, and it is said as such where the agent reads it.

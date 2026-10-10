@@ -6,7 +6,7 @@ import 'package:sokar_frontend/src/mock/mock_daemon.dart';
 
 /// Starting a listed task again, when the machine says no with an exit code.
 ///
-/// The operator's report: *Start it again* said only "failed with exit code 70", and
+/// Reported: *Start it again* said only "failed with exit code 70", and
 /// the daemon had printed which agent it wanted, a line before.
 void main() {
   late MockDaemon daemon;

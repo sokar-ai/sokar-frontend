@@ -57,7 +57,7 @@ class ProjectHeader extends StatelessWidget {
   final String? homeserver;
 
   /// Starts work in one of its repositories: a repository's own menu, since work is always in one
-  /// (walk 10, the operator).
+  /// (walk 10).
   final void Function(String repository)? onStart;
 
   /// Why work cannot start there now, or null.
@@ -107,7 +107,7 @@ class ProjectHeader extends StatelessWidget {
     // default is no project anybody follows or prepares: Sokar's own settings, fixed. What a
     // followed project lacks is not missing there, and saying so sent a new person looking for it.
     final isDefault = project.name == defaultProject;
-    // The repositories work is done in, one row each (walk 10, the operator): the project's own, which
+    // The repositories work is done in, one row each (walk 10): the project's own, which
     // holds its file and planning and is never worked in, is not one of them.
     final workRepositories = isDefault
         ? const <Repository>[]
@@ -125,7 +125,7 @@ class ProjectHeader extends StatelessWidget {
     ];
     final counts = '${project.running} of ${project.howMuchWork} running'
         '${p.securityClass.isEmpty ? '' : ' · ${p.securityClass}'}';
-    // Laid out as Machines and Projects are (walk 10, the operator): the project as the page's
+    // Laid out as Machines and Projects are (walk 10): the project as the page's
     // heading with its menu beside it, a line about it, then its repositories, a card each.
     return Column(
       key: const Key('project-header'),
@@ -252,7 +252,7 @@ class _Repositories extends StatelessWidget {
 
 /// One of a project's repositories, as a project is one in the list of projects: its name, how far
 /// it has got, and a menu of what can be done with it, starting work in it first. Its limits are in
-/// that menu too, not on the row: not what a day's work needs (walk 10, the operator).
+/// that menu too, not on the row: not what a day's work needs (walk 10).
 class _RepositoryLine extends StatelessWidget {
   const _RepositoryLine({
     required this.repository,

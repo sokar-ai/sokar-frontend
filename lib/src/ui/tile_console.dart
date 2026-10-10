@@ -10,7 +10,7 @@ import 'ansi.dart';
 import 'terminal_look.dart';
 import 'tokens.dart';
 
-/// The newest lines a task's agent wrote, small, on its tile (the operator, walk 9: what an
+/// The newest lines a task's agent wrote, small, on its tile (walk 9: what an
 /// unattended agent does should be seen without opening anything).
 ///
 /// **Cheap on purpose**, since every tile on *Work* has one: it reads only the end of the log, as
@@ -116,7 +116,7 @@ class _TileConsoleState extends State<TileConsole> {
           ? screen.lines.sublist(screen.lines.length - TileConsole.shown)
           : screen.lines;
       // Redrawn only when the screen changed: a redraw every few seconds of the same lines made the
-      // whole page flicker (walk 10, the operator).
+      // whole page flicker (walk 10).
       if (_screenShown && _sessionLive == screen.live && listEquals(lines, _lines)) return;
       setState(() {
         _screenShown = true;

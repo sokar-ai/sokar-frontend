@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// As a point of its own on the project's page, not in a menu.
 Future<void> theProjectsPageOffers(WidgetTester tester, String point) async {
-  // The page's points are in its project's menu (walk 10, the operator).
+  // The page's points are in its project's menu (walk 10).
   await tester.tap(find.byKey(const Key('project-menu')));
   await tester.pumpAndSettle();
   expect(find.text(point), findsOneWidget);

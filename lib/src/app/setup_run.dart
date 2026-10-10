@@ -251,7 +251,7 @@ class SetupRun extends ChangeNotifier {
         SetupStep.prepare => prepared,
         SetupStep.reach => ready != null,
         // Not left while the machine says there is none: a machine left with no vault refused the
-        // first credential later, far from where it is made (the operator's requirement). Where it
+        // first credential later, far from where it is made. Where it
         // could not be asked, it is not held up on that.
         SetupStep.vault => hasVault != false,
         SetupStep.harden => false,

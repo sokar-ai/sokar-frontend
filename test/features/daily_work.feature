@@ -2,7 +2,7 @@
 # saying what this file tests. It is the group name in every surface CI renders.
 Feature: Daily work in front, setting up machines and projects apart
 
-  # The operator's decision: machines (where work runs) and projects (how it runs) are set up
+  # Decided: machines (where work runs) and projects (how it runs) are set up
   # rarely; the daily view is the work, what needs a person, and starting new work.
   Background:
     Given a backend with work on it
@@ -14,14 +14,14 @@ Feature: Daily work in front, setting up machines and projects apart
     And the work {'sokar-checkout-shell'} is in the group {'running'}
     And the work {'sokar-billing-shell'} is in the group {'running'}
 
-  # Walk 9, the operator: stopped work is rarely what a person looks for, so its group starts shut.
+  # Walk 9: stopped work is rarely what a person looks for, so its group starts shut.
   Scenario: stopped work is shown apart, its group shut until opened
     Given the work {'sokar-billing-shell'} has stopped
     Then the group {'stopped'} is shut {true}
     When I open the group {'stopped'}
     Then the work {'sokar-billing-shell'} is in the group {'stopped'}
 
-  # Walk 9, the operator: a tile is its work, its machine and its mark; the rest when opened.
+  # Walk 9: a tile is its work, its machine and its mark; the rest when opened.
   Scenario: a tile on the work page is folded to its work and machine, and opened for the rest
     Then the tile {'sokar-billing-shell'} is folded {true}
     When I open the tile {'sokar-billing-shell'}
@@ -30,7 +30,7 @@ Feature: Daily work in front, setting up machines and projects apart
   Scenario: a tile that asks something of a person is never folded
     Then the tile {'sokar-checkout-migrate'} is folded {false}
 
-  # Walk 9, the operator: within each group, the work active last comes first.
+  # Walk 9: within each group, the work active last comes first.
   Scenario: the work in a group is in the order of its last activity, newest first
     Given the work {'sokar-billing-shell'} has been in its state since {'2026-10-03T08:00:00Z'}
     And the work {'sokar-checkout-shell'} has been in its state since {'2026-10-01T08:00:00Z'}
@@ -65,7 +65,7 @@ Feature: Daily work in front, setting up machines and projects apart
     When I open {'billing'} on {'this machine'} from the projects page
     Then the project {'billing'} is the one shown
 
-  # The operator: work of one project on two machines cannot share its conversation through each
+  # work of one project on two machines cannot share its conversation through each
   # machine's own homeserver, and a person starting it there is told before, not after.
   Scenario: starting work of a project that runs on another machine says they cannot talk
     Given the project {'checkout'} has a conversation over {'matrix'} reaching {'127.0.0.1:8008'}, ready
@@ -98,7 +98,7 @@ Feature: Daily work in front, setting up machines and projects apart
     And the work {'sokar-billing-shell'} has been in its state since {'2026-10-01T08:00:00Z'}
     Then the work {'sokar-checkout-shell'} comes before {'sokar-billing-shell'}
 
-  # Walk 9, the operator: "Stopped (10)" stayed at 10 after he removed one.
+  # Walk 9: "Stopped (10)" stayed at 10 after one was removed.
   Scenario: removing stopped work counts it out of its group
     Given the work {'sokar-billing-shell'} has stopped
     And the work {'sokar-billing-audit'} has stopped
@@ -108,8 +108,8 @@ Feature: Daily work in front, setting up machines and projects apart
     And I press {'Remove it'}
     Then it says {'Stopped (1)'}
 
-  # Walk 9, the operator: a removal the machine refused was said only in the status line of the
-  # work page, and "nothing happens" was what he saw.
+  # Walk 9: a removal the machine refused was said only in the status line of the
+  # work page, and "nothing happens" was what was seen.
   Scenario: a removal the machine refuses is put in front of the person on the work page
     Given the work {'sokar-billing-shell'} has stopped
     And removing will refuse because the work is held
@@ -117,11 +117,11 @@ Feature: Daily work in front, setting up machines and projects apart
     And I choose {'Remove it'} from the menu of the tile {'sokar-billing-shell'}
     And I press {'Remove it'}
     Then what is held is shown
-    # Walk 9, the operator: the group he had opened was shut again once the refusal was decided.
+    # Walk 9: the group that had been opened was shut again once the refusal was decided.
     When I choose {'Leave it alone'}
     Then the group {'stopped'} is shut {false}
 
-  # Walk 9, the operator: Machines is a list of machines, each with details of its own; its projects
+  # Walk 9: Machines is a list of machines, each with details of its own; its projects
   # are under Projects and its work under Work, never on a machine's or a project's page.
   Scenario: machines are a list, and a machine's details show no projects and no work
     Then the machines page lists only machines
@@ -138,7 +138,7 @@ Feature: Daily work in front, setting up machines and projects apart
     And no tile is shown for {'sokar-checkout-shell'}
     And the work {'sokar-billing-shell'} is in the group {'running'}
 
-  # Walk 9, the operator: removing a machine from the list sent the window to Needs you.
+  # Walk 9: removing a machine from the list sent the window to Needs you.
   Scenario: removing a machine from the list stays on the list
     When I watch another machine called {'elsewhere'}
     And I remove {'elsewhere'} from the list of machines
@@ -150,13 +150,13 @@ Feature: Daily work in front, setting up machines and projects apart
     And the machine no longer has the project {'billing'}
     Then the section shown is {'Projects'}
 
-  # Walk 9, the operator: this computer itself is never removed from the list.
+  # Walk 9: this computer itself is never removed from the list.
   Scenario: this computer cannot be removed from the list of machines, another can
     When I watch another machine called {'elsewhere'}
     Then the machine {'this machine'} can be removed from the list {false}
     And the machine {'elsewhere'} can be removed from the list {true}
 
-  # Walk 9, the operator: a project's commands are on its row, as a tile's are on the tile.
+  # Walk 9: a project's commands are on its row, as a tile's are on the tile.
   Scenario: a project's row carries its menu, and its page the points to change it
     When I go to the place {'projects'}
     And I choose {'Stop telling me about this project'} from the menu of the project {'checkout'}
@@ -171,7 +171,7 @@ Feature: Daily work in front, setting up machines and projects apart
     When I open the details of {'this machine'}
     Then the machine's bar is shown {true}
 
-  # Walk 9, the operator: Projects is the view of what projects there are. A project is one, on however
+  # Walk 9: Projects is the view of what projects there are. A project is one, on however
   # many machines, and so is Default; its page chooses which machine it shows.
   Scenario: a project on two machines is listed once, saying both, and its page chooses between them
     Given the machine {'elsewhere'} runs work of {'checkout'}

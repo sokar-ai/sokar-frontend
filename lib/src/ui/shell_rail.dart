@@ -87,7 +87,7 @@ class ShellRail extends StatelessWidget {
               key: const Key('shell-rail'),
               children: <Widget>[
                 // All the work there is, as Machines and Projects count theirs; what runs is in the tip
-                // (walk 10, the operator: two stopped tasks read as "0").
+                // (walk 10: two stopped tasks read as "0").
                 entry(
                   Section.work,
                   Icons.play_circle_outline,

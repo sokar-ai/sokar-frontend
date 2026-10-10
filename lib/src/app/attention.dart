@@ -89,7 +89,7 @@ class Attention extends ChangeNotifier {
 
   /// Operations a person started that failed and that nobody has opened since, oldest first.
   ///
-  /// **Waiting until seen**, the operator's decision: a start that failed while its
+  /// **Waiting until seen**: a start that failed while its
   /// view was closed was found only by going to that machine, and nobody looked there.
   List<Operation> get failedUnseen => <Operation>[
         for (final operation in _operations?.all ?? const <Operation>[])
@@ -231,7 +231,7 @@ class Attention extends ChangeNotifier {
   /// The tiles that need a person: an open question, work waiting at the gate, or the outcome of a
   /// question that was answered or ran out and has not been put away.
   ///
-  /// **What the window opens on**, decided by the operator. A list of every tile is,
+  /// **What the window opens on**. A list of every tile is,
   /// at fifty tasks, fifty tiles of which two need anybody — and the reason to open the window is
   /// the two. Everything else — working, quiet, unseen, stopped — is still drawn, in its machine's
   /// area, which is where somebody looking at that machine goes.

@@ -128,7 +128,7 @@ class _PeersDialogState extends State<PeersDialog> {
           children: <Widget>[
             Text(peer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
             // Who it is, where the address alone says nothing to a person: "Written to michi" read
-            // as writing to oneself (walk 8, the operator).
+            // as writing to oneself (walk 8).
             if (_who(peer) case final who?) Text(who, key: ValueKey<String>('peer-who ${peer.name}')),
             SelectableText(peer.address, style: text.bodySmall),
             if (widget.mailboxes?.waitingWith(model.task.name, peer.name) case final waiting? when waiting > 0)

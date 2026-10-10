@@ -159,7 +159,7 @@ class _AttentionViewState extends State<AttentionView> {
                             fleet: widget.attention.fleetOf(stopped.machine),
                           ),
                         // A homeserver a Matrix client here cannot reach: its forward could not be raised
-                        // (walk 10, the operator).
+                        // (walk 10).
                         for (final each in unforwarded)
                           Card(
                             key: ValueKey<String>('homeserver-unforwarded ${each.machine}/${each.project}'),
@@ -293,7 +293,7 @@ class _NotFollowing extends StatelessWidget {
             if (followed.detail.isNotEmpty) Text(followed.detail, style: text.bodySmall),
             if (followed.url.isNotEmpty)
               SelectableText(followed.url, style: text.bodySmall),
-            // Walk 10, the operator: the card said what to do, with nothing to do it with. A rewritten
+            // Walk 10: the card said what to do, with nothing to do it with. A rewritten
             // history is taken only by a second, deliberate act; a refused signature has no button.
             if (followed.outcome == 'REWRITTEN' && followed.url.isNotEmpty) ...<Widget>[
               const SizedBox(height: Space.small),
@@ -492,8 +492,8 @@ class _MachineNotice extends StatelessWidget {
 
 /// One tile. Its state is legible without opening it, and it carries its own actions.
 /// Which tiles below it are folded open, where tiles fold at all: a page with many tiles shows each
-/// by its work, its machine and its state's mark, and the rest only when it is opened (the
-/// operator, walk 9). A tile that asks something of a person is never folded.
+/// by its work, its machine and its state's mark, and the rest only when it is opened
+/// (walk 9). A tile that asks something of a person is never folded.
 class TileFolding extends InheritedWidget {
   /// Constructor taking which tiles are open and how one is opened or closed.
   const TileFolding({required this.open, required this.toggle, required super.child, super.key});
@@ -609,7 +609,7 @@ class TaskTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   // Headed by the work, which tells tiles apart; the machine is the same for every tile
-                  // on a machine's page (walk 8, the operator). It is said under it all the same: two
+                  // on a machine's page (walk 8). It is said under it all the same: two
                   // machines can serve the same socket path, and only the name tells them apart.
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

@@ -7,7 +7,7 @@ import '../support/world.dart';
 
 /// Usage: I select the project {'checkout'}
 Future<void> iSelectTheProject(WidgetTester tester, String project) async {
-  // Default is no card on Projects any more (walk 10, the operator): its page is gone to as the finder
+  // Default is no card on Projects any more (walk 10): its page is gone to as the finder
   // goes to it, with it selected on its machine.
   if (project == defaultProject) {
     World.fleet.selectProject(project);

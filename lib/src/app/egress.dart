@@ -4,7 +4,7 @@ import 'package:sokar_frontend/client.dart';
 import 'fleet_backend.dart';
 
 /// What one project's work may reach, read and shown. Changed only in project.yml in the project's
-/// repository (walk 10, the operator), never from here.
+/// repository (walk 10), never from here.
 class Egress extends ChangeNotifier {
   /// Which project this is about.
   Project? project;

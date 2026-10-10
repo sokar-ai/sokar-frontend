@@ -10,7 +10,7 @@ import 'tokens.dart';
 
 /// Opens the repositories a machine works on without a project.
 ///
-/// With [onStartWork], it is **the one way to start work in `default`** (the operator's decision):
+/// With [onStartWork], it is **the one way to start work in `default`**:
 /// a repository is named — typed, or picked at a forge beside the field — and work starts
 /// on it, the repository going into `default` on the way. Without it, it lists what is there to take
 /// out. [pickAtAForge] opens the person's repositories at a forge, and hands the one picked back with

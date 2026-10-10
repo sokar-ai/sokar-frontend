@@ -40,7 +40,7 @@ Feature: Reading and deciding about what work says to other work
     And I release the message
     Then the machine was told to release {'msg-1.json'} of {'sokar-checkout-shell'}
     And it says {'Released. It goes out on the next pass, unless its peer is set to refuse everything.'}
-    # Closed once decided (walk 8, the operator): the outcome is said in the window behind it.
+    # Closed once decided (walk 8): the outcome is said in the window behind it.
     And the message is no longer open
     And what needs a person shows no message
     And nothing needs me
@@ -97,9 +97,9 @@ Feature: Reading and deciding about what work says to other work
     Then nothing was decided about any message
     And what needs a person shows a message from {'sokar-checkout-shell'}
 
-  # The operator's decision: a refused message is read in full, and a person may still
+  # Decided: a refused message is read in full, and a person may still
   # deliver it. It is then said as delivered despite the filter, never as released.
-  # Walk 8, the operator: "Held until…" said less than what the message says. Its text is not shown
+  # Walk 8: "Held until…" said less than what the message says. Its text is not shown
   # before a person opens it where the filter refused it: that text is what the filter kept back.
   Scenario: a held message shows the start of its text in its row, one the filter refused never does
     Given a backend with work on it
@@ -153,7 +153,7 @@ Feature: Reading and deciding about what work says to other work
 
   # Whom a task may talk to follows from its project; here each peer is moderated. A peer is never
   # shown as reachable while everything to it waits.
-  # Walk 9, the operator: whom work may talk to and what is asked is the project's file; here only the brake.
+  # Walk 9: whom work may talk to and what is asked is the project's file; here only the brake.
   Scenario: the peers of a task's project are listed, each with its brake, and the rules are said to be in the project's file
     Given a backend with work on it
     And {'sokar-checkout-migrate'} may talk to {'reviewer'}, {'vouched'}, in {'prompt'}

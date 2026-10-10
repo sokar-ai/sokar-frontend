@@ -10,8 +10,8 @@ import 'project_workspace.dart';
 /// Clearing a machine, or one project on it, of everything Sokar put there and at the forge, in one
 /// step: the machine's `Clear` does what only it can; then each deploy key it names is removed at
 /// the forge with the person's sign-in, and its line taken out of each project's `machine-signers`
-/// in one signed commit. What was removed and what was left is said, thing by thing (walk 8, the
-/// operator: "When I am done, I must be able to clear everything on the server very simply").
+/// in one signed commit. What was removed and what was left is said, thing by thing (walk 8:
+/// when the work is done, everything on the server can be cleared very simply).
 class MachineClearing extends ChangeNotifier {
   /// Constructor taking the machine, how the forge is reached, and what is cleared: [project], or
   /// everything where it is null.

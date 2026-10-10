@@ -38,8 +38,8 @@ jobs:
     # and the same runner is used for the other two jobs so nothing is built against a newer GTK
     # by accident.
     runs-on: ubuntu-22.04
-    # A run that hangs or crawls is stopped, never left to hold a runner for hours: one ran 1 h 29 min
-    # (the operator: never again). Limits are about three times what the last four
+    # A run that hangs or crawls is stopped, never left to hold a runner for hours: one ran 1 h 29 min,
+    # and never again. Limits are about three times what the last four
     # green runs took: this job 9-15 minutes, its build step 7-12.
     timeout-minutes: 45
     outputs:
@@ -289,7 +289,7 @@ jobs:
     # A pull request from a fork has no access to the token, and a run that publishes nothing is
     # better than one that fails at the last step. A release waits for every job, the leg on a
     # rented machine included, since it is never replaced; a snapshot needs only the build and the
-    # installs, and is published whatever that leg says (the operator's decision).
+    # installs, and is published whatever that leg says.
     if: >-
       !cancelled() && github.event_name != 'pull_request'
       && needs.build.result == 'success' && needs.installs.result == 'success'

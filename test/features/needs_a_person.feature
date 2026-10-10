@@ -152,7 +152,7 @@ Feature: What needs a person on every machine, without going anywhere
     When I mark the dropped questions seen
     Then it does not say {'dropped 2 questions'}
 
-  # The operator's run: the provider refused, the agent ended, and the machine said "idle".
+  # A run: the provider refused, the agent ended, and the machine said "idle".
   Scenario: work whose agent was refused by its provider needs you, in the provider's words
     When the agent of {'sokar-checkout-shell'} ended with the provider's {402} {'This request requires more credits'}
     Then the first tile is {'sokar-checkout-shell'}

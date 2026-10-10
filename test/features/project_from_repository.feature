@@ -12,7 +12,7 @@ Feature: A project from a repository a person already has on a forge
     When I pick a project from one of my repositories
     Then the repositories are offered
 
-  # Found by the operator: with a token kept from before, the dialog came up and went away again.
+  # Found in use: with a token kept from before, the dialog came up and went away again.
   Scenario: with a token kept from before, the repositories are listed and the dialog stays
     Given I go to the work
     And the forge reaches {'acme/api'} as an admin, and {'acme/web'} without admin rights
@@ -126,7 +126,7 @@ Feature: A project from a repository a person already has on a forge
     And the forge's repository {'acme/web'} says {'not an admin: no machine can be given keys to it from here'}
 
   # Choosing one says what comes next under it, rather than a click that seems to do nothing.
-  # Walk 10, the operator: a project.yml is written in its repository only, never from here.
+  # Walk 10: a project.yml is written in its repository only, never from here.
   Scenario: a repository with no project.yml is said to be no Sokar project, and nothing is offered for it
     Given the forge reaches {'acme/api'} as an admin, and {'acme/web'} without admin rights
     When I choose the command {'A project from a repository you have'}
@@ -153,7 +153,7 @@ Feature: A project from a repository a person already has on a forge
     Then binding is not offered for {'acme/api'}
     And what comes next for {'acme/api'} says {'this token may not give a machine keys to it'}
 
-  # GitHub lists every repository of the account, whatever the token was narrowed to (the operator's
+  # GitHub lists every repository of the account, whatever the token was narrowed to (a
   # token for one organization listed another's). All are shown; narrowing asks about each one.
   # Which are projects already is asked of the forge for every repository, and said on its line.
   Scenario: a repository with a project.yml says so on its line, and is used as a project from there
@@ -322,7 +322,7 @@ Feature: A project from a repository a person already has on a forge
     And the machine followed {'api'} pinned to the person's key
     And it says {'accepts changes to the project signed with your key'}
 
-  # Walk 8, the operator: "When I am done, I must be able to clear everything on the server very
+  # Walk 8: "When I am done, I must be able to clear everything on the server very
   # simply." One action, one confirmation, and what was removed and what was left said.
   Scenario: a machine is cleared in one step: what goes is listed first, then its keys go at the forge
     Given the forge reaches {'acme/api'} as an admin, and {'acme/web'} without admin rights
@@ -430,7 +430,7 @@ Feature: A project from a repository a person already has on a forge
     When I choose the command {'A project from a repository you have'}
     And I connect the forge with the token {'ghp_accepted'}
     And I bind the machine to {'acme/api'}
-    # The start form follows the binding by itself (the operator's choice), what was pinned said under it.
+    # The start form follows the binding by itself, what was pinned said under it.
     Then it says {'Start work in api'}
     And it says {'accepts changes to the project signed with your key'}
     And the project {'api'} is the one shown
@@ -495,7 +495,7 @@ Feature: A project from a repository a person already has on a forge
     Then it says {'accepts changes to the project signed with your key'}
     And it does not say {'Do not go on'}
 
-  # Walk 10, the operator: the forges are a place of their own, after Machines, laid out as Projects is.
+  # Walk 10: the forges are a place of their own, after Machines, laid out as Projects is.
   Scenario: the forges are a place of their own, after the machines, each opened to its repositories
     Given the forge reaches {'acme/api'} as an admin, and {'acme/web'} without admin rights
     And the keychain here keeps the token {'ghp_accepted'} for the forge
@@ -507,7 +507,7 @@ Feature: A project from a repository a person already has on a forge
     Then the forge's repository {'acme/api'} is listed
     And the repository {'acme/api'} is worked on on {'this machine'}
 
-  # Walk 10, the operator: Default left Projects; a repository is put into it from its card.
+  # Walk 10: Default left Projects; a repository is put into it from its card.
   Scenario: a repository is worked on without a project from its card, the machine given its key there
     Given the forge reaches {'acme/api'} as an admin, and {'acme/web'} without admin rights
     And the keychain here keeps the token {'ghp_accepted'} for the forge

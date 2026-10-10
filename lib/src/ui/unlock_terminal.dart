@@ -186,7 +186,7 @@ class _UnlockTerminalState extends State<_UnlockTerminal> {
                     focusNode: _keyboard,
                     autofocus: true,
                     // The cursor always shown while it waits: a pasted sign-in code went in with
-                    // nothing to say where (the operator, on a rented machine). What runs here may hide
+                    // nothing to say where (on a rented machine). What runs here may hide
                     // its own; this terminal is for one answer typed by a person.
                     alwaysShowCursor: _session.live,
                     readOnly: !_session.live,

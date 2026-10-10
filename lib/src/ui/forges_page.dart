@@ -16,7 +16,7 @@ import 'project_forge_view.dart';
 import 'tokens.dart';
 
 /// Every forge set up on this computer, laid out as Machines and Projects are: added here, changed or
-/// removed from each one's menu, and opened to its repositories (walk 10, the operator: the git
+/// removed from each one's menu, and opened to its repositories (walk 10: the git
 /// providers configured apart, under a place of their own).
 class ForgesPage extends StatefulWidget {
   /// Constructor taking the forges, what uses each, and what opening one does.
@@ -279,8 +279,7 @@ class _ForgePageState extends State<ForgePage> {
               if (forges.problem != null)
                 Text(forges.problem!, key: const Key('forge-problem'), style: TextStyle(color: scheme.error)),
               if (_said != null) Text(_said!, key: const Key('forge-said')),
-              // Loading is shown as loading: an empty page read as a fault until the list came (walk 10,
-              // the operator).
+              // Loading is shown as loading: an empty page read as a fault until the list came (walk 10).
               if (forges.busy || !forges.loaded || (forges.connected && repositories == null))
                 Padding(
                   key: const Key('forge-loading'),
@@ -313,7 +312,7 @@ class _ForgePageState extends State<ForgePage> {
                     key: const Key('forge-only-bindable'),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    // "Bind" said nothing to a person (walk 10, the operator): what it means is said instead.
+                    // "Bind" said nothing to a person (walk 10): what it means is said instead.
                     title: const Text('Only those a machine can be set up to work on'),
                     subtitle: const Text('A machine works on a repository with keys of its own there, which this '
                         'token must be allowed to give it (Administration). Can be slow: the forge is asked '
@@ -385,7 +384,7 @@ class _ForgePageState extends State<ForgePage> {
                   if (repository.admin && forges.mayBind[name] == false) 'this token may not give a machine keys to it',
                 ].join(' · '), style: text.bodySmall),
                 // Where it is worked on, by the machines watched here: their names, nothing else
-                // (walk 10, the operator).
+                // (walk 10).
                 if (on.isNotEmpty) ...<Widget>[
                   Text('  ·  on ${on.length} machine${on.length == 1 ? '' : 's'} ', style: text.bodySmall),
                   Tooltip(
@@ -414,7 +413,7 @@ class _ForgePageState extends State<ForgePage> {
                     value: 'bind',
                     child: Text('Work on it on ${widget.machineName}'),
                   ),
-                // Default's one task, where the repository is seen (walk 10, the operator).
+                // Default's one task, where the repository is seen (walk 10).
                 if (widget.machine != null && repository.admin && repository.push && isProject != true)
                   widget.inDefault?.call(name) ?? false
                       ? PopupMenuItem<String>(
@@ -466,7 +465,7 @@ class _ForgePageState extends State<ForgePage> {
             : isProject == null
                 ? 'Asking ${forges.current?.name ?? 'the forge'} what it holds, and what this token may do there…'
                 : !isProject
-                    // Made a project in its repository, never here (walk 10, the operator).
+                    // Made a project in its repository, never here (walk 10).
                     ? 'It has no project.yml, so it is no Sokar project. Add one in the repository itself.'
                     : !repository.admin
                         ? 'It is a Sokar project. Only an admin of it can let a machine work on it, since that '

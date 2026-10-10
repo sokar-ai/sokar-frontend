@@ -27,7 +27,7 @@ class LogTail {
   final List<String> lines = <String>[];
 
   /// How many lines are kept here at most. An agent's log runs to tens of megabytes, and the
-  /// interface that kept and drew all of it ran out of memory and closed (walk 9, the operator: 53 MB
+  /// interface that kept and drew all of it ran out of memory and closed (walk 9: 53 MB
   /// in 10 240 lines). The whole file stays on the machine.
   static const int kept = 5000;
 
@@ -85,7 +85,7 @@ class Logs extends ChangeNotifier {
     final tail = LogTail(task: task, log: log, formatted: formatted);
     _open[key] = tail;
     // Only the end of it: the earlier lines are not drawn anyway, and a log of tens of megabytes
-    // need not cross the connection to show its last screen (the operator's sliding window).
+    // need not cross the connection to show its last screen (a sliding window).
     _reading[key] = backend.tailLog(task, log, last: firstLines, formatted: formatted).listen(
       (lines) {
         tail.add(lines);
@@ -145,7 +145,7 @@ class Logs extends ChangeNotifier {
   }
 
   /// How often lines that keep arriving are drawn at most. A log written hard, line by line, would
-  /// otherwise redraw the view for every line, and following it flickered (walk 9, the operator).
+  /// otherwise redraw the view for every line, and following it flickered (walk 9).
   static const Duration drawnAtMostEvery = Duration(milliseconds: 100);
 
   Timer? _pending;

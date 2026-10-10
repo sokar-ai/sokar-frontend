@@ -106,7 +106,7 @@ void main() {
     expect('${onMain.stdout}'.trim(), commit);
   });
 
-  // The operator's first push went to a token without the right to write; the second, after the
+  // The first push went to a token without the right to write; the second, after the
   // right was given, was refused as nothing to commit.
   test('a commit whose push was refused is pushed when tried again, made over itself', () async {
     final hook = File('${here.path}/forge.git/hooks/pre-receive');
@@ -139,7 +139,7 @@ void main() {
   });
 
   // The keys a new machine's wizard made sit in the same agent, loaded by the desktop's keyring;
-  // offering one to sign a project with was what the operator met.
+  // offering one to sign a project with was what was met.
   test('the keys made for machines are never offered, and the one git signs with comes first', () async {
     Future<void> key(String name, String comment) async {
       await Process.run('ssh-keygen', <String>['-q', '-t', 'ed25519', '-N', '', '-C', comment, '-f', name]);
