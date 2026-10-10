@@ -1,6 +1,7 @@
 # F102 — A Sokar In WSL Reached From Windows
 
-**Status:** later; decided on 2026-10-10, built after the round of that day.
+**Status:** later; decided on 2026-10-10, built in three stages (see *The stages*), the first in the
+round after that day's.
 
 **What must be true.** On a Windows machine with Sokar in a WSL2 distribution, the interface runs as
 a Windows application on the same machine. It reaches that Sokar with no ssh and no open port, and
@@ -22,9 +23,9 @@ the socket's file permissions are the only guard, and an open port would remove 
 ## The shape
 
 - **A third way to a machine**, beside "this computer" and "over ssh": **a WSL distribution**,
-  reached through `wsl.exe -d <distro> -- <relay>`. The relay joins standard input and output to the
-  daemon's socket, for example `socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/sokar/sokard.sock`, or a small
-  relay Sokar ships. This is how Docker Desktop and Podman Desktop reach their WSL machines. No port
+  reached through `wsl.exe -d <distro> -- sokar relay`. Sokar's `relay` joins standard input and
+  output to the daemon's socket, so nothing else, `socat` included, has to be in the distribution.
+  This is how Docker Desktop and Podman Desktop reach their WSL machines. No port
   is opened and no key is needed. `wsl.exe` runs as the Windows user, so only that user reaches the
   distribution.
 - **`VarlinkConnection` speaks over any byte stream**: the relay's standard input and output here,
@@ -64,6 +65,20 @@ the socket's file permissions are the only guard, and an open port would remove 
       who may not install anything on their computer: unpacked and started, with no installation.
     - Where the MSIX is published, beside `sokar-dist-deb` and `sokar-dist-rpm`.
 
+## The stages
+
+Decided on 2026-10-10: the ZIP first, the MSIX after it.
+
+1. **On Linux, in the next round.** `VarlinkConnection` speaks over any byte stream, and the WSL
+   entry in `frontend.json` (below) is read and kept, shown as not reachable on Linux. `sokar` adds
+   `sokar relay` in the same round. Tested as the Linux build always is: the whole workflow green on
+   the VM before the push.
+2. **On Windows, in the round after.** The Windows build, the WSL way in the switcher and the wizard,
+   and terminals, attach and sign-in through `wsl.exe`. The only package is **the ZIP** with the
+   `.exe`, made by a Windows job on GitHub's runner. It is pushed on the operator's word, and then
+   the operator tests it on a Windows machine with WSL2, against the published snapshots.
+3. **The MSIX**, self-signed at first.
+
 ## The machine file, which `sokar-intellij` reads too
 
 The interface keeps its machines in `$XDG_CONFIG_HOME/sokar/frontend.json`, and the IntelliJ plugin
@@ -83,9 +98,9 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
 
 ## Where it touches `sokar`
 
-- **If Sokar ships the relay** rather than relying on `socat` in the distribution, that part is
-  `sokar`'s: a command that joins standard input and output to the daemon's socket, refusing anyone
-  but the socket's owner as the socket does. Agent Core's to write.
+- **`sokar relay`**, in stage 1: a command that joins standard input and output to the daemon's
+  socket of the account it runs as, refusing anyone but the socket's owner as the socket does.
+  `sokar`'s to build; the IntelliJ plugin uses it too.
 - Nothing else: the interface speaks the same contract over the relay as over a socket.
 
 ## Acceptance
@@ -104,17 +119,17 @@ after agreement in the channel and in both. Today an entry has `name` and `socke
   tests that load and save a file holding all three.
 - **Varlink over a byte stream** is proven without a socket file. Seen to fail: a test that speaks
   Varlink over an in-memory stream.
-- **The Windows build is tested on GitHub's Windows runner**: unit, feature and documents tests, the
-  MSIX and the ZIP built and the MSIX installed. This is decided as the one exception to "the whole
-  workflow green on the VM before a push", since there is no Windows machine here; the Linux build
-  keeps the rule.
+- **The Windows build is tested on GitHub's Windows runner**: unit, feature and documents tests, and
+  the ZIP built (stage 2), then the MSIX built and installed (stage 3). This is decided as the one
+  exception to "the whole workflow green on the VM before a push", since there is no Windows machine
+  here; the Linux build keeps the rule. After stage 2's push, the operator tests the ZIP on a
+  Windows machine with WSL2.
 - **A stopped distribution stays stopped:** with the distribution stopped, the interface shows it
   as stopped and it is still stopped afterwards. Seen to fail: the same with a call that starts it.
 
 ## To be checked
 
-- **The relay:** `socat` in the distribution, or one Sokar ships; whether `socat` is in the default
-  Ubuntu image of WSL.
-- **How the interface finds the socket** inside the distribution without a login shell, since
-  `$XDG_RUNTIME_DIR` is set only in a user session. One `wsl.exe` call can read `id -u` first.
+- **How the socket is found** inside the distribution without a login shell, since
+  `$XDG_RUNTIME_DIR` is set only in a user session: by `sokar relay` itself, from the account it
+  runs as, or by the interface reading `id -u` first. Settled with `sokar relay`'s shape.
 - **Where the MSIX and the ZIP are published**, and which certificate replaces the self-signed one.
