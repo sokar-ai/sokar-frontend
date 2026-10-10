@@ -66,6 +66,24 @@ the socket's file permissions are the only guard, and an open port would remove 
       who may not install anything on their computer: unpacked and started, with no installation.
     - Where the MSIX is published, beside `sokar-dist-deb` and `sokar-dist-rpm`.
 
+## Measured on Windows
+
+On 2026-10-10, on a Windows machine with WSL2, against the published `sokar` `0.4.2~snapshot.268`,
+from Windows PowerShell 5.1 through `cmd`, with a NUL-terminated `GetInfo` request in a file on the
+Windows side:
+
+    cmd /c "wsl.exe -d Ubuntu -- sokar daemon connect < %USERPROFILE%\getinfo.bin"
+    -> {"parameters":{"vendor":"fuin.org","product":"Sokar","version":"0.4.2~snapshot.268", ...,
+        "interfaces":["org.varlink.service","org.fuin.sokar.Tasks1"]}}
+
+`od -c` inside WSL showed the bytes arrive unchanged, the closing `\0` included. So `wsl.exe` carries
+Varlink's framing both ways: standard input from Windows, and standard output back.
+
+**What this means for stage 2:** Windows PowerShell 5.1 has no `<` and re-encodes text in its
+pipes. The interface therefore starts `wsl.exe` as a process with byte streams of its own
+(`Process.start`, its `stdin` and `stdout` given to `VarlinkConnection.over`), never through a shell
+or a shell pipe.
+
 ## The stages
 
 Decided on 2026-10-10: the ZIP first, the MSIX after it.
