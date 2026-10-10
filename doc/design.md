@@ -186,7 +186,14 @@ The packaging requirement is met and retired; this is what it is made of.
 - **Build machine:** Ubuntu, never Fedora, because the bundle links glibc dynamically — the
   backend's own rule. Flutter adds one the CLI never had: the bundle links the GTK3 stack too,
   so the build machine's GTK is the oldest GTK the package can run against, and the build runs on
-  the oldest distribution that must be supported.
+  the oldest distribution that must be supported. That is `ubuntu-22.04`: measured on 2026-10-10,
+  its packages install on every system Sokar supports, Ubuntu 26.04, Debian 13, Fedora 43 and
+  Fedora 44, and the workflow proves that on each build in those four images, pinned by digest.
+- **The C library floor:** both packages declare the oldest glibc they need, the `.deb` as
+  `libc6 (>= …)` from `dpkg-shlibdeps`, the `.rpm` as `libc.so.6(GLIBC_…)(64bit)`. `tool/package.sh`
+  holds it with `sokar-release`'s `check-linkage --declared-only`, as Sokar's own packages hold
+  theirs: no object may need a newer glibc symbol than declared, and the floor may not rise above
+  Debian 13's glibc 2.41.
 - **Architecture:** Flutter has no cross-compile for Linux desktop. Every architecture shipped
   needs a builder of that architecture.
 

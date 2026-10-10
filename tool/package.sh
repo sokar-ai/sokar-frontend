@@ -20,7 +20,8 @@
 # `sokar-release` derives them from ELF files or compares `~snapshot.<run>` versions.
 # What this script does is call dpkg-shlibdeps, objdump and nfpm, native programs a JVM
 # would only start in turn. What has to match the rest of Sokar is the package somebody installs,
-# not the tool that wrote it.
+# not the tool that wrote it. The one check shared with the rest of Sokar, the C library floor, is
+# `sokar-release`'s `check-linkage`, as Sokar's own packages hold theirs.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -126,22 +127,19 @@ requires="$(
 test -n "$requires" || { echo "no sonames found; refusing to ship an rpm with no dependencies" >&2; exit 1; }
 
 say "Holding the C library floor"
-# The newest glibc symbol version any object needs is the floor both packages promise. The Debian
-# side has it from dpkg-shlibdeps as `libc6 (>= …)`; the RPM side says it as rpm's own scanner
-# would, `libc.so.6(GLIBC_…)(64bit)`. Above Debian 13's glibc 2.41 the package would no longer
-# install on a system Sokar supports, so that is refused here, before anything is published.
+# The floor both packages promise is the one dpkg-shlibdeps derived, `libc6 (>= …)`; the RPM side
+# says it as rpm's own scanner would, `libc.so.6(GLIBC_…)(64bit)`. Sokar's shared check holds it:
+# no object may need a newer glibc symbol than that floor, and the floor may not rise above Debian
+# 13's glibc 2.41, or the package would no longer install on a system Sokar supports. Both are
+# refused here, before anything is published. `--declared-only` leaves GTK and the bundle's own
+# libraries to the dependencies derived above.
 ceiling="${GLIBC_CEILING:-2.41}"
-floor="$(
-  for object in "${objects[@]}"; do
-    objdump -T "$object" | grep -oE 'GLIBC_[0-9]+(\.[0-9]+)+'
-  done | sed 's/^GLIBC_//' | sort -uV | tail -1
-)"
-test -n "$floor" || { echo "no GLIBC_ symbol versions found; refusing to guess the C library floor" >&2; exit 1; }
-if [ "$(printf '%s\n%s\n' "$floor" "$ceiling" | sort -V | tail -1)" != "$ceiling" ]; then
-  echo "the binaries need glibc $floor, above the ceiling $ceiling (Debian 13's glibc is 2.41)" >&2
-  exit 1
-fi
-echo "glibc $floor (at most $ceiling)"
+floor="$(echo "$depends" | grep -oE 'libc6 \(>= [0-9.]+' | grep -oE '[0-9][0-9.]*$' || true)"
+test -n "$floor" || { echo "dpkg-shlibdeps named no libc6 floor; refusing to guess the C library floor" >&2; exit 1; }
+tools="${JDK_CP:-build/jdk-cp.txt}"
+test -s "$tools" || { echo "no $tools: resolve Sokar's tools first (mvnw -Pci-tools dependency:build-classpath)" >&2; exit 1; }
+java -cp "$(cat "$tools")" org.fuin.sokar.release.Main check-linkage --declared-only \
+  --declare "libc.so.6=GLIBC:$floor" --ceiling "GLIBC=$ceiling" "${objects[@]}"
 requires="$(printf '%s\nlibc.so.6(GLIBC_%s)(64bit)' "$requires" "$floor")"
 echo "$requires"
 
