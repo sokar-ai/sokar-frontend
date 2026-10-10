@@ -66,6 +66,64 @@ the socket's file permissions are the only guard, and an open port would remove 
       who may not install anything on their computer: unpacked and started, with no installation.
     - Where the MSIX is published, beside `sokar-dist-deb` and `sokar-dist-rpm`.
 
+## What the interface checks before it connects
+
+Part of stage 2. When a WSL distribution is added, the interface checks the system, in this order,
+and says in words where it stops:
+
+| Check | How | When it fails |
+|---|---|---|
+| The Windows version | the build number: WSL2 needs Windows 10 2004 or later, or Windows 11 | said in words, and no WSL way offered |
+| WSL is installed | `wsl.exe --status` | how to install WSL, as text |
+| WSL2, not WSL1 | `wsl.exe -l -v`, the `VERSION` column | WSL1 runs neither podman nor systemd; `wsl --set-version <distro> 2` is named, never run by the interface |
+| A supported distribution | `/etc/os-release`: Ubuntu 26.04 or later, Debian 13, Fedora 43 or 44 | "not supported", and no offer to set Sokar up |
+| systemd | `/etc/wsl.conf`, and `systemctl is-system-running` | the separate question with the restart, below |
+| Sokar and its daemon | `sokar --version`, then `sokar daemon connect` | the offer to set Sokar up, below |
+
+Fedora runs in WSL officially since Fedora 42 (`wsl --install FedoraLinux-<version>`). Its images
+usually have systemd on and SELinux off; Ubuntu's do not always have systemd on.
+
+## Setting up Sokar in a distribution that lacks it
+
+Part of stage 2. A person adds a WSL distribution in the wizard, and the interface finds no Sokar
+there, or no daemon running. Instead of a raw error it says so in words and offers to set Sokar up,
+as `sokar`'s B159 offers a remedy: the remedy shown, asked, done, checked again, and then the
+connection goes on.
+
+- **What it runs** is what Sokar's `doc/getting-started.md` says for the distribution's package
+  manager. On Ubuntu and Debian: the key to `/usr/share/keyrings/sokar.gpg`, the source line for
+  releases (snapshots only when the person asks for them, as that page's "Snapshots" section says),
+  `apt install sokar` and an agent. On Fedora: `/etc/yum.repos.d/sokar.repo` and `dnf install`.
+  Then `sokar setup` as the distribution's user. Each line is shown to the person before anything
+  runs.
+- **SELinux:** where it is off, as in Fedora's WSL images, the offer does not insist on Sokar's
+  SELinux module. `sokar doctor` already reads WSL2 that way.
+- **Root inside the distribution:** `wsl.exe -d <distro> -u root -- …` runs as root with no
+  password, for the Windows user who owns the distribution. The interface uses it only after the
+  person said yes to exactly the lines shown, never in the background, and records in the operations
+  record what it ran and what each line answered.
+- **Only on a system Sokar supports,** as the check above reads it. Any other distribution is told
+  why in words, with no offer.
+- **systemd:** a distribution without systemd (no `[boot] systemd=true` in `/etc/wsl.conf`) needs it
+  turned on and the distribution restarted (`wsl.exe --terminate <distro>`). The interface never
+  starts or restarts a distribution by itself, so it asks for that separately, says what it means
+  for anything running there, and the answer is no unless the person changes it.
+- **For a person who says no:** the same lines as text to copy.
+- **Acceptance:** on a Windows machine with a fresh supported distribution and no Sokar, the
+  interface offers the setup, the person says yes, Sokar is installed, and the distribution is
+  reached. In the operator's test after stage 2.
+
+**Questions for this part:**
+- After the person says yes to the restart, does the interface run `wsl.exe --terminate` and the
+  next call start the distribution again, or does the person restart it? The first starts a
+  distribution through the interface, which the rule above forbids otherwise.
+- Does `sokard` run for the distribution's user without a login session? `sokar setup` installs a
+  user service, and WSL starts no user session by itself; `loginctl enable-linger` may be needed,
+  and whether `sokar setup` does that is for `sokar` to say.
+- Which agent is installed when the person names none: the offer asks, or one is proposed?
+- Is the key fetched inside the distribution, or by the interface and checked against a fingerprint
+  the interface carries?
+
 ## Measured on Windows
 
 On 2026-10-10, on a Windows machine with WSL2, against the published `sokar` `0.4.2~snapshot.268`,
