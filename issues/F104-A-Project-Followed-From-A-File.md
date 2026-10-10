@@ -1,7 +1,7 @@
 # F104 — A Project Followed From A File
 
-**Status:** open; decided on 2026-10-10. Blocked by `sokar`: a bundle handed to the machine outside
-any task.
+**Status:** open; decided on 2026-10-10. Blocked by `sokar` B160, "A Project Followed From A File
+Over The Socket".
 
 **What must be true.** A person makes a project from a bundle or a directory on the machine, from
 the interface, as `sokar project follow NAME FILE` does. An offline project, which can come only
@@ -30,7 +30,9 @@ longer be made from the interface at all.
 - **A bundle from this computer has no way to the machine yet.** `HandIn` writes into a running
   task only. The shape preferred: `Follow` takes the bundle's bytes itself, so no file outlives
   the call. The other shape would be a method that keeps the bytes on the machine and answers the
-  path to give `Follow`. This is a `sokar` requirement, and it blocks this one.
+  path to give `Follow`. `sokar` B160 takes the first shape: the bytes go in the `Follow` call, the
+  daemon keeps the bundle where only the account reads it, and a bundle above a limit the contract
+  states is refused by name.
 
 ## The shape
 
